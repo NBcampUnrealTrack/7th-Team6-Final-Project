@@ -1,0 +1,14 @@
+{
+	"Targets": [
+		{
+			"Name": "PartTimeBeat",
+			"Path": "..\\Source\\PartTimeBeat.Target.cs",
+			"Type": "Game"
+		},
+		{
+			"Name": "PartTimeBeatEditor",
+			"Path": "..\\Source\\PartTimeBeatEditor.Target.cs",
+			"Type": "Editor"
+		}
+	]
+}
