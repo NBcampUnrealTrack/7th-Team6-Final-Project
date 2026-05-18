@@ -1,34 +1,87 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
+#include "PTBRhythmCharacterBase.h"
 
-#include "Characters/PTBRhythmCharacterBase.h"
+#include "Animation/AnimInstance.h"
+#include "Animation/AnimMontage.h"
+#include "Components/SkeletalMeshComponent.h"
 
-// Sets default values
+#include "AkComponent.h"
+#include "AkAudioEvent.h"
+
 APTBRhythmCharacterBase::APTBRhythmCharacterBase()
 {
- 	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bCanEverTick = false;
 
+	AkComponent = CreateDefaultSubobject<UAkComponent>(TEXT("AkComponent"));
+	AkComponent->SetupAttachment(GetRootComponent());
 }
 
-// Called when the game starts or when spawned
 void APTBRhythmCharacterBase::BeginPlay()
 {
 	Super::BeginPlay();
-	
+
+	if (USkeletalMeshComponent* MeshComponent = GetMesh())
+	{
+		AnimInstance = MeshComponent->GetAnimInstance();
+	}
 }
 
-// Called every frame
-void APTBRhythmCharacterBase::Tick(float DeltaTime)
+void APTBRhythmCharacterBase::PlaySuccessAnim()
 {
-	Super::Tick(DeltaTime);
+	PlayCustomAnim(SuccessMontage);
 
+	if (SuccessAkEvent && AkComponent)
+	{
+		AkComponent->PostAkEvent(SuccessAkEvent);
+	}
 }
 
-// Called to bind functionality to input
-void APTBRhythmCharacterBase::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
+void APTBRhythmCharacterBase::PlayFailAnim()
 {
-	Super::SetupPlayerInputComponent(PlayerInputComponent);
+	PlayCustomAnim(FailMontage);
 
+	if (FailAkEvent && AkComponent)
+	{
+		AkComponent->PostAkEvent(FailAkEvent);
+	}
 }
 
+void APTBRhythmCharacterBase::PlayIdleAnim()
+{
+	PlayCustomAnim(IdleMontage);
+}
+
+void APTBRhythmCharacterBase::PlayCustomAnim(UAnimMontage* Montage)
+{
+	if (!AnimInstance || !Montage)
+	{
+		return;
+	}
+
+	AnimInstance->Montage_Play(Montage);
+}
+
+void APTBRhythmCharacterBase::PostCharacterSFX(FName EventKey)
+{
+	if (!AkComponent)
+	{
+		return;
+	}
+
+	// TODO:
+	// EventKey 기반으로 캐릭터 SFX 테이블 또는 맵에서 UAkAudioEvent를 찾아 재생
+	// 예: Success, Fail, Hit, Miss 등
+
+	if (EventKey == TEXT("Success") && SuccessAkEvent)
+	{
+		AkComponent->PostAkEvent(SuccessAkEvent);
+		return;
+	}
+
+	if (EventKey == TEXT("Fail") && FailAkEvent)
+	{
+		AkComponent->PostAkEvent(FailAkEvent);
+		return;
+	}
+}
