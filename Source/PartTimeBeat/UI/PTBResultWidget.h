@@ -1,129 +1,15 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
+// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
+#include "Core/PTBStructEnums.h"
 #include "PTBResultWidget.generated.h"
 
 class UButton;
 class UTextBlock;
 class UPanelWidget;
-
-UENUM(BlueprintType)
-enum class EPTBDifficulty : uint8
-{
-	Easy UMETA(DisplayName = "Easy"),
-	Standard UMETA(DisplayName = "Standard"),
-	Insane UMETA(DisplayName = "Insane")
-};
-
-UENUM(BlueprintType)
-enum class EPTBGradeType : uint8
-{
-	F UMETA(DisplayName = "F"),
-	D UMETA(DisplayName = "D"),
-	C UMETA(DisplayName = "C"),
-	B UMETA(DisplayName = "B"),
-	A UMETA(DisplayName = "A"),
-	S UMETA(DisplayName = "S")
-};
-
-USTRUCT(BlueprintType)
-struct FPTBMiniGameResultPayload
-{
-	GENERATED_BODY()
-
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "PTB|Result")
-	FName PayloadType = NAME_None;
-
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "PTB|Result")
-	TMap<FName, float> FloatValues;
-
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "PTB|Result")
-	TMap<FName, int32> IntValues;
-
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "PTB|Result")
-	TMap<FName, FString> StringValues;
-};
-
-USTRUCT(BlueprintType)
-struct FPTBRoundResult
-{
-	GENERATED_BODY()
-
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "PTB|Result")
-	FGuid ProfileId;
-
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "PTB|Result")
-	FName MiniGameId = NAME_None;
-
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "PTB|Result")
-	EPTBDifficulty Difficulty = EPTBDifficulty::Standard;
-
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "PTB|Result")
-	int32 Score = 0;
-
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "PTB|Result")
-	int32 HighPerfectCount = 0;
-
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "PTB|Result")
-	int32 PerfectCount = 0;
-
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "PTB|Result")
-	int32 GoodCount = 0;
-
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "PTB|Result")
-	int32 MissCount = 0;
-
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "PTB|Result")
-	int32 MaxCombo = 0;
-
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "PTB|Result")
-	float AccuracyRate = 0.0f;
-
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "PTB|Result")
-	EPTBGradeType Grade = EPTBGradeType::F;
-
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "PTB|Result")
-	int32 StarCount = 0;
-
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "PTB|Result")
-	int32 EarnedMoney = 0;
-
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "PTB|Result")
-	bool bIsNewHighScore = false;
-
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "PTB|Result")
-	FPTBMiniGameResultPayload MiniGamePayload;
-};
-
-USTRUCT(BlueprintType)
-struct FPTBRewardSummary
-{
-	GENERATED_BODY()
-
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "PTB|Reward")
-	int32 EarnedMoney = 0;
-
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "PTB|Reward")
-	int32 EarnedStars = 0;
-
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "PTB|Reward")
-	int32 TotalMoney = 0;
-
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "PTB|Reward")
-	int32 TotalStars = 0;
-
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "PTB|Reward")
-	TArray<FName> NewlyUnlockedMiniGames;
-
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "PTB|Reward")
-	TArray<FName> NewlyUnlockedStories;
-
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "PTB|Reward")
-	TArray<FName> NewlyUnlockedCostumes;
-};
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FPTBResultWidgetEvent);
 
