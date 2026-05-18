@@ -3,6 +3,9 @@
 
 #include "PTBStructEnums.generated.h"
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnBeatTick, float, Beat);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnBarTick, int32, Bar);
+
 UENUM(BlueprintType)
 enum class EGameFlowState : uint8
 {
