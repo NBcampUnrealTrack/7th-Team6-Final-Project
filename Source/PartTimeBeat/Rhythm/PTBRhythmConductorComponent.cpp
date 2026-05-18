@@ -1,6 +1,3 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
-
 #include "Rhythm/PTBRhythmConductorComponent.h"
 
 // Sets default values for this component's properties
@@ -32,3 +29,30 @@ void UPTBRhythmConductorComponent::TickComponent(float DeltaTime, ELevelTick Tic
 	// ...
 }
 
+void UPTBRhythmConductorComponent::StartConductor(const FPTBChartData & Data, int32 PlayingId)
+{
+}
+void UPTBRhythmConductorComponent::PauseConductor()
+{
+
+}
+
+void UPTBRhythmConductorComponent::ResumeConductor()
+{
+
+}
+
+void UPTBRhythmConductorComponent::StopConductor()
+{
+
+}
+
+float UPTBRhythmConductorComponent::GetCurrentMusicTimeMs() const
+{
+	return 0;
+}
+
+float UPTBRhythmConductorComponent::GetCurrentBeat() const
+{
+	return 0;
+}

@@ -1,12 +1,14 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
-
 #include "Rhythm/PTBRhythmChartAsset.h"
 
-PTBRhythmChartAsset::PTBRhythmChartAsset()
+bool UPTBRhythmChartAsset::ValidateChart(TArray<FText>& OutErrors) const
 {
+	return true;
 }
-
-PTBRhythmChartAsset::~PTBRhythmChartAsset()
+TArray<FPTBNoteEvent> UPTBRhythmChartAsset::GetNotesInBeatRange(float Start, float End) const
 {
+	return TArray<FPTBNoteEvent>();
+}
+bool UPTBRhythmChartAsset::LoadFromJson(const FString& JsonPath)
+{
+	return true;
 }
