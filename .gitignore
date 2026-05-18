@@ -568,3 +568,11 @@ FodyWeavers.xsd
 # Additional files built by Visual Studio
 
 # End of https://www.toptal.com/developers/gitignore/api/unrealengine,visualstudio,rider
+
+# Wwise SDK payload required by the Unreal plugin.
+# Keep this after the generic Unreal/Visual Studio rules so Win32/, bin/,
+# *.dll, *.lib, and sample *.sln files inside ThirdParty stay trackable.
+!Plugins/
+!Plugins/Wwise/
+!Plugins/Wwise/ThirdParty/
+!Plugins/Wwise/ThirdParty/**

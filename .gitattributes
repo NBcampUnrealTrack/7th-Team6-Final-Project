@@ -5,3 +5,12 @@
 *.jpeg  filter=lfs diff=lfs merge=lfs -text
 *.tga   filter=lfs diff=lfs merge=lfs -text
 *.exr   filter=lfs diff=lfs merge=lfs -text
+
+# Wwise SDK binary payload
+Plugins/Wwise/ThirdParty/**/*.dll filter=lfs diff=lfs merge=lfs -text
+Plugins/Wwise/ThirdParty/**/*.lib filter=lfs diff=lfs merge=lfs -text
+Plugins/Wwise/ThirdParty/**/*.pdb filter=lfs diff=lfs merge=lfs -text
+Plugins/Wwise/ThirdParty/**/*.exe filter=lfs diff=lfs merge=lfs -text
+Plugins/Wwise/ThirdParty/**/*.so filter=lfs diff=lfs merge=lfs -text
+Plugins/Wwise/ThirdParty/**/*.dylib filter=lfs diff=lfs merge=lfs -text
+Plugins/Wwise/ThirdParty/**/*.a filter=lfs diff=lfs merge=lfs -text
