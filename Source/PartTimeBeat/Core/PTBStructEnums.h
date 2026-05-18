@@ -258,9 +258,7 @@ USTRUCT(BlueprintType)
 struct FPTBGameSessionRequest
 {
     GENERATED_BODY()
-
-public:
-
+    
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
     FGuid ProfileId;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
@@ -275,7 +273,6 @@ public:
     int32 RandomSeed;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
     int32 ExpectedPlayerCount;
-
 };
 
 USTRUCT(BlueprintType)
@@ -492,4 +489,22 @@ public:
 
     //UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
     //ENetRole NetRole;
+};
+
+USTRUCT(BlueprintType)
+struct FPTBLobbyPlayer
+{
+    GENERATED_BODY()
+
+    UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "PTB|Lobby")
+    FString PlayerId;
+
+    UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "PTB|Lobby")
+    FString Nickname;
+
+    UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "PTB|Lobby")
+    bool bReady = false;
+
+    UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "PTB|Lobby")
+    bool bIsHost = false;
 };
