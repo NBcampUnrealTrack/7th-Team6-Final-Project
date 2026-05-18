@@ -1,0 +1,47 @@
+{
+ "SoundBanksInfo": {
+  "Platform": "Windows",
+  "BasePlatform": "Windows",
+  "SchemaVersion": "16",
+  "SoundBankVersion": "150",
+  "SoundBanks": [
+   {
+    "Id": "1831431028",
+    "Type": "User",
+    "GUID": "{D2017E67-0CC6-4319-9032-8F4A2B46ABB6}",
+    "Language": "SFX",
+    "Hash": "{C6E532A8-2C30-07AD-A6B2-A0BF9D80C97E}",
+    "ObjectPath": "\\SoundBanks\\Default Work Unit\\testSoundBank",
+    "ShortName": "testSoundBank",
+    "Path": "testSoundBank.bnk",
+    "Media": [
+     {
+      "Id": "166282579",
+      "Language": "SFX",
+      "Streaming": "false",
+      "Location": "Memory",
+      "ShortName": "766542__mrgungus__bat-swoosh.wav",
+      "CachePath": "SFX/766542__mrgungus__bat-swoosh_818F3B66.wem"
+     }
+    ],
+    "Events": [
+     {
+      "Id": "1097980931",
+      "Name": "testevent",
+      "ObjectPath": "\\Events\\Default Work Unit\\testevent",
+      "GUID": "{ADDC300C-B194-4C2B-B47E-56BA41EA2F36}",
+      "DurationType": "OneShot",
+      "DurationMin": "0.92904764",
+      "DurationMax": "0.92904764",
+      "MediaRefs": [
+       {
+        "Id": "166282579"
+       }
+      ]
+     }
+    ]
+   }
+  ],
+  "FileHash": "{5B6C893C-47CD-70EA-F00E-EC1577C62E03}"
+ }
+}
