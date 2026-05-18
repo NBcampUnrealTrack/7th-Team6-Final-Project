@@ -4,6 +4,25 @@
 #include "PTBStructEnums.generated.h"
 
 UENUM(BlueprintType)
+enum class EGameFlowState : uint8
+{
+    MainMenu      UMETA(DisplayName = "게임 실행 직후"),
+    ProfileSelect        UMETA(DisplayName = "메인에서 시작 클릭"),
+    ProfileCreate       UMETA(DisplayName = "신규 프로필 생성"),
+    ModeSelect    UMETA(DisplayName = "프로필 선택 완료"),
+    MiniGameSelect    UMETA(DisplayName = "싱글 모드 선택"),
+    DifficultySelect    UMETA(DisplayName = "미니게임 선택"),
+    Tutorial    UMETA(DisplayName = "첫 플레이 or 사용자 요청"),
+    InGame    UMETA(DisplayName = "카운트다운 완료"),
+    Paused    UMETA(DisplayName = "일시정지"),
+    Result    UMETA(DisplayName = "라운드 종료"),
+    StoryViewer    UMETA(DisplayName = "스토리 챕터 해금"),
+    Settings    UMETA(DisplayName = "설정 진입"),
+    MultiLobby    UMETA(DisplayName = "멀티 진입")
+};
+
+
+UENUM(BlueprintType)
 enum class EPTBActionType : uint8
 {
     None      UMETA(DisplayName = "기본값/미사용"),
