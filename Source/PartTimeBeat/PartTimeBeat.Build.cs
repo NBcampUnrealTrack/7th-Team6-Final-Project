@@ -18,8 +18,9 @@ public class PartTimeBeat : ModuleRules
 			"StateTreeModule",
 			"GameplayStateTreeModule",
 			"UMG",
-			"Slate"
-		});
+			"Slate",
+            "AkAudio"
+        });
 
 		PrivateDependencyModuleNames.AddRange(new string[] { });
 

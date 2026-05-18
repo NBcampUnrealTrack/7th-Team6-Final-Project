@@ -7,8 +7,6 @@
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnNoteCue, FPTBNoteEvent, NoteEvent);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnNoteEvent, FPTBNoteEvent, NoteEvent);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnBeatTick, float, Beat);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnBarTick, int32, Bar);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnChartEnd);
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
