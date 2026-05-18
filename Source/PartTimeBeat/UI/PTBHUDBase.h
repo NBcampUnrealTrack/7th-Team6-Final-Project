@@ -14,7 +14,7 @@ class UButton;
  * - 공통 입력 버튼(일시정지 등) 바인딩 포인트
  * 자식 HUD에서 재사용하기 위한 기반 역할을 담당
  */
-UCLASS()
+UCLASS(Abstract, Blueprintable)
 class PARTTIMEBEAT_API UPTBHUDBase : public UUserWidget
 {
 	GENERATED_BODY()
