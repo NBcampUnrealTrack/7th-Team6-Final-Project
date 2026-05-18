@@ -508,3 +508,24 @@ struct FPTBLobbyPlayer
     UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "PTB|Lobby")
     bool bIsHost = false;
 };
+
+USTRUCT(BlueprintType)
+struct FPTBPlayerRanking
+{
+    GENERATED_BODY()
+
+    UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "PTB|Ranking")
+    FString PlayerId;
+
+    UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "PTB|Ranking")
+    int32 Rank = 0;
+
+    UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "PTB|Ranking")
+    int32 Score = 0;
+
+    UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "PTB|Ranking")
+    int32 MaxCombo = 0;
+
+    UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "PTB|Ranking")
+    float AccuracyRate = 0.0f;
+};
