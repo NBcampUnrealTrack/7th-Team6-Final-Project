@@ -2,33 +2,33 @@
 
 
 #include "Tutorial/PTBTutorialManager.h"
-
+#include "Core/PTBStructEnums.h"
 // Sets default values for this component's properties
 UPTBTutorialManager::UPTBTutorialManager()
 {
-	// Set this component to be initialized when the game starts, and to be ticked every frame.  You can turn these features
-	// off to improve performance if you don't need them.
-	PrimaryComponentTick.bCanEverTick = true;
-
-	// ...
 }
 
-
-// Called when the game starts
-void UPTBTutorialManager::BeginPlay()
+bool UPTBTutorialManager::ShouldShowTutorial(FName GameId, const FString& ProfileId) const
 {
-	Super::BeginPlay();
-
-	// ...
-	
+	return true;
 }
 
-
-// Called every frame
-void UPTBTutorialManager::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
+void UPTBTutorialManager::StartTutorial(FName GameId)
 {
-	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-
-	// ...
+   
 }
 
+void UPTBTutorialManager::AdvanceStep()
+{
+    
+}
+
+void UPTBTutorialManager::SkipTutorial()
+{
+
+}
+
+void UPTBTutorialManager::CompleteTutorial(FName GameId, const FString& ProfileId)
+{
+
+}
