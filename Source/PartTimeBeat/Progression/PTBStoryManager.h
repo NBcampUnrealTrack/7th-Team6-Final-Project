@@ -6,20 +6,24 @@
 #include "Core/PTBStructEnums.h"
 #include "PTBStoryManager.generated.h"
 
-/**
- * 
- */
-
 DECLARE_DYNAMIC_DELEGATE_OneParam(FOnChapterUnlocked,FName, ChapterId);
 DECLARE_DYNAMIC_DELEGATE_OneParam(FOnChapterCompleted,FName, ChapterId);
 DECLARE_DYNAMIC_DELEGATE_OneParam(FOnEndingTriggered,FName, EndingId);
+
+/**
+ * 스토리 챕터의 해금 조건, 시청 상태, 결과 후 스토리 진입 여부 관리
+ * 라운드 결과에 따른 신규 스토리 해금 판단
+ * 결과 화면 이후 재생할 PendingStoryId 관리
+ * 챕터 재생/스킵/시청 완료 상태 관리
+ * 누적 알바비 기반 엔딩 분기 결정
+ */
 UCLASS()
 class PARTTIMEBEAT_API UPTBStoryManager : public UObject
 {
 	GENERATED_BODY()
+	
 public:
 	UPTBStoryManager();
-	
 	
 	/**챕터 재생 시작*/
 	UFUNCTION()
@@ -61,11 +65,12 @@ protected:
 		
 	/**결과직후 재생여부 */
 	UFUNCTION()
-	bool ShouldPlayStoryAfterResult(const FPTBRoundResult& Result,FName OutId);
+	bool ShouldPlayStoryAfterResult(const FPTBRoundResult& Result, FName& OutId);
 	
 	/**알바비에 따른 엔딩*/
 	UFUNCTION()
 	FName ResolveEndingByMoney(int32 TotalMoney)const;
+	
 private:
 	/** 전체 챕터*/
 	UPROPERTY()
