@@ -6,10 +6,15 @@
 #include "Core/PTBStructEnums.h"
 #include "PTBStageUnlockManager.generated.h"
 
-/**
- * 
- */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnStageUnlocked, FName, StageId);
+
+/**
+ * 미니게임/스테이지 해금 상태와 별점 기반 진행도 관리
+ * 미니게임 플레이 가능 여부 확인
+ * 라운드 결과를 반영해 최고 점수/최고 별점 갱신
+ * 누적 별점 계산
+ * 신규 스테이지 해금 판단 및 OnStageUnlocked 브로드캐스트
+ */
 UCLASS()
 class PARTTIMEBEAT_API UPTBStageUnlockManager : public UObject
 {
