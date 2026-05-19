@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
@@ -42,6 +42,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "PTB|Character")
 	virtual void PostCharacterSFX(FName EventKey);
 
+
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Character")
 	FName CharacterId = NAME_None;
@@ -66,4 +67,65 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Animation")
 	TObjectPtr<UAnimMontage> IdleMontage = nullptr;
+
+public:
+    //키 바인딩 관련 
+    // 키 입력 전달 — MiniGame 등에서 호출
+    UFUNCTION(BlueprintCallable, Category = "Input")
+    void HandleInput(FKey Key);
+
+    // 키 바인딩은 C++ 전용 (TFunction은 UPROPERTY 불가)
+    void BindAction(FKey Key, TFunction<void()> Fn);
+
+    // ── 행동 함수들 ──────────────────────────────────────────
+    // BP 서브클래스에서 오버라이드 가능
+
+    UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Actions")
+    void MoveLeft();
+    virtual void MoveLeft_Implementation();
+
+    UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Actions")
+    void MoveRight();
+    virtual void MoveRight_Implementation();
+
+    UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Actions")
+    void MoveUp();   
+    virtual void MoveUp_Implementation();
+
+    UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Actions")
+    void MoveDown();
+    virtual void MoveDown_Implementation();
+
+    UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Actions")
+    void Interact();
+    virtual void Interact_Implementation();
+
+    // 선택적 행동 — 필요한 캐릭터만 _Implementation 오버라이드
+    UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Actions")
+    void Note1();
+    virtual void Note1_Implementation() {}
+
+    UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Actions")
+    void Note2();
+    virtual void Note2_Implementation() {}
+
+    UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Actions")
+    void Note3();
+    virtual void Note3_Implementation() {}
+
+    UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Actions")
+    void Note4();
+    virtual void Note4_Implementation() {}
+
+    UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Actions")
+    void Note5();
+    virtual void Note5_Implementation() {}
+
+protected:
+    // 에디터에서 편집 가능한 스탯
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats")
+    float MoveSpeed = 300.f;
+
+private:
+    TMap<FKey, TFunction<void()>> Actions;
 };
