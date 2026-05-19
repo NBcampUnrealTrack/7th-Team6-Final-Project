@@ -19,6 +19,8 @@ public class PartTimeBeat : ModuleRules
 			"GameplayStateTreeModule",
 			"UMG",
 			"Slate",
+			"Json",
+			"JsonUtilities",
             "AkAudio"
         });
 
