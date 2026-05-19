@@ -1,65 +1,216 @@
 #include "Audio/PTBWwiseAudioManager.h"
 
+#include "AkAudioDevice.h"
+#include "AkAudioEvent.h"
+#include "AkComponent.h"
+#include "AkGameplayStatics.h"
+#include "AK/SoundEngine/Common/AkSoundEngine.h"
+
+UPTBWwiseAudioManager::UPTBWwiseAudioManager()
+{
+	MainAkComponent = nullptr;
+	MasterBusID = 0;
+	CurrentBGMPlayingId = 0;
+	bIsBGMPlaying = false;
+}
+
 bool UPTBWwiseAudioManager::LoadSoundBank(FName BankName)
 {
-	return true;
+	if (BankName.IsNone())
+	{
+		return false;
+	}
+
+	if (LoadedBanks.Contains(BankName))
+	{
+		return true;
+	}
+
+	FAkAudioDevice* AudioDevice = FAkAudioDevice::Get();
+	if (!AudioDevice)
+	{
+		return false;
+	}
+
+	AkBankID BankId = AK_INVALID_BANK_ID;
+	const AKRESULT Result = AudioDevice->LoadBank(BankName.ToString(), BankId);
+	if (Result == AK_Success)
+	{
+		LoadedBanks.Add(BankName);
+		return true;
+	}
+
+	return false;
 }
+
 void UPTBWwiseAudioManager::UnloadSoundBank(FName BankName)
 {
+	if (BankName.IsNone() || !LoadedBanks.Contains(BankName))
+	{
+		return;
+	}
 
+	if (FAkAudioDevice* AudioDevice = FAkAudioDevice::Get())
+	{
+		AudioDevice->UnloadBank(BankName.ToString());
+	}
+
+	LoadedBanks.Remove(BankName);
 }
+
 void UPTBWwiseAudioManager::UnloadAllBanks()
 {
+	for (const FName& BankName : LoadedBanks)
+	{
+		if (FAkAudioDevice* AudioDevice = FAkAudioDevice::Get())
+		{
+			AudioDevice->UnloadBank(BankName.ToString());
+		}
+	}
 
+	LoadedBanks.Reset();
 }
 
-int32 UPTBWwiseAudioManager::PostEvent(FName EventKey, AActor* Target = nullptr)
+int32 UPTBWwiseAudioManager::PostEvent(FName EventKey, AActor* Target)
 {
+	const TObjectPtr<UAkAudioEvent>* FoundEvent = EventMap.Find(EventKey);
+	if (!FoundEvent || !FoundEvent->Get())
+	{
+		return 0;
+	}
+
+	if (Target)
+	{
+		return UAkGameplayStatics::PostEvent(FoundEvent->Get(), Target, 0, FOnAkPostEventCallback(), false);
+	}
+
+	if (MainAkComponent)
+	{
+		return MainAkComponent->PostAkEvent(FoundEvent->Get(), 0, FOnAkPostEventCallback());
+	}
+
 	return 0;
 }
+
 int32 UPTBWwiseAudioManager::PostBGMEvent(FName EventKey)
 {
-	return 0;
+	const TObjectPtr<UAkAudioEvent>* FoundEvent = EventMap.Find(EventKey);
+	if (!FoundEvent || !FoundEvent->Get() || !MainAkComponent)
+	{
+		return 0;
+	}
+
+	FOnAkPostEventCallback Callback;
+	Callback.BindDynamic(this, &UPTBWwiseAudioManager::HandleBGMPostEventCallback);
+
+	const int32 CallbackMask = AK_EndOfEvent | AK_EnableGetSourcePlayPosition;
+	CurrentBGMPlayingId = MainAkComponent->PostAkEvent(FoundEvent->Get(), CallbackMask, Callback);
+	bIsBGMPlaying = CurrentBGMPlayingId != 0;
+
+	return CurrentBGMPlayingId;
 }
-int32 UPTBWwiseAudioManager::PostSFXEvent(FName EventKey, AActor* Target = nullptr)
+
+int32 UPTBWwiseAudioManager::PostSFXEvent(FName EventKey, AActor* Target)
 {
-	return 0;
+	return PostEvent(EventKey, Target);
 }
+
 void UPTBWwiseAudioManager::StopBGM(float FadeOutMs)
 {
+	if (CurrentBGMPlayingId == 0)
+	{
+		return;
+	}
+
+	if (FAkAudioDevice* AudioDevice = FAkAudioDevice::Get())
+	{
+		AudioDevice->StopPlayingID(static_cast<AkPlayingID>(CurrentBGMPlayingId), static_cast<AkTimeMs>(FMath::Max(0.0f, FadeOutMs)));
+	}
+
+	bIsBGMPlaying = false;
+	CurrentBGMPlayingId = 0;
 }
+
 void UPTBWwiseAudioManager::PauseBGM()
 {
+	if (CurrentBGMPlayingId != 0)
+	{
+		AK::SoundEngine::ExecuteActionOnPlayingID(AK::SoundEngine::AkActionOnEventType_Pause, static_cast<AkPlayingID>(CurrentBGMPlayingId));
+	}
 }
+
 void UPTBWwiseAudioManager::ResumeBGM()
 {
+	if (CurrentBGMPlayingId != 0)
+	{
+		AK::SoundEngine::ExecuteActionOnPlayingID(AK::SoundEngine::AkActionOnEventType_Resume, static_cast<AkPlayingID>(CurrentBGMPlayingId));
+	}
 }
 
 
-void UPTBWwiseAudioManager::SetRTPC(FName Name, float Value, AActor* Target = nullptr)
+void UPTBWwiseAudioManager::SetRTPC(FName Name, float Value, AActor* Target)
 {
-
+	if (!Name.IsNone())
+	{
+		UAkGameplayStatics::SetRTPCValue(nullptr, Value, 0, Target, Name);
+	}
 }
+
 void UPTBWwiseAudioManager::SetState(FName Group, FName State)
 {
-
+	if (!Group.IsNone() && !State.IsNone())
+	{
+		UAkGameplayStatics::SetState(nullptr, Group, State);
+	}
 }
 
 void UPTBWwiseAudioManager::SetSwitch(FName Group, FName Switch, AActor* Target)
 {
-
+	if (!Group.IsNone() && !Switch.IsNone())
+	{
+		UAkGameplayStatics::SetSwitch(nullptr, Target, Group, Switch);
+	}
 }
 
 void UPTBWwiseAudioManager::ApplySettings(const FPTBUserSettings& Settings)
 {
-
+	SetRTPC(TEXT("MasterVolume"), Settings.MasterVolume, nullptr);
+	SetRTPC(TEXT("BGMVolume"), Settings.BGMVolume, nullptr);
+	SetRTPC(TEXT("SFXVolume"), Settings.SFXVolume, nullptr);
 }
 
 float UPTBWwiseAudioManager::GetPlaybackPositionMs(int32 PlayingId) const
 {
-	return 0;
+	if (PlayingId == 0)
+	{
+		return 0.0f;
+	}
+
+	AkTimeMs PositionMs = 0;
+	const AKRESULT Result = AK::SoundEngine::GetSourcePlayPosition(static_cast<AkPlayingID>(PlayingId), &PositionMs, true);
+	return Result == AK_Success ? static_cast<float>(PositionMs) : 0.0f;
 }
+
 bool UPTBWwiseAudioManager::IsEventPlaying(int32 PlayingId) const
 {
-	return true;
+	if (PlayingId == 0)
+	{
+		return false;
+	}
+
+	AkTimeMs PositionMs = 0;
+	return AK::SoundEngine::GetSourcePlayPosition(static_cast<AkPlayingID>(PlayingId), &PositionMs, true) == AK_Success;
+}
+
+void UPTBWwiseAudioManager::HandleBGMPostEventCallback(EAkCallbackType CallbackType, UAkCallbackInfo* CallbackInfo)
+{
+	if (CallbackType != EAkCallbackType::EndOfEvent)
+	{
+		return;
+	}
+
+	const int32 FinishedPlayingId = CurrentBGMPlayingId;
+	bIsBGMPlaying = false;
+	CurrentBGMPlayingId = 0;
+	OnBGMFinished.Broadcast(FinishedPlayingId);
 }

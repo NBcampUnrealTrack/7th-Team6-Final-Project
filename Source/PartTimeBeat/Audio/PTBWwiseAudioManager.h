@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "UObject/NoExportTypes.h"
 #include "AkInclude.h"
+#include "AkGameplayTypes.h"
 #include "Core/PTBStructEnums.h"
 #include "PTBWwiseAudioManager.generated.h"
 
@@ -12,19 +13,39 @@ class UAkAudioEvent;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnBGMFinished, int32, PlayingId);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnBeatCallback, float, Beat);
 
+/**
+ * Wwise 이벤트 재생과 음악 재생 위치 조회를 담당하는 런타임 오디오 매니저입니다.
+ *
+ * 리듬 판정의 기준 시간은 이 매니저가 보관한 BGM PlayingId를 통해 Wwise에서 조회합니다.
+ * 미니게임과 RhythmConductor는 직접 Wwise API를 호출하지 않고 이 매니저를 통해 BGM, SFX, RTPC, State, Switch를 요청합니다.
+ */
 UCLASS()
 class PARTTIMEBEAT_API UPTBWwiseAudioManager : public UObject
 {
 	GENERATED_BODY()
 public: 
-	// 글로벌 AkComponent(월드 위치 없는 글로벌 사운드)
-	UAkComponent* MainAkComponent;
-	//	로드된 SoundBank 목록
+	/** 기본값 초기화 */
+	UPTBWwiseAudioManager();
+
+	/** 글로벌 AkComponent */
+	UPROPERTY()
+	TObjectPtr<UAkComponent> MainAkComponent = nullptr;
+
+	/** 로드된 SoundBank 목록 */
 	TSet<FName> LoadedBanks;
-	//	이벤트 키 → 실제 이벤트 매핑
-	TMap<FName, UAkAudioEvent*> EventMap;
-	//	Master Bus ID
-	AkUniqueID MasterBusID;
+
+	/** 이벤트 키와 Wwise 이벤트 Asset 매핑 */
+	UPROPERTY(EditAnywhere, Category = "PTB|Audio")
+	TMap<FName, TObjectPtr<UAkAudioEvent>> EventMap;
+
+	/** Master Bus ID */
+	AkUniqueID MasterBusID = 0;
+
+	/** 현재 BGM PlayingId */
+	int32 CurrentBGMPlayingId = 0;
+
+	/** BGM 재생 중 여부 */
+	bool bIsBGMPlaying = false;
 
 	UPROPERTY(BlueprintAssignable, Category = "Rhythm")
 	FOnBGMFinished OnBGMFinished;
@@ -36,30 +57,44 @@ public:
 	void UnloadSoundBank(FName BankName);
 	void UnloadAllBanks();
 
-	//	일반 이벤트, PlayingId 반환
+	/** 일반 이벤트 재생 */
 	int32 PostEvent(FName EventKey, AActor* Target);
-	//	BGM(PlayingId 보존)
+
+	/** BGM 이벤트 재생 */
 	int32 PostBGMEvent(FName EventKey);
-	//	SFX
+
+	/** SFX 이벤트 재생 */
 	int32 PostSFXEvent(FName EventKey, AActor* Target);
-	//	BGM 정지
+
+	/** BGM 정지 */
 	void StopBGM(float FadeOutMs);
-	//	BGM 일시정지 
+
+	/** BGM 일시정지 */
 	void PauseBGM();
-	// BGM 재개
+
+	/** BGM 재개 */
 	void ResumeBGM();
 
-	// RTPC 설정
+	/** RTPC 설정 */
 	void SetRTPC(FName Name, float Value, AActor* Target);
-	//	Wwise State
+
+	/** Wwise State 설정 */
 	void SetState(FName Group, FName State);
-	//	Wwise Switch
+
+	/** Wwise Switch 설정 */
 	void SetSwitch(FName Group, FName Switch, AActor* Target);
-	//	설정 전체 적용(볼륨 RTPC 등)
+
+	/** 사용자 오디오 설정 적용 */
 	void ApplySettings(const FPTBUserSettings& Settings);
 
-	// 재생 위치(Conductor 핵심)
+	/** Wwise 재생 위치 조회 */
 	float GetPlaybackPositionMs(int32 PlayingId) const;
-	//	재생 중 여부
+
+	/** 이벤트 재생 중 여부 */
 	bool IsEventPlaying(int32 PlayingId) const;
+
+private:
+	/** BGM EndOfEvent 콜백 */
+	UFUNCTION()
+	void HandleBGMPostEventCallback(EAkCallbackType CallbackType, UAkCallbackInfo* CallbackInfo);
 };
