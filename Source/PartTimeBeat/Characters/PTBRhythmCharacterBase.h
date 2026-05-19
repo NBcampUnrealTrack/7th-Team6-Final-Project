@@ -102,24 +102,24 @@ public:
 
     // 선택적 행동 — 필요한 캐릭터만 _Implementation 오버라이드
     UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Actions")
-    void Note1();
-    virtual void Note1_Implementation() {}
+    void HitNoteA();
+    virtual void HitNoteA_Implementation() {}
 
     UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Actions")
-    void Note2();
-    virtual void Note2_Implementation() {}
+    void HitNoteW();
+    virtual void HitNoteW_Implementation() {}
 
     UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Actions")
-    void Note3();
-    virtual void Note3_Implementation() {}
+    void HitNoteS();
+    virtual void HitNoteS_Implementation() {}
 
     UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Actions")
-    void Note4();
-    virtual void Note4_Implementation() {}
+    void HitNoteD();
+    virtual void HitNoteD_Implementation() {}
 
     UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Actions")
-    void Note5();
-    virtual void Note5_Implementation() {}
+    void HitNoteEnter();
+    virtual void HitNoteEnter_Implementation() {}
 
 protected:
     // 에디터에서 편집 가능한 스탯
