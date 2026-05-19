@@ -76,11 +76,6 @@ TArray<FName> UPTBStoryManager::CheckUnlockCondition(const FPTBRoundResult& Resu
 			StoryFlags.Add(Chapter.ChapterId);
 			NewlyUnlockedChapters.Add(Chapter.ChapterId);
 
-			if (PendingStoryId.IsNone())
-			{
-				PendingStoryId = Chapter.ChapterId;
-			}
-
 			UE_LOG(LogProgression, Log,
 				TEXT("[PTBProgression] Story chapter unlocked: %s"),
 				*Chapter.ChapterId.ToString());
@@ -96,8 +91,6 @@ bool UPTBStoryManager::ShouldPlayStoryAfterResult(const FPTBRoundResult& Result,
 {
 	OutId = NAME_None;
 
-	const TArray<FName> NewlyUnlockedChapters = CheckUnlockCondition(Result);
-
 	if (!PendingStoryId.IsNone())
 	{
 		OutId = PendingStoryId;
@@ -108,24 +101,26 @@ bool UPTBStoryManager::ShouldPlayStoryAfterResult(const FPTBRoundResult& Result,
 
 		return true;
 	}
+	
+	const TArray<FName> NewlyUnlockedChapters = CheckUnlockCondition(Result);
 
-	if (NewlyUnlockedChapters.Num() > 0)
+	if (NewlyUnlockedChapters.Num() <= 0)
 	{
-		OutId = NewlyUnlockedChapters[0];
-		PendingStoryId = OutId;
+		UE_LOG(LogProgression, Verbose,
+			TEXT("[PTBProgression] No story to play after result. MiniGame=%s"),
+			*Result.MiniGameId.ToString());
 
-		UE_LOG(LogProgression, Log,
-			TEXT("[PTBProgression] Story selected after result: %s"),
-			*OutId.ToString());
-
-		return true;
+		return false;
 	}
 
-	UE_LOG(LogProgression, Verbose,
-		TEXT("[PTBProgression] No story to play after result. MiniGame=%s"),
-		*Result.MiniGameId.ToString());
+	PendingStoryId = NewlyUnlockedChapters[0];
+	OutId = PendingStoryId;
 
-	return false;
+	UE_LOG(LogProgression, Log,
+		TEXT("[PTBProgression] Story selected after result: %s"),
+		*OutId.ToString());
+
+	return true;
 }
 
 void UPTBStoryManager::PlayChapter(FName ChapterId)
