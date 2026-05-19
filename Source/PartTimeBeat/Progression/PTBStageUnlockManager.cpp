@@ -126,7 +126,7 @@ FPTBRewardSummary UPTBStageUnlockManager::ApplyRoundResult(const FPTBRoundResult
 	FPTBRewardSummary Summary;
 	Summary.EarnedMoney = Result.EarnedMoney;
 	Summary.EarnedStars = Result.StarCount;
-	Summary.TotalMoney = Result.EarnedMoney; // TODO(Save/Profile): 실제 총액으로 교체 필요
+	Summary.TotalMoney = 0; // TODO(Save/Profile): 누적 금액을 추적할 수 있게 되면 실제 총액으로 교체
 	Summary.TotalStars = TotalStars;
 
 	if (Result.MiniGameId.IsNone())
