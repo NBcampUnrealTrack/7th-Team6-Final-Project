@@ -61,9 +61,6 @@ void UPTBGameFlowSubsystem::SetFlowState(EGameFlowState NewState)
 			TEXT("[PTBFlow] SetFlowState: PTBGameInstance is not available."));
 	}
 	
-	PTBGI->CurrentFlowState = NewState;
-	PTBGI->OnFlowStateChanged.Broadcast(NewState);
-	
 	UE_LOG(LogFlow, Log, TEXT("[PTBFlow] Flow state changed: %s -> %s"),
 		*GetFlowStateName(OldState),
 		*GetFlowStateName(NewState));
