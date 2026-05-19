@@ -228,7 +228,7 @@ void UPTBGameFlowSubsystem::StartGameplay()
 	SetFlowState(EGameFlowState::InGame);
 }
 
-void UPTBGameFlowSubsystem::FinishGameplay(const FPTBRoundResult & Result)
+void UPTBGameFlowSubsystem::FinishGameplay(const FPTBRoundResult& Result)
 {
 	if (Result.MiniGameId.IsNone())
 	{
