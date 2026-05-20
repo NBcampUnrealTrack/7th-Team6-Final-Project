@@ -26,6 +26,7 @@ public:
 	FPTBUserSettings Settings;
 
 	/** GameID → 튜토리얼 완료 */
+	UPROPERTY()
 	TMap<FName, bool> TutorialFlags;
 
 	FString SaveSlotName = "PTBSave";

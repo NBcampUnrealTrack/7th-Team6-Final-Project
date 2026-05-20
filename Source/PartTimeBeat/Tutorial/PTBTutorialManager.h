@@ -16,10 +16,6 @@ struct FPTBTutorialStepRow : public FTableRowBase
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tutorial")
 	FName GameId; 
 	
-	//순서
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tutorial")
-	int32 StepIndex =0; 
-
 	//UI안내 텍스트
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tutorial")
 	FText InstructionText; 
@@ -49,47 +45,58 @@ public:
 	UPTBTutorialManager();
 	
 	/** 진입여부 필요?*/
-	UFUNCTION()
-	bool ShouldShowTutorial(FName GameId, const FString& ProfileId) const;
+	UFUNCTION(BlueprintCallable, Category = "Tutorial")
+	bool ShouldShowTutorial(FName GameId, const FString& ProfileId);
 	
-	UFUNCTION()
-	void StartTutorial(FName GameId);
+	/**튜토리얼 시작*/
+	UFUNCTION(BlueprintCallable, Category = "Tutorial")
+	void StartTutorial(FName GameId,const FString& ProfileId);
 	
-	UFUNCTION()
+	/**진행중인 스텝*/
+	UFUNCTION(BlueprintCallable, Category = "Tutorial")
 	void AdvanceStep();
 	
-	UFUNCTION()
+	/**튜토리얼 스킵*/
+	UFUNCTION(BlueprintCallable, Category = "Tutorial")
 	void SkipTutorial();
-	
-	UFUNCTION()
-	void CompleteTutorial(FName GameId,const FString& ProfileId);
 	
 	// 델리게이트용함수 두개
 	
-	/**튜토리얼 스텝이 넘어갈때 호출되는 함수 */
-	UPROPERTY()
+	/**튜토리얼 스텝이 넘어갈때 호출되는 델리게이트 */
+	UPROPERTY(BlueprintAssignable, Category = "Tutorial")
 	FOnTutorialStepChanged OnTutorialStepChanged;
     
-	/**튜토리얼 완료시 호출되는 함수 */
-	UPROPERTY()
+	/**튜토리얼 완료시 호출되는 델리게이트 */
+	UPROPERTY(BlueprintAssignable, Category = "Tutorial")
 	FOnTutorialCompleted OnTutorialCompleted;
-	
+
 protected:
-	UPROPERTY()
-	FName CurrentTutorialGameId;
-	
+	/**튜토리얼 완료*/
+	UFUNCTION(BlueprintCallable,Category="Tutorial")
+	void CompleteTutorial(FName GameId,const FString& ProfileId);
+
+private:
+	/**스킵가능 여부*/
 	UPROPERTY() 
 	bool bCanSkip;
 	
+	/** 튜토리얼 진행 중 */
 	UPROPERTY()
 	bool bIsTutorialActive;
 	
-	UPROPERTY()
-	int32 TutorialClearCount;
-	
+	/**현재 튜토리얼 스텝*/
 	UPROPERTY()
 	int32 CurrentStepIndex;
 	
-	UPROPERTY()
+	/**게임별 튜토리얼 스텝*/
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tutorial",meta=(AllowPrivateAccess="true"))
 	TObjectPtr<UDataTable> TutorialDataTable;
+	
+	/**튜토리얼 스텝을 넣을 배열*/
+	UPROPERTY()
+	TArray<FPTBTutorialStepRow> CurrentSteps;
+	
+	/** 프로필 아이디*/
+	UPROPERTY()
+	FString CurrentProfileId;
 };
