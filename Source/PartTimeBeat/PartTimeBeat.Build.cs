@@ -21,8 +21,9 @@ public class PartTimeBeat : ModuleRules
 			"Slate",
 			"Json",
 			"JsonUtilities",
-            "AkAudio"
-        });
+			"AkAudio",
+			"WwiseSoundEngine"
+		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] { });
 
