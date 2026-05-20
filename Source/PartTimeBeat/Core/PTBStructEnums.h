@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "CoreMinimal.h"
 
 #include "PTBStructEnums.generated.h"
@@ -191,46 +191,46 @@ public:
 };
 
 
-USTRUCT(BlueprintType)
-struct FPTBProfileData
-{
-    GENERATED_BODY()
-
-public:
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
-    FGuid ProfileId;
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
-    FString Nickname;
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
-    int32 Gender;
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
-    FDateTime Birthday;
-
-    //UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
-    //TSet CompletedTutorialIds;
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
-    TMap<FName, int32> BestScoresByMiniGame;
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
-    TMap<FName, int32> EarnedStarsByMiniGame;
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
-    int32 TotalEarnedMoney;
-
-    //UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
-    //TSet CompletedStoryIds;
-
-    //UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
-    //Set UnlockedCostumes;
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
-    FDateTime CreatedAt;
-};
+//USTRUCT(BlueprintType)
+//struct FPTBProfileData
+//{
+//    GENERATED_BODY()
+//
+//public:
+//
+//    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
+//    FGuid ProfileId;
+//
+//    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
+//    FString Nickname;
+//
+//    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
+//    int32 Gender;
+//
+//    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
+//    FDateTime Birthday;
+//
+//    //UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
+//    //TSet CompletedTutorialIds;
+//
+//    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
+//    TMap<FName, int32> BestScoresByMiniGame;
+//
+//    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
+//    TMap<FName, int32> EarnedStarsByMiniGame;
+//
+//    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
+//    int32 TotalEarnedMoney;
+//
+//    //UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
+//    //TSet CompletedStoryIds;
+//
+//    //UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
+//    //Set UnlockedCostumes;
+//
+//    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
+//    FDateTime CreatedAt;
+//};
 
 
 USTRUCT(BlueprintType)
