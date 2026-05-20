@@ -582,3 +582,9 @@ Plugins/Wwise/Source/WwiseSoundEngine/Public/Generated/Ak*Plugins.h
 
 # Unreal Engine Developers Folder
 Content/Developers/
+
+# Shared source files under Source/PartTimeBeat/Debug should be allowed despite
+# Visual Studio's generic [Dd]ebug/ build-output rule above.
+!Source/PartTimeBeat/Debug/
+!Source/PartTimeBeat/Debug/PTBTeamLog.h
+Source/PartTimeBeat/Debug/PTBFlowTestActor.*
