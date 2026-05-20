@@ -2,7 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Subsystems/GameInstanceSubsystem.h"
-#include "PTBStructEnums.h"
+#include "Core/PTBStructEnums.h"
 #include "PTBGameFlowSubsystem.generated.h"
 
 UCLASS()

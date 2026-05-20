@@ -1,7 +1,7 @@
-#include "Core/PTBGameFlowSubsystem.h"
+#include "Flow/PTBGameFlowSubsystem.h"
 
 #include "Core/PTBGameInstance.h"
-#include "Debug/PTBLogChannels.h"
+#include "Debug/PTBTeamLog.h"
 
 namespace
 {
@@ -34,7 +34,7 @@ void UPTBGameFlowSubsystem::SetFlowState(EGameFlowState NewState)
 {
 	if (CurrentFlowState == NewState)
 	{
-		UE_LOG(LogFlow, Verbose, TEXT("[PTBFlow] Ignore duplicated flow state: %s"),
+		PTB_VERBOSE(LogPTBFlow, TEXT("[PTBFlow] 중복 흐름 상태 무시: %s"),
 					*GetFlowStateName(NewState));
 		return;
 	}
@@ -57,11 +57,11 @@ void UPTBGameFlowSubsystem::SetFlowState(EGameFlowState NewState)
 	}
 	else
 	{
-		UE_LOG(LogFlow, Warning, 
-			TEXT("[PTBFlow] SetFlowState: PTBGameInstance is not available."));
+		PTB_WARNING(LogPTBFlow, 
+			TEXT("[PTBFlow] SetFlowState: PTBGameInstance를 사용할 수 없습니다."));
 	}
 	
-	UE_LOG(LogFlow, Log, TEXT("[PTBFlow] Flow state changed: %s -> %s"),
+	PTB_RECORD(LogPTBFlow, TEXT("[PTBFlow] 흐름 상태 변경: %s -> %s"),
 		*GetFlowStateName(OldState),
 		*GetFlowStateName(NewState));
 }
@@ -70,8 +70,8 @@ bool UPTBGameFlowSubsystem::SelectProfile(const FString& ProfileId)
 {
 	if (ProfileId.IsEmpty())
 	{
-		UE_LOG(LogFlow, Warning, 
-			TEXT("[PTBFlow] SelectProfile failed: ProfileId is empty."));
+		PTB_WARNING(LogPTBFlow, 
+			TEXT("[PTBFlow] SelectProfile 실패: ProfileId가 비어 있습니다."));
 		return false;
 	}
 	
@@ -82,20 +82,20 @@ bool UPTBGameFlowSubsystem::SelectProfile(const FString& ProfileId)
 	
 	if (!PTBGI)
 	{
-		UE_LOG(LogFlow, Warning, 
-			TEXT("[PTBFlow] SelectProfile failed: PTBGameInstance is not available."));
+		PTB_WARNING(LogPTBFlow, 
+			TEXT("[PTBFlow] SelectProfile 실패: PTBGameInstance를 사용할 수 없습니다."));
 		return false;
 	}
 	
 	// TODO(Integration): ProfileSubsystem이 안정화되면 프로필 유효성 검사를 그쪽으로 위임
 	if (!PTBGI->LoadProfile(ProfileId))
 	{
-		UE_LOG(LogFlow, Warning, 
-			TEXT("[PTBFlow] SelectProfile failed: ProfileId=%s"), *ProfileId);
+		PTB_WARNING(LogPTBFlow, 
+			TEXT("[PTBFlow] SelectProfile 실패: ProfileId=%s"), *ProfileId);
 		return false;
 	}
 
-	UE_LOG(LogFlow, Log, TEXT("[PTBFlow] Profile selected: %s"), *ProfileId);
+	PTB_RECORD(LogPTBFlow, TEXT("[PTBFlow] 프로필 선택: %s"), *ProfileId);
 
 	SetFlowState(EGameFlowState::ModeSelect);
 	return true;
@@ -114,12 +114,12 @@ void UPTBGameFlowSubsystem::SelectPlayMode(EPTBPlayMode InMode)
 	}
 	else
 	{
-		UE_LOG(LogFlow, Warning, 
-			TEXT("[PTBFlow] SelectPlayMode: PTBGameInstance is not available. Continue with local flow only."));
+		PTB_WARNING(LogPTBFlow, 
+			TEXT("[PTBFlow] SelectPlayMode: PTBGameInstance를 사용할 수 없습니다. 로컬 흐름만 계속 진행합니다."));
 	}
 
-	UE_LOG(LogFlow, Log, 
-		TEXT("[PTBFlow] Play mode selected: %s"), *GetPlayModeName(InMode));
+	PTB_RECORD(LogPTBFlow, 
+		TEXT("[PTBFlow] 플레이 모드 선택: %s"), *GetPlayModeName(InMode));
 
 	if (InMode == EPTBPlayMode::Single)
 	{
@@ -130,28 +130,28 @@ void UPTBGameFlowSubsystem::SelectPlayMode(EPTBPlayMode InMode)
 	if (InMode == EPTBPlayMode::Multiplayer)
 	{
 		// TODO(Multiplayer): SessionSubsystem/LobbyManager 연동 후 구현
-		UE_LOG(LogFlow, Warning, TEXT("[PTBFlow] Multiplayer flow is not implemented yet."));
+		PTB_WARNING(LogPTBFlow, TEXT("[PTBFlow] 멀티플레이 흐름은 아직 구현되지 않았습니다."));
 		SetFlowState(EGameFlowState::MultiLobby);
 		return;
 	}
 
-	UE_LOG(LogFlow, Warning, 
-		TEXT("[PTBFlow] SelectPlayMode failed: Unsupported play mode."));
+	PTB_WARNING(LogPTBFlow, 
+		TEXT("[PTBFlow] SelectPlayMode 실패: 지원하지 않는 플레이 모드입니다."));
 }
 
 bool UPTBGameFlowSubsystem::SelectMiniGame(FName InId) 
 {
 	if (InId.IsNone())
 	{
-		UE_LOG(LogFlow, Warning, TEXT("[PTBFlow] SelectMiniGame failed: MiniGameId is None."));
+		PTB_WARNING(LogPTBFlow, TEXT("[PTBFlow] SelectMiniGame 실패: MiniGameId가 None입니다."));
 		return false;
 	}
 
 	// TODO(Progression): StageUnlockManager::CanPlayMiniGame(InId)로 해금 여부 검사
 	SelectedMiniGameId = InId;
 
-	UE_LOG(LogFlow, Log, 
-		TEXT("[PTBFlow] MiniGame selected: %s"), *SelectedMiniGameId.ToString());
+	PTB_RECORD(LogPTBFlow, 
+		TEXT("[PTBFlow] 미니게임 선택: %s"), *SelectedMiniGameId.ToString());
 
 	SetFlowState(EGameFlowState::DifficultySelect);
 	return true;
@@ -161,14 +161,14 @@ void UPTBGameFlowSubsystem::SelectDifficulty(EPTBDifficulty InDiff)
 {
 	if (SelectedMiniGameId.IsNone())
 	{
-		UE_LOG(LogFlow, Warning, 
-			TEXT("[PTBFlow] SelectDifficulty failed: MiniGame is not selected."));
+		PTB_WARNING(LogPTBFlow, 
+			TEXT("[PTBFlow] SelectDifficulty 실패: 미니게임이 선택되지 않았습니다."));
 		return;
 	}
 
 	SelectedDifficulty = InDiff;
 
-	UE_LOG(LogFlow, Log, TEXT("[PTBFlow] Difficulty selected: %s"),
+	PTB_RECORD(LogPTBFlow, TEXT("[PTBFlow] 난이도 선택: %s"),
 		*GetDifficultyName(SelectedDifficulty));
 
 	// TODO(Tutorial): TutorialManager::ShouldShowTutorial() 연동 후 첫 플레이면 Tutorial 상태로 전환
@@ -179,8 +179,8 @@ void UPTBGameFlowSubsystem::StartGameplay()
 {
 	if (SelectedMiniGameId.IsNone())
 	{
-		UE_LOG(LogFlow, Warning, 
-			TEXT("[PTBFlow] StartGameplay failed: MiniGame is not selected."));
+		PTB_WARNING(LogPTBFlow, 
+			TEXT("[PTBFlow] StartGameplay 실패: 미니게임이 선택되지 않았습니다."));
 		return;
 	}
 
@@ -203,20 +203,20 @@ void UPTBGameFlowSubsystem::StartGameplay()
 	}
 	else
 	{
-		UE_LOG(LogFlow, Warning, 
-			TEXT("[PTBFlow] StartGameplay: PTBGameInstance is not available. ProfileId remains default."));
+		PTB_WARNING(LogPTBFlow, 
+			TEXT("[PTBFlow] StartGameplay: PTBGameInstance를 사용할 수 없습니다. ProfileId는 기본값으로 유지됩니다."));
 	}
 
 	if (PendingSessionRequest.PlayMode == EPTBPlayMode::Multiplayer)
 	{
 		// TODO(Multiplayer): Multiplayer 로직은 추후 구현
-		UE_LOG(LogFlow, Warning, 
-			TEXT("[PTBFlow] StartGameplay blocked: Multiplayer is not implemented yet."));
+		PTB_WARNING(LogPTBFlow, 
+			TEXT("[PTBFlow] StartGameplay 차단: 멀티플레이는 아직 구현되지 않았습니다."));
 		return;
 	}
 
-	UE_LOG(LogFlow, Log,
-		TEXT("[PTBFlow] Gameplay request created. Profile=%s MiniGame=%s Difficulty=%s PlayMode=%s Seed=%d"),
+	PTB_RECORD(LogPTBFlow,
+		TEXT("[PTBFlow] 게임플레이 요청 생성. 프로필=%s 미니게임=%s 난이도=%s 플레이모드=%s 시드=%d"),
 		*PendingSessionRequest.ProfileId.ToString(),
 		*PendingSessionRequest.MiniGameId.ToString(),
 		*GetDifficultyName(PendingSessionRequest.Difficulty),
@@ -232,12 +232,12 @@ void UPTBGameFlowSubsystem::FinishGameplay(const FPTBRoundResult& Result)
 {
 	if (Result.MiniGameId.IsNone())
 	{
-		UE_LOG(LogFlow, Warning, 
-			TEXT("[PTBFlow] FinishGameplay received result with empty MiniGameId."));
+		PTB_WARNING(LogPTBFlow, 
+			TEXT("[PTBFlow] FinishGameplay: MiniGameId가 비어 있는 결과를 받았습니다."));
 	}
 
-	UE_LOG(LogFlow, Log,
-		TEXT("[PTBFlow] Gameplay finished. Profile=%s MiniGame=%s Score=%d Stars=%d Grade=%d"),
+	PTB_RECORD(LogPTBFlow,
+		TEXT("[PTBFlow] 게임플레이 종료. 프로필=%s 미니게임=%s 점수=%d 별=%d 등급=%d"),
 		*Result.ProfileId.ToString(),
 		*Result.MiniGameId.ToString(),
 		Result.Score,
@@ -253,7 +253,7 @@ void UPTBGameFlowSubsystem::FinishGameplay(const FPTBRoundResult& Result)
 
 void UPTBGameFlowSubsystem::ReturnToMiniGameSelect() 
 {
-	UE_LOG(LogFlow, Log, TEXT("[PTBFlow] Return to MiniGameSelect."));
+	PTB_RECORD(LogPTBFlow, TEXT("[PTBFlow] 미니게임 선택 화면으로 돌아갑니다."));
 
 	SetFlowState(EGameFlowState::MiniGameSelect);
 }
@@ -262,11 +262,11 @@ void UPTBGameFlowSubsystem::OpenSettings()
 {
 	if (CurrentFlowState == EGameFlowState::Settings)
 	{
-		UE_LOG(LogFlow, Verbose, TEXT("[PTBFlow] OpenSettings ignored: already in Settings."));
+		PTB_VERBOSE(LogPTBFlow, TEXT("[PTBFlow] OpenSettings 무시: 이미 설정 화면입니다."));
 		return;
 	}
 
-	UE_LOG(LogFlow, Log, TEXT("[PTBFlow] Open Settings from %s."),
+	PTB_RECORD(LogPTBFlow, TEXT("[PTBFlow] 설정 화면 열기. 이전 상태=%s"),
 		*GetFlowStateName(CurrentFlowState));
 
 	SetFlowState(EGameFlowState::Settings);
@@ -276,21 +276,21 @@ void UPTBGameFlowSubsystem::CloseSettings()
 {
 	if (CurrentFlowState != EGameFlowState::Settings)
 	{
-		UE_LOG(LogFlow, Warning, 
-			TEXT("[PTBFlow] CloseSettings ignored: current state is %s."),
+		PTB_WARNING(LogPTBFlow, 
+			TEXT("[PTBFlow] CloseSettings 무시: 현재 상태=%s"),
 			*GetFlowStateName(CurrentFlowState));
 		return;
 	}
 
 	if (PreviousFlowState == EGameFlowState::Settings)
 	{
-		UE_LOG(LogFlow, Warning, 
-			TEXT("[PTBFlow] CloseSettings fallback: previous state is also Settings."));
+		PTB_WARNING(LogPTBFlow, 
+			TEXT("[PTBFlow] CloseSettings 대체 처리: 이전 상태도 설정 화면입니다."));
 		SetFlowState(EGameFlowState::MainMenu);
 		return;
 	}
 	
-	UE_LOG(LogFlow, Log, TEXT("[PTBFlow] Close Settings. Return to %s."),
+	PTB_RECORD(LogPTBFlow, TEXT("[PTBFlow] 설정 화면 닫기. 복귀 상태=%s"),
 		*GetFlowStateName(PreviousFlowState));
 
 	SetFlowState(PreviousFlowState);

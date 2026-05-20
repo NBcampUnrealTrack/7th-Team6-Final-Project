@@ -2,7 +2,7 @@
 
 #include "Progression/PTBStageUnlockManager.h"
 
-#include "Debug/PTBLogChannels.h"
+#include "Debug/PTBTeamLog.h"
 #include "Core/PTBStructEnums.h"
 
 namespace
@@ -43,8 +43,8 @@ UPTBStageUnlockManager::UPTBStageUnlockManager()
 		ProgressMap.Add(Stage.StageId, Stage);
 	}
 
-	UE_LOG(LogProgression, Log,
-		TEXT("[PTBProgression] StageUnlockManager initialized with temporary seed data. StageCount=%d"),
+	PTB_RECORD(LogPTBProgression,
+		TEXT("[PTBProgression] StageUnlockManager 초기화 완료. 임시 스테이지 데이터 수=%d"),
 		AllStages.Num());
 }
 
@@ -52,16 +52,16 @@ bool UPTBStageUnlockManager::IsStageUnlocked(FName StageId) const
 {
 	if (StageId.IsNone())
 	{
-		UE_LOG(LogProgression, Warning, 
-			TEXT("[PTBProgression] IsStageUnlocked failed: StageId is None."));
+		PTB_WARNING(LogPTBProgression,
+			TEXT("[PTBProgression] IsStageUnlocked 실패: StageId가 None입니다."));
 		return false;
 	}
 
 	const FPTBStageInfo* StageInfo = ProgressMap.Find(StageId);
 	if (!StageInfo)
 	{
-		UE_LOG(LogProgression, Warning, 
-			TEXT("[PTBProgression] IsStageUnlocked failed: Unknown StageId=%s"),
+		PTB_WARNING(LogPTBProgression,
+			TEXT("[PTBProgression] IsStageUnlocked 실패: 알 수 없는 StageId=%s"),
 			*StageId.ToString());
 		return false;
 	}
@@ -73,8 +73,8 @@ bool UPTBStageUnlockManager::CanPlayMiniGame(FName GameId) const
 {
 	if (GameId.IsNone())
 	{
-		UE_LOG(LogProgression, Warning, 
-			TEXT("[PTBProgression] CanPlayMiniGame failed: GameId is None."));
+		PTB_WARNING(LogPTBProgression,
+			TEXT("[PTBProgression] CanPlayMiniGame 실패: GameId가 None입니다."));
 		return false;
 	}
 
@@ -84,8 +84,8 @@ bool UPTBStageUnlockManager::CanPlayMiniGame(FName GameId) const
 
 		if (Stage.MiniGameId == GameId)
 		{
-			UE_LOG(LogProgression, Log, 
-				TEXT("[PTBProgression] CanPlayMiniGame: GameId=%s bUnlocked=%d"),
+			PTB_RECORD(LogPTBProgression,
+				TEXT("[PTBProgression] 미니게임 플레이 가능 여부 확인: GameId=%s 해금여부=%d"),
 				*GameId.ToString(),
 				Stage.bIsUnlocked);
 
@@ -93,8 +93,8 @@ bool UPTBStageUnlockManager::CanPlayMiniGame(FName GameId) const
 		}
 	}
 
-	UE_LOG(LogProgression, Warning, 
-		TEXT("[PTBProgression] CanPlayMiniGame failed: Unknown GameId=%s"),
+	PTB_WARNING(LogPTBProgression,
+		TEXT("[PTBProgression] CanPlayMiniGame 실패: 알 수 없는 GameId=%s"),
 		*GameId.ToString());
 
 	return false;
@@ -114,8 +114,8 @@ TArray<FPTBStageInfo> UPTBStageUnlockManager::GetUnlockedStages() const
 		}
 	}
 
-	UE_LOG(LogProgression, Verbose, 
-		TEXT("[PTBProgression] GetUnlockedStages: Count=%d"),
+	PTB_VERBOSE(LogPTBProgression,
+		TEXT("[PTBProgression] 해금된 스테이지 수=%d"),
 		UnlockedStages.Num());
 
 	return UnlockedStages;
@@ -131,8 +131,8 @@ FPTBRewardSummary UPTBStageUnlockManager::ApplyRoundResult(const FPTBRoundResult
 
 	if (Result.MiniGameId.IsNone())
 	{
-		UE_LOG(LogProgression, Warning, 
-			TEXT("[PTBProgression] ApplyRoundResult failed: MiniGameId is None."));
+		PTB_WARNING(LogPTBProgression,
+			TEXT("[PTBProgression] ApplyRoundResult 실패: MiniGameId가 None입니다."));
 		return Summary;
 	}
 
@@ -149,8 +149,8 @@ FPTBRewardSummary UPTBStageUnlockManager::ApplyRoundResult(const FPTBRoundResult
 
 	if (!TargetStage)
 	{
-		UE_LOG(LogProgression, Warning, 
-			TEXT("[PTBProgression] ApplyRoundResult failed: Unknown MiniGameId=%s"),
+		PTB_WARNING(LogPTBProgression,
+			TEXT("[PTBProgression] ApplyRoundResult 실패: 알 수 없는 MiniGameId=%s"),
 			*Result.MiniGameId.ToString());
 		return Summary;
 	}
@@ -174,8 +174,8 @@ FPTBRewardSummary UPTBStageUnlockManager::ApplyRoundResult(const FPTBRoundResult
 	Summary.EarnedStars = AddedStars;
 	Summary.TotalStars = TotalStars;
 
-	UE_LOG(LogProgression, Log,
-		TEXT("[PTBProgression] ApplyRoundResult: MiniGame=%s Score=%d->%d Stars=%d->%d Grade=%d->%d TotalStars=%d"),
+	PTB_RECORD(LogPTBProgression,
+		TEXT("[PTBProgression] 라운드 결과 반영: 미니게임=%s 점수=%d->%d 별=%d->%d 등급=%d->%d 총별=%d"),
 		*Result.MiniGameId.ToString(),
 		PreviousScore,
 		TargetStage->BestScore,
@@ -189,8 +189,8 @@ FPTBRewardSummary UPTBStageUnlockManager::ApplyRoundResult(const FPTBRoundResult
 
 	for (const FName& StageId : NewlyUnlockedStages)
 	{
-		UE_LOG(LogProgression, Log, 
-			TEXT("[PTBProgression] Stage unlocked: %s"), *StageId.ToString());
+		PTB_RECORD(LogPTBProgression,
+			TEXT("[PTBProgression] 스테이지 해금: %s"), *StageId.ToString());
 		OnStageUnlocked.Broadcast(StageId);
 	}
 
@@ -232,15 +232,15 @@ bool UPTBStageUnlockManager::CheckPrerequisites(FName StageId) const
 {
 	if (StageId.IsNone())
 	{
-		UE_LOG(LogProgression, Warning, 
-			TEXT("[PTBProgression] CheckPrerequisites failed: StageId is None."));
+		PTB_WARNING(LogPTBProgression,
+			TEXT("[PTBProgression] CheckPrerequisites 실패: StageId가 None입니다."));
 		return false;
 	}
 
 	if (!ProgressMap.Contains(StageId))
 	{
-		UE_LOG(LogProgression, Warning, 
-			TEXT("[PTBProgression] CheckPrerequisites failed: Unknown StageId=%s"),
+		PTB_WARNING(LogPTBProgression,
+			TEXT("[PTBProgression] CheckPrerequisites 실패: 알 수 없는 StageId=%s"),
 			*StageId.ToString());
 		return false;
 	}
