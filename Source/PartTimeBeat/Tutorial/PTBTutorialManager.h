@@ -15,7 +15,9 @@ struct FPTBTutorialStepRow : public FTableRowBase
 	// 미니게임 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tutorial")
 	FName GameId; 
-	
+	// 인덱스 정렬 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tutorial")
+	int32 StepIndex = 0;
 	//UI안내 텍스트
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tutorial")
 	FText InstructionText; 
@@ -46,7 +48,7 @@ public:
 	
 	/** 진입여부 필요?*/
 	UFUNCTION(BlueprintCallable, Category = "Tutorial")
-	bool ShouldShowTutorial(FName GameId, const FString& ProfileId);
+	bool ShouldShowTutorial(FName GameId, const FString& ProfileId)const;
 	
 	/**튜토리얼 시작*/
 	UFUNCTION(BlueprintCallable, Category = "Tutorial")
