@@ -74,7 +74,7 @@ public:
 
 protected:
 	/**튜토리얼 완료*/
-	UFUNCTION(BlueprintCallable,Category="Tutorial")
+	UFUNCTION()
 	void CompleteTutorial(FName GameId,const FString& ProfileId);
 
 private:
