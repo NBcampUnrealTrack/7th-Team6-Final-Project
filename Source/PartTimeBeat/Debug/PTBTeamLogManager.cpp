@@ -1,6 +1,7 @@
 #include "PTBTeamLogManager.h"
 
 #include "Debug/PTBTeamLog.h"
+#include "AK/SoundEngine/Common/AkTypes.h"
 #include "HAL/FileManager.h"
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
@@ -86,7 +87,7 @@ void UPTBTeamLogManager::LogRhythmJudge(const FPTBJudgementResult& Result, const
 
 void UPTBTeamLogManager::LogWWiseEvent(FName EventName, int32 AkResultCode, const FPTBLogContext& Context)
 {
-	const EPTBTeamLogPurpose Purpose = (AkResultCode == 0 || AkResultCode == 1) ? EPTBTeamLogPurpose::Record : EPTBTeamLogPurpose::Error;
+	const EPTBTeamLogPurpose Purpose = (AkResultCode == AK_Success || AkResultCode == AK_PartialSuccess) ? EPTBTeamLogPurpose::Record : EPTBTeamLogPurpose::Error;
 	const FString Message = FString::Printf(
 		TEXT("Wwise 이벤트=%s 결과코드=%d"),
 		*EventName.ToString(),
@@ -149,7 +150,22 @@ void UPTBTeamLogManager::FlushSessionLog()
 	const FString FileName = FString::Printf(TEXT("PTBTeamLog_%s.log"), *SessionId.ToString(EGuidFormats::Digits));
 	const FString FilePath = LogDir / FileName;
 
-	FFileHelper::SaveStringArrayToFile(Lines, *FilePath);
+	const bool bSaved = FFileHelper::SaveStringArrayToFile(
+		Lines,
+		*FilePath,
+		FFileHelper::EEncodingOptions::AutoDetect,
+		&IFileManager::Get(),
+		FILEWRITE_Append);
+
+	if (bSaved)
+	{
+		PTB_RECORD(LogPTBDebug, TEXT("[PTBLog] 세션 로그 저장 성공. Path=%s Count=%d"), *FilePath, LogBuffer.Num());
+		LogBuffer.Reset();
+	}
+	else
+	{
+		PTB_ERROR(LogPTBDebug, TEXT("[PTBLog] 세션 로그 저장 실패. Path=%s Count=%d"), *FilePath, LogBuffer.Num());
+	}
 }
 
 void UPTBTeamLogManager::SetChannelEnabled(FName ChannelName, bool bEnabled)
