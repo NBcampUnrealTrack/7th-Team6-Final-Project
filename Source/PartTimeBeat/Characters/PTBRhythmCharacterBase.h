@@ -103,28 +103,28 @@ public:
     // 선택적 행동 — 필요한 캐릭터만 _Implementation 오버라이드
     UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Actions")
     void HitNoteA();
-    virtual void HitNoteA_Implementation() {}
+    virtual void HitNoteA_Implementation();
 
     UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Actions")
     void HitNoteW();
-    virtual void HitNoteW_Implementation() {}
+    virtual void HitNoteW_Implementation();
 
     UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Actions")
     void HitNoteS();
-    virtual void HitNoteS_Implementation() {}
+    virtual void HitNoteS_Implementation();
 
     UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Actions")
     void HitNoteD();
-    virtual void HitNoteD_Implementation() {}
+    virtual void HitNoteD_Implementation();
 
     UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Actions")
     void HitNoteEnter();
-    virtual void HitNoteEnter_Implementation() {}
+    virtual void HitNoteEnter_Implementation();
 
 protected:
     // 에디터에서 편집 가능한 스탯
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats")
-    float MoveSpeed = 300.f;
+    float MoveSpeed = 100.f;
 
 private:
     TMap<FKey, TFunction<void()>> Actions;

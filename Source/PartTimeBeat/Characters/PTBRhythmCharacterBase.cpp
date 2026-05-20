@@ -105,3 +105,8 @@ void APTBRhythmCharacterBase::MoveRight_Implementation() {}
 void APTBRhythmCharacterBase::MoveUp_Implementation() {}
 void APTBRhythmCharacterBase::MoveDown_Implementation() {}
 void APTBRhythmCharacterBase::Interact_Implementation() {}
+void APTBRhythmCharacterBase::HitNoteA_Implementation() {}
+void APTBRhythmCharacterBase::HitNoteW_Implementation() {}
+void APTBRhythmCharacterBase::HitNoteS_Implementation() {}
+void APTBRhythmCharacterBase::HitNoteD_Implementation() {}
+void APTBRhythmCharacterBase::HitNoteEnter_Implementation() {}
