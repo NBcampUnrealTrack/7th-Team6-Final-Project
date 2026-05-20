@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 #include "PTBRhythmCharacterBase.h"
 
@@ -85,3 +85,28 @@ void APTBRhythmCharacterBase::PostCharacterSFX(FName EventKey)
 		return;
 	}
 }
+
+void APTBRhythmCharacterBase::HandleInput(FKey Key)
+{
+	if (TFunction<void()>* Fn = Actions.Find(Key))
+	{
+		(*Fn)();
+	}
+}
+
+void APTBRhythmCharacterBase::BindAction(FKey Key, TFunction<void()> Fn)
+{
+	Actions.Add(Key, MoveTemp(Fn));
+}
+
+// 베이스 _Implementation은 비워둠 — 서브클래스에서 채움
+void APTBRhythmCharacterBase::MoveLeft_Implementation() {}
+void APTBRhythmCharacterBase::MoveRight_Implementation() {}
+void APTBRhythmCharacterBase::MoveUp_Implementation() {}
+void APTBRhythmCharacterBase::MoveDown_Implementation() {}
+void APTBRhythmCharacterBase::Interact_Implementation() {}
+void APTBRhythmCharacterBase::HitNoteA_Implementation() {}
+void APTBRhythmCharacterBase::HitNoteW_Implementation() {}
+void APTBRhythmCharacterBase::HitNoteS_Implementation() {}
+void APTBRhythmCharacterBase::HitNoteD_Implementation() {}
+void APTBRhythmCharacterBase::HitNoteEnter_Implementation() {}
