@@ -7,38 +7,62 @@
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnNoteCue, FPTBNoteEvent, NoteEvent);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnNoteEvent, FPTBNoteEvent, NoteEvent);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnChartEnd);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnAllNotesPassed);
 
+class UPTBRhythmChartAsset;
+class UPTBWwiseAudioManager;
+
+/**
+ * Wwise 재생 시간을 기준으로 공통 채보 노트를 발행하는 Conductor 컴포넌트입니다.
+ *
+ * 이 컴포넌트는 미니게임 연출을 직접 실행하지 않고, 채보의 노트 시점에 맞춰 공통 이벤트만 발행합니다.
+ * 실제 라운드 종료는 BGM 종료 기준으로 처리하고, 이 컴포넌트는 모든 노트 발행 완료만 알립니다.
+ */
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class PARTTIMEBEAT_API UPTBRhythmConductorComponent : public UActorComponent
 {
 	GENERATED_BODY()
 
 public:	
-	// Sets default values for this component's properties
+	/** 기본값 초기화 */
 	UPTBRhythmConductorComponent();
 
 protected:
-	// Called when the game starts
+	/** 게임 시작 처리 */
 	virtual void BeginPlay() override;
 
 public:	
+	/** Wwise 재생 시간 기준 이벤트 발행 */
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
-	// 채보 + BGM 연결 시작
-	void StartConductor(const FPTBChartData& Data, int32 PlayingId);
-	// 재개
-	void PauseConductor();
-	//	일시정지 
-	void ResumeConductor();
-	//	정지 및 초기화
-	void StopConductor();
-	//	현재 음악 시간
-	float GetCurrentMusicTimeMs() const;
-	//	현재 Beat
-	float GetCurrentBeat() const;
-	//	Wwise 콜백 수신
-	//void OnWwiseMusicCallback(const FAkMusicCallbackInfo& Info);
 
+	/** 메타 데이터 기반 시작 */
+	void StartConductor(const FPTBChartData& Data, int32 PlayingId);
+
+	/** ChartAsset 기반 시작 */
+	void StartConductor(UPTBRhythmChartAsset* InChartAsset, int32 PlayingId, UPTBWwiseAudioManager* InAudioManager);
+
+	/** 일시정지 */
+	void PauseConductor();
+
+	/** 재개 */
+	void ResumeConductor();
+
+	/** 정지 및 초기화 */
+	void StopConductor();
+
+	/** 현재 음악 시간 */
+	float GetCurrentMusicTimeMs() const;
+
+	/** 현재 Beat */
+	float GetCurrentBeat() const;
+
+	/** 현재 채보 Asset */
+	UPROPERTY()
+	TObjectPtr<UPTBRhythmChartAsset> ChartAsset;
+
+	/** Wwise 시간 공급자 */
+	UPROPERTY()
+	TObjectPtr<UPTBWwiseAudioManager> AudioManager;
 
 	/**	현재채보 */
 	FPTBChartData ChartData;
@@ -50,30 +74,43 @@ public:
 	int32 WwisePlayingId;
 	/**	다음 발행 노트 인덱스 */
 	int32 NextNoteIndex;
+	/** 다음 선행 Cue 노트 인덱스 */
+	int32 NextCueIndex;
+	/** 마지막 Beat Tick 인덱스 */
+	int32 LastBeatTickIndex;
+	/** 마지막 Bar Tick 인덱스 */
+	int32 LastBarTickIndex;
 	/**	비주얼 큐 선행 Beat 수 */
 	float LookAheadBeats = 2.0;
 	/**	채보 오프셋 */
 	float ChartOffsetMs;
 	/**	Wwise 뮤직 콜백 사용 */
 	bool bUseMusicCallbacks = true;
+	/** 재생 중 여부 */
+	bool bIsPlaying;
+	/** 일시정지 여부 */
+	bool bIsPaused;
+	/** 모든 노트 발행 완료 여부 */
+	bool bAllNotesPassed;
 		
 
+	/** 선행 연출용 노트 Cue */
 	UPROPERTY(BlueprintAssignable, Category = "Rhythm|Note")
 	FOnNoteCue OnNoteCue;
 
-	// 2) 노트 판정선 통과 등 이벤트 발생 시 호출
+	/** 노트 판정선 도달 이벤트 */
 	UPROPERTY(BlueprintAssignable, Category = "Rhythm|Note")
 	FOnNoteEvent OnNoteEvent;
 
-	// 3) 매 박자(Beat)마다 현재 박자 수와 함께 호출
+	/** Beat Tick 이벤트 */
 	UPROPERTY(BlueprintAssignable, Category = "Rhythm|Time")
 	FOnBeatTick OnBeatTick;
 
-	// 4) 매 마디(Bar)마다 현재 마디 수와 함께 호출
+	/** Bar Tick 이벤트 */
 	UPROPERTY(BlueprintAssignable, Category = "Rhythm|Time")
 	FOnBarTick OnBarTick;
 
-	// 5) 채보가 완전히 끝났을 때 호출
+	/** 모든 노트 발행 완료 이벤트 */
 	UPROPERTY(BlueprintAssignable, Category = "Rhythm")
-	FOnChartEnd OnChartEnd;
+	FOnAllNotesPassed OnAllNotesPassed;
 };
