@@ -2,7 +2,7 @@
 
 #include "Progression/PTBStoryManager.h"
 
-#include "Debug/PTBLogChannels.h"
+#include "Debug/PTBTeamLog.h"
 
 namespace
 {
@@ -35,8 +35,8 @@ UPTBStoryManager::UPTBStoryManager()
 	StoryChapters.Add(MakeTemporaryStoryChapter(TEXT("Story_After_JJ"), TEXT("After Jump Jump"), 1, 0));
 	StoryChapters.Add(MakeTemporaryStoryChapter(TEXT("Story_First_Payday"), TEXT("First Payday"), 3, 1000));
 
-	UE_LOG(LogProgression, Log,
-		TEXT("[PTBProgression] StoryManager initialized with temporary seed data. ChapterCount=%d"),
+	PTB_RECORD(LogPTBProgression,
+		TEXT("[PTBProgression] StoryManager 초기화 완료. 임시 스토리 챕터 수=%d"),
 		StoryChapters.Num());
 }
 
@@ -46,8 +46,8 @@ TArray<FName> UPTBStoryManager::CheckUnlockCondition(const FPTBRoundResult& Resu
 
 	if (Result.MiniGameId.IsNone())
 	{
-		UE_LOG(LogProgression, Warning,
-			TEXT("[PTBProgression] CheckUnlockCondition received result with empty MiniGameId."));
+		PTB_WARNING(LogPTBProgression,
+			TEXT("[PTBProgression] CheckUnlockCondition: MiniGameId가 비어 있는 결과를 받았습니다."));
 	}
 
 	// TODO(Progression): 추후 프로필의 누적 별/누적 알바비 기준으로 교체 필요 
@@ -58,8 +58,8 @@ TArray<FName> UPTBStoryManager::CheckUnlockCondition(const FPTBRoundResult& Resu
 	{
 		if (Chapter.ChapterId.IsNone())
 		{
-			UE_LOG(LogProgression, Warning,
-				TEXT("[PTBProgression] Skip story chapter with empty ChapterId."));
+			PTB_WARNING(LogPTBProgression,
+				TEXT("[PTBProgression] ChapterId가 비어 있는 스토리 챕터를 건너뜁니다."));
 			continue;
 		}
 
@@ -76,8 +76,8 @@ TArray<FName> UPTBStoryManager::CheckUnlockCondition(const FPTBRoundResult& Resu
 			StoryFlags.Add(Chapter.ChapterId);
 			NewlyUnlockedChapters.Add(Chapter.ChapterId);
 
-			UE_LOG(LogProgression, Log,
-				TEXT("[PTBProgression] Story chapter unlocked: %s"),
+			PTB_RECORD(LogPTBProgression,
+				TEXT("[PTBProgression] 스토리 챕터 해금: %s"),
 				*Chapter.ChapterId.ToString());
 
 			OnChapterUnlocked.ExecuteIfBound(Chapter.ChapterId);
@@ -95,8 +95,8 @@ bool UPTBStoryManager::ShouldPlayStoryAfterResult(const FPTBRoundResult& Result,
 	{
 		OutId = PendingStoryId;
 
-		UE_LOG(LogProgression, Log,
-			TEXT("[PTBProgression] Story pending after result: %s"),
+		PTB_RECORD(LogPTBProgression,
+			TEXT("[PTBProgression] 결과 이후 재생 대기 중인 스토리: %s"),
 			*OutId.ToString());
 
 		return true;
@@ -106,8 +106,8 @@ bool UPTBStoryManager::ShouldPlayStoryAfterResult(const FPTBRoundResult& Result,
 
 	if (NewlyUnlockedChapters.Num() <= 0)
 	{
-		UE_LOG(LogProgression, Verbose,
-			TEXT("[PTBProgression] No story to play after result. MiniGame=%s"),
+		PTB_VERBOSE(LogPTBProgression,
+			TEXT("[PTBProgression] 결과 이후 재생할 스토리가 없습니다. 미니게임=%s"),
 			*Result.MiniGameId.ToString());
 
 		return false;
@@ -116,8 +116,8 @@ bool UPTBStoryManager::ShouldPlayStoryAfterResult(const FPTBRoundResult& Result,
 	PendingStoryId = NewlyUnlockedChapters[0];
 	OutId = PendingStoryId;
 
-	UE_LOG(LogProgression, Log,
-		TEXT("[PTBProgression] Story selected after result: %s"),
+	PTB_RECORD(LogPTBProgression,
+		TEXT("[PTBProgression] 결과 이후 재생할 스토리 선택: %s"),
 		*OutId.ToString());
 
 	return true;
@@ -127,8 +127,8 @@ void UPTBStoryManager::PlayChapter(FName ChapterId)
 {
 	if (ChapterId.IsNone())
 	{
-		UE_LOG(LogProgression, Warning,
-			TEXT("[PTBProgression] PlayChapter failed: ChapterId is None."));
+		PTB_WARNING(LogPTBProgression,
+			TEXT("[PTBProgression] PlayChapter 실패: ChapterId가 None입니다."));
 		return;
 	}
 
@@ -145,16 +145,16 @@ void UPTBStoryManager::PlayChapter(FName ChapterId)
 
 	if (!TargetChapter)
 	{
-		UE_LOG(LogProgression, Warning,
-			TEXT("[PTBProgression] PlayChapter failed: Unknown ChapterId=%s"),
+		PTB_WARNING(LogPTBProgression,
+			TEXT("[PTBProgression] PlayChapter 실패: 알 수 없는 ChapterId=%s"),
 			*ChapterId.ToString());
 		return;
 	}
 
 	if (!StoryFlags.Contains(ChapterId))
 	{
-		UE_LOG(LogProgression, Warning,
-			TEXT("[PTBProgression] PlayChapter blocked: Chapter is not unlocked. ChapterId=%s"),
+		PTB_WARNING(LogPTBProgression,
+			TEXT("[PTBProgression] PlayChapter 차단: 해금되지 않은 챕터입니다. ChapterId=%s"),
 			*ChapterId.ToString());
 		return;
 	}
@@ -163,8 +163,8 @@ void UPTBStoryManager::PlayChapter(FName ChapterId)
 	PendingStoryId = ChapterId;
 
 	// TODO(UI): StoryViewer 위젯과 DialogueDataTable 재생 흐름이 준비되면 여기에 연결
-	UE_LOG(LogProgression, Log,
-		TEXT("[PTBProgression] Play story chapter: %s"),
+	PTB_RECORD(LogPTBProgression,
+		TEXT("[PTBProgression] 스토리 챕터 재생: %s"),
 		*ChapterId.ToString());
 }
 
@@ -172,21 +172,21 @@ void UPTBStoryManager::SkipChapter()
 {
 	if (!bIsStoryPlaying)
 	{
-		UE_LOG(LogProgression, Warning,
-			TEXT("[PTBProgression] SkipChapter ignored: no story is currently playing."));
+		PTB_WARNING(LogPTBProgression,
+			TEXT("[PTBProgression] SkipChapter 무시: 현재 재생 중인 스토리가 없습니다."));
 		return;
 	}
 
 	if (PendingStoryId.IsNone())
 	{
-		UE_LOG(LogProgression, Warning,
-			TEXT("[PTBProgression] SkipChapter ignored: PendingStoryId is None."));
+		PTB_WARNING(LogPTBProgression,
+			TEXT("[PTBProgression] SkipChapter 무시: PendingStoryId가 None입니다."));
 		bIsStoryPlaying = false;
 		return;
 	}
 
-	UE_LOG(LogProgression, Log,
-		TEXT("[PTBProgression] Skip story chapter: %s"),
+	PTB_RECORD(LogPTBProgression,
+		TEXT("[PTBProgression] 스토리 챕터 건너뛰기: %s"),
 		*PendingStoryId.ToString());
 
 	MarkAsViewed(PendingStoryId);
@@ -196,8 +196,8 @@ void UPTBStoryManager::MarkAsViewed(FName ChapterId)
 {
 	if (ChapterId.IsNone())
 	{
-		UE_LOG(LogProgression, Warning,
-			TEXT("[PTBProgression] MarkAsViewed failed: ChapterId is None."));
+		PTB_WARNING(LogPTBProgression,
+			TEXT("[PTBProgression] MarkAsViewed 실패: ChapterId가 None입니다."));
 		return;
 	}
 
@@ -214,8 +214,8 @@ void UPTBStoryManager::MarkAsViewed(FName ChapterId)
 
 	if (!TargetChapter)
 	{
-		UE_LOG(LogProgression, Warning,
-			TEXT("[PTBProgression] MarkAsViewed failed: Unknown ChapterId=%s"),
+		PTB_WARNING(LogPTBProgression,
+			TEXT("[PTBProgression] MarkAsViewed 실패: 알 수 없는 ChapterId=%s"),
 			*ChapterId.ToString());
 		return;
 	}
@@ -229,8 +229,8 @@ void UPTBStoryManager::MarkAsViewed(FName ChapterId)
 
 	bIsStoryPlaying = false;
 
-	UE_LOG(LogProgression, Log,
-		TEXT("[PTBProgression] Story chapter marked as viewed: %s"),
+	PTB_RECORD(LogPTBProgression,
+		TEXT("[PTBProgression] 스토리 챕터 시청 완료 처리: %s"),
 		*ChapterId.ToString());
 
 	OnChapterCompleted.ExecuteIfBound(ChapterId);
@@ -253,8 +253,8 @@ TArray<FPTBStoryChapter> UPTBStoryManager::GetUnviewedChapters() const
 		}
 	}
 
-	UE_LOG(LogProgression, Verbose,
-		TEXT("[PTBProgression] GetUnviewedChapters: Count=%d"),
+	PTB_VERBOSE(LogPTBProgression,
+		TEXT("[PTBProgression] 미시청 스토리 챕터 수=%d"),
 		UnviewedChapters.Num());
 
 	return UnviewedChapters;
@@ -285,8 +285,8 @@ FName UPTBStoryManager::ResolveEndingByMoney(int32 TotalMoney) const
 	// 현재는 플레이어가 소지한 알바비 총액에 따라 3가지 엔딩 분기로 나뉘도록 되어 있음
 	if (TotalMoney < 0)
 	{
-		UE_LOG(LogProgression, Warning,
-			TEXT("[PTBProgression] ResolveEndingByMoney received negative money: %d"),
+		PTB_WARNING(LogPTBProgression,
+			TEXT("[PTBProgression] ResolveEndingByMoney: 음수 금액을 받았습니다. 금액=%d"),
 			TotalMoney);
 
 		OnEndingTriggered.ExecuteIfBound(TEXT("Ending_Bad"));
@@ -310,8 +310,8 @@ FName UPTBStoryManager::ResolveEndingByMoney(int32 TotalMoney) const
 
 	const FName EndingId = ResolveEndingId(TotalMoney);
 
-	UE_LOG(LogProgression, Log,
-		TEXT("[PTBProgression] Ending resolved by money. TotalMoney=%d Ending=%s"),
+	PTB_RECORD(LogPTBProgression,
+		TEXT("[PTBProgression] 금액 기준 엔딩 결정. 총금액=%d 엔딩=%s"),
 		TotalMoney,
 		*EndingId.ToString());
 
