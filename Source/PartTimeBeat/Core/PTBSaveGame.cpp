@@ -63,8 +63,12 @@ void UPTBSaveGame::ApplyRewardSummary(const FString& ProfileId, const FPTBReward
 void UPTBSaveGame::MarkTutorialDone(const FString& ProfileId, FName GameId)
 {
 	// 전역 플래그(프로필별 관리가 필요하면 키를 ProfileId+GameId로 조합)
-	TutorialFlags.Add(GameId, true);
-
+	//TutorialFlags.Add(GameId, true);
+	
+	//프로필마다 저장할수있게끔 변경?
+	FName Key = FName(*(ProfileId + TEXT("_") + GameId.ToString()));
+	TutorialFlags.Add(Key, true);
+	
 	UE_LOG(LogTemp, Log, TEXT("Tutorial marked done — Profile: %s, Game: %s"),
 		*ProfileId, *GameId.ToString());
 }
