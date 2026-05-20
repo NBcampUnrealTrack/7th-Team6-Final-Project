@@ -11,6 +11,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnAllNotesPassed);
 
 class UPTBRhythmChartAsset;
 class UPTBWwiseAudioManager;
+class UPTBWwiseRhythmSyncComponent;
 
 /**
  * Wwise 재생 시간을 기준으로 공통 채보 노트를 발행하는 Conductor 컴포넌트입니다.
@@ -56,6 +57,12 @@ public:
 	/** 현재 Beat */
 	float GetCurrentBeat() const;
 
+	/** 마디당 Beat 수 설정 */
+	void SetBeatsPerBar(int32 InBeatsPerBar);
+
+	/** 리듬 동기화 컴포넌트 설정 */
+	void SetRhythmSyncComponent(UPTBWwiseRhythmSyncComponent* InRhythmSyncComponent);
+
 	/** 현재 채보 Asset */
 	UPROPERTY()
 	TObjectPtr<UPTBRhythmChartAsset> ChartAsset;
@@ -63,6 +70,10 @@ public:
 	/** Wwise 시간 공급자 */
 	UPROPERTY()
 	TObjectPtr<UPTBWwiseAudioManager> AudioManager;
+
+	/** Wwise 재생 위치 기반 동기화 컴포넌트 */
+	UPROPERTY()
+	TObjectPtr<UPTBWwiseRhythmSyncComponent> RhythmSyncComponent;
 
 	/**	현재채보 */
 	FPTBChartData ChartData;
@@ -80,6 +91,9 @@ public:
 	int32 LastBeatTickIndex;
 	/** 마지막 Bar Tick 인덱스 */
 	int32 LastBarTickIndex;
+	/** 마디당 Beat 수 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm|Time", meta = (ClampMin = "1", UIMin = "1"))
+	int32 BeatsPerBar = 4;
 	/**	비주얼 큐 선행 Beat 수 */
 	float LookAheadBeats = 2.0;
 	/**	채보 오프셋 */

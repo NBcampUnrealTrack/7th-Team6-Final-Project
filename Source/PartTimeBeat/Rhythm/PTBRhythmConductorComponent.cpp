@@ -1,7 +1,26 @@
 #include "Rhythm/PTBRhythmConductorComponent.h"
 
 #include "Audio/PTBWwiseAudioManager.h"
+#include "Audio/PTBWwiseRhythmSyncComponent.h"
+#include "GameFramework/Actor.h"
 #include "Rhythm/PTBRhythmChartAsset.h"
+
+namespace PTBRhythmConductorInternal
+{
+	constexpr float MillisecondsPerSecond = 1000.0f;
+	constexpr float MillisecondsPerMinute = 60000.0f;
+	constexpr int32 MinBeatsPerBar = 1;
+
+	float CalculateBeat(float ChartTimeMs, float BPM)
+	{
+		if (BPM <= 0.0f)
+		{
+			return 0.0f;
+		}
+
+		return (ChartTimeMs / MillisecondsPerMinute) * BPM;
+	}
+}
 
 UPTBRhythmConductorComponent::UPTBRhythmConductorComponent()
 {
@@ -9,6 +28,7 @@ UPTBRhythmConductorComponent::UPTBRhythmConductorComponent()
 
 	ChartAsset = nullptr;
 	AudioManager = nullptr;
+	RhythmSyncComponent = nullptr;
 	CurrentBeat = 0.0f;
 	CurrentTimeMs = 0.0f;
 	WwisePlayingId = 0;
@@ -25,6 +45,11 @@ UPTBRhythmConductorComponent::UPTBRhythmConductorComponent()
 void UPTBRhythmConductorComponent::BeginPlay()
 {
 	Super::BeginPlay();
+
+	if (!RhythmSyncComponent && GetOwner())
+	{
+		SetRhythmSyncComponent(GetOwner()->FindComponentByClass<UPTBWwiseRhythmSyncComponent>());
+	}
 }
 
 void UPTBRhythmConductorComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
@@ -36,18 +61,30 @@ void UPTBRhythmConductorComponent::TickComponent(float DeltaTime, ELevelTick Tic
 		return;
 	}
 
-	if (AudioManager && WwisePlayingId != 0)
+	float ChartTimeMs = CurrentTimeMs - ChartOffsetMs;
+	float CueBeat = CurrentBeat;
+
+	if (RhythmSyncComponent)
+	{
+		CurrentTimeMs = RhythmSyncComponent->GetRawPlaybackTimeMs();
+		CurrentBeat = RhythmSyncComponent->GetChartBeat();
+		ChartTimeMs = RhythmSyncComponent->GetChartTimeMs();
+		CueBeat = RhythmSyncComponent->GetVisualBeat();
+	}
+	else if (AudioManager && WwisePlayingId != 0)
 	{
 		CurrentTimeMs = AudioManager->GetPlaybackPositionMs(WwisePlayingId);
+		ChartTimeMs = CurrentTimeMs - ChartOffsetMs;
+		CurrentBeat = PTBRhythmConductorInternal::CalculateBeat(ChartTimeMs, ChartData.BPM);
+		CueBeat = CurrentBeat;
 	}
 	else
 	{
-		CurrentTimeMs += DeltaTime * 1000.0f;
+		CurrentTimeMs += DeltaTime * PTBRhythmConductorInternal::MillisecondsPerSecond;
+		ChartTimeMs = CurrentTimeMs - ChartOffsetMs;
+		CurrentBeat = PTBRhythmConductorInternal::CalculateBeat(ChartTimeMs, ChartData.BPM);
+		CueBeat = CurrentBeat;
 	}
-
-	CurrentBeat = ChartData.BPM > 0.0f
-		? ((CurrentTimeMs - ChartOffsetMs) / 60000.0f) * ChartData.BPM
-		: 0.0f;
 
 	const int32 BeatTickIndex = FMath::FloorToInt(CurrentBeat);
 	if (BeatTickIndex > LastBeatTickIndex)
@@ -56,7 +93,8 @@ void UPTBRhythmConductorComponent::TickComponent(float DeltaTime, ELevelTick Tic
 		OnBeatTick.Broadcast(CurrentBeat);
 	}
 
-	const int32 BarTickIndex = BeatTickIndex / 4;
+	const int32 SafeBeatsPerBar = FMath::Max(PTBRhythmConductorInternal::MinBeatsPerBar, BeatsPerBar);
+	const int32 BarTickIndex = BeatTickIndex / SafeBeatsPerBar;
 	if (BarTickIndex > LastBarTickIndex)
 	{
 		LastBarTickIndex = BarTickIndex;
@@ -71,13 +109,13 @@ void UPTBRhythmConductorComponent::TickComponent(float DeltaTime, ELevelTick Tic
 	const TArray<FPTBNoteEvent>& Notes = ChartAsset->NoteEvents;
 	const float CueLeadBeats = FMath::Max(0.0f, LookAheadBeats);
 
-	while (Notes.IsValidIndex(NextCueIndex) && Notes[NextCueIndex].BeatTime - CueLeadBeats <= CurrentBeat)
+	while (Notes.IsValidIndex(NextCueIndex) && Notes[NextCueIndex].BeatTime - CueLeadBeats <= CueBeat)
 	{
 		OnNoteCue.Broadcast(Notes[NextCueIndex]);
 		++NextCueIndex;
 	}
 
-	while (Notes.IsValidIndex(NextNoteIndex) && Notes[NextNoteIndex].TimeMs + ChartOffsetMs <= CurrentTimeMs)
+	while (Notes.IsValidIndex(NextNoteIndex) && Notes[NextNoteIndex].TimeMs <= ChartTimeMs)
 	{
 		OnNoteEvent.Broadcast(Notes[NextNoteIndex]);
 		++NextNoteIndex;
@@ -106,6 +144,18 @@ void UPTBRhythmConductorComponent::StartConductor(const FPTBChartData & Data, in
 	bIsPlaying = true;
 	bIsPaused = false;
 	bAllNotesPassed = true;
+
+	if (!RhythmSyncComponent && GetOwner())
+	{
+		SetRhythmSyncComponent(GetOwner()->FindComponentByClass<UPTBWwiseRhythmSyncComponent>());
+	}
+
+	if (RhythmSyncComponent)
+	{
+		RhythmSyncComponent->SetWwiseManager(AudioManager.Get());
+		RhythmSyncComponent->SetBeatsPerBar(BeatsPerBar);
+		RhythmSyncComponent->StartSync(WwisePlayingId, ChartData.BPM, ChartOffsetMs);
+	}
 }
 
 void UPTBRhythmConductorComponent::StartConductor(UPTBRhythmChartAsset* InChartAsset, int32 PlayingId, UPTBWwiseAudioManager* InAudioManager)
@@ -124,6 +174,18 @@ void UPTBRhythmConductorComponent::StartConductor(UPTBRhythmChartAsset* InChartA
 	bIsPlaying = InChartAsset != nullptr;
 	bIsPaused = false;
 	bAllNotesPassed = false;
+
+	if (!RhythmSyncComponent && GetOwner())
+	{
+		SetRhythmSyncComponent(GetOwner()->FindComponentByClass<UPTBWwiseRhythmSyncComponent>());
+	}
+
+	if (RhythmSyncComponent && bIsPlaying)
+	{
+		RhythmSyncComponent->SetWwiseManager(AudioManager.Get());
+		RhythmSyncComponent->SetBeatsPerBar(BeatsPerBar);
+		RhythmSyncComponent->StartSync(WwisePlayingId, ChartData.BPM, ChartOffsetMs);
+	}
 }
 
 void UPTBRhythmConductorComponent::PauseConductor()
@@ -141,6 +203,11 @@ void UPTBRhythmConductorComponent::ResumeConductor()
 
 void UPTBRhythmConductorComponent::StopConductor()
 {
+	if (RhythmSyncComponent)
+	{
+		RhythmSyncComponent->StopSync();
+	}
+
 	ChartAsset = nullptr;
 	AudioManager = nullptr;
 	CurrentBeat = 0.0f;
@@ -163,4 +230,24 @@ float UPTBRhythmConductorComponent::GetCurrentMusicTimeMs() const
 float UPTBRhythmConductorComponent::GetCurrentBeat() const
 {
 	return CurrentBeat;
+}
+
+void UPTBRhythmConductorComponent::SetBeatsPerBar(int32 InBeatsPerBar)
+{
+	BeatsPerBar = FMath::Max(PTBRhythmConductorInternal::MinBeatsPerBar, InBeatsPerBar);
+
+	if (RhythmSyncComponent)
+	{
+		RhythmSyncComponent->SetBeatsPerBar(BeatsPerBar);
+	}
+}
+
+void UPTBRhythmConductorComponent::SetRhythmSyncComponent(UPTBWwiseRhythmSyncComponent* InRhythmSyncComponent)
+{
+	RhythmSyncComponent = InRhythmSyncComponent;
+
+	if (RhythmSyncComponent)
+	{
+		AddTickPrerequisiteComponent(RhythmSyncComponent);
+	}
 }
