@@ -579,3 +579,6 @@ Plugins/Wwise/Source/WwiseSoundEngine/Public/Generated/Ak*Plugins.h
 !Plugins/Wwise/
 !Plugins/Wwise/ThirdParty/
 !Plugins/Wwise/ThirdParty/**
+
+# Unreal Engine Developers Folder
+Content/Developers/
