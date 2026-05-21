@@ -1,6 +1,6 @@
 ﻿#include "PTBProfileSubsystem.h"
 #include "Core/PTBSaveGame.h"
-//#include "Debug/PTBTeamLog.h"
+#include "Debug/PTBTeamLog.h"
 #include "Kismet/GameplayStatics.h"
 
 
@@ -9,7 +9,7 @@ void UPTBProfileSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
     Super::Initialize(Collection);
 
-    //PTB_RECORD(LogPTBProfile, TEXT("Initialize"));
+    PTB_RECORD(LogPTBProfile, TEXT("Initialize"));
 
     LoadProfilesFromSave();
     RestoreActiveProfile();
@@ -17,7 +17,7 @@ void UPTBProfileSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 
 void UPTBProfileSubsystem::Deinitialize()
 {
-    //PTB_RECORD(LogPTBProfile, TEXT("Deinitialize"));
+    PTB_RECORD(LogPTBProfile, TEXT("Deinitialize"));
 
     RequestSave();
 
@@ -32,7 +32,7 @@ FGuid UPTBProfileSubsystem::CreateProfile(
 {
     if (AllProfiles.Num() >= MaxProfiles)
     {
-        //PTB_ERROR(LogPTBProfile, TEXT("CreateProfile failed: slot full (%d/%d)"), AllProfiles.Num(), MaxProfiles);
+        PTB_ERROR(LogPTBProfile, TEXT("CreateProfile failed: slot full (%d/%d)"), AllProfiles.Num(), MaxProfiles);
 
         return FGuid();
     }
@@ -40,7 +40,7 @@ FGuid UPTBProfileSubsystem::CreateProfile(
     const EPTBNicknameValidationResult ValidationResult = ValidateNickname(Nickname);
     if (ValidationResult != EPTBNicknameValidationResult::Valid)
     {
-        //PTB_ERROR(LogPTBProfile, TEXT("CreateProfile failed: nickname invalid");
+        PTB_ERROR(LogPTBProfile, TEXT("CreateProfile failed: nickname invalid"));
 
         return FGuid();
     }
@@ -53,7 +53,7 @@ FGuid UPTBProfileSubsystem::CreateProfile(
     const FGuid NewId = NewProfile.ProfileId;
     AllProfiles.Add(NewProfile);
 
-    //PTB_RECORD(LogPTBProfile, TEXT("CreateProfile success"));
+    PTB_RECORD(LogPTBProfile, TEXT("CreateProfile success"));
 
     OnProfileListChanged.Broadcast();
     RequestSave();
@@ -96,7 +96,7 @@ bool UPTBProfileSubsystem::bDeleteProfile(const FGuid& ProfileId)
 
     if (RemovedCount == 0)
     {
-        //PTB_ERROR(LogPTBProfile, TEXT("DeleteProfile failed: not found");
+        PTB_ERROR(LogPTBProfile, TEXT("DeleteProfile failed: not found"));
 
         return false;
     }
@@ -106,7 +106,7 @@ bool UPTBProfileSubsystem::bDeleteProfile(const FGuid& ProfileId)
         ActiveProfileId = FGuid();
     }
 
-    //PTB_RECORD(LogPTBProfile, TEXT("DeleteProfile success"));
+    PTB_RECORD(LogPTBProfile, TEXT("DeleteProfile success"));
 
     OnProfileListChanged.Broadcast();
     RequestSave();
@@ -121,13 +121,13 @@ bool UPTBProfileSubsystem::bSetActiveProfile(const FGuid& ProfileId)
 
     if (!bFound)
     {
-        //PTB_ERROR(LogPTBProfile, TEXT("SetActiveProfile failed: not found");
+        PTB_ERROR(LogPTBProfile, TEXT("SetActiveProfile failed: not found"));
 
         return false;
     }
 
     ActiveProfileId = ProfileId;
-    //PTB_RECORD(LogPTBProfile, TEXT("SetActiveProfile"));
+    PTB_RECORD(LogPTBProfile, TEXT("SetActiveProfile"));
 
     if (FPTBProfileData* Mutable = FindActiveProfileMutable())
     {
@@ -203,7 +203,7 @@ void UPTBProfileSubsystem::ApplyRoundResultToActive(const FPTBProfileProgressUpd
     FPTBProfileData* Active = FindActiveProfileMutable();
     if (!Active)
     {
-        //PTB_ERROR(LogPTBProfile, TEXT("ApplyRoundResultToActive failed: no active profile");
+        PTB_ERROR(LogPTBProfile, TEXT("ApplyRoundResultToActive failed: no active profile"));
 
         return;
     }
@@ -222,12 +222,12 @@ void UPTBProfileSubsystem::ApplyRoundResultToActive(const FPTBProfileProgressUpd
 
     Active->TotalEarnedMoney += Update.EarnedMoney;
 
-    /*
+    
     PTB_RECORD(LogPTBProfile, TEXT("ApplyRoundResult: game=%s score=%d stars=%d money=%d (total=%d)"), 
         *Update.MiniGameId.ToString(), 
         Update.Score, Update.EarnedStars,
         Update.EarnedMoney, Active->TotalEarnedMoney);
-    */
+    
 }
 
 void UPTBProfileSubsystem::MarkTutorialComplete(FName MiniGameId)
@@ -235,14 +235,14 @@ void UPTBProfileSubsystem::MarkTutorialComplete(FName MiniGameId)
     FPTBProfileData* Active = FindActiveProfileMutable();
     if (!Active)
     {
-        //PTB_ERROR(LogPTBProfile, TEXT("MarkTutorialComplete failed: no active profile");
+        PTB_ERROR(LogPTBProfile, TEXT("MarkTutorialComplete failed: no active profile"));
 
         return;
     }
 
     Active->CompletedTutorialIds.Add(MiniGameId);
 
-    //PTB_RECORD(LogPTBProfile, TEXT("MarkTutorialComplete"), *MiniGameId.ToString());
+    PTB_RECORD(LogPTBProfile, TEXT("MarkTutorialComplete"), *MiniGameId.ToString());
 }
 
 void UPTBProfileSubsystem::MarkStoryViewed(FName StoryId)
@@ -309,12 +309,12 @@ int32 UPTBProfileSubsystem::GetTotalEarnedMoney() const
 
 void UPTBProfileSubsystem::RequestSave()
 {
-    //PTB_RECORD(LogPTBProfile, TEXT("RequestSave profiles=%d"), AllProfiles.Num());
+    PTB_RECORD(LogPTBProfile, TEXT("RequestSave profiles=%d"), AllProfiles.Num());
 
     UPTBSaveGame* SaveGame = GetOrCreateSaveGame();
     if (!SaveGame)
     {
-        //PTB_ERROR(LogPTBProfile, TEXT("RequestSave: SaveGame null");
+        PTB_ERROR(LogPTBProfile, TEXT("RequestSave: SaveGame null"));
 
         return;
     }
@@ -332,13 +332,13 @@ void UPTBProfileSubsystem::LoadProfilesFromSave()
     UPTBSaveGame* SaveGame = GetOrCreateSaveGame();
     if (!SaveGame)
     {
-        //PTB_ERROR(LogPTBProfile, TEXT("LoadProfilesFromSave: SaveGame null");
+        PTB_ERROR(LogPTBProfile, TEXT("LoadProfilesFromSave: SaveGame null"));
 
         return;
     }
     AllProfiles = SaveGame->Profiles;
 
-    //PTB_RECORD(LogPTBProfile, TEXT("LoadProfilesFromSave - loaded %d profiles"), AllProfiles.Num());
+    PTB_RECORD(LogPTBProfile, TEXT("LoadProfilesFromSave - loaded %d profiles"), AllProfiles.Num());
 }
 
 void UPTBProfileSubsystem::RestoreActiveProfile()
