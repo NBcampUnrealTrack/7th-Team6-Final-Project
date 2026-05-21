@@ -1,5 +1,7 @@
 #include "Rhythm/PTBRhythmChartAsset.h"
 
+#include "Rhythm/PTBRhythmChartParser.h"
+
 bool UPTBRhythmChartAsset::ValidateChart(TArray<FText>& OutErrors) const
 {
 	OutErrors.Reset();
@@ -138,6 +140,31 @@ void UPTBRhythmChartAsset::SortNotesByTime()
 
 bool UPTBRhythmChartAsset::LoadFromJson(const FString& JsonPath)
 {
-	//추후 구현 예정
-	return false;
+	FPTBChartData ParsedChartData;
+	TArray<FPTBNoteEvent> ParsedNoteEvents;
+	TArray<FText> LoadErrors;
+
+	if (!UPTBRhythmChartParser::ParseChartFile(JsonPath, ParsedChartData, ParsedNoteEvents, LoadErrors))
+	{
+		return false;
+	}
+
+	const FName PreviousChartId = ChartId;
+	const FPTBChartData PreviousChartData = ChartData;
+	const TArray<FPTBNoteEvent> PreviousNoteEvents = NoteEvents;
+
+	ChartId = ParsedChartData.ChartId;
+	ChartData = ParsedChartData;
+	NoteEvents = MoveTemp(ParsedNoteEvents);
+	SortNotesByTime();
+
+	if (!ValidateChart(LoadErrors))
+	{
+		ChartId = PreviousChartId;
+		ChartData = PreviousChartData;
+		NoteEvents = PreviousNoteEvents;
+		return false;
+	}
+
+	return true;
 }
