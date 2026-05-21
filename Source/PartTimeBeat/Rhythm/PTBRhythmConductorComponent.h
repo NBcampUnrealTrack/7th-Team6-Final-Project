@@ -6,6 +6,7 @@
 #include "PTBRhythmConductorComponent.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnNoteCue, FPTBNoteEvent, NoteEvent);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnNoteArm, FPTBNoteEvent, NoteEvent);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnNoteEvent, FPTBNoteEvent, NoteEvent);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnAllNotesPassed);
 
@@ -57,6 +58,9 @@ public:
 	/** 현재 Beat */
 	float GetCurrentBeat() const;
 
+	/** 판정 선행 등록 시간(ms) 설정 */
+	void SetArmLeadTimeMs(float InArmLeadTimeMs);
+
 	/** 마디당 Beat 수 설정 */
 	void SetBeatsPerBar(int32 InBeatsPerBar);
 
@@ -87,6 +91,8 @@ public:
 	int32 NextNoteIndex;
 	/** 다음 선행 Cue 노트 인덱스 */
 	int32 NextCueIndex;
+	/** 다음 판정 등록 노트 인덱스 */
+	int32 NextArmIndex;
 	/** 마지막 Beat Tick 인덱스 */
 	int32 LastBeatTickIndex;
 	/** 마지막 Bar Tick 인덱스 */
@@ -96,6 +102,8 @@ public:
 	int32 BeatsPerBar = 4;
 	/**	비주얼 큐 선행 Beat 수 */
 	float LookAheadBeats = 2.0;
+	/** 판정 등록 선행 시간(ms) */
+	float ArmLeadTimeMs = 120.0f;
 	/**	채보 오프셋 */
 	float ChartOffsetMs;
 	/**	Wwise 뮤직 콜백 사용 */
@@ -107,6 +115,10 @@ public:
 	/** 모든 노트 발행 완료 여부 */
 	bool bAllNotesPassed;
 		
+
+	/** 판정 등록 가능 상태 진입 이벤트 */
+	UPROPERTY(BlueprintAssignable, Category = "Rhythm|Note")
+	FOnNoteArm OnNoteArm;
 
 	/** 선행 연출용 노트 Cue */
 	UPROPERTY(BlueprintAssignable, Category = "Rhythm|Note")

@@ -34,6 +34,7 @@ UPTBRhythmConductorComponent::UPTBRhythmConductorComponent()
 	WwisePlayingId = 0;
 	NextNoteIndex = 0;
 	NextCueIndex = 0;
+	NextArmIndex = 0;
 	LastBeatTickIndex = -1;
 	LastBarTickIndex = -1;
 	ChartOffsetMs = 0.0f;
@@ -61,8 +62,8 @@ void UPTBRhythmConductorComponent::TickComponent(float DeltaTime, ELevelTick Tic
 		return;
 	}
 
-	float ChartTimeMs = CurrentTimeMs - ChartOffsetMs;
-	float CueBeat = CurrentBeat;
+	float ChartTimeMs = 0.0f;
+	float CueBeat = 0.0f;
 
 	if (RhythmSyncComponent)
 	{
@@ -108,6 +109,13 @@ void UPTBRhythmConductorComponent::TickComponent(float DeltaTime, ELevelTick Tic
 
 	const TArray<FPTBNoteEvent>& Notes = ChartAsset->NoteEvents;
 	const float CueLeadBeats = FMath::Max(0.0f, LookAheadBeats);
+	const float EffectiveArmLeadTimeMs = FMath::Max(0.0f, ArmLeadTimeMs);
+
+	while (Notes.IsValidIndex(NextArmIndex) && Notes[NextArmIndex].TimeMs - EffectiveArmLeadTimeMs <= ChartTimeMs)
+	{
+		OnNoteArm.Broadcast(Notes[NextArmIndex]);
+		++NextArmIndex;
+	}
 
 	while (Notes.IsValidIndex(NextCueIndex) && Notes[NextCueIndex].BeatTime - CueLeadBeats <= CueBeat)
 	{
@@ -138,6 +146,7 @@ void UPTBRhythmConductorComponent::StartConductor(const FPTBChartData & Data, in
 	CurrentTimeMs = 0.0f;
 	NextNoteIndex = 0;
 	NextCueIndex = 0;
+	NextArmIndex = 0;
 	LastBeatTickIndex = -1;
 	LastBarTickIndex = -1;
 	ChartOffsetMs = Data.OffsetMs;
@@ -168,6 +177,7 @@ void UPTBRhythmConductorComponent::StartConductor(UPTBRhythmChartAsset* InChartA
 	CurrentTimeMs = 0.0f;
 	NextNoteIndex = 0;
 	NextCueIndex = 0;
+	NextArmIndex = 0;
 	LastBeatTickIndex = -1;
 	LastBarTickIndex = -1;
 	ChartOffsetMs = ChartData.OffsetMs;
@@ -215,6 +225,7 @@ void UPTBRhythmConductorComponent::StopConductor()
 	WwisePlayingId = 0;
 	NextNoteIndex = 0;
 	NextCueIndex = 0;
+	NextArmIndex = 0;
 	LastBeatTickIndex = -1;
 	LastBarTickIndex = -1;
 	bIsPlaying = false;
@@ -230,6 +241,11 @@ float UPTBRhythmConductorComponent::GetCurrentMusicTimeMs() const
 float UPTBRhythmConductorComponent::GetCurrentBeat() const
 {
 	return CurrentBeat;
+}
+
+void UPTBRhythmConductorComponent::SetArmLeadTimeMs(float InArmLeadTimeMs)
+{
+	ArmLeadTimeMs = FMath::Max(0.0f, InArmLeadTimeMs);
 }
 
 void UPTBRhythmConductorComponent::SetBeatsPerBar(int32 InBeatsPerBar)
