@@ -4,6 +4,7 @@
 #include "AkAudioEvent.h"
 #include "AkComponent.h"
 #include "AkGameplayStatics.h"
+#include "Audio/PTBWwiseEventMapAsset.h"
 #include "AK/SoundEngine/Common/AkSoundEngine.h"
 
 UPTBWwiseAudioManager::UPTBWwiseAudioManager()
@@ -12,6 +13,56 @@ UPTBWwiseAudioManager::UPTBWwiseAudioManager()
 	MasterBusID = 0;
 	CurrentBGMPlayingId = 0;
 	bIsBGMPlaying = false;
+}
+
+void UPTBWwiseAudioManager::SetMainAkComponent(UAkComponent* InAkComponent)
+{
+	MainAkComponent = InAkComponent;
+}
+
+void UPTBWwiseAudioManager::ApplyEventMapAsset(UPTBWwiseEventMapAsset* InEventMapAsset)
+{
+	EventMapAsset = InEventMapAsset;
+	EventMap.Reset();
+	JudgementEventMap.Reset();
+
+	if (!EventMapAsset)
+	{
+		return;
+	}
+
+	for (const TPair<FName, TObjectPtr<UAkAudioEvent>>& EventPair : EventMapAsset->BGMEvents)
+	{
+		RegisterEvent(EventPair.Key, EventPair.Value.Get());
+	}
+
+	for (const TPair<FName, TObjectPtr<UAkAudioEvent>>& EventPair : EventMapAsset->UIEvents)
+	{
+		RegisterEvent(EventPair.Key, EventPair.Value.Get());
+	}
+
+	for (const TPair<FName, TObjectPtr<UAkAudioEvent>>& EventPair : EventMapAsset->MiniGameSFXMap)
+	{
+		RegisterEvent(EventPair.Key, EventPair.Value.Get());
+	}
+
+	for (const TPair<EPTBJudgementType, TObjectPtr<UAkAudioEvent>>& EventPair : EventMapAsset->JudgeEventMap)
+	{
+		if (EventPair.Value)
+		{
+			JudgementEventMap.Add(EventPair.Key, EventPair.Value);
+		}
+	}
+}
+
+void UPTBWwiseAudioManager::RegisterEvent(FName EventKey, UAkAudioEvent* Event)
+{
+	if (EventKey.IsNone() || !Event)
+	{
+		return;
+	}
+
+	EventMap.Add(EventKey, Event);
 }
 
 bool UPTBWwiseAudioManager::LoadSoundBank(FName BankName)
@@ -113,6 +164,27 @@ int32 UPTBWwiseAudioManager::PostBGMEvent(FName EventKey)
 int32 UPTBWwiseAudioManager::PostSFXEvent(FName EventKey, AActor* Target)
 {
 	return PostEvent(EventKey, Target);
+}
+
+int32 UPTBWwiseAudioManager::PostJudgementEvent(EPTBJudgementType JudgementType, AActor* Target)
+{
+	const TObjectPtr<UAkAudioEvent>* FoundEvent = JudgementEventMap.Find(JudgementType);
+	if (!FoundEvent || !FoundEvent->Get())
+	{
+		return 0;
+	}
+
+	if (Target)
+	{
+		return UAkGameplayStatics::PostEvent(FoundEvent->Get(), Target, 0, FOnAkPostEventCallback(), false);
+	}
+
+	if (MainAkComponent)
+	{
+		return MainAkComponent->PostAkEvent(FoundEvent->Get(), 0, FOnAkPostEventCallback());
+	}
+
+	return 0;
 }
 
 void UPTBWwiseAudioManager::StopBGM(float FadeOutMs)

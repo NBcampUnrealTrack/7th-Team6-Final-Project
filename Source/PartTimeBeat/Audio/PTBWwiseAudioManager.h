@@ -9,6 +9,7 @@
 
 class UAkComponent;
 class UAkAudioEvent;
+class UPTBWwiseEventMapAsset;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnBGMFinished, int32, PlayingId);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnBeatCallback, float, Beat);
@@ -31,12 +32,20 @@ public:
 	UPROPERTY()
 	TObjectPtr<UAkComponent> MainAkComponent = nullptr;
 
+	/** 이벤트 매핑 DataAsset */
+	UPROPERTY()
+	TObjectPtr<UPTBWwiseEventMapAsset> EventMapAsset = nullptr;
+
 	/** 로드된 SoundBank 목록 */
 	TSet<FName> LoadedBanks;
 
 	/** 이벤트 키와 Wwise 이벤트 Asset 매핑 */
 	UPROPERTY(EditAnywhere, Category = "PTB|Audio")
 	TMap<FName, TObjectPtr<UAkAudioEvent>> EventMap;
+
+	/** 판정 타입과 Wwise 이벤트 Asset 매핑 */
+	UPROPERTY(EditAnywhere, Category = "PTB|Audio")
+	TMap<EPTBJudgementType, TObjectPtr<UAkAudioEvent>> JudgementEventMap;
 
 	/** Master Bus ID */
 	AkUniqueID MasterBusID = 0;
@@ -53,6 +62,15 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Rhythm")
 	FOnBeatCallback OnBeatCallback;
 
+	/** 글로벌 AkComponent 설정 */
+	void SetMainAkComponent(UAkComponent* InAkComponent);
+
+	/** 이벤트 매핑 DataAsset 적용 */
+	void ApplyEventMapAsset(UPTBWwiseEventMapAsset* InEventMapAsset);
+
+	/** 이벤트 키 직접 등록 */
+	void RegisterEvent(FName EventKey, UAkAudioEvent* Event);
+
 	bool LoadSoundBank(FName BankName);
 	void UnloadSoundBank(FName BankName);
 	void UnloadAllBanks();
@@ -65,6 +83,9 @@ public:
 
 	/** SFX 이벤트 재생 */
 	int32 PostSFXEvent(FName EventKey, AActor* Target);
+
+	/** 판정 SFX 이벤트 재생 */
+	int32 PostJudgementEvent(EPTBJudgementType JudgementType, AActor* Target);
 
 	/** BGM 정지 */
 	void StopBGM(float FadeOutMs);
