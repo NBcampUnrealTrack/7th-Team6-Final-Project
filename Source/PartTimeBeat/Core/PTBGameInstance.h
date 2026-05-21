@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "CoreMinimal.h"
 #include "Engine/GameInstance.h"
@@ -9,6 +9,9 @@ class UPTBWwiseAudioManager;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnFlowStateChanged, EGameFlowState, NewState);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnProfileChanged, FPTBProfileData, NewProfile);
+
+// 위젯 관련
+class UPTBMainTitleWidget;
 
 UCLASS()
 class PARTTIMEBEAT_API UPTBGameInstance : public UGameInstance
@@ -51,4 +54,11 @@ public:
 	UPTBWwiseAudioManager* AudioManager;
 	/** 현재 플로우 상태(FlowSubsystem과 동기) */
 	EGameFlowState CurrentFlowState;
+
+	// 변수 추가
+	UPROPERTY(EditDefaultsOnly, Category = "PTB|UI")
+	TSubclassOf<UPTBMainTitleWidget> TitleWidgetClass;
+
+	UPROPERTY()
+	TObjectPtr<UPTBMainTitleWidget> TitleWidgetInstance;
 };
