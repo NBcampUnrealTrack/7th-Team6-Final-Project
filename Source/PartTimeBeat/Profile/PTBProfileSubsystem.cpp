@@ -12,7 +12,7 @@ void UPTBProfileSubsystem::Initialize(FSubsystemCollectionBase& Collection)
     PTB_RECORD(LogPTBProfile, TEXT("Initialize"));
 
     LoadProfilesFromSave();
-    RestoreActiveProfile();
+    ClearActiveProfile();
 }
 
 void UPTBProfileSubsystem::Deinitialize()
@@ -134,7 +134,12 @@ bool UPTBProfileSubsystem::SetActiveProfile(const FGuid& ProfileId)
         Mutable->LastPlayedAt = FDateTime::Now();
     }
 
-    OnActiveProfileChanged.Broadcast(Profile);
+    RequestSave();
+
+    bool bUpdatedFound = false;
+    const FPTBProfileData UpdatedProfile = GetProfile(ActiveProfileId, bUpdatedFound);
+    OnActiveProfileChanged.Broadcast(bUpdatedFound ? UpdatedProfile : Profile);
+
     return true;
 }
 
@@ -221,7 +226,7 @@ void UPTBProfileSubsystem::ApplyRoundResultToActive(const FPTBProfileProgressUpd
     }
 
     Active->TotalEarnedMoney += Update.EarnedMoney;
-
+    RequestSave();
     
     PTB_RECORD(LogPTBProfile, TEXT("ApplyRoundResult: game=%s score=%d stars=%d money=%d (total=%d)"), 
         *Update.MiniGameId.ToString(), 
@@ -242,7 +247,9 @@ void UPTBProfileSubsystem::MarkTutorialComplete(FName MiniGameId)
 
     Active->CompletedTutorialIds.Add(MiniGameId);
 
-    PTB_RECORD(LogPTBProfile, TEXT("MarkTutorialComplete"), *MiniGameId.ToString());
+    RequestSave();
+
+    PTB_RECORD(LogPTBProfile, TEXT("MarkTutorialComplete: game=%s"), *MiniGameId.ToString());
 }
 
 void UPTBProfileSubsystem::MarkStoryViewed(FName StoryId)
@@ -254,6 +261,8 @@ void UPTBProfileSubsystem::MarkStoryViewed(FName StoryId)
     }
 
     Active->CompletedStoryIds.Add(StoryId);
+
+    RequestSave();
 }
 
 //void UPTBProfileSubsystem::UnlockCostume(FName CostumeId)
@@ -265,6 +274,8 @@ void UPTBProfileSubsystem::MarkStoryViewed(FName StoryId)
 //    }
 //
 //    //Active->UnlockedCostumes.Add(CostumeId);
+// 
+//    //RequestSave();
 //}
 
 int32 UPTBProfileSubsystem::GetBestScore(FName MiniGameId) const
@@ -341,7 +352,7 @@ void UPTBProfileSubsystem::LoadProfilesFromSave()
     PTB_RECORD(LogPTBProfile, TEXT("LoadProfilesFromSave - loaded %d profiles"), AllProfiles.Num());
 }
 
-void UPTBProfileSubsystem::RestoreActiveProfile()
+void UPTBProfileSubsystem::ClearActiveProfile()
 {
     ActiveProfileId = FGuid();
 }

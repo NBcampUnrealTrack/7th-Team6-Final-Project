@@ -112,7 +112,7 @@ protected:
     void LoadProfilesFromSave();
 
     // 활성화 된 프로필 복원 
-    void RestoreActiveProfile();
+    void ClearActiveProfile();
 
     // SaveGame 인스턴스 불러오기 또는 만들기 
     UPTBSaveGame* GetOrCreateSaveGame() const;
