@@ -73,7 +73,7 @@ FPTBProfileData UPTBProfileSubsystem::GetProfile(const FGuid& ProfileId, bool& b
     }
 
     bOutFound = false;
-    return FPTBProfileData();
+    return FPTBProfileData::MakeInvalid();
 }
 
 TArray<FPTBProfileData> UPTBProfileSubsystem::GetAllProfiles() const
@@ -86,7 +86,7 @@ int32 UPTBProfileSubsystem::GetProfileCount() const
     return AllProfiles.Num();
 }
 
-bool UPTBProfileSubsystem::bDeleteProfile(const FGuid& ProfileId)
+bool UPTBProfileSubsystem::DeleteProfile(const FGuid& ProfileId)
 {
     const int32 RemovedCount = AllProfiles.RemoveAll(
         [&ProfileId](const FPTBProfileData& Profile)
@@ -114,7 +114,7 @@ bool UPTBProfileSubsystem::bDeleteProfile(const FGuid& ProfileId)
     return true;
 }
 
-bool UPTBProfileSubsystem::bSetActiveProfile(const FGuid& ProfileId)
+bool UPTBProfileSubsystem::SetActiveProfile(const FGuid& ProfileId)
 {
     bool bFound = false;
     const FPTBProfileData Profile = GetProfile(ProfileId, bFound);
@@ -143,13 +143,13 @@ FPTBProfileData UPTBProfileSubsystem::GetActiveProfile(bool& bOutHasActive) cons
     if (!ActiveProfileId.IsValid())
     {
         bOutHasActive = false;
-        return FPTBProfileData();
+        return FPTBProfileData::MakeInvalid();
     }
 
     return GetProfile(ActiveProfileId, bOutHasActive);
 }
 
-bool UPTBProfileSubsystem::bHasActiveProfile() const
+bool UPTBProfileSubsystem::HasActiveProfile() const
 {
     return ActiveProfileId.IsValid();
 }
@@ -185,7 +185,7 @@ EPTBNicknameValidationResult UPTBProfileSubsystem::ValidateNickname(const FStrin
     return EPTBNicknameValidationResult::Valid;
 }
 
-bool UPTBProfileSubsystem::bIsFirstTimeProfile(const FGuid& ProfileId, FName MiniGameId) const
+bool UPTBProfileSubsystem::IsFirstTimeProfile(const FGuid& ProfileId, FName MiniGameId) const
 {
     bool bFound = false;
     const FPTBProfileData Profile = GetProfile(ProfileId, bFound);

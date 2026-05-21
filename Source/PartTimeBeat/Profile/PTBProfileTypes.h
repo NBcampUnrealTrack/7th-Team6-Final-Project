@@ -31,44 +31,44 @@ struct PARTTIMEBEAT_API FPTBProfileData
 
     // Profile
 
-    UPROPERTY(BlueprintReadOnly, Category = "Profile|Identity")
+    UPROPERTY(BlueprintReadOnly, SaveGame, Category = "Profile|Identity")
     FGuid ProfileId;
 
-    UPROPERTY(BlueprintReadWrite, Category = "Profile|Identity")
+    UPROPERTY(BlueprintReadWrite, SaveGame, Category = "Profile|Identity")
     FString Nickname;
 
-    UPROPERTY(BlueprintReadWrite, Category = "Profile|Identity")
+    UPROPERTY(BlueprintReadWrite, SaveGame, Category = "Profile|Identity")
     EPTBGender Gender = EPTBGender::Unset;
 
-    UPROPERTY(BlueprintReadWrite, Category = "Profile|Identity")
+    UPROPERTY(BlueprintReadWrite, SaveGame, Category = "Profile|Identity")
     FDateTime Birthday;
 
     //Progress
 
-    UPROPERTY(BlueprintReadOnly, Category = "Profile|Progress")
+    UPROPERTY(BlueprintReadOnly, SaveGame, Category = "Profile|Progress")
     TSet<FName> CompletedTutorialIds;
 
-    UPROPERTY(BlueprintReadOnly, Category = "Profile|Progress")
+    UPROPERTY(BlueprintReadOnly, SaveGame, Category = "Profile|Progress")
     TMap<FName, int32> BestScoresByMiniGame;
 
-    UPROPERTY(BlueprintReadOnly, Category = "Profile|Progress")
+    UPROPERTY(BlueprintReadOnly, SaveGame, Category = "Profile|Progress")
     TMap<FName, int32> EarnedStarsByMiniGame;
 
-    UPROPERTY(BlueprintReadOnly, Category = "Profile|Progress")
+    UPROPERTY(BlueprintReadOnly, SaveGame, Category = "Profile|Progress")
     int32 TotalEarnedMoney = 0;
 
-    UPROPERTY(BlueprintReadOnly, Category = "Profile|Progress")
+    UPROPERTY(BlueprintReadOnly, SaveGame, Category = "Profile|Progress")
     TSet<FName> CompletedStoryIds;
 
     // 코스튬 추가 시
-    //UPROPERTY(BlueprintReadOnly, Category = "Profile|Progress")
+    //UPROPERTY(BlueprintReadOnly, SaveGame, Category = "Profile|Progress")
     //TSet<FName> UnlockedCostumes;
 
 
-    UPROPERTY(BlueprintReadOnly, Category = "Profile")
+    UPROPERTY(BlueprintReadOnly, SaveGame, Category = "Profile")
     FDateTime CreatedAt;
 
-    UPROPERTY(BlueprintReadOnly, Category = "Profile")
+    UPROPERTY(BlueprintReadOnly, SaveGame, Category = "Profile")
     FDateTime LastPlayedAt;
 
     FPTBProfileData()
@@ -80,6 +80,14 @@ struct PARTTIMEBEAT_API FPTBProfileData
         , CreatedAt(FDateTime::Now())
         , LastPlayedAt(FDateTime::Now())
     {
+    }
+
+    static FPTBProfileData MakeInvalid()
+    {
+        FPTBProfileData Empty;
+        Empty.ProfileId = FGuid();
+        Empty.Nickname = TEXT("");
+        return Empty;
     }
 
     bool IsValid() const

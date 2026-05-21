@@ -46,12 +46,12 @@ public:
 
     /** 프로필 삭제 */
     UFUNCTION(BlueprintCallable, Category = "Profile")
-    bool bDeleteProfile(const FGuid& ProfileId);
+    bool DeleteProfile(const FGuid& ProfileId);
 
 
     /** 활성화된 프로필 슬롯 설정 */
     UFUNCTION(BlueprintCallable, Category = "Profile|Active")
-    bool bSetActiveProfile(const FGuid& ProfileId);
+    bool SetActiveProfile(const FGuid& ProfileId);
 
     /** 현재 활성화된 프로필 데이터 반환 */
     UFUNCTION(BlueprintCallable, Category = "Profile|Active")
@@ -59,7 +59,7 @@ public:
 
     /** 활성화 한 프로필이 있는지 여부. */
     UFUNCTION(BlueprintCallable, Category = "Profile|Active")
-    bool bHasActiveProfile() const;
+    bool HasActiveProfile() const;
 
 
     UFUNCTION(BlueprintCallable, Category = "Profile|Validation")
@@ -67,7 +67,7 @@ public:
 
     /** 해당 미니게임을 처음 플레이하는지 */
     UFUNCTION(BlueprintCallable, Category = "Profile|Validation")
-    bool bIsFirstTimeProfile(const FGuid& ProfileId, FName MiniGameId) const;
+    bool IsFirstTimeProfile(const FGuid& ProfileId, FName MiniGameId) const;
 
     /** 라운드 결과 프로필에 반영 */
     UFUNCTION(BlueprintCallable, Category = "Profile|Progression")
