@@ -27,6 +27,14 @@ void UPTBMainTitleWidget::NativeConstruct()
     {
         UE_LOG(LogTemp, Warning, TEXT("[PTBMainTitleWidget] NativeConstruct: World is null, timer not set"));
     }
+
+	// 마우스 커서 표시 및 UI 전용 입력 모드 설정
+    APlayerController* PC = GetOwningPlayer();
+    if (PC)
+    {
+        PC->bShowMouseCursor = true;
+        PC->SetInputMode(FInputModeUIOnly());
+    }
 }
 
 void UPTBMainTitleWidget::NativeDestruct()
