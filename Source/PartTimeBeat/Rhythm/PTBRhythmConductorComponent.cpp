@@ -138,39 +138,40 @@ void UPTBRhythmConductorComponent::TickComponent(float DeltaTime, ELevelTick Tic
 
 void UPTBRhythmConductorComponent::StartConductor(const FPTBChartData & Data, int32 PlayingId)
 {
-	ChartAsset = nullptr;
-	AudioManager = nullptr;
-	ChartData = Data;
-	WwisePlayingId = PlayingId;
-	CurrentBeat = 0.0f;
-	CurrentTimeMs = 0.0f;
-	NextNoteIndex = 0;
-	NextCueIndex = 0;
-	NextArmIndex = 0;
-	LastBeatTickIndex = -1;
-	LastBarTickIndex = -1;
-	ChartOffsetMs = Data.OffsetMs;
-	bIsPlaying = true;
-	bIsPaused = false;
-	bAllNotesPassed = true;
-
 	if (!RhythmSyncComponent && GetOwner())
 	{
 		SetRhythmSyncComponent(GetOwner()->FindComponentByClass<UPTBWwiseRhythmSyncComponent>());
 	}
 
-	if (RhythmSyncComponent)
+	UPTBWwiseAudioManager* ResolvedAudioManager = AudioManager.Get();
+	if (!ResolvedAudioManager && RhythmSyncComponent)
 	{
-		RhythmSyncComponent->SetWwiseManager(AudioManager.Get());
-		RhythmSyncComponent->SetBeatsPerBar(BeatsPerBar);
-		RhythmSyncComponent->StartSync(WwisePlayingId, ChartData.BPM, ChartOffsetMs);
+		ResolvedAudioManager = RhythmSyncComponent->WwiseManager.Get();
 	}
+
+	UPTBRhythmChartAsset* TimingOnlyChartAsset = NewObject<UPTBRhythmChartAsset>(this, NAME_None, RF_Transient);
+	TimingOnlyChartAsset->ChartId = Data.ChartId;
+	TimingOnlyChartAsset->ChartData = Data;
+	TimingOnlyChartAsset->NoteEvents.Reset();
+
+	StartConductor(TimingOnlyChartAsset, PlayingId, ResolvedAudioManager);
 }
 
 void UPTBRhythmConductorComponent::StartConductor(UPTBRhythmChartAsset* InChartAsset, int32 PlayingId, UPTBWwiseAudioManager* InAudioManager)
 {
 	ChartAsset = InChartAsset;
-	AudioManager = InAudioManager;
+	if (!RhythmSyncComponent && GetOwner())
+	{
+		SetRhythmSyncComponent(GetOwner()->FindComponentByClass<UPTBWwiseRhythmSyncComponent>());
+	}
+
+	UPTBWwiseAudioManager* ResolvedAudioManager = InAudioManager;
+	if (!ResolvedAudioManager && RhythmSyncComponent)
+	{
+		ResolvedAudioManager = RhythmSyncComponent->WwiseManager.Get();
+	}
+
+	AudioManager = ResolvedAudioManager;
 	ChartData = InChartAsset ? InChartAsset->ChartData : FPTBChartData();
 	WwisePlayingId = PlayingId;
 	CurrentBeat = 0.0f;
@@ -185,14 +186,13 @@ void UPTBRhythmConductorComponent::StartConductor(UPTBRhythmChartAsset* InChartA
 	bIsPaused = false;
 	bAllNotesPassed = false;
 
-	if (!RhythmSyncComponent && GetOwner())
-	{
-		SetRhythmSyncComponent(GetOwner()->FindComponentByClass<UPTBWwiseRhythmSyncComponent>());
-	}
-
 	if (RhythmSyncComponent && bIsPlaying)
 	{
-		RhythmSyncComponent->SetWwiseManager(AudioManager.Get());
+		if (AudioManager)
+		{
+			RhythmSyncComponent->SetWwiseManager(AudioManager.Get());
+		}
+
 		RhythmSyncComponent->SetBeatsPerBar(BeatsPerBar);
 		RhythmSyncComponent->StartSync(WwisePlayingId, ChartData.BPM, ChartOffsetMs);
 	}
