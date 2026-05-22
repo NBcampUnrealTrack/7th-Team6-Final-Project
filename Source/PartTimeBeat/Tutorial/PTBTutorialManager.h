@@ -52,7 +52,7 @@ public:
 	
 	/**튜토리얼 시작*/
 	UFUNCTION(BlueprintCallable, Category = "Tutorial")
-	void StartTutorial(FName GameId,const FString& ProfileId);
+	void StartTutorial(FName GameId,const FString& ProfileId,bool bForce = false);
 	
 	/**진행중인 스텝*/
 	UFUNCTION(BlueprintCallable, Category = "Tutorial")
@@ -62,6 +62,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Tutorial")
 	void SkipTutorial();
 	
+	UFUNCTION(BlueprintCallable, Category = "Tutorial")
+	void SkipStep();
 	// 델리게이트용함수 두개
 	
 	/**튜토리얼 스텝이 넘어갈때 호출되는 델리게이트 */
@@ -72,6 +74,8 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Tutorial")
 	FOnTutorialCompleted OnTutorialCompleted;
 
+
+	
 protected:
 	/**튜토리얼 완료*/
 	UFUNCTION()
@@ -101,4 +105,6 @@ private:
 	/** 프로필 아이디*/
 	UPROPERTY()
 	FString CurrentProfileId;
+	
+
 };

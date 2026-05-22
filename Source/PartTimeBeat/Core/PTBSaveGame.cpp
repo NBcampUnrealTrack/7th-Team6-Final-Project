@@ -72,3 +72,9 @@ void UPTBSaveGame::MarkTutorialDone(const FString& ProfileId, FName GameId)
 	UE_LOG(LogTemp, Log, TEXT("Tutorial marked done — Profile: %s, Game: %s"),
 		*ProfileId, *GameId.ToString());
 }
+
+void UPTBSaveGame::UpdateTutorialStep(const FString& ProfileId, FName GameId, int32 StepIndex)
+{
+	FName Key = FName(*(ProfileId + TEXT("_") + GameId.ToString()));
+	TutorialStepFlags.Add(Key, StepIndex);
+}
