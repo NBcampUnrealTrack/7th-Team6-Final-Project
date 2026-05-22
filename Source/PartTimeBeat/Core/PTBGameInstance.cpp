@@ -46,8 +46,15 @@ void UPTBGameInstance::InitPTBSystems()
 	UE_LOG(LogTemp, Log, TEXT("PTBSystems initialized"));
 
 	// 타이틀 위젯 생성 및 표시
-	GetTimerManager().SetTimerForNextTick(FTimerDelegate::CreateUObject(this, &UPTBGameInstance::CreateTitleWidget));
-		}
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().SetTimerForNextTick(FTimerDelegate::CreateUObject(this, &UPTBGameInstance::CreateTitleWidget));
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[PTBGameInstance] InitPTBSystems: World is null, widget creation skipped"));
+	}
+}
 
 void UPTBGameInstance::ShutdownPTBSystems()
 {
@@ -203,23 +210,26 @@ void UPTBGameInstance::AutoSave()
 
 void UPTBGameInstance::CreateTitleWidget()
 {
-	if (!TitleWidgetClass) return;
+	UE_LOG(LogTemp, Log, TEXT("[PTBGameInstance] CreateTitleWidget called"));
 
-	if (TitleWidgetInstance)
+	if (!TitleWidgetClass)
 	{
-		TitleWidgetInstance->RemoveFromParent();
-		TitleWidgetInstance = nullptr;
+		UE_LOG(LogTemp, Warning, TEXT("[PTBGameInstance] TitleWidgetClass is null"));
+		return;
 	}
 
 	APlayerController* PC = GetFirstLocalPlayerController();
-	if (PC)
+	if (!PC)
 	{
-		TitleWidgetInstance = CreateWidget<UPTBMainTitleWidget>(PC, TitleWidgetClass);
-		if (TitleWidgetInstance)
-			TitleWidgetInstance->AddToViewport();
+		UE_LOG(LogTemp, Warning, TEXT("[PTBGameInstance] PlayerController is null"));
+		return;
 	}
-	else
+
+	UE_LOG(LogTemp, Log, TEXT("[PTBGameInstance] Creating widget..."));
+	TitleWidgetInstance = CreateWidget<UPTBMainTitleWidget>(PC, TitleWidgetClass);
+	if (TitleWidgetInstance)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[PTBGameInstance] CreateTitleWidget: PlayerController is null"));
+		UE_LOG(LogTemp, Log, TEXT("[PTBGameInstance] Widget created successfully"));
+		TitleWidgetInstance->AddToViewport();
 	}
 }

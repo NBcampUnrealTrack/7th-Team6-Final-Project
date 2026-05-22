@@ -61,4 +61,7 @@ protected:
 
 	// 자동 전환 타이머
 	FTimerHandle TransitionTimerHandle;
+
+	UPROPERTY(EditDefaultsOnly, Category = "PTB|UI")
+	TSubclassOf<UUserWidget> ProfileSelectWidgetClass;
 };

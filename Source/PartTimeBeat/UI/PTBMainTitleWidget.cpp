@@ -64,9 +64,26 @@ void UPTBMainTitleWidget::InitializeView()
 // 시작 버튼 클릭 시 프로필 선택 화면으로 이동
 void UPTBMainTitleWidget::OnStartClicked()
 {
+    UE_LOG(LogTemp, Log, TEXT("[PTBMainTitleWidget] OnStartClicked called"));
+
     UPTBGameFlowSubsystem* FlowSystem = GetGameInstance()->GetSubsystem<UPTBGameFlowSubsystem>();
     if (FlowSystem)
         FlowSystem->SetFlowState(EGameFlowState::ProfileSelect);
+
+    // 프로필 선택 화면 띄우기
+    if (ProfileSelectWidgetClass)
+    {
+        APlayerController* PC = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+        if (PC)
+        {
+            UUserWidget* ProfileScreen = CreateWidget<UUserWidget>(PC, ProfileSelectWidgetClass);
+            if (ProfileScreen)
+            {
+                ProfileScreen->AddToViewport();
+                RemoveFromParent();
+            }
+        }
+    }
 }
 
 // 설정 버튼 클릭 시 설정 화면으로 이동
@@ -100,5 +117,10 @@ void UPTBMainTitleWidget::TransitionToTitleScreen()
     if (!TitleScreen) return;
 
     TitleScreen->AddToViewport();
+
+    // 타이틀 화면에서도 마우스 커서 유지
+    PC->bShowMouseCursor = true;
+    PC->SetInputMode(FInputModeUIOnly());
+
     RemoveFromParent();
 }
