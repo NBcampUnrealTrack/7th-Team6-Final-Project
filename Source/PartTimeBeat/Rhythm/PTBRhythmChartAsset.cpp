@@ -33,7 +33,11 @@ bool UPTBRhythmChartAsset::ValidateChart(TArray<FText>& OutErrors) const
 	{
 		const FPTBNoteEvent& Note = NoteEvents[Index];
 
-		if (Note.NoteId != 0)
+		if (Note.NoteId <= 0)
+		{
+			OutErrors.Add(FText::FromString(FString::Printf(TEXT("NoteEvents[%d].NoteId must be greater than 0."), Index)));
+		}
+		else
 		{
 			if (SeenNoteIds.Contains(Note.NoteId))
 			{

@@ -109,6 +109,21 @@ bool UPTBRhythmChartParser::ParseChartString(const FString& JsonString, FPTBChar
 		return Values[*FieldIndex]->TryGetString(OutValue);
 	};
 
+	TSet<int32> AssignedNoteIds;
+	int32 NextGeneratedNoteId = 1;
+	auto GenerateMissingNoteId = [&AssignedNoteIds, &NextGeneratedNoteId]() -> int32
+	{
+		while (AssignedNoteIds.Contains(NextGeneratedNoteId))
+		{
+			++NextGeneratedNoteId;
+		}
+
+		const int32 GeneratedNoteId = NextGeneratedNoteId;
+		AssignedNoteIds.Add(GeneratedNoteId);
+		++NextGeneratedNoteId;
+		return GeneratedNoteId;
+	};
+
 	for (int32 Index = 0; Index < NotesArray->Num(); ++Index)
 	{
 		const TSharedPtr<FJsonValue>& RawNote = (*NotesArray)[Index];
@@ -116,12 +131,14 @@ bool UPTBRhythmChartParser::ParseChartString(const FString& JsonString, FPTBChar
 		FPTBNoteEvent Note;
 		int32 IntValue = 0;
 		bool bHasTimeMs = false;
+		bool bHasNoteId = false;
 
 		if (NoteObject.IsValid())
 		{
 			if (NoteObject->TryGetNumberField(TEXT("id"), NumberValue))
 			{
 				Note.NoteId = static_cast<int32>(NumberValue);
+				bHasNoteId = true;
 			}
 
 			if (NoteObject->TryGetNumberField(TEXT("timeMs"), NumberValue) || NoteObject->TryGetNumberField(TEXT("time"), NumberValue))
@@ -177,6 +194,7 @@ bool UPTBRhythmChartParser::ParseChartString(const FString& JsonString, FPTBChar
 			if (ReadArrayNumber(NoteValues, TEXT("id"), NumberValue))
 			{
 				Note.NoteId = static_cast<int32>(NumberValue);
+				bHasNoteId = true;
 			}
 
 			if (ReadArrayNumber(NoteValues, TEXT("timeMs"), NumberValue) || ReadArrayNumber(NoteValues, TEXT("time"), NumberValue))
@@ -234,6 +252,15 @@ bool UPTBRhythmChartParser::ParseChartString(const FString& JsonString, FPTBChar
 		if (!bHasTimeMs)
 		{
 			OutErrors.Add(FText::FromString(FString::Printf(TEXT("notes[%d] is missing timeMs."), Index)));
+		}
+
+		if (!bHasNoteId)
+		{
+			Note.NoteId = GenerateMissingNoteId();
+		}
+		else if (Note.NoteId > 0)
+		{
+			AssignedNoteIds.Add(Note.NoteId);
 		}
 
 		OutNoteEvents.Add(Note);
