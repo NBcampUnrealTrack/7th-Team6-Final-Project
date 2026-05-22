@@ -6,7 +6,6 @@
 #include "PTBJudgementSystem.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnJudgementResult, FPTBJudgementResult, JudgementResult);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnComboBreak, int32, FinalCombo);
 
 /**
  * 채보 노트와 Wwise 기준 입력 시간을 비교해 판정 결과를 생성하는 리듬 판정 컴포넌트입니다.
@@ -68,7 +67,4 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Rhythm|Score")
 	FOnJudgementResult OnJudgementResult;
 
-	/** 콤보 중단 이벤트 */
-	UPROPERTY(BlueprintAssignable, Category = "Rhythm|Score")
-	FOnComboBreak OnComboBreak;
 };

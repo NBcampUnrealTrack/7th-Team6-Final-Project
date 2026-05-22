@@ -60,7 +60,14 @@ int32 UPTBScoreCalculator::AddJudgementScore(const FPTBJudgementResult& Result)
 
 	if (Result.bBreaksCombo || Result.JudgementType == EPTBJudgementType::Miss)
 	{
+		const int32 FinalCombo = ComboCount;
 		ComboCount = 0;
+
+		if (FinalCombo > 0)
+		{
+			OnComboBreak.Broadcast(FinalCombo);
+		}
+
 		return 0;
 	}
 

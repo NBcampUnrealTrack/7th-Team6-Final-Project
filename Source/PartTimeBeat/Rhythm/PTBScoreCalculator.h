@@ -5,6 +5,8 @@
 #include "Core/PTBStructEnums.h"
 #include "PTBScoreCalculator.generated.h"
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnScoreComboBreak, int32, FinalCombo);
+
 /**
  * 판정 결과를 누적해 실시간 점수와 최종 라운드 결과를 생성하는 점수 계산기입니다.
  *
@@ -17,6 +19,10 @@ class PARTTIMEBEAT_API UPTBScoreCalculator : public UObject
 	GENERATED_BODY()
 	
 public:
+	/** 콤보 중단 이벤트 */
+	UPROPERTY(BlueprintAssignable, Category = "Rhythm|Score")
+	FOnScoreComboBreak OnComboBreak;
+
 	/** 실시간 점수 */
 	int32 CurrentScore = 0;
 
