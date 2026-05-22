@@ -47,8 +47,6 @@ void APTBGameModeBase::StartGameFlow(const FPTBGameSessionRequest& Request)
 	Context.LocalPlayerIndex = 0;
 
 	ActiveMiniGame->InitializeMiniGame(Context);
-	ActiveMiniGame->PreloadAssets();
-	ActiveMiniGame->BuildRuntimeState();
 
 	// 5) 카운트다운 후 BeginRound
 	if (CountdownSeconds <= 0) { CountdownSeconds = 3; }

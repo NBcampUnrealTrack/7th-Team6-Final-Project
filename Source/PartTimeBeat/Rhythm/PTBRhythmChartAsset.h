@@ -6,22 +6,43 @@
 #include "PTBRhythmChartAsset.generated.h"
 
 /**
- * 리듬 게임의 채보 데이터를 담는 Primary Data Asset 예시
+ * 리듬 코어가 사용하는 공통 채보 DataAsset.
+ * 미니게임별 연출 정보는 포함하지 않고, 메타와 순수 노트 배열만 관리합니다.
+ *
+ * 이 Asset은 "언제 어떤 공통 입력이 발생해야 하는지"만 표현합니다.
+ * 예를 들어 ActionA, Lane 0, TimeMs 1200 같은 정보는 저장하지만,
+ * 특정 미니게임의 에셋 등장, 특정 캐릭터 인덱스, SFX 키 같은 View 전용 정보는 저장하지 않습니다.
+ *
+ * RhythmConductor는 이 Asset의 NoteEvents를 Wwise 재생 시간 기준으로 읽어
+ * PreCue, NoteReached, ChartEnd 같은 공통 이벤트를 발행합니다.
+ * 각 미니게임은 RuleSet 또는 자체 View 로직을 통해 같은 노트를 자기 방식으로 해석합니다.
  */
-UCLASS(BlueprintType) // 블루프린트에서 변수 타입 등으로 사용할 수 있게 합니다.
+UCLASS(BlueprintType)
 class PARTTIMEBEAT_API UPTBRhythmChartAsset : public UPrimaryDataAsset
 {
 	GENERATED_BODY()
 
 public:
+	/** 채보 식별자 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Rhythm|Chart")
 	FName ChartId;
-	//FPTBChartMeta Meta;
+
+	/** 곡, 난이도, BPM, Offset, Wwise 이벤트 등 공통 메타 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Rhythm|Chart")
+	FPTBChartData ChartData;
+
+	/** 시간순으로 정렬되는 공통 노트 배열 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Rhythm|Chart")
 	TArray<FPTBNoteEvent> NoteEvents;
 
-	// 유효성 검사
-    bool ValidateChart(TArray<FText>& OutErrors) const;
-	//	Conductor 최적화
+	/** 유효성 검사 */
+	bool ValidateChart(TArray<FText>& OutErrors) const;
+	/** Conductor 최적화 */
 	TArray<FPTBNoteEvent> GetNotesInBeatRange(float Start, float End) const;
-	//	외부.rhythmchart 파싱
-	bool LoadFromJson(const FString& JsonPath);
+	/**	판정 / PreCue용 시간 범위 조회 */
+	TArray<FPTBNoteEvent> GetNotesInTimeRange(float StartMs, float EndMs) const;
+	/**	TimeMs 기준 정렬 */
+	void SortNotesByTime();
+	/**	외부.rhythmchart 파싱 */
+	bool LoadFromJson(const FString& JsonPath, TArray<FText>& OutErrors);
 };

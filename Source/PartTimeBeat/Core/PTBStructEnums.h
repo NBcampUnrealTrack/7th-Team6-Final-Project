@@ -1,5 +1,6 @@
 #pragma once
 #include "CoreMinimal.h"
+#include "Engine/DataTable.h"
 
 #include "PTBStructEnums.generated.h"
 
@@ -48,7 +49,7 @@ enum class EPTBJudgementType : uint8
 UENUM(BlueprintType)
 enum class EPTBGradeType : uint8
 {
-    PerfectFullCombo      UMETA(DisplayName = "전노트 Perpect이상"),
+    PerfectFullCombo      UMETA(DisplayName = "전노트 Perfect이상"),
     FullCombo        UMETA(DisplayName = "Miss0"),
     S       UMETA(DisplayName = "95%이상"),
     A    UMETA(DisplayName = "85%이상"),
@@ -89,33 +90,26 @@ struct FPTBNoteEvent
     GENERATED_BODY()
 
 public:
-    // 초기화 해주는 게 좋긴 한데 나중에
-    /*FPTBNoteEvent()
-        : Time(0.0f)
-        , NoteType(0)
-    {
-    }*/
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
+    int32 NoteId = 0;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
-    int32 NoteId;
+    float BeatTime = 0.0f;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
-    float BeatTime;
+    float TimeMs = 0.0f;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
-    float TimeMs;
+    EPTBActionType ActionType = EPTBActionType::None;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
-    EPTBActionType ActionType;
+    bool bIsLongNote = false;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
-    bool bIsLongNote;
+    float DurationBeat = 0.0f;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
-    float DurationBeat;
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
-    FName SectionName;
+    FName SectionName = NAME_None;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
     TMap<FName, FString> Payload;
@@ -130,25 +124,25 @@ struct FPTBChartData
 public:
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
-    FName ChartId;
+    FName ChartId = NAME_None;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
-    FName SongId;
+    FName SongId = NAME_None;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
-    FName MiniGameId;
+    FName MiniGameId = NAME_None;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
-    EPTBDifficulty Difficulty;
+    EPTBDifficulty Difficulty = EPTBDifficulty::Standard;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
-    float BPM;
+    float BPM = 0.0f;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
-    float OffsetMs;
+    float OffsetMs = 0.0f;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
-    float SongLengthMs;
+    float SongLengthMs = 0.0f;
 
     //UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
     //TArray TempoChanges;
@@ -157,10 +151,10 @@ public:
     //TArray NoteEvents;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
-    FName WwiseEventName;
+    FName WwiseEventName = NAME_None;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
-    FName WwiseBankName;
+    FName WwiseBankName = NAME_None;
 };
 
 USTRUCT(BlueprintType)
@@ -171,22 +165,22 @@ struct FPTBJudgementResult
 public:
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
-    int32 NoteId;
+    int32 NoteId = 0;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
-    EPTBActionType ActionType;
+    EPTBActionType ActionType = EPTBActionType::None;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
-    EPTBJudgementType JudgementType;
+    EPTBJudgementType JudgementType = EPTBJudgementType::Miss;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
-    float DeltaMs;
+    float DeltaMs = 0.0f;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
-    int32 ScoreDelta;
+    int32 ScoreDelta = 0;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
-    bool bBreaksCombo;
+    bool bBreaksCombo = false;
 
 };
 
@@ -205,7 +199,7 @@ public:
     FString Nickname;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
-    int32 Gender;
+    int32 Gender = 0;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
     FDateTime Birthday;
@@ -220,7 +214,7 @@ public:
     TMap<FName, int32> EarnedStarsByMiniGame;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
-    int32 TotalEarnedMoney;
+    int32 TotalEarnedMoney = 0;
 
     //UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
     //TSet CompletedStoryIds;
@@ -241,20 +235,20 @@ struct FPTBUserSettings
 public:
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
-    float MasterVolume;
+    float MasterVolume = 1.0f;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
-    float BGMVolume;
+    float BGMVolume = 1.0f;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
-    float SFXVolume;
+    float SFXVolume = 1.0f;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
-    float JudgementOffsetMs;
+    float JudgementOffsetMs = 0.0f;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
-    float InputLatencyMs;
+    float InputLatencyMs = 0.0f;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
-    bool bFullscreen;
+    bool bFullscreen = false;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
-    bool bVibrationEnabled;
+    bool bVibrationEnabled = true;
 };
 
 USTRUCT(BlueprintType)
@@ -265,17 +259,17 @@ struct FPTBGameSessionRequest
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
     FGuid ProfileId;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
-    FName MiniGameId;
+    FName MiniGameId = NAME_None;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
-    FName MiniGameCode;
+    FName MiniGameCode = NAME_None;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
-    EPTBDifficulty Difficulty;
+    EPTBDifficulty Difficulty = EPTBDifficulty::Standard;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
-    EPTBPlayMode PlayMode;
+    EPTBPlayMode PlayMode = EPTBPlayMode::Single;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
-    int32 RandomSeed;
+    int32 RandomSeed = 0;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
-    int32 ExpectedPlayerCount;
+    int32 ExpectedPlayerCount = 1;
 };
 
 USTRUCT(BlueprintType)
@@ -295,7 +289,7 @@ public:
     FPTBUserSettings UserSettings;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
-    int32 LocalPlayerIndex;
+    int32 LocalPlayerIndex = 0;
 };
 
 
@@ -307,7 +301,7 @@ struct FPTBMiniGameResultPayload
 public:
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
-    FName PayloadType;
+    FName PayloadType = NAME_None;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
     TMap<FName, float> FloatValues;
@@ -330,35 +324,35 @@ public:
     FGuid ProfileId;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
-    FName MiniGameId;
+    FName MiniGameId = NAME_None;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
-    EPTBDifficulty Difficulty;
+    EPTBDifficulty Difficulty = EPTBDifficulty::Standard;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
-    int32 Score;
+    int32 Score = 0;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
-    int32 HighPerfectCount;
+    int32 HighPerfectCount = 0;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
-    int32 PerfectCount;
+    int32 PerfectCount = 0;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
-    int32 GoodCount;
+    int32 GoodCount = 0;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
-    int32 MissCount;
+    int32 MissCount = 0;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
-    int32 MaxCombo;
+    int32 MaxCombo = 0;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
-    float AccuracyRate;
+    float AccuracyRate = 0.0f;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
-    EPTBGradeType Grade;
+    EPTBGradeType Grade = EPTBGradeType::Fail;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
-    int32 StarCount;
+    int32 StarCount = 0;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
-    int32 EarnedMoney;
+    int32 EarnedMoney = 0;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
-    bool IsNewHighScore;
+    bool IsNewHighScore = false;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
     FPTBMiniGameResultPayload MiniGamePayload;
@@ -372,16 +366,16 @@ struct FPTBRewardSummary
 public:
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
-    int32 EarnedMoney;
+    int32 EarnedMoney = 0;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
-    int32 EarnedStars;
+    int32 EarnedStars = 0;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
-    int32 TotalMoney;
+    int32 TotalMoney = 0;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
-    int32 TotalStars;
+    int32 TotalStars = 0;
 
     //TArray NewlyUnlockedMiniGames;
     //TArray NewlyUnlockedStories;
@@ -398,26 +392,26 @@ struct FPTBStageInfo
 public:
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
-    FName StageId;
+    FName StageId = NAME_None;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
-    FName MiniGameId;
+    FName MiniGameId = NAME_None;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
     FText DisplayName;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
-    int32 RequiredStars;
+    int32 RequiredStars = 0;
 
     //TArray PrerequisiteStageIds;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
-    int32 BestStarRating;
+    int32 BestStarRating = 0;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
-    int32 BestScore;
+    int32 BestScore = 0;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
-    EPTBGradeType BestGrade;
+    EPTBGradeType BestGrade = EPTBGradeType::Fail;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
-    bool bIsUnlocked;
+    bool bIsUnlocked = false;
 };
 
 
@@ -429,7 +423,7 @@ struct FPTBStoryChapter
 public:
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
-    FName ChapterId;
+    FName ChapterId = NAME_None;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
     FText Title;
@@ -438,14 +432,14 @@ public:
     //TArray UnlockConditionStageIds;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
-    int32 UnlockConditionStars;
+    int32 UnlockConditionStars = 0;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
-    int32 RequiredMoney;
+    int32 RequiredMoney = 0;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
-    UDataTable* DialogueDataTable;
+    UDataTable* DialogueDataTable = nullptr;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
-    bool bIsViewed;
+    bool bIsViewed = false;
 };
 
 USTRUCT(BlueprintType)
@@ -456,19 +450,19 @@ struct FPTBWwiseSyncData
 public:
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
-    float CurrentPlaybackMs;
+    float CurrentPlaybackMs = 0.0f;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
-    float CurrentBeat;
+    float CurrentBeat = 0.0f;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
-    float BPM;
+    float BPM = 0.0f;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
-    bool bIsPlaying;
+    bool bIsPlaying = false;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
-    double DspTime;
+    double DspTime = 0.0;
 };
 
 USTRUCT(BlueprintType)
@@ -485,10 +479,10 @@ public:
     FString PlayerId;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
-    FName MiniGameId;
+    FName MiniGameId = NAME_None;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
-    float BeatTime;
+    float BeatTime = 0.0f;
 
     //UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
     //ENetRole NetRole;

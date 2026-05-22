@@ -6,42 +6,65 @@
 #include "PTBJudgementSystem.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnJudgementResult, FPTBJudgementResult, JudgementResult);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnComboBreak, int32, FinalCombo);
 
+/**
+ * 채보 노트와 Wwise 기준 입력 시간을 비교해 판정 결과를 생성하는 리듬 판정 컴포넌트입니다.
+ *
+ * 이 컴포넌트는 점수 누적을 직접 처리하지 않고 PendingNotes 관리, 입력 판정, 만료 Miss 발생만 담당합니다.
+ * 미니게임은 Conductor 또는 NoteCue에서 노트를 등록하고 입력 시 EvaluateInput을 호출합니다.
+ */
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class PARTTIMEBEAT_API UPTBJudgementSystem : public UActorComponent
 {
 	GENERATED_BODY()
 
 public:	
+	/** 기본값 초기화 */
 	UPTBJudgementSystem();
 
 protected:
+	/** 게임 시작 처리 */
 	virtual void BeginPlay() override;
 
 public:	
+	/** 프레임 처리 */
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
-	//	채보로 초기화
+	
+	/** 채보와 사용자 판정 오프셋으로 초기화 */
 	void Initialize(const FPTBChartData& Chart, float UserOffset);
-	//	Conductor로부터 노트 수신
+	
+	/** Conductor 또는 NoteCue에서 전달된 노트 등록 */
 	void RegisterNoteEvent(const FPTBNoteEvent& Note);
-	//	입력 판정
+	
+	/** 입력 액션과 입력 시간 기준 판정 */
 	FPTBJudgementResult EvaluateInput(EPTBActionType Action, float InputTimeMs);
-	//	만료 노트 자동 Miss
+	
+	/** 판정 가능 시간을 넘긴 노트 Miss 처리 */
 	TArray<FPTBJudgementResult> ForceMissExpiredNotes(float CurrentTimeMs);
-	//	카운터 초기화
+	
+	/** 대기 노트와 보정값 초기화 */
 	void Reset();
 
+	/** High Perfect 판정 허용 범위(ms) */
 	float HitWindowHighPerfectMs = 21.0;
+	
+	/** Perfect 판정 허용 범위(ms) */
 	float HitWindowPerfectMs = 50.0;
+	
+	/** Good 판정 허용 범위(ms) */
 	float HitWindowGoodMs = 70.0;
+	
+	/** Miss 입력 소비 허용 범위(ms) */
 	float HitWindowMissMs = 120.0;
+	
+	/** 판정 대기 노트 목록 */
 	TArray<FPTBNoteEvent> PendingNotes;
+	
+	/** 사용자 판정 보정값(ms) */
 	float JudgementOffsetMs = 0.0;
 
+	/** 판정 결과 이벤트 */
 	UPROPERTY(BlueprintAssignable, Category = "Rhythm|Score")
 	FOnJudgementResult OnJudgementResult;
 
-	UPROPERTY(BlueprintAssignable, Category = "Rhythm|Score")
-	FOnComboBreak OnComboBreak;
 };
