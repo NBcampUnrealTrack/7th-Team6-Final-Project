@@ -195,9 +195,9 @@ void APTBBaseMiniGame::InitializeMiniGame(const FPTBMiniGameContext& Context)
 		TArray<FText> ChartErrors;
 		if (!ChartAsset->ValidateChart(ChartErrors))
 		{
-			for (const FText& Error : ChartErrors)
+			for (const FText& ChartError : ChartErrors)
 			{
-				UE_LOG(LogRhythm, Error, TEXT("[%s] Invalid chart: %s"), *GetNameSafe(this), *Error.ToString());
+				UE_LOG(LogRhythm, Error, TEXT("[%s] Invalid chart: %s"), *GetNameSafe(this), *ChartError.ToString());
 			}
 
 			ChartAsset = nullptr;
