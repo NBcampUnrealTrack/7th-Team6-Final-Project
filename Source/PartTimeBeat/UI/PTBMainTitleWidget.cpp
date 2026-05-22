@@ -13,14 +13,6 @@ void UPTBMainTitleWidget::NativeConstruct()
     InitializeView();
 
     // 3초 후 자동으로 타이틀 화면으로 전환
-    //GetWorld()->GetTimerManager().SetTimer(
-    //    TransitionTimerHandle,
-    //    this,
-    //    &UPTBMainTitleWidget::TransitionToTitleScreen,
-    //    3.0f,
-    //    false
-    //);
-
     if (UWorld* World = GetWorld())
     {
         World->GetTimerManager().SetTimer(
