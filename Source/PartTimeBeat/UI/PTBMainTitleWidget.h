@@ -20,6 +20,7 @@ class PARTTIMEBEAT_API UPTBMainTitleWidget : public UUserWidget
 
 protected:
 	virtual void NativeConstruct() override;
+	virtual void NativeDestruct() override;
 
 public:
 	UFUNCTION(BlueprintCallable, Category = "PTB|UI")

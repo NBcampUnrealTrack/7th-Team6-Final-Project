@@ -41,9 +41,24 @@ void UPTBGameInstance::InitPTBSystems()
 	// 타이틀 위젯 생성 및 표시
 	if (TitleWidgetClass)
 	{
-		TitleWidgetInstance = CreateWidget<UPTBMainTitleWidget>(this, TitleWidgetClass);
 		if (TitleWidgetInstance)
-			TitleWidgetInstance->AddToViewport();
+		{
+			TitleWidgetInstance->RemoveFromParent();
+			TitleWidgetInstance = nullptr;
+		}
+
+		// PlayerController로 생성
+		APlayerController* PC = GetFirstLocalPlayerController();
+		if (PC)
+		{
+			TitleWidgetInstance = CreateWidget<UPTBMainTitleWidget>(PC, TitleWidgetClass);
+			if (TitleWidgetInstance)
+				TitleWidgetInstance->AddToViewport();
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[PTBGameInstance] InitPTBSystems: PlayerController is null, widget not created"));
+		}
 	}
 }
 

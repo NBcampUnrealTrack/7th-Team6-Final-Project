@@ -4,6 +4,7 @@
 #include "Kismet/KismetSystemLibrary.h"
 #include "Components/Button.h"
 #include "Core/PTBGameFlowSubsystem.h"
+#include "Kismet/GameplayStatics.h"
 
 void UPTBMainTitleWidget::NativeConstruct()
 {
@@ -12,28 +13,52 @@ void UPTBMainTitleWidget::NativeConstruct()
     InitializeView();
 
     // 3초 후 자동으로 타이틀 화면으로 전환
-    GetWorld()->GetTimerManager().SetTimer(
-        TransitionTimerHandle,
-        this,
-        &UPTBMainTitleWidget::TransitionToTitleScreen,
-        3.0f,
-        false
-    );
+    //GetWorld()->GetTimerManager().SetTimer(
+    //    TransitionTimerHandle,
+    //    this,
+    //    &UPTBMainTitleWidget::TransitionToTitleScreen,
+    //    3.0f,
+    //    false
+    //);
+
+    if (UWorld* World = GetWorld())
+    {
+        World->GetTimerManager().SetTimer(
+            TransitionTimerHandle,
+            this,
+            &UPTBMainTitleWidget::TransitionToTitleScreen,
+            3.0f,
+            false
+        );
+    }
+    else
+    {
+        UE_LOG(LogTemp, Warning, TEXT("[PTBMainTitleWidget] NativeConstruct: World is null, timer not set"));
+    }
+}
+
+void UPTBMainTitleWidget::NativeDestruct()
+{
+    Super::NativeDestruct();
+
+    // 1번 문제 수정: 위젯 종료 시 타이머 정리
+    if (UWorld* World = GetWorld())
+    {
+        World->GetTimerManager().ClearTimer(TransitionTimerHandle);
+    }
 }
 
 void UPTBMainTitleWidget::InitializeView()
 {
-	// TODO: Bind button delegates here
-
-     // 각 버튼이 유효한지 확인 후 클릭 이벤트 연결
+    // 각 버튼이 유효한지 확인 후 클릭 이벤트 연결
     if (ButtonStart)
-        ButtonStart->OnClicked.AddDynamic(this, &UPTBMainTitleWidget::OnStartClicked);
+        ButtonStart->OnClicked.AddUniqueDynamic(this, &UPTBMainTitleWidget::OnStartClicked);
     if (ButtonSettings)
-        ButtonSettings->OnClicked.AddDynamic(this, &UPTBMainTitleWidget::OnSettingsClicked);
+        ButtonSettings->OnClicked.AddUniqueDynamic(this, &UPTBMainTitleWidget::OnSettingsClicked);
     if (ButtonQuit)
-        ButtonQuit->OnClicked.AddDynamic(this, &UPTBMainTitleWidget::OnQuitClicked);
+        ButtonQuit->OnClicked.AddUniqueDynamic(this, &UPTBMainTitleWidget::OnQuitClicked);
     if (ButtonAchievement)
-        ButtonAchievement->OnClicked.AddDynamic(this, &UPTBMainTitleWidget::OnAchievementClicked);
+        ButtonAchievement->OnClicked.AddUniqueDynamic(this, &UPTBMainTitleWidget::OnAchievementClicked);
 }
 
 // 시작 버튼 클릭 시 프로필 선택 화면으로 이동
@@ -66,15 +91,14 @@ void UPTBMainTitleWidget::OnAchievementClicked()
 
 void UPTBMainTitleWidget::TransitionToTitleScreen()
 {
-    // 타이틀 화면 위젯 생성 후 표시
-    if (TitleScreenWidgetClass)
-    {
-        UUserWidget* TitleScreen = CreateWidget<UUserWidget>(GetOwningPlayer(), TitleScreenWidgetClass);
-        if (TitleScreen)
-        {
-            TitleScreen->AddToViewport();
-            // 현재 로고 화면 제거
-            RemoveFromParent();
-        }
-    }
+    if (!TitleScreenWidgetClass) return;
+
+    APlayerController* PC = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+    if (!PC) return;
+
+    UUserWidget* TitleScreen = CreateWidget<UUserWidget>(PC, TitleScreenWidgetClass);
+    if (!TitleScreen) return;
+
+    TitleScreen->AddToViewport();
+    RemoveFromParent();
 }
