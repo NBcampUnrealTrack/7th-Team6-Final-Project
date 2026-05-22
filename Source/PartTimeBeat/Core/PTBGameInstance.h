@@ -19,6 +19,7 @@ class PARTTIMEBEAT_API UPTBGameInstance : public UGameInstance
 	GENERATED_BODY()
 public:
 	//Save / Profile / Audio / Flow / TeamLog 초기화
+	UFUNCTION(BlueprintCallable, Category = "PTB|Systems")
 	void InitPTBSystems();	
 	//저장 flush, 오디오 정리, 로그 flush
 	void ShutdownPTBSystems();
@@ -35,6 +36,11 @@ public:
 	bool LoadGame();	
 	//결과 화면 후 자동 저장
 	void AutoSave();
+
+	UFUNCTION()
+	void CreateTitleWidget();
+
+	virtual void Init() override;
 
 	UPROPERTY(BlueprintAssignable, Category = "Game Flow")
 	FOnFlowStateChanged OnFlowStateChanged;

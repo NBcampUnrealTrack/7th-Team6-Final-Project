@@ -7,6 +7,13 @@
 // 헤더에 아래를 추가하는 것을 권장합니다:
 //   UPROPERTY() UPTBSaveGame* CurrentSaveGame;
 
+void UPTBGameInstance::Init()
+{
+	Super::Init();
+	InitPTBSystems();
+}
+
+
 void UPTBGameInstance::InitPTBSystems()
 {
 	// 1) 세이브 로드 시도
@@ -39,28 +46,8 @@ void UPTBGameInstance::InitPTBSystems()
 	UE_LOG(LogTemp, Log, TEXT("PTBSystems initialized"));
 
 	// 타이틀 위젯 생성 및 표시
-	if (TitleWidgetClass)
-	{
-		if (TitleWidgetInstance)
-		{
-			TitleWidgetInstance->RemoveFromParent();
-			TitleWidgetInstance = nullptr;
+	GetTimerManager().SetTimerForNextTick(FTimerDelegate::CreateUObject(this, &UPTBGameInstance::CreateTitleWidget));
 		}
-
-		// PlayerController로 생성
-		APlayerController* PC = GetFirstLocalPlayerController();
-		if (PC)
-		{
-			TitleWidgetInstance = CreateWidget<UPTBMainTitleWidget>(PC, TitleWidgetClass);
-			if (TitleWidgetInstance)
-				TitleWidgetInstance->AddToViewport();
-		}
-		else
-		{
-			UE_LOG(LogTemp, Warning, TEXT("[PTBGameInstance] InitPTBSystems: PlayerController is null, widget not created"));
-		}
-	}
-}
 
 void UPTBGameInstance::ShutdownPTBSystems()
 {
@@ -212,4 +199,27 @@ void UPTBGameInstance::AutoSave()
 {
 	UE_LOG(LogTemp, Log, TEXT("AutoSave triggered"));
 	SaveGame();
+}
+
+void UPTBGameInstance::CreateTitleWidget()
+{
+	if (!TitleWidgetClass) return;
+
+	if (TitleWidgetInstance)
+	{
+		TitleWidgetInstance->RemoveFromParent();
+		TitleWidgetInstance = nullptr;
+	}
+
+	APlayerController* PC = GetFirstLocalPlayerController();
+	if (PC)
+	{
+		TitleWidgetInstance = CreateWidget<UPTBMainTitleWidget>(PC, TitleWidgetClass);
+		if (TitleWidgetInstance)
+			TitleWidgetInstance->AddToViewport();
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[PTBGameInstance] CreateTitleWidget: PlayerController is null"));
+	}
 }
