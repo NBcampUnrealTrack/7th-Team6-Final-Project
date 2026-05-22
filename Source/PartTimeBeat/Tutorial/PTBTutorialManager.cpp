@@ -95,8 +95,6 @@ void UPTBTutorialManager::AdvanceStep()
 			bool bSaved= UGameplayStatics::SaveGameToSlot(SaveGame, TEXT("PTBSave"), 0);
 			PTB_WARNING(LogPTBTutorial, TEXT("스텝 %d 저장 %s"), CurrentStepIndex, bSaved ? TEXT("성공") : TEXT("실패"));
 		}	
-		PTB_WARNING(LogPTBTutorial,TEXT("TutorialManager: 스텝 %d: %s"),
-		       CurrentStepIndex, *CurrentSteps[CurrentStepIndex].InstructionText.ToString());
 	}
 	else
 	{
@@ -105,7 +103,6 @@ void UPTBTutorialManager::AdvanceStep()
 			SaveGame->UpdateTutorialStep(CurrentProfileId, CurrentSteps[CurrentStepIndex-1].GameId, CurrentStepIndex-1);
 			UGameplayStatics::SaveGameToSlot(SaveGame, TEXT("PTBSave"), 0);
 		}
-		PTB_WARNING(LogPTBTutorial,TEXT("TutorialManager: 마지막 스텝 → CompleteTutorial 호출"));
 		CompleteTutorial(CurrentSteps[CurrentStepIndex - 1].GameId, CurrentProfileId);
 	}
 }
@@ -115,12 +112,12 @@ void UPTBTutorialManager::SkipStep()
 	if (!bIsTutorialActive) return;
 	if (bCanSkip)
 	{
-		PTB_WARNING(LogPTBTutorial, TEXT("TutorialManager: 스텝 %d 스킵!"), CurrentStepIndex);
+		//UI 스킵 가능 
 		AdvanceStep();
 	}
 	else
 	{
-		PTB_WARNING(LogPTBTutorial, TEXT("TutorialManager: 스텝 %d 스킵 불가!"), CurrentStepIndex);
+		// UI 스킵 불가능
 	}
 }
 
@@ -131,13 +128,12 @@ void UPTBTutorialManager::SkipTutorial()
 
 	if (bCanSkip)
 	{
-		PTB_WARNING(LogPTBTutorial, TEXT("TutorialManager: 튜토리얼 스킵 - GameId: %s"),
-		       *CurrentSteps[CurrentStepIndex].GameId.ToString());
+		//UI 스킵 가능 
 		CompleteTutorial(CurrentSteps[CurrentStepIndex].GameId, CurrentProfileId);
 	}
 	else
 	{
-		PTB_WARNING(LogPTBTutorial, TEXT("TutorialManager: 스킵 불가 - 현재 스텝 %d"), CurrentStepIndex);
+		// UI 스킵 불가능
 	}
 }
 
