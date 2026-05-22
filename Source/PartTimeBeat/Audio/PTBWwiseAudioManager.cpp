@@ -281,7 +281,18 @@ void UPTBWwiseAudioManager::HandleBGMPostEventCallback(EAkCallbackType CallbackT
 		return;
 	}
 
-	const int32 FinishedPlayingId = CurrentBGMPlayingId;
+	const UAkEventCallbackInfo* EventCallbackInfo = Cast<UAkEventCallbackInfo>(CallbackInfo);
+	if (!EventCallbackInfo)
+	{
+		return;
+	}
+
+	const int32 FinishedPlayingId = EventCallbackInfo->PlayingID;
+	if (FinishedPlayingId == 0 || FinishedPlayingId != CurrentBGMPlayingId)
+	{
+		return;
+	}
+
 	bIsBGMPlaying = false;
 	CurrentBGMPlayingId = 0;
 	OnBGMFinished.Broadcast(FinishedPlayingId);
