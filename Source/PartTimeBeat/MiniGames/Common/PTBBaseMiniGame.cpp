@@ -243,9 +243,16 @@ void APTBBaseMiniGame::PreloadAssets()
 	}
 
 	UPTBRhythmChartAsset* LoadedChartAsset = NewObject<UPTBRhythmChartAsset>(this, NAME_None, RF_Transient);
-	if (!LoadedChartAsset->LoadFromJson(ResolvedPath))
+	TArray<FText> LoadErrors;
+	if (!LoadedChartAsset->LoadFromJson(ResolvedPath, LoadErrors))
 	{
 		UE_LOG(LogRhythm, Error, TEXT("[%s] Failed to load chart json: %s"), *GetNameSafe(this), *ResolvedPath);
+
+		for (const FText& LoadError : LoadErrors)
+		{
+			UE_LOG(LogRhythm, Error, TEXT("[%s] Chart load error: %s"), *GetNameSafe(this), *LoadError.ToString());
+		}
+
 		return;
 	}
 

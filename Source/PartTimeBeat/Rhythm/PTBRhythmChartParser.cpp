@@ -132,6 +132,8 @@ bool UPTBRhythmChartParser::ParseChartString(const FString& JsonString, FPTBChar
 		int32 IntValue = 0;
 		bool bHasTimeMs = false;
 		bool bHasNoteId = false;
+		bool bHasAction = false;
+		bool bActionSupported = false;
 
 		if (NoteObject.IsValid())
 		{
@@ -155,7 +157,9 @@ bool UPTBRhythmChartParser::ParseChartString(const FString& JsonString, FPTBChar
 			FString ActionString;
 			if (NoteObject->TryGetStringField(TEXT("action"), ActionString))
 			{
+				bHasAction = true;
 				Note.ActionType = ParseActionType(ActionString);
+				bActionSupported = Note.ActionType != EPTBActionType::None;
 			}
 
 			FString NoteTypeString;
@@ -211,7 +215,9 @@ bool UPTBRhythmChartParser::ParseChartString(const FString& JsonString, FPTBChar
 			FString ActionString;
 			if (ReadArrayString(NoteValues, TEXT("action"), ActionString))
 			{
+				bHasAction = true;
 				Note.ActionType = ParseActionType(ActionString);
+				bActionSupported = Note.ActionType != EPTBActionType::None;
 			}
 
 			FString NoteTypeString;
@@ -252,6 +258,15 @@ bool UPTBRhythmChartParser::ParseChartString(const FString& JsonString, FPTBChar
 		if (!bHasTimeMs)
 		{
 			OutErrors.Add(FText::FromString(FString::Printf(TEXT("notes[%d] is missing timeMs."), Index)));
+		}
+
+		if (!bHasAction)
+		{
+			OutErrors.Add(FText::FromString(FString::Printf(TEXT("notes[%d] is missing action."), Index)));
+		}
+		else if (!bActionSupported)
+		{
+			OutErrors.Add(FText::FromString(FString::Printf(TEXT("notes[%d] has unsupported action value."), Index)));
 		}
 
 		if (!bHasNoteId)

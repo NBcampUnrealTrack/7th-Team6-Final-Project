@@ -1,5 +1,6 @@
 #include "Rhythm/PTBRhythmChartAsset.h"
 
+#include "Debug/PTBLogChannels.h"
 #include "Rhythm/PTBRhythmChartParser.h"
 
 bool UPTBRhythmChartAsset::ValidateChart(TArray<FText>& OutErrors) const
@@ -142,14 +143,19 @@ void UPTBRhythmChartAsset::SortNotesByTime()
 	});
 }
 
-bool UPTBRhythmChartAsset::LoadFromJson(const FString& JsonPath)
+bool UPTBRhythmChartAsset::LoadFromJson(const FString& JsonPath, TArray<FText>& OutErrors)
 {
 	FPTBChartData ParsedChartData;
 	TArray<FPTBNoteEvent> ParsedNoteEvents;
-	TArray<FText> LoadErrors;
+	OutErrors.Reset();
 
-	if (!UPTBRhythmChartParser::ParseChartFile(JsonPath, ParsedChartData, ParsedNoteEvents, LoadErrors))
+	if (!UPTBRhythmChartParser::ParseChartFile(JsonPath, ParsedChartData, ParsedNoteEvents, OutErrors))
 	{
+		for (const FText& Error : OutErrors)
+		{
+			UE_LOG(LogRhythm, Error, TEXT("LoadFromJson parse failed [%s]: %s"), *JsonPath, *Error.ToString());
+		}
+
 		return false;
 	}
 
@@ -162,11 +168,17 @@ bool UPTBRhythmChartAsset::LoadFromJson(const FString& JsonPath)
 	NoteEvents = MoveTemp(ParsedNoteEvents);
 	SortNotesByTime();
 
-	if (!ValidateChart(LoadErrors))
+	if (!ValidateChart(OutErrors))
 	{
 		ChartId = PreviousChartId;
 		ChartData = PreviousChartData;
 		NoteEvents = PreviousNoteEvents;
+
+		for (const FText& Error : OutErrors)
+		{
+			UE_LOG(LogRhythm, Error, TEXT("LoadFromJson validation failed [%s]: %s"), *JsonPath, *Error.ToString());
+		}
+
 		return false;
 	}
 

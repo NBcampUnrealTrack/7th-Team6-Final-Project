@@ -44,5 +44,5 @@ public:
 	/**	TimeMs 기준 정렬 */
 	void SortNotesByTime();
 	/**	외부.rhythmchart 파싱 */
-	bool LoadFromJson(const FString& JsonPath);
+	bool LoadFromJson(const FString& JsonPath, TArray<FText>& OutErrors);
 };

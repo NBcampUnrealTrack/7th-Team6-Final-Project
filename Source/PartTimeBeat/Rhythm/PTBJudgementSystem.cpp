@@ -73,6 +73,37 @@ namespace PTBJudgementSystemInternal
 		Result.bBreaksCombo = JudgementType == EPTBJudgementType::Miss;
 		return Result;
 	}
+
+	bool ShouldInsertBefore(const FPTBNoteEvent& Left, const FPTBNoteEvent& Right)
+	{
+		if (FMath::IsNearlyEqual(Left.TimeMs, Right.TimeMs))
+		{
+			return Left.NoteId < Right.NoteId;
+		}
+
+		return Left.TimeMs < Right.TimeMs;
+	}
+
+	int32 FindInsertIndex(const TArray<FPTBNoteEvent>& Notes, const FPTBNoteEvent& Note)
+	{
+		int32 Low = 0;
+		int32 High = Notes.Num();
+
+		while (Low < High)
+		{
+			const int32 Mid = Low + (High - Low) / 2;
+			if (ShouldInsertBefore(Note, Notes[Mid]))
+			{
+				High = Mid;
+			}
+			else
+			{
+				Low = Mid + 1;
+			}
+		}
+
+		return Low;
+	}
 }
 
 UPTBJudgementSystem::UPTBJudgementSystem()
@@ -106,16 +137,8 @@ void UPTBJudgementSystem::RegisterNoteEvent(const FPTBNoteEvent& Note)
 		}
 	}
 
-	PendingNotes.Add(Note);
-	PendingNotes.Sort([](const FPTBNoteEvent& Left, const FPTBNoteEvent& Right)
-	{
-		if (FMath::IsNearlyEqual(Left.TimeMs, Right.TimeMs))
-		{
-			return Left.NoteId < Right.NoteId;
-		}
-
-		return Left.TimeMs < Right.TimeMs;
-	});
+	const int32 InsertIndex = PTBJudgementSystemInternal::FindInsertIndex(PendingNotes, Note);
+	PendingNotes.Insert(Note, InsertIndex);
 }
 
 FPTBJudgementResult UPTBJudgementSystem::EvaluateInput(EPTBActionType Action, float InputTimeMs)
