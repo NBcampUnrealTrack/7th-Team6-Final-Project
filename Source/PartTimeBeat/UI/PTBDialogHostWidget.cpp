@@ -27,13 +27,11 @@ void UPTBDialogHostWidget::CloseTopDialog()
 
 void UPTBDialogHostWidget::CloseAllDialogs()
   {
-  	// 역순으로 닫아야 나중에 쌓인 것부터 처리됨
-  	for (int32 i = DialogStack.Num() - 1; i >= 0; --i)
+  	// 역순으로 닫으면서 단건 닫기와 동일한 후처리(OnDialogClosed)까지 수행
+  	while (DialogStack.Num() > 0)
   	{
-  		if (DialogStack[i])
-  			DialogStack[i]->RemoveFromParent();
+  		CloseTopDialog();
   	}
-  	DialogStack.Empty();
   }
 
 bool UPTBDialogHostWidget::IsDialogOpen(TSubclassOf<UUserWidget> DialogClass) const
