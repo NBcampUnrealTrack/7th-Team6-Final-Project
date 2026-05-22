@@ -20,10 +20,23 @@ class PARTTIMEBEAT_API UPTBMainTitleWidget : public UUserWidget
 
 protected:
 	virtual void NativeConstruct() override;
+	virtual void NativeDestruct() override;
 
 public:
 	UFUNCTION(BlueprintCallable, Category = "PTB|UI")
 	virtual void InitializeView();
+	UFUNCTION()
+	void OnStartClicked();
+	UFUNCTION()
+	void OnSettingsClicked();
+	UFUNCTION()
+	void OnQuitClicked();
+	UFUNCTION()
+	void OnAchievementClicked();
+
+	// 로고 화면에서 타이틀 화면으로 전환
+	UFUNCTION()
+	void TransitionToTitleScreen();
 
 protected:
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "PTB|UI")
@@ -36,5 +49,16 @@ protected:
 	TObjectPtr<UButton> ButtonQuit = nullptr;
 
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "PTB|UI")
+	TObjectPtr<UButton> ButtonAchievement = nullptr;
+
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "PTB|UI")
 	TObjectPtr<UImage> ImageLogo = nullptr;
+
+
+	// 전환할 타이틀 위젯 클래스
+	UPROPERTY(EditDefaultsOnly, Category = "PTB|UI")
+	TSubclassOf<UUserWidget> TitleScreenWidgetClass;
+
+	// 자동 전환 타이머
+	FTimerHandle TransitionTimerHandle;
 };
