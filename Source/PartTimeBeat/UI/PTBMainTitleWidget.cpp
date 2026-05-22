@@ -3,7 +3,7 @@
 #include "PTBMainTitleWidget.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "Components/Button.h"
-#include "Core/PTBGameFlowSubsystem.h"
+#include "Flow/PTBGameFlowSubsystem.h"
 #include "Kismet/GameplayStatics.h"
 
 void UPTBMainTitleWidget::NativeConstruct()
