@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "Core/PTBSaveGame.h"
 #include "Engine/DataTable.h"
 #include "Core/PTBStructEnums.h"
 #include "PTBTutorialManager.generated.h"
@@ -38,6 +39,7 @@ struct FPTBTutorialStepRow : public FTableRowBase
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnTutorialStepChanged, int32, StepIndex, FText, InstructionText);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnTutorialCompleted, FName, GameId);
 
+class UPTBSaveGame;
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class PARTTIMEBEAT_API UPTBTutorialManager : public UActorComponent
 {
@@ -76,10 +78,13 @@ public:
 
 
 	
-protected:
+protected:	
 	/**튜토리얼 완료*/
 	UFUNCTION()
 	void CompleteTutorial(FName GameId,const FString& ProfileId);
+	
+	
+	
 
 private:
 	/**스킵가능 여부*/
@@ -106,5 +111,5 @@ private:
 	UPROPERTY()
 	FString CurrentProfileId;
 	
-
+	UPTBSaveGame* GetOrCreateSaveGame();
 };

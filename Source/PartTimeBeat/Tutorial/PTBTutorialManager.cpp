@@ -1,5 +1,6 @@
 #include "Tutorial/PTBTutorialManager.h"
 #include "Core/PTBSaveGame.h"
+#include "Debug/PTBTeamLog.h"
 #include "Kismet/GameplayStatics.h"
 
 UPTBTutorialManager::UPTBTutorialManager() :
@@ -39,7 +40,6 @@ void UPTBTutorialManager::StartTutorial(FName GameId, const FString& ProfileId, 
 			CurrentSteps.Add(*Row);
 		}
 	}
-
 	CurrentSteps.Sort([](const FPTBTutorialStepRow& A, const FPTBTutorialStepRow& B)
 	{
 		return A.StepIndex < B.StepIndex;
@@ -47,8 +47,9 @@ void UPTBTutorialManager::StartTutorial(FName GameId, const FString& ProfileId, 
 
 	if (CurrentSteps.Num() == 0) return;
 
-	UPTBSaveGame* SaveGame = Cast<UPTBSaveGame>(UGameplayStatics::LoadGameFromSlot(TEXT("PTBSave"), 0));
-
+	UPTBSaveGame* SaveGame = GetOrCreateSaveGame();
+	if (!SaveGame) return;
+	
 	FName Key = FName(*(ProfileId + TEXT("_") + GameId.ToString()));
 	int32 LastViewedStep = -1;
 	if (SaveGame)
@@ -57,7 +58,6 @@ void UPTBTutorialManager::StartTutorial(FName GameId, const FString& ProfileId, 
 		if (Found)
 			LastViewedStep = *Found;
 	}
-
 	for (auto& Step : CurrentSteps)
 	{
 		if (Step.StepIndex <= LastViewedStep)
@@ -74,7 +74,7 @@ void UPTBTutorialManager::StartTutorial(FName GameId, const FString& ProfileId, 
 		SaveGame->UpdateTutorialStep(ProfileId, GameId, 0);
 		UGameplayStatics::SaveGameToSlot(SaveGame, TEXT("PTBSave"), 0);
 	}
-	UE_LOG(LogTemp, Log, TEXT("TutorialManager: 튜토리얼 시작 - GameId: %s, 스텝 0: %s"),
+	PTB_WARNING(LogPTBTutorial, TEXT("TutorialManager: 튜토리얼 시작 - GameId: %s, 스텝 0: %s"),
 	       *GameId.ToString(), *CurrentSteps[0].InstructionText.ToString());
 }
 
@@ -84,36 +84,43 @@ void UPTBTutorialManager::AdvanceStep()
 	if (CurrentStepIndex >= CurrentSteps.Num()) return;
 	CurrentStepIndex++;
 
+	UPTBSaveGame* SaveGame = GetOrCreateSaveGame();
 	if (CurrentStepIndex < CurrentSteps.Num())
 	{
 		bCanSkip = CurrentSteps[CurrentStepIndex].bAllowSkip;
 		OnTutorialStepChanged.Broadcast(CurrentStepIndex, CurrentSteps[CurrentStepIndex].InstructionText);
-		UPTBSaveGame* SaveGame = Cast<UPTBSaveGame>(UGameplayStatics::LoadGameFromSlot(TEXT("PTBSave"), 0));
 		if (SaveGame)
 		{
 			SaveGame->UpdateTutorialStep(CurrentProfileId, CurrentSteps[CurrentStepIndex].GameId, CurrentStepIndex);
-			UGameplayStatics::SaveGameToSlot(SaveGame, TEXT("PTBSave"), 0);
-		}
-		UE_LOG(LogTemp, Log, TEXT("TutorialManager: 스텝 %d: %s"),
+			bool bSaved= UGameplayStatics::SaveGameToSlot(SaveGame, TEXT("PTBSave"), 0);
+			PTB_WARNING(LogPTBTutorial, TEXT("스텝 %d 저장 %s"), CurrentStepIndex, bSaved ? TEXT("성공") : TEXT("실패"));
+		}	
+		PTB_WARNING(LogPTBTutorial,TEXT("TutorialManager: 스텝 %d: %s"),
 		       CurrentStepIndex, *CurrentSteps[CurrentStepIndex].InstructionText.ToString());
 	}
 	else
 	{
-		UE_LOG(LogTemp, Log, TEXT("TutorialManager: 마지막 스텝 → CompleteTutorial 호출"));
+		if (SaveGame)
+		{
+			SaveGame->UpdateTutorialStep(CurrentProfileId, CurrentSteps[CurrentStepIndex-1].GameId, CurrentStepIndex-1);
+			UGameplayStatics::SaveGameToSlot(SaveGame, TEXT("PTBSave"), 0);
+		}
+		PTB_WARNING(LogPTBTutorial,TEXT("TutorialManager: 마지막 스텝 → CompleteTutorial 호출"));
 		CompleteTutorial(CurrentSteps[CurrentStepIndex - 1].GameId, CurrentProfileId);
 	}
 }
 
 void UPTBTutorialManager::SkipStep()
 {
-	if (!bIsTutorialActive) return;if (bCanSkip)
+	if (!bIsTutorialActive) return;
+	if (bCanSkip)
 	{
-		UE_LOG(LogTemp, Log, TEXT("TutorialManager: 스텝 %d 스킵!"), CurrentStepIndex);
+		PTB_WARNING(LogPTBTutorial, TEXT("TutorialManager: 스텝 %d 스킵!"), CurrentStepIndex);
 		AdvanceStep();
 	}
 	else
 	{
-		UE_LOG(LogTemp, Warning, TEXT("TutorialManager: 스텝 %d 스킵 불가!"), CurrentStepIndex);
+		PTB_WARNING(LogPTBTutorial, TEXT("TutorialManager: 스텝 %d 스킵 불가!"), CurrentStepIndex);
 	}
 }
 
@@ -124,24 +131,19 @@ void UPTBTutorialManager::SkipTutorial()
 
 	if (bCanSkip)
 	{
-		UE_LOG(LogTemp, Log, TEXT("TutorialManager: 튜토리얼 스킵 - GameId: %s"),
+		PTB_WARNING(LogPTBTutorial, TEXT("TutorialManager: 튜토리얼 스킵 - GameId: %s"),
 		       *CurrentSteps[CurrentStepIndex].GameId.ToString());
 		CompleteTutorial(CurrentSteps[CurrentStepIndex].GameId, CurrentProfileId);
 	}
 	else
 	{
-		UE_LOG(LogTemp, Warning, TEXT("TutorialManager: 스킵 불가 - 현재 스텝 %d"), CurrentStepIndex);
+		PTB_WARNING(LogPTBTutorial, TEXT("TutorialManager: 스킵 불가 - 현재 스텝 %d"), CurrentStepIndex);
 	}
 }
 
 void UPTBTutorialManager::CompleteTutorial(FName GameId, const FString& ProfileId)
 {
-	UPTBSaveGame* SaveGame = Cast<UPTBSaveGame>(UGameplayStatics::LoadGameFromSlot(TEXT("PTBSave"), 0));
-	if (!SaveGame)
-	{
-		SaveGame = Cast<UPTBSaveGame>(UGameplayStatics::CreateSaveGameObject(UPTBSaveGame::StaticClass()));
-	}
-
+	UPTBSaveGame* SaveGame = GetOrCreateSaveGame();
 	if (!SaveGame) return;
 
 	SaveGame->MarkTutorialDone(ProfileId, GameId);
@@ -149,10 +151,23 @@ void UPTBTutorialManager::CompleteTutorial(FName GameId, const FString& ProfileI
 
 	if (!bSaved)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("TutorialManager: SaveGame 저장 실패 - GameId: %s"), *GameId.ToString());
+		PTB_WARNING(LogPTBTutorial,TEXT("TutorialManager: SaveGame 저장 실패 - GameId: %s"), *GameId.ToString());
 	}
 
 	bIsTutorialActive = false;
-	UE_LOG(LogTemp, Log, TEXT("TutorialManager: 튜토리얼 완료 - GameId: %s"), *GameId.ToString());
+	PTB_WARNING(LogPTBTutorial ,TEXT("TutorialManager: 튜토리얼 완료 - GameId: %s"), *GameId.ToString());
 	OnTutorialCompleted.Broadcast(GameId);
+}
+
+UPTBSaveGame* UPTBTutorialManager::GetOrCreateSaveGame()
+{
+	UPTBSaveGame* SaveGame = Cast<UPTBSaveGame>(
+		UGameplayStatics::LoadGameFromSlot(TEXT("PTBSave"), 0));
+    
+	if (!SaveGame)
+	{
+		SaveGame = Cast<UPTBSaveGame>(
+			UGameplayStatics::CreateSaveGameObject(UPTBSaveGame::StaticClass()));
+	}
+	return SaveGame;
 }
