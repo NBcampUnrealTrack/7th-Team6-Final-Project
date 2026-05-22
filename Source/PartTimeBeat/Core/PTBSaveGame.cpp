@@ -7,7 +7,7 @@ void UPTBSaveGame::InitializeDefaultSave()
 	StageProgress.Empty();
 	StoryProgress.Empty();
 	TutorialFlags.Empty();
-
+	TutorialStepFlags.Empty();
 	// 기본 설정값
 	Settings.MasterVolume = 1.0f;
 	Settings.BGMVolume = 0.8f;

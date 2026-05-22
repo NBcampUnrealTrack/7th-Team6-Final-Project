@@ -4,7 +4,6 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
-#include "Core/PTBSaveGame.h"
 #include "Engine/DataTable.h"
 #include "Core/PTBStructEnums.h"
 #include "PTBTutorialManager.generated.h"

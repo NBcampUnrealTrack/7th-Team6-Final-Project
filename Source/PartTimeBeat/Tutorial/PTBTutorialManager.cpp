@@ -27,8 +27,16 @@ void UPTBTutorialManager::StartTutorial(FName GameId, const FString& ProfileId, 
 {
 	if (bIsTutorialActive) return;
 	if (!TutorialDataTable) return;
-	if (!bForce && !ShouldShowTutorial(GameId, ProfileId)) return;
 
+	UPTBSaveGame* SaveGame = GetOrCreateSaveGame();
+	if (!SaveGame) return;
+	FName Key = FName(*(ProfileId + TEXT("_") + GameId.ToString()));
+
+	if (!bForce)
+	{
+		bool bAlreadyCompleted = SaveGame->TutorialFlags.FindRef(Key);
+		if (bAlreadyCompleted) return;
+	}
 	TArray<FPTBTutorialStepRow*> AllRow;
 	TutorialDataTable->GetAllRows<FPTBTutorialStepRow>(TEXT(""), AllRow);
 
@@ -47,17 +55,11 @@ void UPTBTutorialManager::StartTutorial(FName GameId, const FString& ProfileId, 
 
 	if (CurrentSteps.Num() == 0) return;
 
-	UPTBSaveGame* SaveGame = GetOrCreateSaveGame();
-	if (!SaveGame) return;
-	
-	FName Key = FName(*(ProfileId + TEXT("_") + GameId.ToString()));
 	int32 LastViewedStep = -1;
-	if (SaveGame)
-	{
-		int32* Found = SaveGame->TutorialStepFlags.Find(Key);
-		if (Found)
-			LastViewedStep = *Found;
-	}
+	int32* Found = SaveGame->TutorialStepFlags.Find(Key);
+	if (Found)
+		LastViewedStep = *Found;
+
 	for (auto& Step : CurrentSteps)
 	{
 		if (Step.StepIndex <= LastViewedStep)
@@ -68,14 +70,14 @@ void UPTBTutorialManager::StartTutorial(FName GameId, const FString& ProfileId, 
 	CurrentStepIndex = 0;
 	bIsTutorialActive = true;
 	bCanSkip = CurrentSteps[CurrentStepIndex].bAllowSkip;
+
 	OnTutorialStepChanged.Broadcast(CurrentStepIndex, CurrentSteps[0].InstructionText);
-	if (SaveGame)
-	{
-		SaveGame->UpdateTutorialStep(ProfileId, GameId, 0);
-		UGameplayStatics::SaveGameToSlot(SaveGame, TEXT("PTBSave"), 0);
-	}
+
+	SaveGame->UpdateTutorialStep(ProfileId, GameId, 0);
+	UGameplayStatics::SaveGameToSlot(SaveGame, TEXT("PTBSave"), 0);
+
 	PTB_WARNING(LogPTBTutorial, TEXT("TutorialManager: 튜토리얼 시작 - GameId: %s, 스텝 0: %s"),
-	       *GameId.ToString(), *CurrentSteps[0].InstructionText.ToString());
+	            *GameId.ToString(), *CurrentSteps[0].InstructionText.ToString());
 }
 
 void UPTBTutorialManager::AdvanceStep()
@@ -85,24 +87,23 @@ void UPTBTutorialManager::AdvanceStep()
 	CurrentStepIndex++;
 
 	UPTBSaveGame* SaveGame = GetOrCreateSaveGame();
+	if (!SaveGame) return;
 	if (CurrentStepIndex < CurrentSteps.Num())
 	{
 		bCanSkip = CurrentSteps[CurrentStepIndex].bAllowSkip;
 		OnTutorialStepChanged.Broadcast(CurrentStepIndex, CurrentSteps[CurrentStepIndex].InstructionText);
-		if (SaveGame)
-		{
-			SaveGame->UpdateTutorialStep(CurrentProfileId, CurrentSteps[CurrentStepIndex].GameId, CurrentStepIndex);
-			bool bSaved= UGameplayStatics::SaveGameToSlot(SaveGame, TEXT("PTBSave"), 0);
-			PTB_WARNING(LogPTBTutorial, TEXT("스텝 %d 저장 %s"), CurrentStepIndex, bSaved ? TEXT("성공") : TEXT("실패"));
-		}	
+
+
+		SaveGame->UpdateTutorialStep(CurrentProfileId, CurrentSteps[CurrentStepIndex].GameId, CurrentStepIndex);
+		bool bSaved = UGameplayStatics::SaveGameToSlot(SaveGame, TEXT("PTBSave"), 0);
+		PTB_WARNING(LogPTBTutorial, TEXT("스텝 %d 저장 %s"), CurrentStepIndex, bSaved ? TEXT("성공") : TEXT("실패"));
 	}
 	else
 	{
-		if (SaveGame)
-		{
-			SaveGame->UpdateTutorialStep(CurrentProfileId, CurrentSteps[CurrentStepIndex-1].GameId, CurrentStepIndex-1);
-			UGameplayStatics::SaveGameToSlot(SaveGame, TEXT("PTBSave"), 0);
-		}
+		SaveGame->UpdateTutorialStep(CurrentProfileId, CurrentSteps[CurrentStepIndex - 1].GameId,
+		                             CurrentStepIndex - 1);
+		UGameplayStatics::SaveGameToSlot(SaveGame, TEXT("PTBSave"), 0);
+
 		CompleteTutorial(CurrentSteps[CurrentStepIndex - 1].GameId, CurrentProfileId);
 	}
 }
@@ -147,11 +148,11 @@ void UPTBTutorialManager::CompleteTutorial(FName GameId, const FString& ProfileI
 
 	if (!bSaved)
 	{
-		PTB_WARNING(LogPTBTutorial,TEXT("TutorialManager: SaveGame 저장 실패 - GameId: %s"), *GameId.ToString());
+		PTB_WARNING(LogPTBTutorial, TEXT("TutorialManager: SaveGame 저장 실패 - GameId: %s"), *GameId.ToString());
 	}
 
 	bIsTutorialActive = false;
-	PTB_WARNING(LogPTBTutorial ,TEXT("TutorialManager: 튜토리얼 완료 - GameId: %s"), *GameId.ToString());
+	PTB_WARNING(LogPTBTutorial, TEXT("TutorialManager: 튜토리얼 완료 - GameId: %s"), *GameId.ToString());
 	OnTutorialCompleted.Broadcast(GameId);
 }
 
@@ -159,7 +160,7 @@ UPTBSaveGame* UPTBTutorialManager::GetOrCreateSaveGame()
 {
 	UPTBSaveGame* SaveGame = Cast<UPTBSaveGame>(
 		UGameplayStatics::LoadGameFromSlot(TEXT("PTBSave"), 0));
-    
+
 	if (!SaveGame)
 	{
 		SaveGame = Cast<UPTBSaveGame>(
