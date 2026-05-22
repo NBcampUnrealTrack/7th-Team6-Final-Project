@@ -76,5 +76,14 @@ void UPTBSaveGame::MarkTutorialDone(const FString& ProfileId, FName GameId)
 void UPTBSaveGame::UpdateTutorialStep(const FString& ProfileId, FName GameId, int32 StepIndex)
 {
 	FName Key = FName(*(ProfileId + TEXT("_") + GameId.ToString()));
+	
+	if (int32* ExistingStep  = TutorialStepFlags.Find(Key))
+	{
+		if (StepIndex > *ExistingStep)
+		{
+			*ExistingStep = StepIndex;
+		}
+		return;
+	}
 	TutorialStepFlags.Add(Key, StepIndex);
 }
