@@ -44,7 +44,7 @@ class PARTTIMEBEAT_API UPTBDialogHostWidget : public UUserWidget
 		  const FGeometry& InGeometry,
 		  const FKeyEvent& InKeyEvent) override;
 
-  	/** Blueprint에서 ESC로 마지막 팝업이 닫힐 때 추가 처리가 필요하면 오버라이드 */
+  	/** Blueprint에서 팝업이 닫힐 때 추가 처리가 필요하면 오버라이드 */
   	UFUNCTION(BlueprintImplementableEvent, Category = "Dialog")
   	void OnDialogClosed(UUserWidget* ClosedDialog);
   	
