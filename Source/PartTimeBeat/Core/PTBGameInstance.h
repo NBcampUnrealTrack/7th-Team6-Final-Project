@@ -3,7 +3,6 @@
 #include "CoreMinimal.h"
 #include "Engine/GameInstance.h"
 #include "PTBStructEnums.h"
-#include "Profile/PTBProfileTypes.h"
 #include "PTBGameInstance.generated.h"
 
 class UPTBWwiseAudioManager;

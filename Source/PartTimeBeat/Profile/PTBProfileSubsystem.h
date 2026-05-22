@@ -2,7 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Subsystems/GameInstanceSubsystem.h"
-#include "PTBProfileTypes.h"
+#include "Core/PTBStructEnums.h"
 #include "PTBProfileSubsystem.generated.h"
 
 class UPTBSaveGame;

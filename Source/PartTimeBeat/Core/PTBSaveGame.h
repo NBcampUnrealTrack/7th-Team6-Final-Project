@@ -3,7 +3,6 @@
 #include "CoreMinimal.h"
 #include "GameFramework/SaveGame.h"
 #include "PTBStructEnums.h"
-#include "Profile/PTBProfileTypes.h"
 #include "PTBSaveGame.generated.h"
 
 UCLASS()
