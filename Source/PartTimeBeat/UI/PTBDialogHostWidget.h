@@ -49,7 +49,7 @@ class PARTTIMEBEAT_API UPTBDialogHostWidget : public UUserWidget
   	void OnDialogClosed(UUserWidget* ClosedDialog);
   	
   	UPROPERTY(meta = (BindWidget))
-  	class UOverlay* Overlay_Dialog;
+  	TObjectPtr<class UOverlay> Overlay_Dialog;
 
   private:
   	UPROPERTY()
