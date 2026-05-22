@@ -3,7 +3,7 @@
 #include "PTBProfileSelectWidget.h"
 
 void UPTBProfileSelectWidget::NativeConstruct()
-  {
+{
 	Super::NativeConstruct();
 
 	SetKeyboardFocus();
@@ -15,4 +15,4 @@ void UPTBProfileSelectWidget::NativeConstruct()
 	InputMode.SetWidgetToFocus(TakeWidget());
 	PC->SetInputMode(InputMode);
 	PC->SetShowMouseCursor(true);
-  }
+}
