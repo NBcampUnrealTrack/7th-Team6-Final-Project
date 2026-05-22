@@ -3,7 +3,7 @@
 #include "PTBDialogHostWidget.h"
 #include "Components/Overlay.h"
 
-  void UPTBDialogHostWidget::PushDialog(UUserWidget* Dialog)
+void UPTBDialogHostWidget::PushDialog(UUserWidget* Dialog)
   {
   	if (!Dialog || !Overlay_Dialog) return;
 
