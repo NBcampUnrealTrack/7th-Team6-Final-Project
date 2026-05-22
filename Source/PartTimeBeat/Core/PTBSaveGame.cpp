@@ -7,7 +7,7 @@ void UPTBSaveGame::InitializeDefaultSave()
 	StageProgress.Empty();
 	StoryProgress.Empty();
 	TutorialFlags.Empty();
-
+	TutorialStepFlags.Empty();
 	// 기본 설정값
 	Settings.MasterVolume = 1.0f;
 	Settings.BGMVolume = 0.8f;
@@ -71,4 +71,19 @@ void UPTBSaveGame::MarkTutorialDone(const FString& ProfileId, FName GameId)
 	
 	UE_LOG(LogTemp, Log, TEXT("Tutorial marked done — Profile: %s, Game: %s"),
 		*ProfileId, *GameId.ToString());
+}
+
+void UPTBSaveGame::UpdateTutorialStep(const FString& ProfileId, FName GameId, int32 StepIndex)
+{
+	FName Key = FName(*(ProfileId + TEXT("_") + GameId.ToString()));
+	
+	if (int32* ExistingStep  = TutorialStepFlags.Find(Key))
+	{
+		if (StepIndex > *ExistingStep)
+		{
+			*ExistingStep = StepIndex;
+		}
+		return;
+	}
+	TutorialStepFlags.Add(Key, StepIndex);
 }

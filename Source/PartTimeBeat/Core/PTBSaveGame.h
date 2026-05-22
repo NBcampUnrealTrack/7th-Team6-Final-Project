@@ -28,7 +28,10 @@ public:
 	/** GameID → 튜토리얼 완료 */
 	UPROPERTY(SaveGame)
 	TMap<FName, bool> TutorialFlags;
-
+	/**Game ID -> 튜토리얼 스텝별 완료*/
+	UPROPERTY(SaveGame)
+	TMap<FName,int32> TutorialStepFlags;
+	
 	FString SaveSlotName = "PTBSave";
 	
 	/** 로컬 유저 인덱스 */
@@ -42,4 +45,7 @@ public:
 	void ApplyRewardSummary(const FString& ProfileId, const FPTBRewardSummary& Reward);
 	/** 튜토리얼 완료 */
 	void MarkTutorialDone(const FString& ProfileId, FName GameId);
+	
+	/**스텝별 튜토리얼 완료*/
+	void UpdateTutorialStep(const FString& ProfileId, FName GameId,int32 StepIndex);
 };

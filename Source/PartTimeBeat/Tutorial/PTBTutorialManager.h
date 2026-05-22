@@ -38,6 +38,7 @@ struct FPTBTutorialStepRow : public FTableRowBase
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnTutorialStepChanged, int32, StepIndex, FText, InstructionText);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnTutorialCompleted, FName, GameId);
 
+class UPTBSaveGame;
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class PARTTIMEBEAT_API UPTBTutorialManager : public UActorComponent
 {
@@ -52,7 +53,7 @@ public:
 	
 	/**튜토리얼 시작*/
 	UFUNCTION(BlueprintCallable, Category = "Tutorial")
-	void StartTutorial(FName GameId,const FString& ProfileId);
+	void StartTutorial(FName GameId,const FString& ProfileId,bool bForce = false);
 	
 	/**진행중인 스텝*/
 	UFUNCTION(BlueprintCallable, Category = "Tutorial")
@@ -62,6 +63,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Tutorial")
 	void SkipTutorial();
 	
+	UFUNCTION(BlueprintCallable, Category = "Tutorial")
+	void SkipStep();
 	// 델리게이트용함수 두개
 	
 	/**튜토리얼 스텝이 넘어갈때 호출되는 델리게이트 */
@@ -72,10 +75,15 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Tutorial")
 	FOnTutorialCompleted OnTutorialCompleted;
 
-protected:
+
+	
+protected:	
 	/**튜토리얼 완료*/
 	UFUNCTION()
 	void CompleteTutorial(FName GameId,const FString& ProfileId);
+	
+	
+	
 
 private:
 	/**스킵가능 여부*/
@@ -101,4 +109,6 @@ private:
 	/** 프로필 아이디*/
 	UPROPERTY()
 	FString CurrentProfileId;
+	
+	UPTBSaveGame* GetOrCreateSaveGame();
 };
