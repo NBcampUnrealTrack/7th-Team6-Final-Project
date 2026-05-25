@@ -5,6 +5,7 @@
 #include "Audio/PTBWwiseRhythmSyncComponent.h"
 #include "Debug/PTBLogChannels.h"
 #include "Misc/Paths.h"
+#include "MiniGames/Common/PTBMiniGameRuleSet.h"
 #include "Rhythm/PTBJudgementSystem.h"
 #include "Rhythm/PTBRhythmChartAsset.h"
 #include "Rhythm/PTBRhythmConductorComponent.h"
@@ -227,6 +228,7 @@ void APTBBaseMiniGame::InitializeMiniGame(const FPTBMiniGameContext& Context)
 		RhythmConductor->SetArmLeadTimeMs(JudgementSystem->HitWindowMissMs + InputCompensationMs);
 	}
 
+	ApplyRuleSet();
 	BuildRuntimeState();
 
 	bIsInitialized = true;
@@ -265,6 +267,39 @@ void APTBBaseMiniGame::PreloadAssets()
 
 void APTBBaseMiniGame::BuildRuntimeState()
 {
+}
+
+void APTBBaseMiniGame::ApplyRuleSet()
+{
+	if (!RuleSet)
+	{
+		return;
+	}
+
+	if (MiniGameId.IsNone())
+	{
+		MiniGameId = RuleSet->MiniGameId;
+	}
+
+	if (MiniGameCode.IsNone())
+	{
+		MiniGameCode = RuleSet->MiniGameCode;
+	}
+
+	if (DisplayName.IsEmpty())
+	{
+		DisplayName = RuleSet->DisplayName;
+	}
+
+	if (RhythmConductor)
+	{
+		RhythmConductor->SetLookAheadBeats(RuleSet->LookAheadBeats);
+
+		if (RuleSet->bUseArmLeadTimeOverride)
+		{
+			RhythmConductor->SetArmLeadTimeMs(RuleSet->ArmLeadTimeMsOverride);
+		}
+	}
 }
 
 void APTBBaseMiniGame::StartMiniGame()
@@ -452,6 +487,11 @@ void APTBBaseMiniGame::HandleRhythmInput(EPTBActionType Action, float TimeMs)
 		return;
 	}
 
+	if (RuleSet && !RuleSet->SupportsAction(Action))
+	{
+		return;
+	}
+
 	const float ResolvedTimeMs = TimeMs >= 0.0f ? TimeMs : GetCurrentInputJudgeTimeMs();
 	EvaluateInput(Action, ResolvedTimeMs);
 }
@@ -484,10 +524,23 @@ void APTBBaseMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 
 	if (AudioManager)
 	{
-		AudioManager->PostJudgementEvent(Result.JudgementType, this);
+		const FName RuleSetSFXKey = RuleSet ? RuleSet->GetJudgementSFXKey(Result.JudgementType) : NAME_None;
+		if (!RuleSetSFXKey.IsNone())
+		{
+			AudioManager->PostSFXEvent(RuleSetSFXKey, this);
+		}
+		else
+		{
+			AudioManager->PostJudgementEvent(Result.JudgementType, this);
+		}
 	}
 
 	PlayJudgementFeedback(Result);
+
+	if (RuleSet && ScoreCalculator && RuleSet->ShouldFailForMissCount(ScoreCalculator->MissCount))
+	{
+		FinishMiniGame(EPTBRoundEndReason::Failed);
+	}
 }
 
 void APTBBaseMiniGame::PlayJudgementFeedback(const FPTBJudgementResult& Result)

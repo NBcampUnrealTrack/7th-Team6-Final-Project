@@ -45,7 +45,8 @@ public:
 	FText DisplayName;
 
 	/** 난이도별 규칙 DataAsset */
-	UPTBMiniGameRuleSet* RuleSet;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|MiniGame")
+	TObjectPtr<UPTBMiniGameRuleSet> RuleSet;
 
 	/** Wwise 이벤트 매핑 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|Audio")
@@ -126,6 +127,8 @@ public:
 	virtual void PreloadAssets();
 	/** 오브젝트 / 상태 구성(하위 override) */
 	virtual void BuildRuntimeState();
+	/** RuleSet 공통 규칙 적용 */
+	virtual void ApplyRuleSet();
 	/** BGM + Conductor 시작, 입력 허용 */
 	virtual void StartMiniGame();
 	/** 종료, 결과 생성 */
