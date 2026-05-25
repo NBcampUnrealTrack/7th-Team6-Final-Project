@@ -12,9 +12,11 @@ bool UPTBRhythmChartAsset::ValidateChart(TArray<FText>& OutErrors) const
 		OutErrors.Add(FText::FromString(TEXT("ChartId is empty.")));
 	}
 
-	if (ChartData.BPM <= 0.0f)
+	const bool bHasValidBaseBpm = ChartData.BPM > 0.0f;
+	const bool bHasValidFirstTempoBpm = ChartData.TempoChangeBpms.IsValidIndex(0) && ChartData.TempoChangeBpms[0] > 0.0f;
+	if (!bHasValidBaseBpm && !bHasValidFirstTempoBpm)
 	{
-		OutErrors.Add(FText::FromString(TEXT("BPM must be greater than 0.")));
+		OutErrors.Add(FText::FromString(TEXT("BPM or first tempo event BPM must be greater than 0.")));
 	}
 
 	if (ChartData.SongLengthMs < 0.0f)

@@ -76,14 +76,14 @@ namespace PTBWwiseRhythmSyncInternal
 	int32 ResolveBeatsPerBar(float Beat, const FPTBChartData& ChartData, int32 FallbackBeatsPerBar)
 	{
 		int32 ResolvedBeatsPerBar = FMath::Max(MinBeatsPerBar, FallbackBeatsPerBar);
+		if (ChartData.TimeSignatureNumerator > 0)
+		{
+			ResolvedBeatsPerBar = ChartData.TimeSignatureNumerator;
+		}
+
 		const int32 TimeSignatureEventCount = GetTimeSignatureEventCount(ChartData);
 		if (TimeSignatureEventCount <= 0)
 		{
-			if (ChartData.TimeSignatureNumerator > 0)
-			{
-				return ChartData.TimeSignatureNumerator;
-			}
-
 			return ResolvedBeatsPerBar;
 		}
 
