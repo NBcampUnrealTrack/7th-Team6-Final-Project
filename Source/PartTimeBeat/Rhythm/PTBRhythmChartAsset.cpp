@@ -22,6 +22,95 @@ bool UPTBRhythmChartAsset::ValidateChart(TArray<FText>& OutErrors) const
 		OutErrors.Add(FText::FromString(TEXT("SongLengthMs cannot be negative.")));
 	}
 
+	if (ChartData.TimeSignatureNumerator <= 0)
+	{
+		OutErrors.Add(FText::FromString(TEXT("TimeSignatureNumerator must be greater than 0.")));
+	}
+
+	if (ChartData.TimeSignatureDenominator <= 0)
+	{
+		OutErrors.Add(FText::FromString(TEXT("TimeSignatureDenominator must be greater than 0.")));
+	}
+
+	if (ChartData.TempoChangeBeats.Num() != ChartData.TempoChangeBpms.Num())
+	{
+		OutErrors.Add(FText::FromString(TEXT("Tempo change arrays must have the same length.")));
+	}
+
+	if (ChartData.TimeSignatureChangeBeats.Num() != ChartData.TimeSignatureChangeNumerators.Num()
+		|| ChartData.TimeSignatureChangeBeats.Num() != ChartData.TimeSignatureChangeDenominators.Num())
+	{
+		OutErrors.Add(FText::FromString(TEXT("Time signature change arrays must have the same length.")));
+	}
+
+	float PreviousTempoBeat = -FLT_MAX;
+	for (int32 Index = 0; Index < ChartData.TempoChangeBeats.Num(); ++Index)
+	{
+		const float TempoBeat = ChartData.TempoChangeBeats[Index];
+		const float TempoBpm = ChartData.TempoChangeBpms[Index];
+
+		if (TempoBeat < 0.0f)
+		{
+			OutErrors.Add(FText::FromString(FString::Printf(TEXT("TempoChangeBeats[%d] cannot be negative."), Index)));
+		}
+
+		if (TempoBpm <= 0.0f)
+		{
+			OutErrors.Add(FText::FromString(FString::Printf(TEXT("TempoChangeBpms[%d] must be greater than 0."), Index)));
+		}
+
+		if (TempoBeat < PreviousTempoBeat)
+		{
+			OutErrors.Add(FText::FromString(TEXT("Tempo change events must be sorted by beat.")));
+			break;
+		}
+
+		if (FMath::IsNearlyEqual(TempoBeat, PreviousTempoBeat))
+		{
+			OutErrors.Add(FText::FromString(TEXT("Tempo change events cannot share the same beat.")));
+			break;
+		}
+
+		PreviousTempoBeat = TempoBeat;
+	}
+
+	float PreviousTimeSignatureBeat = -FLT_MAX;
+	for (int32 Index = 0; Index < ChartData.TimeSignatureChangeBeats.Num(); ++Index)
+	{
+		const float SignatureBeat = ChartData.TimeSignatureChangeBeats[Index];
+		const int32 SignatureNumerator = ChartData.TimeSignatureChangeNumerators[Index];
+		const int32 SignatureDenominator = ChartData.TimeSignatureChangeDenominators[Index];
+
+		if (SignatureBeat < 0.0f)
+		{
+			OutErrors.Add(FText::FromString(FString::Printf(TEXT("TimeSignatureChangeBeats[%d] cannot be negative."), Index)));
+		}
+
+		if (SignatureNumerator <= 0)
+		{
+			OutErrors.Add(FText::FromString(FString::Printf(TEXT("TimeSignatureChangeNumerators[%d] must be greater than 0."), Index)));
+		}
+
+		if (SignatureDenominator <= 0)
+		{
+			OutErrors.Add(FText::FromString(FString::Printf(TEXT("TimeSignatureChangeDenominators[%d] must be greater than 0."), Index)));
+		}
+
+		if (SignatureBeat < PreviousTimeSignatureBeat)
+		{
+			OutErrors.Add(FText::FromString(TEXT("Time signature change events must be sorted by beat.")));
+			break;
+		}
+
+		if (FMath::IsNearlyEqual(SignatureBeat, PreviousTimeSignatureBeat))
+		{
+			OutErrors.Add(FText::FromString(TEXT("Time signature change events cannot share the same beat.")));
+			break;
+		}
+
+		PreviousTimeSignatureBeat = SignatureBeat;
+	}
+
 	if (NoteEvents.IsEmpty())
 	{
 		OutErrors.Add(FText::FromString(TEXT("NoteEvents is empty.")));

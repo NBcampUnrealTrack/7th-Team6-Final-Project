@@ -46,6 +46,10 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Rhythm|Sync")
 	FPTBWwiseSyncData SyncData;
 
+	/** 현재 차트 메타 */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Rhythm|Sync")
+	FPTBChartData ActiveChartData;
+
 	/** 채보 오프셋 */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Rhythm|Sync")
 	float ChartOffsetMs = 0.0f;
@@ -89,7 +93,7 @@ public:
 	void SetBeatsPerBar(int32 InBeatsPerBar);
 
 	/** 동기화 시작 */
-	void StartSync(int32 PlayingId, float BPM, float OffsetMs);
+	void StartSync(int32 PlayingId, const FPTBChartData& InChartData);
 
 	/** 정지 */
 	void StopSync();
@@ -117,6 +121,9 @@ public:
 
 	/** 소리 출력 기준 Beat */
 	float GetAudibleBeat() const;
+
+	/** 현재 마디당 Beat 수 */
+	int32 GetCurrentBeatsPerBar() const;
 
 	/** 채보 기준 Beat */
 	float GetCurrentBeat() const;
