@@ -124,7 +124,7 @@ void APTBBaseMiniGame::Tick(float DeltaTime)
 		return;
 	}
 
-	JudgementSystem->ForceMissExpiredNotes(GetCurrentChartTimeMs());
+	JudgementSystem->ForceMissExpiredNotes(GetCurrentInputJudgeTimeMs());
 
 	const bool bHasPendingNotes = !JudgementSystem->PendingNotes.IsEmpty();
 	if (bPendingRoundFinish && !bHasPendingNotes)
@@ -185,7 +185,10 @@ void APTBBaseMiniGame::InitializeMiniGame(const FPTBMiniGameContext& Context)
 	if (RhythmSyncComponent)
 	{
 		RhythmSyncComponent->SetWwiseManager(AudioManager.Get());
-		RhythmSyncComponent->SetUserOffsets(0.0f, 0.0f, 0.0f);
+		RhythmSyncComponent->SetUserOffsets(
+			ResolveInputOffsetMs(Context),
+			ResolveVisualOffsetMs(Context),
+			ResolveSoundOffsetMs(Context));
 	}
 
 	PreloadAssets();
@@ -215,12 +218,12 @@ void APTBBaseMiniGame::InitializeMiniGame(const FPTBMiniGameContext& Context)
 
 	if (JudgementSystem)
 	{
-		JudgementSystem->Initialize(GameContext.ChartData, Context.UserSettings.JudgementOffsetMs + Context.UserSettings.InputLatencyMs);
+		JudgementSystem->Initialize(GameContext.ChartData, 0.0f);
 	}
 
 	if (RhythmConductor && JudgementSystem)
 	{
-		const float InputCompensationMs = FMath::Abs(Context.UserSettings.JudgementOffsetMs + Context.UserSettings.InputLatencyMs);
+		const float InputCompensationMs = FMath::Abs(ResolveInputOffsetMs(Context));
 		RhythmConductor->SetArmLeadTimeMs(JudgementSystem->HitWindowMissMs + InputCompensationMs);
 	}
 
@@ -448,7 +451,7 @@ void APTBBaseMiniGame::HandleRhythmInput(EPTBActionType Action, float TimeMs)
 		return;
 	}
 
-	const float ResolvedTimeMs = TimeMs >= 0.0f ? TimeMs : GetCurrentChartTimeMs();
+	const float ResolvedTimeMs = TimeMs >= 0.0f ? TimeMs : GetCurrentInputJudgeTimeMs();
 	EvaluateInput(Action, ResolvedTimeMs);
 }
 
@@ -540,6 +543,21 @@ TMap<FKey, EPTBActionType> APTBBaseMiniGame::GetActionMapping() const
 	};
 }
 
+float APTBBaseMiniGame::ResolveInputOffsetMs(const FPTBMiniGameContext& Context) const
+{
+	return Context.UserSettings.JudgementOffsetMs + Context.UserSettings.InputLatencyMs;
+}
+
+float APTBBaseMiniGame::ResolveVisualOffsetMs(const FPTBMiniGameContext& Context) const
+{
+	return 0.0f;
+}
+
+float APTBBaseMiniGame::ResolveSoundOffsetMs(const FPTBMiniGameContext& Context) const
+{
+	return 0.0f;
+}
+
 float APTBBaseMiniGame::GetCurrentChartTimeMs() const
 {
 	if (RhythmSyncComponent)
@@ -553,6 +571,16 @@ float APTBBaseMiniGame::GetCurrentChartTimeMs() const
 	}
 
 	return 0.0f;
+}
+
+float APTBBaseMiniGame::GetCurrentInputJudgeTimeMs() const
+{
+	if (RhythmSyncComponent)
+	{
+		return RhythmSyncComponent->GetInputJudgeTimeMs();
+	}
+
+	return GetCurrentChartTimeMs() + ResolveInputOffsetMs(GameContext);
 }
 
 float APTBBaseMiniGame::GetRoundEndChartTimeMs() const

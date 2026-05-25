@@ -167,8 +167,16 @@ public:
 	bool CanAcceptInput() const;
 	/** 키 - 액션 매핑(하위 override) */
 	virtual TMap<FKey, EPTBActionType> GetActionMapping() const;
+	/** 입력 판정 오프셋 계산 */
+	virtual float ResolveInputOffsetMs(const FPTBMiniGameContext& Context) const;
+	/** 화면 표시 오프셋 계산 */
+	virtual float ResolveVisualOffsetMs(const FPTBMiniGameContext& Context) const;
+	/** 소리 출력 오프셋 계산 */
+	virtual float ResolveSoundOffsetMs(const FPTBMiniGameContext& Context) const;
 	/** 현재 판정 기준 차트 시간(ms) */
 	float GetCurrentChartTimeMs() const;
+	/** 현재 입력 판정 기준 시간(ms) */
+	float GetCurrentInputJudgeTimeMs() const;
 	/** 라운드 종료 기준 차트 시간(ms) */
 	float GetRoundEndChartTimeMs() const;
 

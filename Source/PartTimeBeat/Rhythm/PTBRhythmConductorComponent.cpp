@@ -20,6 +20,32 @@ namespace PTBRhythmConductorInternal
 
 		return (ChartTimeMs / MillisecondsPerMinute) * BPM;
 	}
+
+	int32 ResolveBeatsPerBarForBeat(float Beat, const FPTBChartData& ChartData, int32 FallbackBeatsPerBar)
+	{
+		const int32 EventCount = FMath::Min3(
+			ChartData.TimeSignatureChangeBeats.Num(),
+			ChartData.TimeSignatureChangeNumerators.Num(),
+			ChartData.TimeSignatureChangeDenominators.Num());
+
+		int32 ResolvedBeatsPerBar = FMath::Max(MinBeatsPerBar, FallbackBeatsPerBar);
+		if (ChartData.TimeSignatureNumerator > 0)
+		{
+			ResolvedBeatsPerBar = ChartData.TimeSignatureNumerator;
+		}
+
+		for (int32 Index = 0; Index < EventCount; ++Index)
+		{
+			if (ChartData.TimeSignatureChangeBeats[Index] > Beat)
+			{
+				break;
+			}
+
+			ResolvedBeatsPerBar = FMath::Max(MinBeatsPerBar, ChartData.TimeSignatureChangeNumerators[Index]);
+		}
+
+		return ResolvedBeatsPerBar;
+	}
 }
 
 UPTBRhythmConductorComponent::UPTBRhythmConductorComponent()
@@ -94,7 +120,9 @@ void UPTBRhythmConductorComponent::TickComponent(float DeltaTime, ELevelTick Tic
 		OnBeatTick.Broadcast(CurrentBeat);
 	}
 
-	const int32 SafeBeatsPerBar = FMath::Max(PTBRhythmConductorInternal::MinBeatsPerBar, BeatsPerBar);
+	const int32 SafeBeatsPerBar = RhythmSyncComponent
+		? RhythmSyncComponent->GetCurrentBeatsPerBar()
+		: PTBRhythmConductorInternal::ResolveBeatsPerBarForBeat(CurrentBeat, ChartData, BeatsPerBar);
 	const int32 BarTickIndex = BeatTickIndex / SafeBeatsPerBar;
 	if (BarTickIndex > LastBarTickIndex)
 	{
@@ -182,6 +210,10 @@ void UPTBRhythmConductorComponent::StartConductor(UPTBRhythmChartAsset* InChartA
 	LastBeatTickIndex = -1;
 	LastBarTickIndex = -1;
 	ChartOffsetMs = ChartData.OffsetMs;
+	if (ChartData.TimeSignatureNumerator > 0)
+	{
+		BeatsPerBar = FMath::Max(PTBRhythmConductorInternal::MinBeatsPerBar, ChartData.TimeSignatureNumerator);
+	}
 	bIsPlaying = InChartAsset != nullptr;
 	bIsPaused = false;
 	bAllNotesPassed = false;
@@ -194,7 +226,7 @@ void UPTBRhythmConductorComponent::StartConductor(UPTBRhythmChartAsset* InChartA
 		}
 
 		RhythmSyncComponent->SetBeatsPerBar(BeatsPerBar);
-		RhythmSyncComponent->StartSync(WwisePlayingId, ChartData.BPM, ChartOffsetMs);
+		RhythmSyncComponent->StartSync(WwisePlayingId, ChartData);
 	}
 }
 

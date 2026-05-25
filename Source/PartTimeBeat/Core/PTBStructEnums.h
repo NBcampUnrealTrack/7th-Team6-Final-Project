@@ -122,6 +122,29 @@ struct FPTBChartData
     GENERATED_BODY()
 
 public:
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
+    int32 ChartVersion = 1;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
+    int32 TimeSignatureNumerator = 4;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
+    int32 TimeSignatureDenominator = 4;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
+    TArray<float> TempoChangeBeats;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
+    TArray<float> TempoChangeBpms;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
+    TArray<float> TimeSignatureChangeBeats;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
+    TArray<int32> TimeSignatureChangeNumerators;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
+    TArray<int32> TimeSignatureChangeDenominators;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
     FName ChartId = NAME_None;
@@ -143,12 +166,6 @@ public:
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
     float SongLengthMs = 0.0f;
-
-    //UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
-    //TArray TempoChanges;
-
-    //UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
-    //TArray NoteEvents;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
     FName WwiseEventName = NAME_None;

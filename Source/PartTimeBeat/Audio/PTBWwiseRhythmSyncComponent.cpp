@@ -8,14 +8,96 @@ namespace PTBWwiseRhythmSyncInternal
 	constexpr float MillisecondsPerMinute = 60000.0f;
 	constexpr int32 MinBeatsPerBar = 1;
 
-	float CalculateBeat(float ChartTimeMs, float BPM)
+	int32 GetTempoEventCount(const FPTBChartData& ChartData)
 	{
-		if (BPM <= 0.0f)
+		return FMath::Min(ChartData.TempoChangeBeats.Num(), ChartData.TempoChangeBpms.Num());
+	}
+
+	int32 GetTimeSignatureEventCount(const FPTBChartData& ChartData)
+	{
+		return FMath::Min3(
+			ChartData.TimeSignatureChangeBeats.Num(),
+			ChartData.TimeSignatureChangeNumerators.Num(),
+			ChartData.TimeSignatureChangeDenominators.Num());
+	}
+
+	float GetBaseTempoBpm(const FPTBChartData& ChartData)
+	{
+		if (ChartData.BPM > 0.0f)
 		{
-			return 0.0f;
+			return ChartData.BPM;
 		}
 
-		return (ChartTimeMs / MillisecondsPerMinute) * BPM;
+		if (ChartData.TempoChangeBpms.IsValidIndex(0))
+		{
+			return ChartData.TempoChangeBpms[0];
+		}
+
+		return 0.0f;
+	}
+
+	float CalculateBeatFromChartTimeMs(float ChartTimeMs, const FPTBChartData& ChartData)
+	{
+		const int32 TempoEventCount = GetTempoEventCount(ChartData);
+		if (TempoEventCount <= 0)
+		{
+			const float BaseBpm = GetBaseTempoBpm(ChartData);
+			if (BaseBpm <= 0.0f)
+			{
+				return 0.0f;
+			}
+
+			return (ChartTimeMs / MillisecondsPerMinute) * BaseBpm;
+		}
+
+		float SegmentStartBeat = ChartData.TempoChangeBeats[0];
+		float SegmentStartTimeMs = 0.0f;
+		float SegmentBpm = ChartData.TempoChangeBpms[0];
+
+		for (int32 Index = 1; Index < TempoEventCount; ++Index)
+		{
+			const float NextBeat = ChartData.TempoChangeBeats[Index];
+			const float DeltaBeat = NextBeat - SegmentStartBeat;
+			const float NextSegmentStartTimeMs = SegmentStartTimeMs + (DeltaBeat * MillisecondsPerMinute / SegmentBpm);
+
+			if (ChartTimeMs < NextSegmentStartTimeMs)
+			{
+				break;
+			}
+
+			SegmentStartBeat = NextBeat;
+			SegmentStartTimeMs = NextSegmentStartTimeMs;
+			SegmentBpm = ChartData.TempoChangeBpms[Index];
+		}
+
+		return SegmentStartBeat + ((ChartTimeMs - SegmentStartTimeMs) * SegmentBpm / MillisecondsPerMinute);
+	}
+
+	int32 ResolveBeatsPerBar(float Beat, const FPTBChartData& ChartData, int32 FallbackBeatsPerBar)
+	{
+		int32 ResolvedBeatsPerBar = FMath::Max(MinBeatsPerBar, FallbackBeatsPerBar);
+		if (ChartData.TimeSignatureNumerator > 0)
+		{
+			ResolvedBeatsPerBar = ChartData.TimeSignatureNumerator;
+		}
+
+		const int32 TimeSignatureEventCount = GetTimeSignatureEventCount(ChartData);
+		if (TimeSignatureEventCount <= 0)
+		{
+			return ResolvedBeatsPerBar;
+		}
+
+		for (int32 Index = 0; Index < TimeSignatureEventCount; ++Index)
+		{
+			if (ChartData.TimeSignatureChangeBeats[Index] > Beat)
+			{
+				break;
+			}
+
+			ResolvedBeatsPerBar = FMath::Max(MinBeatsPerBar, ChartData.TimeSignatureChangeNumerators[Index]);
+		}
+
+		return ResolvedBeatsPerBar;
 	}
 }
 
@@ -56,6 +138,7 @@ void UPTBWwiseRhythmSyncComponent::TickComponent(float DeltaTime, ELevelTick Tic
 
 	SyncData.CurrentPlaybackMs = FMath::Max(0.0f, PlaybackMs);
 	SyncData.CurrentBeat = GetChartBeat();
+	SyncData.BPM = PTBWwiseRhythmSyncInternal::GetBaseTempoBpm(ActiveChartData);
 
 	const int32 BeatTickIndex = FMath::FloorToInt(SyncData.CurrentBeat);
 	if (BeatTickIndex >= 0 && BeatTickIndex > LastBeatTickIndex)
@@ -64,7 +147,7 @@ void UPTBWwiseRhythmSyncComponent::TickComponent(float DeltaTime, ELevelTick Tic
 		OnBeatTick.Broadcast(SyncData.CurrentBeat);
 	}
 
-	const int32 SafeBeatsPerBar = FMath::Max(PTBWwiseRhythmSyncInternal::MinBeatsPerBar, BeatsPerBar);
+	const int32 SafeBeatsPerBar = GetCurrentBeatsPerBar();
 	const int32 BarTickIndex = BeatTickIndex / SafeBeatsPerBar;
 	if (BarTickIndex >= 0 && BarTickIndex > LastBarTickIndex)
 	{
@@ -90,12 +173,13 @@ void UPTBWwiseRhythmSyncComponent::SetBeatsPerBar(int32 InBeatsPerBar)
 	BeatsPerBar = FMath::Max(PTBWwiseRhythmSyncInternal::MinBeatsPerBar, InBeatsPerBar);
 }
 
-void UPTBWwiseRhythmSyncComponent::StartSync(int32 PlayingId, float BPM, float OffsetMs)
+void UPTBWwiseRhythmSyncComponent::StartSync(int32 PlayingId, const FPTBChartData& InChartData)
 {
 	CurrentPlayingId = PlayingId;
-	ChartOffsetMs = OffsetMs;
+	ActiveChartData = InChartData;
+	ChartOffsetMs = InChartData.OffsetMs;
 	SyncData = FPTBWwiseSyncData();
-	SyncData.BPM = FMath::Max(0.0f, BPM);
+	SyncData.BPM = PTBWwiseRhythmSyncInternal::GetBaseTempoBpm(ActiveChartData);
 	SyncData.CurrentBeat = GetChartBeat();
 	SyncData.bIsPlaying = CurrentPlayingId != 0 || SyncData.BPM > 0.0f;
 
@@ -106,6 +190,7 @@ void UPTBWwiseRhythmSyncComponent::StartSync(int32 PlayingId, float BPM, float O
 void UPTBWwiseRhythmSyncComponent::StopSync()
 {
 	CurrentPlayingId = 0;
+	ActiveChartData = FPTBChartData();
 	ChartOffsetMs = 0.0f;
 	SyncData = FPTBWwiseSyncData();
 
@@ -140,17 +225,22 @@ float UPTBWwiseRhythmSyncComponent::GetInputJudgeTimeMs() const
 
 float UPTBWwiseRhythmSyncComponent::GetChartBeat() const
 {
-	return PTBWwiseRhythmSyncInternal::CalculateBeat(GetChartTimeMs(), SyncData.BPM);
+	return PTBWwiseRhythmSyncInternal::CalculateBeatFromChartTimeMs(GetChartTimeMs(), ActiveChartData);
 }
 
 float UPTBWwiseRhythmSyncComponent::GetVisualBeat() const
 {
-	return PTBWwiseRhythmSyncInternal::CalculateBeat(GetVisualChartTimeMs(), SyncData.BPM);
+	return PTBWwiseRhythmSyncInternal::CalculateBeatFromChartTimeMs(GetVisualChartTimeMs(), ActiveChartData);
 }
 
 float UPTBWwiseRhythmSyncComponent::GetAudibleBeat() const
 {
-	return PTBWwiseRhythmSyncInternal::CalculateBeat(GetAudibleChartTimeMs(), SyncData.BPM);
+	return PTBWwiseRhythmSyncInternal::CalculateBeatFromChartTimeMs(GetAudibleChartTimeMs(), ActiveChartData);
+}
+
+int32 UPTBWwiseRhythmSyncComponent::GetCurrentBeatsPerBar() const
+{
+	return PTBWwiseRhythmSyncInternal::ResolveBeatsPerBar(GetChartBeat(), ActiveChartData, BeatsPerBar);
 }
 
 float UPTBWwiseRhythmSyncComponent::GetCurrentBeat() const

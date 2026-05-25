@@ -6,6 +6,58 @@
 #include "Serialization/JsonReader.h"
 #include "Serialization/JsonSerializer.h"
 
+namespace PTBRhythmChartParserInternal
+{
+	struct FParsedChartNote
+	{
+		FPTBNoteEvent Note;
+		FString NoteType;
+		int32 Lane = 0;
+		int32 SourceIndex = INDEX_NONE;
+	};
+
+	void SortNotesByTime(TArray<FParsedChartNote>& Notes)
+	{
+		Notes.Sort([](const FParsedChartNote& Left, const FParsedChartNote& Right)
+		{
+			if (FMath::IsNearlyEqual(Left.Note.TimeMs, Right.Note.TimeMs))
+			{
+				return Left.Note.NoteId < Right.Note.NoteId;
+			}
+
+			return Left.Note.TimeMs < Right.Note.TimeMs;
+		});
+	}
+
+	FString NormalizeNoteType(const FString& InType)
+	{
+		if (InType.Equals(TEXT("Hold"), ESearchCase::IgnoreCase))
+		{
+			return TEXT("Hold");
+		}
+
+		if (InType.Equals(TEXT("Release"), ESearchCase::IgnoreCase))
+		{
+			return TEXT("Release");
+		}
+
+		return TEXT("Tap");
+	}
+
+	void AddTempoEvent(FPTBChartData& ChartData, float Beat, float Bpm)
+	{
+		ChartData.TempoChangeBeats.Add(Beat);
+		ChartData.TempoChangeBpms.Add(Bpm);
+	}
+
+	void AddTimeSignatureEvent(FPTBChartData& ChartData, float Beat, int32 Numerator, int32 Denominator)
+	{
+		ChartData.TimeSignatureChangeBeats.Add(Beat);
+		ChartData.TimeSignatureChangeNumerators.Add(Numerator);
+		ChartData.TimeSignatureChangeDenominators.Add(Denominator);
+	}
+}
+
 bool UPTBRhythmChartParser::ParseChartFile(const FString& FilePath, FPTBChartData& OutChartData, TArray<FPTBNoteEvent>& OutNoteEvents, TArray<FText>& OutErrors)
 {
 	FString JsonString;
@@ -37,13 +89,19 @@ bool UPTBRhythmChartParser::ParseChartString(const FString& JsonString, FPTBChar
 	OutChartData.SongId = ReadNameField(RootObject, TEXT("songId"));
 	OutChartData.MiniGameId = ReadNameField(RootObject, TEXT("miniGameId"));
 
+	double NumberValue = 0.0;
+	int32 IntValue = 0;
+	if (RootObject->TryGetNumberField(TEXT("chartVersion"), NumberValue))
+	{
+		OutChartData.ChartVersion = FMath::Max(1, static_cast<int32>(NumberValue));
+	}
+
 	FString DifficultyString;
 	if (RootObject->TryGetStringField(TEXT("difficulty"), DifficultyString))
 	{
 		OutChartData.Difficulty = ParseDifficulty(DifficultyString);
 	}
 
-	double NumberValue = 0.0;
 	if (RootObject->TryGetNumberField(TEXT("bpm"), NumberValue))
 	{
 		OutChartData.BPM = static_cast<float>(NumberValue);
@@ -57,6 +115,92 @@ bool UPTBRhythmChartParser::ParseChartString(const FString& JsonString, FPTBChar
 	if (RootObject->TryGetNumberField(TEXT("songLengthMs"), NumberValue))
 	{
 		OutChartData.SongLengthMs = static_cast<float>(NumberValue);
+	}
+
+	const TSharedPtr<FJsonObject>* TimeSignatureObject = nullptr;
+	if (RootObject->TryGetObjectField(TEXT("timeSignature"), TimeSignatureObject) && TimeSignatureObject && TimeSignatureObject->IsValid())
+	{
+		if ((*TimeSignatureObject)->TryGetNumberField(TEXT("numerator"), NumberValue))
+		{
+			OutChartData.TimeSignatureNumerator = FMath::Max(1, static_cast<int32>(NumberValue));
+		}
+
+		if ((*TimeSignatureObject)->TryGetNumberField(TEXT("denominator"), NumberValue))
+		{
+			OutChartData.TimeSignatureDenominator = FMath::Max(1, static_cast<int32>(NumberValue));
+		}
+	}
+
+	const TArray<TSharedPtr<FJsonValue>>* TempoEventsArray = nullptr;
+	if (RootObject->TryGetArrayField(TEXT("tempoEvents"), TempoEventsArray) && TempoEventsArray)
+	{
+		for (const TSharedPtr<FJsonValue>& TempoValue : *TempoEventsArray)
+		{
+			const TSharedPtr<FJsonObject> TempoObject = TempoValue->AsObject();
+			if (!TempoObject.IsValid())
+			{
+				OutErrors.Add(FText::FromString(TEXT("tempoEvents must contain objects.")));
+				continue;
+			}
+
+			double BeatValue = 0.0;
+			double BpmValue = 0.0;
+			const bool bHasBeat = TempoObject->TryGetNumberField(TEXT("beat"), BeatValue);
+			const bool bHasBpm = TempoObject->TryGetNumberField(TEXT("bpm"), BpmValue);
+			if (!bHasBeat || !bHasBpm || BpmValue <= 0.0)
+			{
+				OutErrors.Add(FText::FromString(TEXT("tempoEvents entries must contain valid beat and bpm.")));
+				continue;
+			}
+
+			PTBRhythmChartParserInternal::AddTempoEvent(OutChartData, static_cast<float>(BeatValue), static_cast<float>(BpmValue));
+		}
+	}
+
+	const TArray<TSharedPtr<FJsonValue>>* TimeSignatureEventsArray = nullptr;
+	if (RootObject->TryGetArrayField(TEXT("timeSignatureEvents"), TimeSignatureEventsArray) && TimeSignatureEventsArray)
+	{
+		for (const TSharedPtr<FJsonValue>& SignatureValue : *TimeSignatureEventsArray)
+		{
+			const TSharedPtr<FJsonObject> SignatureObject = SignatureValue->AsObject();
+			if (!SignatureObject.IsValid())
+			{
+				OutErrors.Add(FText::FromString(TEXT("timeSignatureEvents must contain objects.")));
+				continue;
+			}
+
+			double BeatValue = 0.0;
+			double NumeratorValue = 0.0;
+			double DenominatorValue = 0.0;
+			const bool bHasBeat = SignatureObject->TryGetNumberField(TEXT("beat"), BeatValue);
+			const bool bHasNumerator = SignatureObject->TryGetNumberField(TEXT("numerator"), NumeratorValue);
+			const bool bHasDenominator = SignatureObject->TryGetNumberField(TEXT("denominator"), DenominatorValue);
+			if (!bHasBeat || !bHasNumerator || !bHasDenominator || NumeratorValue <= 0.0 || DenominatorValue <= 0.0)
+			{
+				OutErrors.Add(FText::FromString(TEXT("timeSignatureEvents entries must contain valid beat, numerator and denominator.")));
+				continue;
+			}
+
+			PTBRhythmChartParserInternal::AddTimeSignatureEvent(
+				OutChartData,
+				static_cast<float>(BeatValue),
+				static_cast<int32>(NumeratorValue),
+				static_cast<int32>(DenominatorValue));
+		}
+	}
+
+	if (OutChartData.TempoChangeBeats.IsEmpty())
+	{
+		PTBRhythmChartParserInternal::AddTempoEvent(OutChartData, 0.0f, OutChartData.BPM);
+	}
+
+	if (OutChartData.TimeSignatureChangeBeats.IsEmpty())
+	{
+		PTBRhythmChartParserInternal::AddTimeSignatureEvent(
+			OutChartData,
+			0.0f,
+			OutChartData.TimeSignatureNumerator,
+			OutChartData.TimeSignatureDenominator);
 	}
 
 	const TSharedPtr<FJsonObject>* WwiseObject = nullptr;
@@ -109,6 +253,7 @@ bool UPTBRhythmChartParser::ParseChartString(const FString& JsonString, FPTBChar
 		return Values[*FieldIndex]->TryGetString(OutValue);
 	};
 
+	TArray<PTBRhythmChartParserInternal::FParsedChartNote> ParsedNotes;
 	TSet<int32> AssignedNoteIds;
 	int32 NextGeneratedNoteId = 1;
 	auto GenerateMissingNoteId = [&AssignedNoteIds, &NextGeneratedNoteId]() -> int32
@@ -128,12 +273,15 @@ bool UPTBRhythmChartParser::ParseChartString(const FString& JsonString, FPTBChar
 	{
 		const TSharedPtr<FJsonValue>& RawNote = (*NotesArray)[Index];
 		const TSharedPtr<FJsonObject> NoteObject = RawNote->AsObject();
-		FPTBNoteEvent Note;
-		int32 IntValue = 0;
+		PTBRhythmChartParserInternal::FParsedChartNote ParsedNote;
+		FPTBNoteEvent& Note = ParsedNote.Note;
 		bool bHasTimeMs = false;
 		bool bHasNoteId = false;
 		bool bHasAction = false;
 		bool bActionSupported = false;
+		bool bHasLane = false;
+		ParsedNote.SourceIndex = Index;
+		ParsedNote.NoteType = TEXT("Tap");
 
 		if (NoteObject.IsValid())
 		{
@@ -165,8 +313,8 @@ bool UPTBRhythmChartParser::ParseChartString(const FString& JsonString, FPTBChar
 			FString NoteTypeString;
 			if (NoteObject->TryGetStringField(TEXT("type"), NoteTypeString))
 			{
-				Note.bIsLongNote = NoteTypeString.Equals(TEXT("Hold"), ESearchCase::IgnoreCase);
-				Note.Payload.Add(TEXT("NoteType"), NoteTypeString);
+				ParsedNote.NoteType = PTBRhythmChartParserInternal::NormalizeNoteType(NoteTypeString);
+				Note.Payload.Add(TEXT("NoteType"), ParsedNote.NoteType);
 			}
 
 			if (NoteObject->TryGetNumberField(TEXT("durationMs"), NumberValue))
@@ -182,6 +330,8 @@ bool UPTBRhythmChartParser::ParseChartString(const FString& JsonString, FPTBChar
 			if (NoteObject->TryGetNumberField(TEXT("lane"), NumberValue) || NoteObject->TryGetNumberField(TEXT("track"), NumberValue))
 			{
 				IntValue = static_cast<int32>(NumberValue);
+				ParsedNote.Lane = IntValue;
+				bHasLane = true;
 				Note.Payload.Add(TEXT("Lane"), FString::FromInt(IntValue));
 			}
 
@@ -223,8 +373,8 @@ bool UPTBRhythmChartParser::ParseChartString(const FString& JsonString, FPTBChar
 			FString NoteTypeString;
 			if (ReadArrayString(NoteValues, TEXT("type"), NoteTypeString))
 			{
-				Note.bIsLongNote = NoteTypeString.Equals(TEXT("Hold"), ESearchCase::IgnoreCase);
-				Note.Payload.Add(TEXT("NoteType"), NoteTypeString);
+				ParsedNote.NoteType = PTBRhythmChartParserInternal::NormalizeNoteType(NoteTypeString);
+				Note.Payload.Add(TEXT("NoteType"), ParsedNote.NoteType);
 			}
 
 			if (ReadArrayNumber(NoteValues, TEXT("durationMs"), NumberValue))
@@ -240,6 +390,8 @@ bool UPTBRhythmChartParser::ParseChartString(const FString& JsonString, FPTBChar
 			if (ReadArrayNumber(NoteValues, TEXT("lane"), NumberValue) || ReadArrayNumber(NoteValues, TEXT("track"), NumberValue))
 			{
 				IntValue = static_cast<int32>(NumberValue);
+				ParsedNote.Lane = IntValue;
+				bHasLane = true;
 				Note.Payload.Add(TEXT("Lane"), FString::FromInt(IntValue));
 			}
 
@@ -269,6 +421,11 @@ bool UPTBRhythmChartParser::ParseChartString(const FString& JsonString, FPTBChar
 			OutErrors.Add(FText::FromString(FString::Printf(TEXT("notes[%d] has unsupported action value."), Index)));
 		}
 
+		if (!bHasLane)
+		{
+			ParsedNote.Lane = static_cast<int32>(Note.ActionType) - 1;
+		}
+
 		if (!bHasNoteId)
 		{
 			Note.NoteId = GenerateMissingNoteId();
@@ -278,7 +435,62 @@ bool UPTBRhythmChartParser::ParseChartString(const FString& JsonString, FPTBChar
 			AssignedNoteIds.Add(Note.NoteId);
 		}
 
-		OutNoteEvents.Add(Note);
+		ParsedNotes.Add(ParsedNote);
+	}
+
+	PTBRhythmChartParserInternal::SortNotesByTime(ParsedNotes);
+
+	TMap<int32, int32> ActiveHoldIndexByLane;
+	for (const PTBRhythmChartParserInternal::FParsedChartNote& ParsedNote : ParsedNotes)
+	{
+		if (ParsedNote.NoteType == TEXT("Tap"))
+		{
+			OutNoteEvents.Add(ParsedNote.Note);
+			continue;
+		}
+
+		if (ParsedNote.NoteType == TEXT("Hold"))
+		{
+			if (ActiveHoldIndexByLane.Contains(ParsedNote.Lane))
+			{
+				OutErrors.Add(FText::FromString(FString::Printf(TEXT("notes[%d] starts a Hold before the previous Hold on lane %d is released."), ParsedNote.SourceIndex, ParsedNote.Lane)));
+				continue;
+			}
+
+			FPTBNoteEvent HoldNote = ParsedNote.Note;
+			HoldNote.bIsLongNote = true;
+			HoldNote.DurationBeat = 0.0f;
+			OutNoteEvents.Add(HoldNote);
+			ActiveHoldIndexByLane.Add(ParsedNote.Lane, OutNoteEvents.Num() - 1);
+			continue;
+		}
+
+		const int32* ActiveHoldIndex = ActiveHoldIndexByLane.Find(ParsedNote.Lane);
+		if (!ActiveHoldIndex)
+		{
+			OutErrors.Add(FText::FromString(FString::Printf(TEXT("notes[%d] has a Release without a matching Hold on lane %d."), ParsedNote.SourceIndex, ParsedNote.Lane)));
+			continue;
+		}
+
+		FPTBNoteEvent& HoldNote = OutNoteEvents[*ActiveHoldIndex];
+		if (ParsedNote.Note.BeatTime <= HoldNote.BeatTime)
+		{
+			OutErrors.Add(FText::FromString(FString::Printf(TEXT("notes[%d] Release must be after its Hold on lane %d."), ParsedNote.SourceIndex, ParsedNote.Lane)));
+			ActiveHoldIndexByLane.Remove(ParsedNote.Lane);
+			continue;
+		}
+
+		HoldNote.DurationBeat = ParsedNote.Note.BeatTime - HoldNote.BeatTime;
+		HoldNote.Payload.Add(TEXT("ReleaseNoteId"), FString::FromInt(ParsedNote.Note.NoteId));
+		HoldNote.Payload.Add(TEXT("ReleaseBeat"), FString::SanitizeFloat(ParsedNote.Note.BeatTime));
+		HoldNote.Payload.Add(TEXT("ReleaseTimeMs"), FString::SanitizeFloat(ParsedNote.Note.TimeMs));
+		ActiveHoldIndexByLane.Remove(ParsedNote.Lane);
+	}
+
+	for (const TPair<int32, int32>& ActiveHoldPair : ActiveHoldIndexByLane)
+	{
+		const FPTBNoteEvent& HoldNote = OutNoteEvents[ActiveHoldPair.Value];
+		OutErrors.Add(FText::FromString(FString::Printf(TEXT("Hold note %d on lane %d is missing a matching Release."), HoldNote.NoteId, ActiveHoldPair.Key)));
 	}
 
 	OutNoteEvents.Sort([](const FPTBNoteEvent& Left, const FPTBNoteEvent& Right)
@@ -329,6 +541,16 @@ EPTBDifficulty UPTBRhythmChartParser::ParseDifficulty(const FString& Value)
 	if (Value.Equals(TEXT("Easy"), ESearchCase::IgnoreCase))
 	{
 		return EPTBDifficulty::Easy;
+	}
+
+	if (Value.Equals(TEXT("Normal"), ESearchCase::IgnoreCase) || Value.Equals(TEXT("Standard"), ESearchCase::IgnoreCase))
+	{
+		return EPTBDifficulty::Standard;
+	}
+
+	if (Value.Equals(TEXT("Hard"), ESearchCase::IgnoreCase) || Value.Equals(TEXT("Expert"), ESearchCase::IgnoreCase))
+	{
+		return EPTBDifficulty::Insane;
 	}
 
 	if (Value.Equals(TEXT("Insane"), ESearchCase::IgnoreCase))
