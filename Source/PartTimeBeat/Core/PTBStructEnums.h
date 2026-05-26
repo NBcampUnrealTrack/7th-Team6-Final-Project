@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "CoreMinimal.h"
 #include "Engine/DataTable.h"
 
@@ -419,6 +419,9 @@ public:
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
     EPTBDifficulty Difficulty = EPTBDifficulty::Standard;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
+    EPTBPlayMode PlayMode;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
     int32 Score = 0;

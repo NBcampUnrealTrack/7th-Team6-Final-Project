@@ -1,50 +1,38 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
+// Fill out your copyright notice in the Description page of Project Settings.
 
 #include "PTBResultWidget.h"
 
-#include "Components/Button.h"
-#include "Components/TextBlock.h"
-
-void UPTBResultWidget::NativeConstruct()
+void UPTBResultWidget::NativeDestruct()
 {
-	Super::NativeConstruct();
-
-	if (ButtonRetry)
+	if (UWorld* World = GetWorld())
 	{
+		World->GetTimerManager().ClearTimer(PopupTimerHandle);
 	}
+	Super::NativeDestruct();
+}
 
-	if (ButtonNext)
+void UPTBResultWidget::ShowResult(
+	const FPTBRoundResult& InResult,
+	const FPTBRewardSummary& InReward)
+{
+	CurrentRoundResult   = InResult;
+	CurrentRewardSummary = InReward;
+
+	OnDisplayTypeChanged(InResult.Grade);
+
+	if (UWorld* World = GetWorld())
 	{
+		World->GetTimerManager().SetTimer(
+			PopupTimerHandle,
+			this,
+			&UPTBResultWidget::FirePopupTimer,
+			PopupDelay,
+			false
+		);
 	}
 }
 
-void UPTBResultWidget::SetRoundResult(const FPTBRoundResult& RoundResult)
+void UPTBResultWidget::FirePopupTimer()
 {
-	CurrentRoundResult = RoundResult;
-
-	if (RankText)
-	{
-	}
-
-	if (ScoreText)
-	{
-	}
-}
-
-void UPTBResultWidget::ShowRewardSummary(const FPTBRewardSummary& RewardSummary)
-{
-	if (RewardPanel)
-	{
-		RewardPanel->SetVisibility(ESlateVisibility::Visible);
-	}
-}
-
-void UPTBResultWidget::OnRetryClicked()
-{
-	OnRetryRequested.Broadcast();
-}
-
-void UPTBResultWidget::OnNextClicked()
-{
-	OnNextRequested.Broadcast();
+	OnPopupTimerFired();
 }

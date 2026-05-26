@@ -353,6 +353,7 @@ FPTBRoundResult APTBBaseMiniGame::FinishMiniGame(EPTBRoundEndReason Reason)
 	RoundResult = ScoreCalculator
 		? ScoreCalculator->BuildRoundResult(ProfileIdString, MiniGameId, GameContext.SessionRequest.Difficulty, Payload)
 		: FPTBRoundResult();
+	RoundResult.PlayMode = GameContext.SessionRequest.PlayMode;
 
 	ActiveBGMPlayingId = 0;
 

@@ -3,63 +3,60 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Blueprint/UserWidget.h"
+#include "PTBDialogHostWidget.h"
 #include "Core/PTBStructEnums.h"
 #include "PTBResultWidget.generated.h"
-
-class UButton;
-class UTextBlock;
-class UPanelWidget;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FPTBResultWidgetEvent);
 
 /**
- * 스테이지 종료 후 결과와 보상을 표시하는 위젯
- * 결과/보상 표시만 담당
- * 재시도/다음 진행은 외부에 요청만 전달
+ * 미니게임 종료 후 결과 배경 이미지를 표시하는 베이스 위젯
+ * ShowResult() 호출 시 배경 갱신 + PopupDelay 후 팝업 자동 표시
+ * 팝업 관리는 PTBDialogHostWidget(부모)이 담당
+ * 재도전/맵으로 이동은 외부에 델리게이트로 전달
  */
 UCLASS(Blueprintable)
-class PARTTIMEBEAT_API UPTBResultWidget : public UUserWidget
+class PARTTIMEBEAT_API UPTBResultWidget : public UPTBDialogHostWidget
 {
 	GENERATED_BODY()
-	
+
 public:
-	UPROPERTY(BlueprintAssignable, Category = "PTB|UI|Event")
+	UFUNCTION(BlueprintCallable, Category = "PTB|UI")
+	void ShowResult(const FPTBRoundResult& InResult, const FPTBRewardSummary& InReward);
+
+	UPROPERTY(BlueprintAssignable, BlueprintCallable, Category = "PTB|UI|Event")
 	FPTBResultWidgetEvent OnRetryRequested;
 
-	UPROPERTY(BlueprintAssignable, Category = "PTB|UI|Event")
-	FPTBResultWidgetEvent OnNextRequested;
-	
-	UFUNCTION(BlueprintCallable, Category = "PTB|UI")
-	virtual void SetRoundResult(const FPTBRoundResult& RoundResult);
+	UPROPERTY(BlueprintAssignable, BlueprintCallable, Category = "PTB|UI|Event")
+	FPTBResultWidgetEvent OnMapRequested;
 
-	UFUNCTION(BlueprintCallable, Category = "PTB|UI")
-	virtual void ShowRewardSummary(const FPTBRewardSummary& RewardSummary);
+	UFUNCTION(BlueprintPure, Category = "PTB|UI")
+	const FPTBRoundResult& GetRoundResult() const { return CurrentRoundResult; }
 
-	UFUNCTION(BlueprintCallable, Category = "PTB|UI")
-	virtual void OnRetryClicked();
+	UFUNCTION(BlueprintPure, Category = "PTB|UI")
+	const FPTBRewardSummary& GetRewardSummary() const { return CurrentRewardSummary; }
 
-	UFUNCTION(BlueprintCallable, Category = "PTB|UI")
-	virtual void OnNextClicked();
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|UI")
+	float PopupDelay = 3.0f;
 
 protected:
-	virtual void NativeConstruct() override;
-	
+	virtual void NativeDestruct() override;
+
+	/** EPTBGradeType 에 따라 배경 이미지 교체 */
+	UFUNCTION(BlueprintImplementableEvent, Category = "PTB|UI")
+	void OnDisplayTypeChanged(EPTBGradeType Grade);
+
+	/** PopupDelay 초 후 호출 — BP에서 WBP_ResultPopup 생성 후 PushDialog */
+	UFUNCTION(BlueprintImplementableEvent, Category = "PTB|UI")
+	void OnPopupTimerFired();
+
 	UPROPERTY(BlueprintReadOnly, Category = "PTB|UI")
 	FPTBRoundResult CurrentRoundResult;
 
-	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "PTB|UI")
-	TObjectPtr<UTextBlock> RankText = nullptr;
+	UPROPERTY(BlueprintReadOnly, Category = "PTB|UI")
+	FPTBRewardSummary CurrentRewardSummary;
 
-	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "PTB|UI")
-	TObjectPtr<UTextBlock> ScoreText = nullptr;
-
-	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "PTB|UI")
-	TObjectPtr<UPanelWidget> RewardPanel = nullptr;
-
-	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "PTB|UI")
-	TObjectPtr<UButton> ButtonRetry = nullptr;
-
-	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "PTB|UI")
-	TObjectPtr<UButton> ButtonNext = nullptr;
+private:
+	FTimerHandle PopupTimerHandle;
+	void FirePopupTimer();
 };
