@@ -38,6 +38,14 @@ enum class EPTBActionType : uint8
 };
 
 UENUM(BlueprintType)
+enum class EPTBNoteType : uint8
+{
+    Tap      UMETA(DisplayName = "Tap"),
+    Hold        UMETA(DisplayName = "Hold"),
+    Release       UMETA(DisplayName = "Release")
+};
+
+UENUM(BlueprintType)
 enum class EPTBJudgementType : uint8
 {
     HighPerfect      UMETA(DisplayName = "21ms"),
@@ -103,16 +111,28 @@ public:
     EPTBActionType ActionType = EPTBActionType::None;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
+    EPTBNoteType NoteType = EPTBNoteType::Tap;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
+    int32 Lane = 0;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
     bool bIsLongNote = false;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
     float DurationBeat = 0.0f;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
-    FName SectionName = NAME_None;
+    int32 ReleaseNoteId = 0;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
-    TMap<FName, FString> Payload;
+    float ReleaseBeatTime = 0.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
+    float ReleaseTimeMs = 0.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
+    FName SectionName = NAME_None;
 };
 
 

@@ -236,7 +236,31 @@ void APTBBaseMiniGame::InitializeMiniGame(const FPTBMiniGameContext& Context)
 
 void APTBBaseMiniGame::PreloadAssets()
 {
-	if (ChartAsset || ChartJsonFilePath.IsEmpty())
+	if (!ChartAsset && RuleSet)
+	{
+		ChartAsset = RuleSet->ResolveChartAsset(GameContext.SessionRequest.Difficulty);
+	}
+
+	if (ChartAsset)
+	{
+		if (ChartAsset->NoteEvents.IsEmpty() && !ChartAsset->SourceJsonFilePath.IsEmpty())
+		{
+			TArray<FText> LoadErrors;
+			if (!ChartAsset->LoadFromSourceJson(LoadErrors))
+			{
+				UE_LOG(LogRhythm, Error, TEXT("[%s] Failed to load chart asset source json: %s"), *GetNameSafe(this), *GetNameSafe(ChartAsset.Get()));
+
+				for (const FText& LoadError : LoadErrors)
+				{
+					UE_LOG(LogRhythm, Error, TEXT("[%s] Chart asset load error: %s"), *GetNameSafe(this), *LoadError.ToString());
+				}
+			}
+		}
+
+		return;
+	}
+
+	if (ChartJsonFilePath.IsEmpty())
 	{
 		return;
 	}

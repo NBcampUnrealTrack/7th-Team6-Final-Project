@@ -25,6 +25,24 @@ FName UPTBMiniGameRuleSet::GetActionTag(EPTBActionType Action) const
 	return NAME_None;
 }
 
+UPTBRhythmChartAsset* UPTBMiniGameRuleSet::ResolveChartAsset(EPTBDifficulty Difficulty) const
+{
+	if (const TObjectPtr<UPTBRhythmChartAsset>* FoundChartAsset = ChartAssetsByDifficulty.Find(Difficulty))
+	{
+		return FoundChartAsset->Get();
+	}
+
+	if (Difficulty != EPTBDifficulty::Standard)
+	{
+		if (const TObjectPtr<UPTBRhythmChartAsset>* StandardChartAsset = ChartAssetsByDifficulty.Find(EPTBDifficulty::Standard))
+		{
+			return StandardChartAsset->Get();
+		}
+	}
+
+	return nullptr;
+}
+
 FName UPTBMiniGameRuleSet::GetJudgementSFXKey(EPTBJudgementType JudgementType) const
 {
 	if (const FName* FoundKey = JudgementSFXKeys.Find(JudgementType))

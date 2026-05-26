@@ -5,6 +5,8 @@
 #include "Core/PTBStructEnums.h"
 #include "PTBMiniGameRuleSet.generated.h"
 
+class UPTBRhythmChartAsset;
+
 /**
  * 공통 미니게임 라운드에서 채보 노트를 각 미니게임 규칙으로 해석하기 위한 기본 RuleSet DataAsset입니다
  *
@@ -35,6 +37,10 @@ public:
 	/** 액션별 의미 태그 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Rule")
 	TMap<EPTBActionType, FName> ActionTags;
+
+	/** 난이도별 채보 Asset */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Chart")
+	TMap<EPTBDifficulty, TObjectPtr<UPTBRhythmChartAsset>> ChartAssetsByDifficulty;
 
 	/** 비주얼 큐 선행 Beat 수 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Timing", meta = (ClampMin = "0", UIMin = "0"))
@@ -73,6 +79,9 @@ public:
 
 	/** 액션 의미 태그 조회 */
 	FName GetActionTag(EPTBActionType Action) const;
+	
+	/** 난이도별 채보 Asset 조회 */
+	UPTBRhythmChartAsset* ResolveChartAsset(EPTBDifficulty Difficulty) const;
 
 	/** 판정 SFX 이벤트 키 조회 */
 	FName GetJudgementSFXKey(EPTBJudgementType JudgementType) const;

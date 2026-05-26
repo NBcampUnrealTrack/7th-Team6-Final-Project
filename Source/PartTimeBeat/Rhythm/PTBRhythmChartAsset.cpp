@@ -1,6 +1,7 @@
 #include "Rhythm/PTBRhythmChartAsset.h"
 
 #include "Debug/PTBLogChannels.h"
+#include "Misc/Paths.h"
 #include "Rhythm/PTBRhythmChartParser.h"
 
 bool UPTBRhythmChartAsset::ValidateChart(TArray<FText>& OutErrors) const
@@ -154,9 +155,29 @@ bool UPTBRhythmChartAsset::ValidateChart(TArray<FText>& OutErrors) const
 			OutErrors.Add(FText::FromString(FString::Printf(TEXT("NoteEvents[%d].ActionType cannot be None."), Index)));
 		}
 
+		if (Note.NoteType == EPTBNoteType::Release)
+		{
+			OutErrors.Add(FText::FromString(FString::Printf(TEXT("NoteEvents[%d].NoteType cannot be Release after chart parsing."), Index)));
+		}
+
+		if (Note.Lane < 0)
+		{
+			OutErrors.Add(FText::FromString(FString::Printf(TEXT("NoteEvents[%d].Lane cannot be negative."), Index)));
+		}
+
 		if (Note.bIsLongNote && Note.DurationBeat <= 0.0f)
 		{
 			OutErrors.Add(FText::FromString(FString::Printf(TEXT("NoteEvents[%d].DurationBeat must be greater than 0 for long notes."), Index)));
+		}
+
+		if (Note.bIsLongNote && Note.ReleaseBeatTime <= Note.BeatTime)
+		{
+			OutErrors.Add(FText::FromString(FString::Printf(TEXT("NoteEvents[%d].ReleaseBeatTime must be after BeatTime for long notes."), Index)));
+		}
+
+		if (Note.bIsLongNote && Note.ReleaseTimeMs <= Note.TimeMs)
+		{
+			OutErrors.Add(FText::FromString(FString::Printf(TEXT("NoteEvents[%d].ReleaseTimeMs must be after TimeMs for long notes."), Index)));
 		}
 
 		if (Note.TimeMs < PreviousTimeMs)
@@ -274,4 +295,23 @@ bool UPTBRhythmChartAsset::LoadFromJson(const FString& JsonPath, TArray<FText>& 
 	}
 
 	return true;
+}
+
+bool UPTBRhythmChartAsset::LoadFromSourceJson(TArray<FText>& OutErrors)
+{
+	OutErrors.Reset();
+
+	if (SourceJsonFilePath.IsEmpty())
+	{
+		OutErrors.Add(FText::FromString(TEXT("SourceJsonFilePath is empty.")));
+		return false;
+	}
+
+	FString ResolvedPath = SourceJsonFilePath;
+	if (FPaths::IsRelative(ResolvedPath))
+	{
+		ResolvedPath = FPaths::ConvertRelativePathToFull(FPaths::Combine(FPaths::ProjectDir(), ResolvedPath));
+	}
+
+	return LoadFromJson(ResolvedPath, OutErrors);
 }
