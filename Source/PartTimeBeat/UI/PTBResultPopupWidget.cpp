@@ -62,21 +62,24 @@ FText UPTBResultPopupWidget::GradeToText(EPTBGradeType Grade)
 
 FText UPTBResultPopupWidget::DifficultyToText(EPTBDifficulty Difficulty)
 {
-	switch (Difficulty)
+	if (const UEnum* DifficultyEnum = StaticEnum<EPTBDifficulty>())
 	{
-	case EPTBDifficulty::Easy:     return FText::FromString(TEXT("Easy"));
-	case EPTBDifficulty::Standard: return FText::FromString(TEXT("Standard"));
-	case EPTBDifficulty::Insane:   return FText::FromString(TEXT("Insane"));
-	default:                       return FText::FromString(TEXT("-"));
+		const FText DisplayName = DifficultyEnum->GetDisplayNameTextByValue(static_cast<int64>(Difficulty));
+		if (!DisplayName.IsEmpty())
+			return DisplayName;
 	}
+
+	return FText::FromString(TEXT("-"));
 }
 
 FText UPTBResultPopupWidget::PlayModeToText(EPTBPlayMode PlayMode)
 {
-	switch (PlayMode)
+	if (const UEnum* PlayModeEnum = StaticEnum<EPTBPlayMode>())
 	{
-	case EPTBPlayMode::Single:      return FText::FromString(TEXT("싱글"));
-	case EPTBPlayMode::Multiplayer: return FText::FromString(TEXT("멀티"));
-	default:                        return FText::FromString(TEXT("-"));
+		const FText DisplayName = PlayModeEnum->GetDisplayNameTextByValue(static_cast<int64>(PlayMode));
+		if (!DisplayName.IsEmpty())
+			return DisplayName;
 	}
+
+	return FText::FromString(TEXT("-"));
 }

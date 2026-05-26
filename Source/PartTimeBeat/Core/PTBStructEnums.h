@@ -421,7 +421,7 @@ public:
     EPTBDifficulty Difficulty = EPTBDifficulty::Standard;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
-    EPTBPlayMode PlayMode = EPTBPlayMode::Single;
+    EPTBPlayMode PlayMode;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
     int32 Score = 0;
