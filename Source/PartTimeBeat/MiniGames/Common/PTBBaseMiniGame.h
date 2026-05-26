@@ -25,24 +25,8 @@ class PARTTIMEBEAT_API APTBBaseMiniGame : public AActor
 {
 	GENERATED_BODY()
 	
-public:	
+public:
 	APTBBaseMiniGame();
-
-protected:
-	virtual void BeginPlay() override;
-
-public:	
-	/**고유 ID */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|MiniGame")
-	FName MiniGameId;
-
-	/** 2글자 코드(JJ 등) */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|MiniGame")
-	FName MiniGameCode;
-
-	/** UI 표시 이름 */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|MiniGame")
-	FText DisplayName;
 
 	/** 난이도별 규칙 DataAsset */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|MiniGame")
@@ -52,6 +36,48 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|Audio")
 	TObjectPtr<UPTBWwiseEventMapAsset> AudioEventSet;
 
+	/** 재생할 채보 Asset */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|Rhythm")
+	TObjectPtr<UPTBRhythmChartAsset> ChartAsset;
+
+	/** 외부 JSON 채보 파일 경로 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|Rhythm")
+	FString ChartJsonFilePath;
+
+	/** 컨텍스트 주입 */
+	virtual void InitializeMiniGame(const FPTBMiniGameContext& Context);
+
+	/** BGM + Conductor 시작, 입력 허용 */
+	virtual void StartMiniGame();
+
+	/** 종료, 결과 생성 */
+	virtual FPTBRoundResult FinishMiniGame(EPTBRoundEndReason Reason);
+
+	/** 일시정지 */
+	virtual void PauseMiniGame();
+
+	/** 재개 */
+	virtual void ResumeMiniGame();
+
+	/** 입력을 판정으로 전달 */
+	virtual void HandleRhythmInput(EPTBActionType Action, float TimeMs = -1.0f);
+
+protected:
+	virtual void BeginPlay() override;
+	virtual void Tick(float DeltaTime) override;
+
+	/** 고유 ID */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|MiniGame")
+	FName MiniGameId;
+
+	/** 2글자 코드 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|MiniGame")
+	FName MiniGameCode;
+
+	/** UI 표시 이름 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|MiniGame")
+	FText DisplayName;
+
 	/** Wwise 런타임 매니저 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|Audio")
 	TObjectPtr<UPTBWwiseAudioManager> AudioManager;
@@ -59,10 +85,6 @@ public:
 	/** 미니게임 전용 AkComponent */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PTB|Audio")
 	TObjectPtr<UAkComponent> AkComponent;
-
-	/** 재생할 채보 Asset */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|Rhythm")
-	TObjectPtr<UPTBRhythmChartAsset> ChartAsset;
 
 	/** Beat 발행 컴포넌트 */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PTB|Rhythm")
@@ -100,13 +122,9 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PTB|MiniGame")
 	bool bIsRoundActive = false;
 
-	/**입력 잠금*/
+	/** 입력 잠금 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|MiniGame")
 	bool bInputLocked = true;
-
-	/** 외부 JSON 채보 파일 경로(ChartAsset 미지정 시 사용) */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|Rhythm")
-	FString ChartJsonFilePath;
 
 	/** 라운드 완료 예약 여부 */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PTB|MiniGame")
@@ -120,23 +138,14 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PTB|Audio")
 	int32 ActiveBGMPlayingId = 0;
 
-	virtual void Tick(float DeltaTime) override;
-	/** 컨텍스트 주입 */
-	virtual void InitializeMiniGame(const FPTBMiniGameContext& Context);
 	/** 라운드 시작 전 에셋 준비(하위 override 권장) */
 	virtual void PreloadAssets();
+
 	/** 오브젝트 / 상태 구성(하위 override) */
 	virtual void BuildRuntimeState();
+
 	/** RuleSet 공통 규칙 적용 */
 	virtual void ApplyRuleSet();
-	/** BGM + Conductor 시작, 입력 허용 */
-	virtual void StartMiniGame();
-	/** 종료, 결과 생성 */
-	virtual FPTBRoundResult FinishMiniGame(EPTBRoundEndReason Reason);
-	/** 일시정지  */
-	virtual void PauseMiniGame();
-	/** 재개 */
-	virtual void ResumeMiniGame();
 
 	/** 채보 이벤트 처리(하위 override) */
 	UFUNCTION()
@@ -150,36 +159,43 @@ public:
 	UFUNCTION()
 	virtual void HandleNoteCue(FPTBNoteEvent Note);
 
-	/** 입력 → 판정 */
-	virtual void HandleRhythmInput(EPTBActionType Action, float TimeMs = -1.0f);
-
 	/** 단일 판정 */
 	virtual FPTBJudgementResult EvaluateInput(EPTBActionType Action, float TimeMs);
 
 	/** 점수 / HUD / SFX 반영 */
 	UFUNCTION()
 	virtual void HandleJudgementResult(FPTBJudgementResult Result);
+
 	/** 미니게임 전용 피드백(하위 override) */
 	virtual void PlayJudgementFeedback(const FPTBJudgementResult& Result);
 
 	/** 전용 결과(하위 override) */
 	virtual FPTBMiniGameResultPayload BuildResultPayload() const;
+
 	/** AudioManager에 이벤트 요청 */
 	void RequestWwiseEvent(FName EventKey, AActor* Target);
+
 	/** 입력 가능 여부 */
 	bool CanAcceptInput() const;
+
 	/** 키 - 액션 매핑(하위 override) */
 	virtual TMap<FKey, EPTBActionType> GetActionMapping() const;
+
 	/** 입력 판정 오프셋 계산 */
 	virtual float ResolveInputOffsetMs(const FPTBMiniGameContext& Context) const;
+
 	/** 화면 표시 오프셋 계산 */
 	virtual float ResolveVisualOffsetMs(const FPTBMiniGameContext& Context) const;
+
 	/** 소리 출력 오프셋 계산 */
 	virtual float ResolveSoundOffsetMs(const FPTBMiniGameContext& Context) const;
+
 	/** 현재 판정 기준 차트 시간(ms) */
 	float GetCurrentChartTimeMs() const;
+
 	/** 현재 입력 판정 기준 시간(ms) */
 	float GetCurrentInputJudgeTimeMs() const;
+
 	/** 라운드 종료 기준 차트 시간(ms) */
 	float GetRoundEndChartTimeMs() const;
 
