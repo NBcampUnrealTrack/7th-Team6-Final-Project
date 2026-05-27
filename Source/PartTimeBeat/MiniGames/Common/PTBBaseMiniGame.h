@@ -181,6 +181,9 @@ protected:
 	/** 오브젝트 / 상태 구성(하위 override) */
 	virtual void BuildRuntimeState();
 
+	/** 오디오 에셋 준비 */
+	virtual void PreloadAudioAssets();
+
 	/** RuleSet 공통 규칙 적용 */
 	virtual void ApplyRuleSet();
 

@@ -238,6 +238,7 @@ void APTBBaseMiniGame::InitializeMiniGame(const FPTBMiniGameContext& Context)
 	}
 
 	ApplyRuleSet();
+	PreloadAudioAssets();
 	BuildRuntimeState();
 
 	bIsInitialized = true;
@@ -302,6 +303,20 @@ void APTBBaseMiniGame::PreloadAssets()
 
 void APTBBaseMiniGame::BuildRuntimeState()
 {
+}
+
+void APTBBaseMiniGame::PreloadAudioAssets()
+{
+	if (!AudioManager || GameContext.ChartData.WwiseBankName.IsNone())
+	{
+		return;
+	}
+
+	const bool bLoadedBank = AudioManager->LoadSoundBank(GameContext.ChartData.WwiseBankName);
+	UE_LOG(LogWwise, Log, TEXT("[%s] PreloadSoundBank %s -> %s"),
+		*GetNameSafe(this),
+		*GameContext.ChartData.WwiseBankName.ToString(),
+		bLoadedBank ? TEXT("Success") : TEXT("Failed"));
 }
 
 void APTBBaseMiniGame::ApplyRuleSet()
@@ -414,12 +429,6 @@ void APTBBaseMiniGame::StartMiniGame()
 		if (AudioEventSet)
 		{
 			AudioManager->ApplyEventMapAsset(AudioEventSet);
-		}
-
-		if (!GameContext.ChartData.WwiseBankName.IsNone())
-		{
-			const bool bLoadedBank = AudioManager->LoadSoundBank(GameContext.ChartData.WwiseBankName);
-			UE_LOG(LogWwise, Log, TEXT("[%s] LoadSoundBank %s -> %s"), *GetNameSafe(this), *GameContext.ChartData.WwiseBankName.ToString(), bLoadedBank ? TEXT("Success") : TEXT("Failed"));
 		}
 	}
 
