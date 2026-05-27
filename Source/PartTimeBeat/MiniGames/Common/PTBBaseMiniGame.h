@@ -13,9 +13,11 @@ class UPTBRhythmChartAsset;
 class UPTBRhythmConductorComponent;
 class UPTBJudgementSystem;
 class UPTBScoreCalculator;
+class UPTBMiniGameLoadingWidget;
 class UAkComponent;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FPTBOnMiniGameFinished, FPTBRoundResult, Result);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FPTBOnMiniGameReadyToStart);
 
 /**
  * 공통 리듬 라운드의 초기화, 입력 판정, 점수 계산, 오디오 요청을 담당하는 미니게임 베이스 Actor입니다.
@@ -46,15 +48,31 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|Rhythm")
 	FString ChartJsonFilePath;
 
+	/** 로딩 화면 Widget 클래스 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|UI")
+	TSubclassOf<UPTBMiniGameLoadingWidget> LoadingWidgetClass;
+
 	/** 미니게임 종료 결과 */
 	UPROPERTY(BlueprintAssignable, Category = "PTB|MiniGame")
 	FPTBOnMiniGameFinished OnMiniGameFinished;
+
+	/** 미니게임 시작 준비 완료 */
+	UPROPERTY(BlueprintAssignable, Category = "PTB|MiniGame")
+	FPTBOnMiniGameReadyToStart OnMiniGameReadyToStart;
 
 	/** 컨텍스트 주입 */
 	virtual void InitializeMiniGame(const FPTBMiniGameContext& Context);
 
 	/** BGM + Conductor 시작, 입력 허용 */
 	virtual void StartMiniGame();
+
+	/** 준비 완료 상태에서 미니게임 시작 요청 */
+	UFUNCTION(BlueprintCallable, Category = "PTB|MiniGame")
+	virtual void RequestStartMiniGame();
+
+	/** Press Any Key 입력 처리 */
+	UFUNCTION(BlueprintCallable, Category = "PTB|MiniGame")
+	virtual void HandleStartInput();
 
 	/** 종료, 결과 생성 */
 	virtual FPTBRoundResult FinishMiniGame(EPTBRoundEndReason Reason);
@@ -120,9 +138,17 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PTB|MiniGame")
 	FPTBRoundResult RoundResult;
 
+	/** 로딩 화면 Widget 인스턴스 */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PTB|UI")
+	TObjectPtr<UPTBMiniGameLoadingWidget> LoadingWidgetInstance;
+
 	/** 초기화 완료 */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PTB|MiniGame")
 	bool bIsInitialized = false;
+
+	/** 시작 준비 완료 */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PTB|MiniGame")
+	bool bIsReadyToStart = false;
 
 	/** 라운드 진행 중 */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PTB|MiniGame")
@@ -156,6 +182,18 @@ protected:
 
 	/** RuleSet 공통 규칙 적용 */
 	virtual void ApplyRuleSet();
+
+	/** 로딩 시작 처리(하위 override) */
+	virtual void HandleLoadingStarted();
+
+	/** 시작 준비 완료 처리(하위 override) */
+	virtual void HandleReadyToStart();
+
+	/** 로딩 Widget 표시 */
+	virtual void ShowLoadingWidget();
+
+	/** 로딩 Widget 제거 */
+	virtual void HideLoadingWidget();
 
 	/** 채보 이벤트 처리(하위 override) */
 	UFUNCTION()

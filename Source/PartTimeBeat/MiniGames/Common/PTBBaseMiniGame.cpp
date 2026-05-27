@@ -6,6 +6,7 @@
 #include "Debug/PTBLogChannels.h"
 #include "Misc/Paths.h"
 #include "MiniGames/Common/PTBMiniGameRuleSet.h"
+#include "MiniGames/Common/UI/PTBMiniGameLoadingWidget.h"
 #include "Rhythm/PTBJudgementSystem.h"
 #include "Rhythm/PTBRhythmChartAsset.h"
 #include "Rhythm/PTBRhythmConductorComponent.h"
@@ -64,7 +65,10 @@ APTBBaseMiniGame::APTBBaseMiniGame()
 	AudioManager = nullptr;
 	ChartAsset = nullptr;
 	ScoreCalculator = nullptr;
+	LoadingWidgetClass = nullptr;
+	LoadingWidgetInstance = nullptr;
 	bIsInitialized = false;
+	bIsReadyToStart = false;
 	bIsRoundActive = false;
 	bInputLocked = true;
 	bPendingRoundFinish = false;
@@ -155,8 +159,11 @@ void APTBBaseMiniGame::InitializeMiniGame(const FPTBMiniGameContext& Context)
 	bAllNotesDispatched = false;
 	ActiveBGMPlayingId = 0;
 	bIsInitialized = false;
+	bIsReadyToStart = false;
 	bIsRoundActive = false;
 	bInputLocked = true;
+
+	HandleLoadingStarted();
 
 	if (!AudioManager)
 	{
@@ -216,6 +223,7 @@ void APTBBaseMiniGame::InitializeMiniGame(const FPTBMiniGameContext& Context)
 	if (!ChartAsset)
 	{
 		UE_LOG(LogRhythm, Warning, TEXT("[%s] ChartAsset is not ready. MiniGameId=%s"), *GetNameSafe(this), *MiniGameId.ToString());
+		return;
 	}
 
 	if (JudgementSystem)
@@ -233,6 +241,8 @@ void APTBBaseMiniGame::InitializeMiniGame(const FPTBMiniGameContext& Context)
 	BuildRuntimeState();
 
 	bIsInitialized = true;
+	bIsReadyToStart = true;
+	HandleReadyToStart();
 }
 
 void APTBBaseMiniGame::PreloadAssets()
@@ -327,13 +337,76 @@ void APTBBaseMiniGame::ApplyRuleSet()
 	}
 }
 
-void APTBBaseMiniGame::StartMiniGame()
+void APTBBaseMiniGame::HandleLoadingStarted()
 {
-	if (!bIsInitialized || !ChartAsset)
+	ShowLoadingWidget();
+
+	if (LoadingWidgetInstance)
 	{
-		UE_LOG(LogRhythm, Warning, TEXT("[%s] StartMiniGame aborted. Initialized=%d ChartAsset=%s"), *GetNameSafe(this), bIsInitialized ? 1 : 0, *GetNameSafe(ChartAsset));
+		LoadingWidgetInstance->SetLoadingState();
+	}
+}
+
+void APTBBaseMiniGame::HandleReadyToStart()
+{
+	if (LoadingWidgetInstance)
+	{
+		LoadingWidgetInstance->SetReadyToStartState();
+	}
+
+	OnMiniGameReadyToStart.Broadcast();
+}
+
+void APTBBaseMiniGame::ShowLoadingWidget()
+{
+	if (LoadingWidgetInstance || !LoadingWidgetClass)
+	{
 		return;
 	}
+
+	APlayerController* PlayerController = GetWorld() ? GetWorld()->GetFirstPlayerController() : nullptr;
+	if (!PlayerController)
+	{
+		return;
+	}
+
+	LoadingWidgetInstance = CreateWidget<UPTBMiniGameLoadingWidget>(PlayerController, LoadingWidgetClass);
+	if (LoadingWidgetInstance)
+	{
+		LoadingWidgetInstance->InitializeLoadingWidget(this);
+		LoadingWidgetInstance->AddToViewport();
+	}
+}
+
+void APTBBaseMiniGame::HideLoadingWidget()
+{
+	if (!LoadingWidgetInstance)
+	{
+		return;
+	}
+
+	LoadingWidgetInstance->RemoveFromParent();
+	LoadingWidgetInstance = nullptr;
+}
+
+void APTBBaseMiniGame::StartMiniGame()
+{
+	if (bIsRoundActive)
+	{
+		return;
+	}
+
+	if (!bIsInitialized || !bIsReadyToStart || !ChartAsset)
+	{
+		UE_LOG(LogRhythm, Warning, TEXT("[%s] StartMiniGame aborted. Initialized=%d Ready=%d ChartAsset=%s"),
+			*GetNameSafe(this),
+			bIsInitialized ? 1 : 0,
+			bIsReadyToStart ? 1 : 0,
+			*GetNameSafe(ChartAsset));
+		return;
+	}
+
+	HideLoadingWidget();
 
 	if (AudioManager)
 	{
@@ -381,6 +454,22 @@ void APTBBaseMiniGame::StartMiniGame()
 	UE_LOG(LogRhythm, Log, TEXT("[%s] MiniGame started. Notes=%d BPM=%.2f OffsetMs=%.2f"), *GetNameSafe(this), ChartAsset->NoteEvents.Num(), GameContext.ChartData.BPM, GameContext.ChartData.OffsetMs);
 }
 
+void APTBBaseMiniGame::RequestStartMiniGame()
+{
+	if (!bIsReadyToStart)
+	{
+		UE_LOG(LogRhythm, Warning, TEXT("[%s] Start request ignored. MiniGame is not ready."), *GetNameSafe(this));
+		return;
+	}
+
+	StartMiniGame();
+}
+
+void APTBBaseMiniGame::HandleStartInput()
+{
+	RequestStartMiniGame();
+}
+
 FPTBRoundResult APTBBaseMiniGame::FinishMiniGame(EPTBRoundEndReason Reason)
 {
 	if (!bIsRoundActive && RoundResult.MiniGameId == MiniGameId)
@@ -389,6 +478,7 @@ FPTBRoundResult APTBBaseMiniGame::FinishMiniGame(EPTBRoundEndReason Reason)
 	}
 
 	bIsRoundActive = false;
+	bIsReadyToStart = false;
 	bInputLocked = true;
 	bPendingRoundFinish = false;
 
