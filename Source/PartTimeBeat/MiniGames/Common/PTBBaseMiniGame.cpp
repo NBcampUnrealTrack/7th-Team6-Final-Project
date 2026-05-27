@@ -4,7 +4,6 @@
 #include "Audio/PTBWwiseAudioManager.h"
 #include "Audio/PTBWwiseRhythmSyncComponent.h"
 #include "Debug/PTBLogChannels.h"
-#include "Misc/Paths.h"
 #include "MiniGames/Common/PTBMiniGameRuleSet.h"
 #include "MiniGames/Common/UI/PTBMiniGameLoadingWidget.h"
 #include "Rhythm/PTBJudgementSystem.h"
@@ -212,6 +211,7 @@ void APTBBaseMiniGame::InitializeMiniGame(const FPTBMiniGameContext& Context)
 				UE_LOG(LogRhythm, Error, TEXT("[%s] Invalid chart: %s"), *GetNameSafe(this), *ChartError.ToString());
 			}
 
+			HideLoadingWidget();
 			ChartAsset = nullptr;
 		}
 		else
@@ -223,6 +223,7 @@ void APTBBaseMiniGame::InitializeMiniGame(const FPTBMiniGameContext& Context)
 	if (!ChartAsset)
 	{
 		UE_LOG(LogRhythm, Warning, TEXT("[%s] ChartAsset is not ready. MiniGameId=%s"), *GetNameSafe(this), *MiniGameId.ToString());
+		HideLoadingWidget();
 		return;
 	}
 
@@ -272,33 +273,7 @@ void APTBBaseMiniGame::PreloadAssets()
 		return;
 	}
 
-	if (ChartJsonFilePath.IsEmpty())
-	{
-		return;
-	}
-
-	FString ResolvedPath = ChartJsonFilePath;
-	if (FPaths::IsRelative(ResolvedPath))
-	{
-		ResolvedPath = FPaths::ConvertRelativePathToFull(FPaths::Combine(FPaths::ProjectDir(), ResolvedPath));
-	}
-
-	UPTBRhythmChartAsset* LoadedChartAsset = NewObject<UPTBRhythmChartAsset>(this, NAME_None, RF_Transient);
-	TArray<FText> LoadErrors;
-	if (!LoadedChartAsset->LoadFromJson(ResolvedPath, LoadErrors))
-	{
-		UE_LOG(LogRhythm, Error, TEXT("[%s] Failed to load chart json: %s"), *GetNameSafe(this), *ResolvedPath);
-
-		for (const FText& LoadError : LoadErrors)
-		{
-			UE_LOG(LogRhythm, Error, TEXT("[%s] Chart load error: %s"), *GetNameSafe(this), *LoadError.ToString());
-		}
-
-		return;
-	}
-
-	ChartAsset = LoadedChartAsset;
-	UE_LOG(LogRhythm, Log, TEXT("[%s] Loaded chart json: %s"), *GetNameSafe(this), *ResolvedPath);
+	UE_LOG(LogRhythm, Warning, TEXT("[%s] ChartAsset is required. Configure RuleSet.ChartAssetsByDifficulty or ChartAsset."), *GetNameSafe(this));
 }
 
 void APTBBaseMiniGame::BuildRuntimeState()

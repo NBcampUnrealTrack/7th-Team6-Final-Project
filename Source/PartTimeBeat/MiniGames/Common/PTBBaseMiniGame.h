@@ -44,7 +44,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|Rhythm")
 	TObjectPtr<UPTBRhythmChartAsset> ChartAsset;
 
-	/** 임시 외부 JSON 채보 파일 경로 */
+	/** Deprecated: ChartAsset.SourceJsonFilePath를 사용 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|Rhythm")
 	FString ChartJsonFilePath;
 
