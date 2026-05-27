@@ -11,8 +11,6 @@ namespace PTBRhythmChartParserInternal
 	struct FParsedChartNote
 	{
 		FPTBNoteEvent Note;
-		FString NoteType;
-		int32 Lane = 0;
 		int32 SourceIndex = INDEX_NONE;
 	};
 
@@ -29,19 +27,27 @@ namespace PTBRhythmChartParserInternal
 		});
 	}
 
-	FString NormalizeNoteType(const FString& InType)
+	bool TryParseNoteType(const FString& InType, EPTBNoteType& OutNoteType)
 	{
+		if (InType.Equals(TEXT("Tap"), ESearchCase::IgnoreCase))
+		{
+			OutNoteType = EPTBNoteType::Tap;
+			return true;
+		}
+
 		if (InType.Equals(TEXT("Hold"), ESearchCase::IgnoreCase))
 		{
-			return TEXT("Hold");
+			OutNoteType = EPTBNoteType::Hold;
+			return true;
 		}
 
 		if (InType.Equals(TEXT("Release"), ESearchCase::IgnoreCase))
 		{
-			return TEXT("Release");
+			OutNoteType = EPTBNoteType::Release;
+			return true;
 		}
 
-		return TEXT("Tap");
+		return false;
 	}
 
 	void AddTempoEvent(FPTBChartData& ChartData, float Beat, float Bpm)
@@ -280,8 +286,8 @@ bool UPTBRhythmChartParser::ParseChartString(const FString& JsonString, FPTBChar
 		bool bHasAction = false;
 		bool bActionSupported = false;
 		bool bHasLane = false;
+		bool bHasNoteType = false;
 		ParsedNote.SourceIndex = Index;
-		ParsedNote.NoteType = TEXT("Tap");
 
 		if (NoteObject.IsValid())
 		{
@@ -313,13 +319,11 @@ bool UPTBRhythmChartParser::ParseChartString(const FString& JsonString, FPTBChar
 			FString NoteTypeString;
 			if (NoteObject->TryGetStringField(TEXT("type"), NoteTypeString))
 			{
-				ParsedNote.NoteType = PTBRhythmChartParserInternal::NormalizeNoteType(NoteTypeString);
-				Note.Payload.Add(TEXT("NoteType"), ParsedNote.NoteType);
-			}
-
-			if (NoteObject->TryGetNumberField(TEXT("durationMs"), NumberValue))
-			{
-				Note.Payload.Add(TEXT("DurationMs"), FString::SanitizeFloat(static_cast<float>(NumberValue)));
+				bHasNoteType = true;
+				if (!PTBRhythmChartParserInternal::TryParseNoteType(NoteTypeString, Note.NoteType))
+				{
+					OutErrors.Add(FText::FromString(FString::Printf(TEXT("notes[%d] has unsupported type value."), Index)));
+				}
 			}
 
 			if (NoteObject->TryGetNumberField(TEXT("durationBeat"), NumberValue) || NoteObject->TryGetNumberField(TEXT("duration"), NumberValue))
@@ -327,12 +331,11 @@ bool UPTBRhythmChartParser::ParseChartString(const FString& JsonString, FPTBChar
 				Note.DurationBeat = static_cast<float>(NumberValue);
 			}
 
-			if (NoteObject->TryGetNumberField(TEXT("lane"), NumberValue) || NoteObject->TryGetNumberField(TEXT("track"), NumberValue))
+			if (NoteObject->TryGetNumberField(TEXT("lane"), NumberValue))
 			{
 				IntValue = static_cast<int32>(NumberValue);
-				ParsedNote.Lane = IntValue;
+				Note.Lane = IntValue;
 				bHasLane = true;
-				Note.Payload.Add(TEXT("Lane"), FString::FromInt(IntValue));
 			}
 
 			FString SectionString;
@@ -373,13 +376,11 @@ bool UPTBRhythmChartParser::ParseChartString(const FString& JsonString, FPTBChar
 			FString NoteTypeString;
 			if (ReadArrayString(NoteValues, TEXT("type"), NoteTypeString))
 			{
-				ParsedNote.NoteType = PTBRhythmChartParserInternal::NormalizeNoteType(NoteTypeString);
-				Note.Payload.Add(TEXT("NoteType"), ParsedNote.NoteType);
-			}
-
-			if (ReadArrayNumber(NoteValues, TEXT("durationMs"), NumberValue))
-			{
-				Note.Payload.Add(TEXT("DurationMs"), FString::SanitizeFloat(static_cast<float>(NumberValue)));
+				bHasNoteType = true;
+				if (!PTBRhythmChartParserInternal::TryParseNoteType(NoteTypeString, Note.NoteType))
+				{
+					OutErrors.Add(FText::FromString(FString::Printf(TEXT("notes[%d] has unsupported type value."), Index)));
+				}
 			}
 
 			if (ReadArrayNumber(NoteValues, TEXT("durationBeat"), NumberValue) || ReadArrayNumber(NoteValues, TEXT("duration"), NumberValue))
@@ -387,12 +388,11 @@ bool UPTBRhythmChartParser::ParseChartString(const FString& JsonString, FPTBChar
 				Note.DurationBeat = static_cast<float>(NumberValue);
 			}
 
-			if (ReadArrayNumber(NoteValues, TEXT("lane"), NumberValue) || ReadArrayNumber(NoteValues, TEXT("track"), NumberValue))
+			if (ReadArrayNumber(NoteValues, TEXT("lane"), NumberValue))
 			{
 				IntValue = static_cast<int32>(NumberValue);
-				ParsedNote.Lane = IntValue;
+				Note.Lane = IntValue;
 				bHasLane = true;
-				Note.Payload.Add(TEXT("Lane"), FString::FromInt(IntValue));
 			}
 
 			FString SectionString;
@@ -412,6 +412,11 @@ bool UPTBRhythmChartParser::ParseChartString(const FString& JsonString, FPTBChar
 			OutErrors.Add(FText::FromString(FString::Printf(TEXT("notes[%d] is missing timeMs."), Index)));
 		}
 
+		if (bHasNoteId && Note.NoteId <= 0)
+		{
+			OutErrors.Add(FText::FromString(FString::Printf(TEXT("notes[%d] id must be greater than 0."), Index)));
+		}
+
 		if (!bHasAction)
 		{
 			OutErrors.Add(FText::FromString(FString::Printf(TEXT("notes[%d] is missing action."), Index)));
@@ -423,7 +428,16 @@ bool UPTBRhythmChartParser::ParseChartString(const FString& JsonString, FPTBChar
 
 		if (!bHasLane)
 		{
-			ParsedNote.Lane = static_cast<int32>(Note.ActionType) - 1;
+			OutErrors.Add(FText::FromString(FString::Printf(TEXT("notes[%d] is missing lane."), Index)));
+		}
+		else if (Note.Lane < 0)
+		{
+			OutErrors.Add(FText::FromString(FString::Printf(TEXT("notes[%d] lane cannot be negative."), Index)));
+		}
+
+		if (!bHasNoteType)
+		{
+			OutErrors.Add(FText::FromString(FString::Printf(TEXT("notes[%d] is missing type."), Index)));
 		}
 
 		if (!bHasNoteId)
@@ -443,17 +457,17 @@ bool UPTBRhythmChartParser::ParseChartString(const FString& JsonString, FPTBChar
 	TMap<int32, int32> ActiveHoldIndexByLane;
 	for (const PTBRhythmChartParserInternal::FParsedChartNote& ParsedNote : ParsedNotes)
 	{
-		if (ParsedNote.NoteType == TEXT("Tap"))
+		if (ParsedNote.Note.NoteType == EPTBNoteType::Tap)
 		{
 			OutNoteEvents.Add(ParsedNote.Note);
 			continue;
 		}
 
-		if (ParsedNote.NoteType == TEXT("Hold"))
+		if (ParsedNote.Note.NoteType == EPTBNoteType::Hold)
 		{
-			if (ActiveHoldIndexByLane.Contains(ParsedNote.Lane))
+			if (ActiveHoldIndexByLane.Contains(ParsedNote.Note.Lane))
 			{
-				OutErrors.Add(FText::FromString(FString::Printf(TEXT("notes[%d] starts a Hold before the previous Hold on lane %d is released."), ParsedNote.SourceIndex, ParsedNote.Lane)));
+				OutErrors.Add(FText::FromString(FString::Printf(TEXT("notes[%d] starts a Hold before the previous Hold on lane %d is released."), ParsedNote.SourceIndex, ParsedNote.Note.Lane)));
 				continue;
 			}
 
@@ -461,30 +475,30 @@ bool UPTBRhythmChartParser::ParseChartString(const FString& JsonString, FPTBChar
 			HoldNote.bIsLongNote = true;
 			HoldNote.DurationBeat = 0.0f;
 			OutNoteEvents.Add(HoldNote);
-			ActiveHoldIndexByLane.Add(ParsedNote.Lane, OutNoteEvents.Num() - 1);
+			ActiveHoldIndexByLane.Add(ParsedNote.Note.Lane, OutNoteEvents.Num() - 1);
 			continue;
 		}
 
-		const int32* ActiveHoldIndex = ActiveHoldIndexByLane.Find(ParsedNote.Lane);
+		const int32* ActiveHoldIndex = ActiveHoldIndexByLane.Find(ParsedNote.Note.Lane);
 		if (!ActiveHoldIndex)
 		{
-			OutErrors.Add(FText::FromString(FString::Printf(TEXT("notes[%d] has a Release without a matching Hold on lane %d."), ParsedNote.SourceIndex, ParsedNote.Lane)));
+			OutErrors.Add(FText::FromString(FString::Printf(TEXT("notes[%d] has a Release without a matching Hold on lane %d."), ParsedNote.SourceIndex, ParsedNote.Note.Lane)));
 			continue;
 		}
 
 		FPTBNoteEvent& HoldNote = OutNoteEvents[*ActiveHoldIndex];
 		if (ParsedNote.Note.BeatTime <= HoldNote.BeatTime)
 		{
-			OutErrors.Add(FText::FromString(FString::Printf(TEXT("notes[%d] Release must be after its Hold on lane %d."), ParsedNote.SourceIndex, ParsedNote.Lane)));
-			ActiveHoldIndexByLane.Remove(ParsedNote.Lane);
+			OutErrors.Add(FText::FromString(FString::Printf(TEXT("notes[%d] Release must be after its Hold on lane %d."), ParsedNote.SourceIndex, ParsedNote.Note.Lane)));
+			ActiveHoldIndexByLane.Remove(ParsedNote.Note.Lane);
 			continue;
 		}
 
 		HoldNote.DurationBeat = ParsedNote.Note.BeatTime - HoldNote.BeatTime;
-		HoldNote.Payload.Add(TEXT("ReleaseNoteId"), FString::FromInt(ParsedNote.Note.NoteId));
-		HoldNote.Payload.Add(TEXT("ReleaseBeat"), FString::SanitizeFloat(ParsedNote.Note.BeatTime));
-		HoldNote.Payload.Add(TEXT("ReleaseTimeMs"), FString::SanitizeFloat(ParsedNote.Note.TimeMs));
-		ActiveHoldIndexByLane.Remove(ParsedNote.Lane);
+		HoldNote.ReleaseNoteId = ParsedNote.Note.NoteId;
+		HoldNote.ReleaseBeatTime = ParsedNote.Note.BeatTime;
+		HoldNote.ReleaseTimeMs = ParsedNote.Note.TimeMs;
+		ActiveHoldIndexByLane.Remove(ParsedNote.Note.Lane);
 	}
 
 	for (const TPair<int32, int32>& ActiveHoldPair : ActiveHoldIndexByLane)

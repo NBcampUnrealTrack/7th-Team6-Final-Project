@@ -31,6 +31,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Rhythm|Chart")
 	FPTBChartData ChartData;
 
+	/** 원본 JSON 파일 경로 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Rhythm|Source")
+	FString SourceJsonFilePath;
+
 	/** 시간순으로 정렬되는 공통 노트 배열 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Rhythm|Chart")
 	TArray<FPTBNoteEvent> NoteEvents;
@@ -45,4 +49,6 @@ public:
 	void SortNotesByTime();
 	/**	외부.rhythmchart 파싱 */
 	bool LoadFromJson(const FString& JsonPath, TArray<FText>& OutErrors);
+	/** 원본 JSON 파일 경로 기준 파싱 */
+	bool LoadFromSourceJson(TArray<FText>& OutErrors);
 };
