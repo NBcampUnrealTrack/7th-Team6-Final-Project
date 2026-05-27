@@ -15,6 +15,8 @@ class UPTBJudgementSystem;
 class UPTBScoreCalculator;
 class UAkComponent;
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FPTBOnMiniGameFinished, FPTBRoundResult, Result);
+
 /**
  * 공통 리듬 라운드의 초기화, 입력 판정, 점수 계산, 오디오 요청을 담당하는 미니게임 베이스 Actor입니다.
  *
@@ -43,6 +45,10 @@ public:
 	/** 임시 외부 JSON 채보 파일 경로 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|Rhythm")
 	FString ChartJsonFilePath;
+
+	/** 미니게임 종료 결과 */
+	UPROPERTY(BlueprintAssignable, Category = "PTB|MiniGame")
+	FPTBOnMiniGameFinished OnMiniGameFinished;
 
 	/** 컨텍스트 주입 */
 	virtual void InitializeMiniGame(const FPTBMiniGameContext& Context);

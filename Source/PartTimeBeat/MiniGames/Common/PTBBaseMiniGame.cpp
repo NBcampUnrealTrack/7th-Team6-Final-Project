@@ -426,6 +426,8 @@ FPTBRoundResult APTBBaseMiniGame::FinishMiniGame(EPTBRoundEndReason Reason)
 		RoundResult.GoodCount,
 		RoundResult.MissCount);
 
+	OnMiniGameFinished.Broadcast(RoundResult);
+
 	return RoundResult;
 }
 
