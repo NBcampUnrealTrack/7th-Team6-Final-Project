@@ -280,6 +280,11 @@ void UPTBRhythmConductorComponent::SetArmLeadTimeMs(float InArmLeadTimeMs)
 	ArmLeadTimeMs = FMath::Max(0.0f, InArmLeadTimeMs);
 }
 
+void UPTBRhythmConductorComponent::SetLookAheadBeats(float InLookAheadBeats)
+{
+	LookAheadBeats = FMath::Max(0.0f, InLookAheadBeats);
+}
+
 void UPTBRhythmConductorComponent::SetBeatsPerBar(int32 InBeatsPerBar)
 {
 	BeatsPerBar = FMath::Max(PTBRhythmConductorInternal::MinBeatsPerBar, InBeatsPerBar);

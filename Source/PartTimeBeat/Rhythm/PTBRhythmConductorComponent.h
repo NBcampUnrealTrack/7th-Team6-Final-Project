@@ -61,6 +61,9 @@ public:
 	/** 판정 선행 등록 시간(ms) 설정 */
 	void SetArmLeadTimeMs(float InArmLeadTimeMs);
 
+	/** 비주얼 큐 선행 Beat 수 설정 */
+	void SetLookAheadBeats(float InLookAheadBeats);
+
 	/** 마디당 Beat 수 설정 */
 	void SetBeatsPerBar(int32 InBeatsPerBar);
 

@@ -4,7 +4,8 @@
 #include "Audio/PTBWwiseAudioManager.h"
 #include "Audio/PTBWwiseRhythmSyncComponent.h"
 #include "Debug/PTBLogChannels.h"
-#include "Misc/Paths.h"
+#include "MiniGames/Common/PTBMiniGameRuleSet.h"
+#include "MiniGames/Common/UI/PTBMiniGameLoadingWidget.h"
 #include "Rhythm/PTBJudgementSystem.h"
 #include "Rhythm/PTBRhythmChartAsset.h"
 #include "Rhythm/PTBRhythmConductorComponent.h"
@@ -63,7 +64,10 @@ APTBBaseMiniGame::APTBBaseMiniGame()
 	AudioManager = nullptr;
 	ChartAsset = nullptr;
 	ScoreCalculator = nullptr;
+	LoadingWidgetClass = nullptr;
+	LoadingWidgetInstance = nullptr;
 	bIsInitialized = false;
+	bIsReadyToStart = false;
 	bIsRoundActive = false;
 	bInputLocked = true;
 	bPendingRoundFinish = false;
@@ -148,13 +152,17 @@ void APTBBaseMiniGame::InitializeMiniGame(const FPTBMiniGameContext& Context)
 	MiniGameId = Context.SessionRequest.MiniGameId;
 	MiniGameCode = Context.SessionRequest.MiniGameCode;
 	ActiveNoteQueue.Reset();
+	EmptyInputActionLockUntilTimeMs.Reset();
 	RoundResult = FPTBRoundResult();
 	bPendingRoundFinish = false;
 	bAllNotesDispatched = false;
 	ActiveBGMPlayingId = 0;
 	bIsInitialized = false;
+	bIsReadyToStart = false;
 	bIsRoundActive = false;
 	bInputLocked = true;
+
+	HandleLoadingStarted();
 
 	if (!AudioManager)
 	{
@@ -203,6 +211,7 @@ void APTBBaseMiniGame::InitializeMiniGame(const FPTBMiniGameContext& Context)
 				UE_LOG(LogRhythm, Error, TEXT("[%s] Invalid chart: %s"), *GetNameSafe(this), *ChartError.ToString());
 			}
 
+			HideLoadingWidget();
 			ChartAsset = nullptr;
 		}
 		else
@@ -214,6 +223,8 @@ void APTBBaseMiniGame::InitializeMiniGame(const FPTBMiniGameContext& Context)
 	if (!ChartAsset)
 	{
 		UE_LOG(LogRhythm, Warning, TEXT("[%s] ChartAsset is not ready. MiniGameId=%s"), *GetNameSafe(this), *MiniGameId.ToString());
+		HideLoadingWidget();
+		return;
 	}
 
 	if (JudgementSystem)
@@ -227,53 +238,165 @@ void APTBBaseMiniGame::InitializeMiniGame(const FPTBMiniGameContext& Context)
 		RhythmConductor->SetArmLeadTimeMs(JudgementSystem->HitWindowMissMs + InputCompensationMs);
 	}
 
+	ApplyRuleSet();
+	PreloadAudioAssets();
 	BuildRuntimeState();
 
 	bIsInitialized = true;
+	bIsReadyToStart = true;
+	HandleReadyToStart();
 }
 
 void APTBBaseMiniGame::PreloadAssets()
 {
-	if (ChartAsset || ChartJsonFilePath.IsEmpty())
+	if (!ChartAsset && RuleSet)
 	{
-		return;
+		ChartAsset = RuleSet->ResolveChartAsset(GameContext.SessionRequest.Difficulty);
 	}
 
-	FString ResolvedPath = ChartJsonFilePath;
-	if (FPaths::IsRelative(ResolvedPath))
+	if (ChartAsset)
 	{
-		ResolvedPath = FPaths::ConvertRelativePathToFull(FPaths::Combine(FPaths::ProjectDir(), ResolvedPath));
-	}
-
-	UPTBRhythmChartAsset* LoadedChartAsset = NewObject<UPTBRhythmChartAsset>(this, NAME_None, RF_Transient);
-	TArray<FText> LoadErrors;
-	if (!LoadedChartAsset->LoadFromJson(ResolvedPath, LoadErrors))
-	{
-		UE_LOG(LogRhythm, Error, TEXT("[%s] Failed to load chart json: %s"), *GetNameSafe(this), *ResolvedPath);
-
-		for (const FText& LoadError : LoadErrors)
+		if (ChartAsset->NoteEvents.IsEmpty() && !ChartAsset->SourceJsonFilePath.IsEmpty())
 		{
-			UE_LOG(LogRhythm, Error, TEXT("[%s] Chart load error: %s"), *GetNameSafe(this), *LoadError.ToString());
+			TArray<FText> LoadErrors;
+			if (!ChartAsset->LoadFromSourceJson(LoadErrors))
+			{
+				UE_LOG(LogRhythm, Error, TEXT("[%s] Failed to load chart asset source json: %s"), *GetNameSafe(this), *GetNameSafe(ChartAsset.Get()));
+
+				for (const FText& LoadError : LoadErrors)
+				{
+					UE_LOG(LogRhythm, Error, TEXT("[%s] Chart asset load error: %s"), *GetNameSafe(this), *LoadError.ToString());
+				}
+			}
 		}
 
 		return;
 	}
 
-	ChartAsset = LoadedChartAsset;
-	UE_LOG(LogRhythm, Log, TEXT("[%s] Loaded chart json: %s"), *GetNameSafe(this), *ResolvedPath);
+	UE_LOG(LogRhythm, Warning, TEXT("[%s] ChartAsset is required. Configure RuleSet.ChartAssetsByDifficulty or ChartAsset."), *GetNameSafe(this));
 }
 
 void APTBBaseMiniGame::BuildRuntimeState()
 {
 }
 
-void APTBBaseMiniGame::StartMiniGame()
+void APTBBaseMiniGame::PreloadAudioAssets()
 {
-	if (!bIsInitialized || !ChartAsset)
+	if (!AudioManager || GameContext.ChartData.WwiseBankName.IsNone())
 	{
-		UE_LOG(LogRhythm, Warning, TEXT("[%s] StartMiniGame aborted. Initialized=%d ChartAsset=%s"), *GetNameSafe(this), bIsInitialized ? 1 : 0, *GetNameSafe(ChartAsset));
 		return;
 	}
+
+	const bool bLoadedBank = AudioManager->LoadSoundBank(GameContext.ChartData.WwiseBankName);
+	UE_LOG(LogWwise, Log, TEXT("[%s] PreloadSoundBank %s -> %s"),
+		*GetNameSafe(this),
+		*GameContext.ChartData.WwiseBankName.ToString(),
+		bLoadedBank ? TEXT("Success") : TEXT("Failed"));
+}
+
+void APTBBaseMiniGame::ApplyRuleSet()
+{
+	if (!RuleSet)
+	{
+		return;
+	}
+
+	if (MiniGameId.IsNone())
+	{
+		MiniGameId = RuleSet->MiniGameId;
+	}
+
+	if (MiniGameCode.IsNone())
+	{
+		MiniGameCode = RuleSet->MiniGameCode;
+	}
+
+	if (DisplayName.IsEmpty())
+	{
+		DisplayName = RuleSet->DisplayName;
+	}
+
+	if (RhythmConductor)
+	{
+		RhythmConductor->SetLookAheadBeats(RuleSet->LookAheadBeats);
+
+		if (RuleSet->bUseArmLeadTimeOverride)
+		{
+			RhythmConductor->SetArmLeadTimeMs(RuleSet->ArmLeadTimeMsOverride);
+		}
+	}
+}
+
+void APTBBaseMiniGame::HandleLoadingStarted()
+{
+	ShowLoadingWidget();
+
+	if (LoadingWidgetInstance)
+	{
+		LoadingWidgetInstance->SetLoadingState();
+	}
+}
+
+void APTBBaseMiniGame::HandleReadyToStart()
+{
+	if (LoadingWidgetInstance)
+	{
+		LoadingWidgetInstance->SetReadyToStartState();
+	}
+
+	OnMiniGameReadyToStart.Broadcast();
+}
+
+void APTBBaseMiniGame::ShowLoadingWidget()
+{
+	if (LoadingWidgetInstance || !LoadingWidgetClass)
+	{
+		return;
+	}
+
+	APlayerController* PlayerController = GetWorld() ? GetWorld()->GetFirstPlayerController() : nullptr;
+	if (!PlayerController)
+	{
+		return;
+	}
+
+	LoadingWidgetInstance = CreateWidget<UPTBMiniGameLoadingWidget>(PlayerController, LoadingWidgetClass);
+	if (LoadingWidgetInstance)
+	{
+		LoadingWidgetInstance->InitializeLoadingWidget(this);
+		LoadingWidgetInstance->AddToViewport();
+	}
+}
+
+void APTBBaseMiniGame::HideLoadingWidget()
+{
+	if (!LoadingWidgetInstance)
+	{
+		return;
+	}
+
+	LoadingWidgetInstance->RemoveFromParent();
+	LoadingWidgetInstance = nullptr;
+}
+
+void APTBBaseMiniGame::StartMiniGame()
+{
+	if (bIsRoundActive)
+	{
+		return;
+	}
+
+	if (!bIsInitialized || !bIsReadyToStart || !ChartAsset)
+	{
+		UE_LOG(LogRhythm, Warning, TEXT("[%s] StartMiniGame aborted. Initialized=%d Ready=%d ChartAsset=%s"),
+			*GetNameSafe(this),
+			bIsInitialized ? 1 : 0,
+			bIsReadyToStart ? 1 : 0,
+			*GetNameSafe(ChartAsset));
+		return;
+	}
+
+	HideLoadingWidget();
 
 	if (AudioManager)
 	{
@@ -281,12 +404,6 @@ void APTBBaseMiniGame::StartMiniGame()
 		if (AudioEventSet)
 		{
 			AudioManager->ApplyEventMapAsset(AudioEventSet);
-		}
-
-		if (!GameContext.ChartData.WwiseBankName.IsNone())
-		{
-			const bool bLoadedBank = AudioManager->LoadSoundBank(GameContext.ChartData.WwiseBankName);
-			UE_LOG(LogWwise, Log, TEXT("[%s] LoadSoundBank %s -> %s"), *GetNameSafe(this), *GameContext.ChartData.WwiseBankName.ToString(), bLoadedBank ? TEXT("Success") : TEXT("Failed"));
 		}
 	}
 
@@ -321,6 +438,22 @@ void APTBBaseMiniGame::StartMiniGame()
 	UE_LOG(LogRhythm, Log, TEXT("[%s] MiniGame started. Notes=%d BPM=%.2f OffsetMs=%.2f"), *GetNameSafe(this), ChartAsset->NoteEvents.Num(), GameContext.ChartData.BPM, GameContext.ChartData.OffsetMs);
 }
 
+void APTBBaseMiniGame::RequestStartMiniGame()
+{
+	if (!bIsReadyToStart)
+	{
+		UE_LOG(LogRhythm, Warning, TEXT("[%s] Start request ignored. MiniGame is not ready."), *GetNameSafe(this));
+		return;
+	}
+
+	StartMiniGame();
+}
+
+void APTBBaseMiniGame::HandleStartInput()
+{
+	RequestStartMiniGame();
+}
+
 FPTBRoundResult APTBBaseMiniGame::FinishMiniGame(EPTBRoundEndReason Reason)
 {
 	if (!bIsRoundActive && RoundResult.MiniGameId == MiniGameId)
@@ -329,6 +462,7 @@ FPTBRoundResult APTBBaseMiniGame::FinishMiniGame(EPTBRoundEndReason Reason)
 	}
 
 	bIsRoundActive = false;
+	bIsReadyToStart = false;
 	bInputLocked = true;
 	bPendingRoundFinish = false;
 
@@ -365,6 +499,8 @@ FPTBRoundResult APTBBaseMiniGame::FinishMiniGame(EPTBRoundEndReason Reason)
 		RoundResult.PerfectCount,
 		RoundResult.GoodCount,
 		RoundResult.MissCount);
+
+	OnMiniGameFinished.Broadcast(RoundResult);
 
 	return RoundResult;
 }
@@ -452,7 +588,27 @@ void APTBBaseMiniGame::HandleRhythmInput(EPTBActionType Action, float TimeMs)
 		return;
 	}
 
+	if (RuleSet && !RuleSet->SupportsAction(Action))
+	{
+		return;
+	}
+
 	const float ResolvedTimeMs = TimeMs >= 0.0f ? TimeMs : GetCurrentInputJudgeTimeMs();
+	if (const float* LockUntilTimeMs = EmptyInputActionLockUntilTimeMs.Find(Action))
+	{
+		if (ResolvedTimeMs < *LockUntilTimeMs)
+		{
+			UE_LOG(LogRhythm, Verbose, TEXT("[%s] Input action locked. Action=%d TimeMs=%.2f UnlockMs=%.2f"),
+				*GetNameSafe(this),
+				static_cast<int32>(Action),
+				ResolvedTimeMs,
+				*LockUntilTimeMs);
+			return;
+		}
+
+		EmptyInputActionLockUntilTimeMs.Remove(Action);
+	}
+
 	EvaluateInput(Action, ResolvedTimeMs);
 }
 
@@ -464,6 +620,11 @@ FPTBJudgementResult APTBBaseMiniGame::EvaluateInput(EPTBActionType Action, float
 	}
 
 	const FPTBJudgementResult Result = JudgementSystem->EvaluateInput(Action, TimeMs);
+	if (Result.Reason == EPTBJudgementReason::EmptyInput && RuleSet && RuleSet->ShouldLockActionOnEmptyInput())
+	{
+		EmptyInputActionLockUntilTimeMs.Add(Action, TimeMs + RuleSet->EmptyInputActionLockMs);
+	}
+
 	UE_LOG(LogRhythm, Verbose, TEXT("[%s] EvaluateInput Action=%d TimeMs=%.2f -> Judgement=%d Delta=%.2f"),
 		*GetNameSafe(this),
 		static_cast<int32>(Action),
@@ -475,6 +636,17 @@ FPTBJudgementResult APTBBaseMiniGame::EvaluateInput(EPTBActionType Action, float
 
 void APTBBaseMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 {
+	if (Result.Reason == EPTBJudgementReason::EmptyInput)
+	{
+		if (!RuleSet || !RuleSet->ShouldTreatEmptyInputAsMiss())
+		{
+			UE_LOG(LogRhythm, Verbose, TEXT("[%s] Empty input ignored. Action=%d"), *GetNameSafe(this), static_cast<int32>(Result.ActionType));
+			return;
+		}
+
+		Result.bBreaksCombo = true;
+	}
+
 	PTBBaseMiniGameInternal::RemoveResolvedNote(ActiveNoteQueue, Result);
 
 	if (ScoreCalculator)
@@ -484,10 +656,23 @@ void APTBBaseMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 
 	if (AudioManager)
 	{
-		AudioManager->PostJudgementEvent(Result.JudgementType, this);
+		const FName RuleSetSFXKey = RuleSet ? RuleSet->GetJudgementSFXKey(Result.JudgementType) : NAME_None;
+		if (!RuleSetSFXKey.IsNone())
+		{
+			AudioManager->PostSFXEvent(RuleSetSFXKey, this);
+		}
+		else
+		{
+			AudioManager->PostJudgementEvent(Result.JudgementType, this);
+		}
 	}
 
 	PlayJudgementFeedback(Result);
+
+	if (RuleSet && ScoreCalculator && RuleSet->ShouldFailForMissCount(ScoreCalculator->MissCount))
+	{
+		FinishMiniGame(EPTBRoundEndReason::Failed);
+	}
 }
 
 void APTBBaseMiniGame::PlayJudgementFeedback(const FPTBJudgementResult& Result)
