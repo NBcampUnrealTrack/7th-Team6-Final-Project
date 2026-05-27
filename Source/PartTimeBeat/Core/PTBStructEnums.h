@@ -55,6 +55,21 @@ enum class EPTBJudgementType : uint8
 };
 
 UENUM(BlueprintType)
+enum class EPTBJudgementReason : uint8
+{
+    Note       UMETA(DisplayName = "Note"),
+    ExpiredNote        UMETA(DisplayName = "Expired Note"),
+    EmptyInput       UMETA(DisplayName = "Empty Input")
+};
+
+UENUM(BlueprintType)
+enum class EPTBEmptyInputPolicy : uint8
+{
+    Ignore       UMETA(DisplayName = "Ignore"),
+    Miss        UMETA(DisplayName = "Miss")
+};
+
+UENUM(BlueprintType)
 enum class EPTBGradeType : uint8
 {
     PerfectFullCombo      UMETA(DisplayName = "전노트 Perfect이상"),
@@ -209,6 +224,9 @@ public:
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
     EPTBJudgementType JudgementType = EPTBJudgementType::Miss;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
+    EPTBJudgementReason Reason = EPTBJudgementReason::Note;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
     float DeltaMs = 0.0f;

@@ -57,3 +57,13 @@ bool UPTBMiniGameRuleSet::ShouldFailForMissCount(int32 MissCount) const
 {
 	return bFailOnMissLimit && MissCount >= MaxMissCount;
 }
+
+bool UPTBMiniGameRuleSet::ShouldTreatEmptyInputAsMiss() const
+{
+	return EmptyInputPolicy == EPTBEmptyInputPolicy::Miss;
+}
+
+bool UPTBMiniGameRuleSet::ShouldLockActionOnEmptyInput() const
+{
+	return bUseEmptyInputActionLock && EmptyInputActionLockMs > 0.0f;
+}

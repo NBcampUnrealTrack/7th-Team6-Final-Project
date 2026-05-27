@@ -149,6 +149,7 @@ void APTBBaseMiniGame::InitializeMiniGame(const FPTBMiniGameContext& Context)
 	MiniGameId = Context.SessionRequest.MiniGameId;
 	MiniGameCode = Context.SessionRequest.MiniGameCode;
 	ActiveNoteQueue.Reset();
+	EmptyInputActionLockUntilTimeMs.Reset();
 	RoundResult = FPTBRoundResult();
 	bPendingRoundFinish = false;
 	bAllNotesDispatched = false;
@@ -517,6 +518,21 @@ void APTBBaseMiniGame::HandleRhythmInput(EPTBActionType Action, float TimeMs)
 	}
 
 	const float ResolvedTimeMs = TimeMs >= 0.0f ? TimeMs : GetCurrentInputJudgeTimeMs();
+	if (const float* LockUntilTimeMs = EmptyInputActionLockUntilTimeMs.Find(Action))
+	{
+		if (ResolvedTimeMs < *LockUntilTimeMs)
+		{
+			UE_LOG(LogRhythm, Verbose, TEXT("[%s] Input action locked. Action=%d TimeMs=%.2f UnlockMs=%.2f"),
+				*GetNameSafe(this),
+				static_cast<int32>(Action),
+				ResolvedTimeMs,
+				*LockUntilTimeMs);
+			return;
+		}
+
+		EmptyInputActionLockUntilTimeMs.Remove(Action);
+	}
+
 	EvaluateInput(Action, ResolvedTimeMs);
 }
 
@@ -528,6 +544,11 @@ FPTBJudgementResult APTBBaseMiniGame::EvaluateInput(EPTBActionType Action, float
 	}
 
 	const FPTBJudgementResult Result = JudgementSystem->EvaluateInput(Action, TimeMs);
+	if (Result.Reason == EPTBJudgementReason::EmptyInput && RuleSet && RuleSet->ShouldLockActionOnEmptyInput())
+	{
+		EmptyInputActionLockUntilTimeMs.Add(Action, TimeMs + RuleSet->EmptyInputActionLockMs);
+	}
+
 	UE_LOG(LogRhythm, Verbose, TEXT("[%s] EvaluateInput Action=%d TimeMs=%.2f -> Judgement=%d Delta=%.2f"),
 		*GetNameSafe(this),
 		static_cast<int32>(Action),
@@ -539,6 +560,17 @@ FPTBJudgementResult APTBBaseMiniGame::EvaluateInput(EPTBActionType Action, float
 
 void APTBBaseMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 {
+	if (Result.Reason == EPTBJudgementReason::EmptyInput)
+	{
+		if (!RuleSet || !RuleSet->ShouldTreatEmptyInputAsMiss())
+		{
+			UE_LOG(LogRhythm, Verbose, TEXT("[%s] Empty input ignored. Action=%d"), *GetNameSafe(this), static_cast<int32>(Result.ActionType));
+			return;
+		}
+
+		Result.bBreaksCombo = true;
+	}
+
 	PTBBaseMiniGameInternal::RemoveResolvedNote(ActiveNoteQueue, Result);
 
 	if (ScoreCalculator)

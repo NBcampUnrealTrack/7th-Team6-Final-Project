@@ -50,12 +50,13 @@ namespace PTBJudgementSystemInternal
 		}
 	}
 
-	FPTBJudgementResult MakeMissResult(EPTBActionType Action, int32 NoteId = 0, float DeltaMs = 0.0f)
+	FPTBJudgementResult MakeMissResult(EPTBActionType Action, EPTBJudgementReason Reason, int32 NoteId = 0, float DeltaMs = 0.0f)
 	{
 		FPTBJudgementResult Result;
 		Result.NoteId = NoteId;
 		Result.ActionType = Action;
 		Result.JudgementType = EPTBJudgementType::Miss;
+		Result.Reason = Reason;
 		Result.DeltaMs = DeltaMs;
 		Result.ScoreDelta = 0;
 		Result.bBreaksCombo = true;
@@ -68,6 +69,7 @@ namespace PTBJudgementSystemInternal
 		Result.NoteId = Note.NoteId;
 		Result.ActionType = Note.ActionType;
 		Result.JudgementType = JudgementType;
+		Result.Reason = EPTBJudgementReason::Note;
 		Result.DeltaMs = DeltaMs;
 		Result.ScoreDelta = GetBaseScoreForJudgement(JudgementType);
 		Result.bBreaksCombo = JudgementType == EPTBJudgementType::Miss;
@@ -145,7 +147,7 @@ FPTBJudgementResult UPTBJudgementSystem::EvaluateInput(EPTBActionType Action, fl
 {
 	if (Action == EPTBActionType::None)
 	{
-		const FPTBJudgementResult Result = PTBJudgementSystemInternal::MakeMissResult(Action);
+		const FPTBJudgementResult Result = PTBJudgementSystemInternal::MakeMissResult(Action, EPTBJudgementReason::EmptyInput);
 		OnJudgementResult.Broadcast(Result);
 		return Result;
 	}
@@ -175,7 +177,7 @@ FPTBJudgementResult UPTBJudgementSystem::EvaluateInput(EPTBActionType Action, fl
 
 	if (BestNoteIndex == INDEX_NONE)
 	{
-		const FPTBJudgementResult Result = PTBJudgementSystemInternal::MakeMissResult(Action);
+		const FPTBJudgementResult Result = PTBJudgementSystemInternal::MakeMissResult(Action, EPTBJudgementReason::EmptyInput);
 		OnJudgementResult.Broadcast(Result);
 		return Result;
 	}
@@ -212,7 +214,7 @@ TArray<FPTBJudgementResult> UPTBJudgementSystem::ForceMissExpiredNotes(float Cur
 			continue;
 		}
 
-		MissResults.Insert(PTBJudgementSystemInternal::MakeMissResult(Note.ActionType, Note.NoteId, SignedDeltaMs), 0);
+		MissResults.Insert(PTBJudgementSystemInternal::MakeMissResult(Note.ActionType, EPTBJudgementReason::ExpiredNote, Note.NoteId, SignedDeltaMs), 0);
 		PendingNotes.RemoveAt(Index);
 	}
 

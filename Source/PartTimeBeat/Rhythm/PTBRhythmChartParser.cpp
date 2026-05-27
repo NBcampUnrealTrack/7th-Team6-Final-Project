@@ -412,6 +412,11 @@ bool UPTBRhythmChartParser::ParseChartString(const FString& JsonString, FPTBChar
 			OutErrors.Add(FText::FromString(FString::Printf(TEXT("notes[%d] is missing timeMs."), Index)));
 		}
 
+		if (bHasNoteId && Note.NoteId <= 0)
+		{
+			OutErrors.Add(FText::FromString(FString::Printf(TEXT("notes[%d] id must be greater than 0."), Index)));
+		}
+
 		if (!bHasAction)
 		{
 			OutErrors.Add(FText::FromString(FString::Printf(TEXT("notes[%d] is missing action."), Index)));

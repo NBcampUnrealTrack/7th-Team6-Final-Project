@@ -58,6 +58,18 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Failure")
 	bool bFailOnMissLimit = false;
 
+	/** 헛입력 처리 방식 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Failure")
+	EPTBEmptyInputPolicy EmptyInputPolicy = EPTBEmptyInputPolicy::Ignore;
+
+	/** 헛입력 시 해당 Action 잠금 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Failure")
+	bool bUseEmptyInputActionLock = false;
+
+	/** 헛입력 Action 잠금 시간(ms) */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Failure", meta = (ClampMin = "0", UIMin = "0"))
+	float EmptyInputActionLockMs = 0.0f;
+
 	/** 실패 처리할 최대 미스 수 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Failure", meta = (ClampMin = "1", UIMin = "1"))
 	int32 MaxMissCount = 10;
@@ -88,4 +100,10 @@ public:
 
 	/** 미스 수 기준 실패 여부 */
 	bool ShouldFailForMissCount(int32 MissCount) const;
+
+	/** 헛입력을 Miss로 처리할지 여부 */
+	bool ShouldTreatEmptyInputAsMiss() const;
+
+	/** 헛입력 시 Action을 잠글지 여부 */
+	bool ShouldLockActionOnEmptyInput() const;
 };

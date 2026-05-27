@@ -138,6 +138,10 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PTB|Audio")
 	int32 ActiveBGMPlayingId = 0;
 
+	/** 헛입력으로 잠긴 Action별 해제 시간(ms) */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PTB|MiniGame")
+	TMap<EPTBActionType, float> EmptyInputActionLockUntilTimeMs;
+
 	/** 라운드 시작 전 에셋 준비(하위 override 권장) */
 	virtual void PreloadAssets();
 
