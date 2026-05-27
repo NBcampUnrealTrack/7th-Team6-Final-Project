@@ -84,6 +84,7 @@ public:
 	virtual void ResumeMiniGame();
 
 	/** 입력을 판정으로 전달 */
+	UFUNCTION(BlueprintCallable, Category = "PTB|MiniGame")
 	virtual void HandleRhythmInput(EPTBActionType Action, float TimeMs = -1.0f);
 
 protected:
