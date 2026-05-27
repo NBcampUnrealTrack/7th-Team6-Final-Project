@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include "CoreMinimal.h"
 #include "Subsystems/GameInstanceSubsystem.h"
@@ -26,7 +26,7 @@ public:
 
     /** 신규 프로필 생성 */
     UFUNCTION(BlueprintCallable, Category = "Profile")
-    FGuid CreateProfile(const FString& Nickname, EPTBGender Gender, FDateTime Birthday);
+    FGuid CreateProfile(const FString& Nickname, EPTBGender Gender, int32 SlotIndex, FDateTime Birthday);
 
     /** ID로 프로필 조회 */
     UFUNCTION(BlueprintCallable, Category = "Profile")
@@ -39,6 +39,10 @@ public:
     /** 현재 저장된 프로필 개수 */
     UFUNCTION(BlueprintCallable, Category = "Profile")
     int32 GetProfileCount() const;
+
+    /** 슬롯 인덱스로 프로필 조회 */
+    UFUNCTION(BlueprintCallable, Category = "Profile")
+    FPTBProfileData GetProfileBySlot(int32 SlotIndex, bool& bOutFound) const;
 
     /** UI 슬롯 칸 개수 */
     UFUNCTION(BlueprintCallable, Category = "Profile")
@@ -137,7 +141,7 @@ private:
 
     /** 최대 슬롯 수 */
     UPROPERTY()
-    int32 MaxProfiles = 1;
+    int32 MaxProfiles = 3;
 
     static constexpr int32 NicknameMinLength = 1;
     static constexpr int32 NicknameMaxLength = 12;

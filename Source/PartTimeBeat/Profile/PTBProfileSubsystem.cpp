@@ -1,5 +1,6 @@
-﻿#include "PTBProfileSubsystem.h"
+#include "PTBProfileSubsystem.h"
 #include "Core/PTBSaveGame.h"
+#include "Core/PTBGameInstance.h"
 #include "Debug/PTBTeamLog.h"
 #include "Kismet/GameplayStatics.h"
 
@@ -28,6 +29,7 @@ void UPTBProfileSubsystem::Deinitialize()
 FGuid UPTBProfileSubsystem::CreateProfile(
     const FString& Nickname,
     EPTBGender Gender,
+    int32 SlotIndex,
     FDateTime Birthday)
 {
     if (AllProfiles.Num() >= MaxProfiles)
@@ -49,6 +51,7 @@ FGuid UPTBProfileSubsystem::CreateProfile(
     NewProfile.Nickname = NormalizeNickname(Nickname);
     NewProfile.Gender = Gender;
     NewProfile.Birthday = Birthday;
+    NewProfile.SlotIndex = SlotIndex;
 
     const FGuid NewId = NewProfile.ProfileId;
     AllProfiles.Add(NewProfile);
@@ -84,6 +87,20 @@ TArray<FPTBProfileData> UPTBProfileSubsystem::GetAllProfiles() const
 int32 UPTBProfileSubsystem::GetProfileCount() const
 {
     return AllProfiles.Num();
+}
+
+FPTBProfileData UPTBProfileSubsystem::GetProfileBySlot(int32 SlotIndex, bool& bOutFound) const
+{
+    for (const FPTBProfileData& Profile : AllProfiles)
+    {
+        if (Profile.SlotIndex == SlotIndex)
+        {
+            bOutFound = true;
+            return Profile;
+        }
+    }
+    bOutFound = false;
+    return FPTBProfileData::MakeInvalid();
 }
 
 bool UPTBProfileSubsystem::DeleteProfile(const FGuid& ProfileId)
@@ -322,18 +339,27 @@ void UPTBProfileSubsystem::RequestSave()
 {
     PTB_RECORD(LogPTBProfile, TEXT("RequestSave profiles=%d"), AllProfiles.Num());
 
+    // GameInstance의 CurrentSaveGame에 프로필 반영 후 GameInstance를 통해 저장
+    if (UPTBGameInstance* GI = Cast<UPTBGameInstance>(GetGameInstance()))
+    {
+        if (GI->CurrentSaveGame)
+        {
+            GI->CurrentSaveGame->Profiles = AllProfiles;
+            GI->SaveGame();
+            return;
+        }
+    }
+
+    // GameInstance 없거나 CurrentSaveGame 없을 때 직접 저장
     UPTBSaveGame* SaveGame = GetOrCreateSaveGame();
     if (!SaveGame)
     {
         PTB_ERROR(LogPTBProfile, TEXT("RequestSave: SaveGame null"));
-
         return;
     }
-
     SaveGame->Profiles = AllProfiles;
-    //const bool bSuccess = SaveGame->SaveToDisk();
-
-    //PTB_RECORD(LogPTBProfile, TEXT("RequestSave %s"), bSuccess ? TEXT("Success") : TEXT("FAIL"));
+    const bool bSuccess = UGameplayStatics::SaveGameToSlot(SaveGame, TEXT("PTBSave"), 0);
+    PTB_RECORD(LogPTBProfile, TEXT("RequestSave %s"), bSuccess ? TEXT("Success") : TEXT("FAIL"));
 }
 
 void UPTBProfileSubsystem::LoadProfilesFromSave()
@@ -359,10 +385,28 @@ void UPTBProfileSubsystem::ClearActiveProfile()
 
 UPTBSaveGame* UPTBProfileSubsystem::GetOrCreateSaveGame() const
 {
-    // SaveGame - LoadOrCreate.
-    //return UPTBSaveGame::LoadOrCreate();
-    //임시 nullptr처리
-    return nullptr;
+    if (UPTBGameInstance* GI = Cast<UPTBGameInstance>(GetGameInstance()))
+    {
+        if (GI->CurrentSaveGame)
+            return GI->CurrentSaveGame;
+    }
+
+    // GameInstance가 아직 준비 안 됐을 때 디스크에서 직접 로드
+    const FString SlotName = TEXT("PTBSave");
+    const int32 UserIndex = 0;
+
+    if (UGameplayStatics::DoesSaveGameExist(SlotName, UserIndex))
+    {
+        USaveGame* Loaded = UGameplayStatics::LoadGameFromSlot(SlotName, UserIndex);
+        if (UPTBSaveGame* PTBSave = Cast<UPTBSaveGame>(Loaded))
+            return PTBSave;
+    }
+
+    UPTBSaveGame* NewSave = Cast<UPTBSaveGame>(
+        UGameplayStatics::CreateSaveGameObject(UPTBSaveGame::StaticClass()));
+    if (NewSave)
+        NewSave->InitializeDefaultSave();
+    return NewSave;
 }
 
 FString UPTBProfileSubsystem::NormalizeNickname(const FString& InNickname) const
