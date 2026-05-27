@@ -24,18 +24,24 @@ public:
 	//저장 flush, 오디오 정리, 로그 flush
 	void ShutdownPTBSystems();
 	//프로필 활성화
-	bool LoadProfile(const FString& ProfileId);	
+	bool LoadProfile(const FString& ProfileId);
 	//신규 프로필 생성, ID 반환
-	FString CreateProfile(const FPTBProfileData& Data);	
+	UFUNCTION(BlueprintCallable, Category = "PTB|Profile")
+	FString CreateProfile(const FPTBProfileData& Data);
 	//설정 저장 + Wwise / Rhythm에 전달
-	void ApplyUserSettings(const FPTBUserSettings& InSettings);	
-		
+	void ApplyUserSettings(const FPTBUserSettings& InSettings);
+
 	//슬롯에 저장
-	void SaveGame();	
+	UFUNCTION(BlueprintCallable, Category = "PTB|Save")
+	void SaveGame();
 	//슬롯에서 로드
-	bool LoadGame();	
+	bool LoadGame();
 	//결과 화면 후 자동 저장
 	void AutoSave();
+
+	/** 프로필 생성 레벨로 넘길 슬롯 인덱스 (프로필 선택 화면에서 설정) */
+	UPROPERTY(BlueprintReadWrite, Category = "PTB|Profile")
+	int32 PendingSlotIndex = 0;
 
 	UFUNCTION()
 	void CreateTitleWidget();
