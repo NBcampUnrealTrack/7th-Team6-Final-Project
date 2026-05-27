@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include "CoreMinimal.h"
 #include "Engine/GameInstance.h"
@@ -6,9 +6,9 @@
 #include "PTBGameInstance.generated.h"
 
 class UPTBWwiseAudioManager;
+class UPTBSaveGame;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnFlowStateChanged, EGameFlowState, NewState);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnProfileChanged, FPTBProfileData, NewProfile);
 
 // 위젯 관련
 class UPTBMainTitleWidget;
@@ -20,18 +20,13 @@ class PARTTIMEBEAT_API UPTBGameInstance : public UGameInstance
 public:
 	//Save / Profile / Audio / Flow / TeamLog 초기화
 	UFUNCTION(BlueprintCallable, Category = "PTB|Systems")
-	void InitPTBSystems();	
+	void InitPTBSystems();
 	//저장 flush, 오디오 정리, 로그 flush
 	void ShutdownPTBSystems();
-	//프로필 활성화
-	bool LoadProfile(const FString& ProfileId);
-	//신규 프로필 생성, ID 반환
-	UFUNCTION(BlueprintCallable, Category = "PTB|Profile")
-	FString CreateProfile(const FPTBProfileData& Data);
 	//설정 저장 + Wwise / Rhythm에 전달
 	void ApplyUserSettings(const FPTBUserSettings& InSettings);
 
-	//슬롯에 저장
+	//슬롯에 저장 (프로필은 Subsystem에서 CurrentSaveGame에 먼저 반영 후 호출)
 	UFUNCTION(BlueprintCallable, Category = "PTB|Save")
 	void SaveGame();
 	//슬롯에서 로드
@@ -51,13 +46,6 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Game Flow")
 	FOnFlowStateChanged OnFlowStateChanged;
 
-	UPROPERTY(BlueprintAssignable, Category = "Profile")
-	FOnProfileChanged OnProfileChanged;
-
-	/** 현재 활성 프로필 ID */
-	FString ActiveProfileId;	
-	/** 활성 프로필 데이터 */
-	FPTBProfileData ActiveProfile;	
 	/**	설정 캐시 */
 	FPTBUserSettings CachedSettings;
 	/** 현재 모드(Single Multi) */
@@ -73,4 +61,8 @@ public:
 
 	UPROPERTY()
 	TObjectPtr<UPTBMainTitleWidget> TitleWidgetInstance;
+
+	/** 현재 로드된 세이브 오브젝트 */
+	UPROPERTY()
+	UPTBSaveGame* CurrentSaveGame = nullptr;
 };
