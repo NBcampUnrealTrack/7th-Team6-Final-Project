@@ -1,6 +1,7 @@
 #include "Flow/PTBGameFlowSubsystem.h"
 
 #include "Core/PTBGameInstance.h"
+#include "Profile/PTBProfileSubsystem.h"
 #include "Debug/PTBTeamLog.h"
 
 namespace
@@ -87,10 +88,18 @@ bool UPTBGameFlowSubsystem::SelectProfile(const FString& ProfileId)
 		return false;
 	}
 	
-	// TODO(Integration): ProfileSubsystem이 안정화되면 프로필 유효성 검사를 그쪽으로 위임
-	if (!PTBGI->LoadProfile(ProfileId))
+	// PTBProfileSubsystem을 통해 활성 프로필 설정
+	UPTBProfileSubsystem* PS = PTBGI->GetSubsystem<UPTBProfileSubsystem>();
+	if (!PS)
 	{
-		PTB_WARNING(LogPTBFlow, 
+		PTB_WARNING(LogPTBFlow, TEXT("[PTBFlow] SelectProfile 실패: ProfileSubsystem 없음"));
+		return false;
+	}
+
+	FGuid ProfileGuid;
+	if (!FGuid::Parse(ProfileId, ProfileGuid) || !PS->SetActiveProfile(ProfileGuid))
+	{
+		PTB_WARNING(LogPTBFlow,
 			TEXT("[PTBFlow] SelectProfile 실패: ProfileId=%s"), *ProfileId);
 		return false;
 	}
@@ -199,11 +208,17 @@ void UPTBGameFlowSubsystem::StartGameplay()
 
 	if (PTBGI)
 	{
-		PendingSessionRequest.ProfileId = PTBGI->ActiveProfile.ProfileId;
+		if (UPTBProfileSubsystem* PS = PTBGI->GetSubsystem<UPTBProfileSubsystem>())
+		{
+			bool bHasActive = false;
+			const FPTBProfileData ActiveProfile = PS->GetActiveProfile(bHasActive);
+			if (bHasActive)
+				PendingSessionRequest.ProfileId = ActiveProfile.ProfileId;
+		}
 	}
 	else
 	{
-		PTB_WARNING(LogPTBFlow, 
+		PTB_WARNING(LogPTBFlow,
 			TEXT("[PTBFlow] StartGameplay: PTBGameInstance를 사용할 수 없습니다. ProfileId는 기본값으로 유지됩니다."));
 	}
 
