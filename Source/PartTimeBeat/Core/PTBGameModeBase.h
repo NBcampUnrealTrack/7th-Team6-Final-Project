@@ -10,6 +10,7 @@ class APTBBaseMiniGame;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnGameStarted);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnGameEnded, FPTBRoundResult, Result);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnRoundResultReady, FPTBRoundResult, Result, FPTBRewardSummary, Reward);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnGamePaused);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnGameResumed);
 
@@ -72,6 +73,10 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Game State")
 	FOnGameEnded OnGameEnded;
 
+	/** 결과 위젯 표시용 라운드 결과와 보상 요약 전달 */
+	UPROPERTY(BlueprintAssignable, Category = "Game State")
+	FOnRoundResultReady OnRoundResultReady;
+
 	// 3) 게임 일시정지 시 호출
 	UPROPERTY(BlueprintAssignable, Category = "Game State")
 	FOnGamePaused OnGamePaused;
@@ -80,7 +85,20 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Game State")
 	FOnGameResumed OnGameResumed;
 
+	/** 마지막 라운드 결과 */
+	UPROPERTY(BlueprintReadOnly, Category = "Game State")
+	FPTBRoundResult LastRoundResult;
+
+	/** 마지막 보상 요약 */
+	UPROPERTY(BlueprintReadOnly, Category = "Game State")
+	FPTBRewardSummary LastRewardSummary;
+
 protected:
+	/** 미니게임 종료 델리게이트 수신 */
+	UFUNCTION()
+	void HandleMiniGameFinished(FPTBRoundResult Result);
+	
+	/** 일시정지 메뉴 위젯 인스턴스 */
 	UPROPERTY()
 	TObjectPtr<UPTBPauseMenuWidget> PauseMenuInstance;
 };

@@ -23,6 +23,7 @@ void APTBGameModeBase::StartGameFlow(const FPTBGameSessionRequest& Request)
 	// 2) 기존 미니게임 정리
 	if (ActiveMiniGame)
 	{
+		ActiveMiniGame->OnMiniGameFinished.RemoveDynamic(this, &APTBGameModeBase::HandleMiniGameFinished);
 		ActiveMiniGame->Destroy();
 		ActiveMiniGame = nullptr;
 	}
@@ -34,6 +35,8 @@ void APTBGameModeBase::StartGameFlow(const FPTBGameSessionRequest& Request)
 		UE_LOG(LogTemp, Error, TEXT("StartGameFlow: SpawnMiniGame failed"));
 		return;
 	}
+
+	ActiveMiniGame->OnMiniGameFinished.AddDynamic(this, &APTBGameModeBase::HandleMiniGameFinished);
 
 	// 4) 미니게임 컨텍스트 구성 & 주입
 	FPTBMiniGameContext Context;
@@ -128,7 +131,7 @@ void APTBGameModeBase::BeginRound()
 
 void APTBGameModeBase::PauseGame()
 {
-if (bIsPaused) { return; }
+	if (!bIsGameActive || bIsPaused) { return; }
 
 	bIsPaused = true;
 
@@ -183,6 +186,11 @@ void APTBGameModeBase::ResumeGame()
 	UE_LOG(LogTemp, Log, TEXT("ResumeGame"));
 }
 
+void APTBGameModeBase::HandleMiniGameFinished(FPTBRoundResult Result)
+{
+	SubmitRoundResult(Result);
+}
+
 void APTBGameModeBase::ShowPauseMenu()
 {
 	if (!PauseMenuClass) { return; }
@@ -213,6 +221,8 @@ void APTBGameModeBase::SubmitRoundResult(const FPTBRoundResult& Result)
 {
 	bIsGameActive = false;
 
+	FPTBRewardSummary Reward;
+
 	UPTBGameInstance* GI = Cast<UPTBGameInstance>(GetGameInstance());
 	if (GI)
 	{
@@ -232,8 +242,6 @@ void APTBGameModeBase::SubmitRoundResult(const FPTBRoundResult& Result)
 				// 보상 요약 생성 (결과 화면용)
 				bool bHasActive = false;
 				const FPTBProfileData UpdatedProfile = PS->GetActiveProfile(bHasActive);
-
-				FPTBRewardSummary Reward;
 				Reward.EarnedMoney = Result.EarnedMoney;
 				Reward.EarnedStars = Result.StarCount;
 				Reward.TotalMoney  = bHasActive ? UpdatedProfile.TotalEarnedMoney : Result.EarnedMoney;
@@ -248,11 +256,17 @@ void APTBGameModeBase::SubmitRoundResult(const FPTBRoundResult& Result)
 		// 멀티 모드: 서버 검증 로직
 		// else { ... }
 
+		GI->AutoSave();
+		
 		// 결과 화면으로 전환
 		GI->CurrentFlowState = EGameFlowState::Result;
 		GI->OnFlowStateChanged.Broadcast(EGameFlowState::Result);
 	}
 
+	LastRoundResult = Result;
+	LastRewardSummary = Reward;
+
+	OnRoundResultReady.Broadcast(Result, Reward);
 	OnGameEnded.Broadcast(Result);
 
 	UE_LOG(LogTemp, Log, TEXT("SubmitRoundResult: Score=%d Grade=%d Stars=%d"),
@@ -266,6 +280,7 @@ void APTBGameModeBase::RetryGame_Implementation()
 	// 기존 미니게임 정리
 	if (ActiveMiniGame)
 	{
+		ActiveMiniGame->OnMiniGameFinished.RemoveDynamic(this, &APTBGameModeBase::HandleMiniGameFinished);
 		ActiveMiniGame->Destroy();
 		ActiveMiniGame = nullptr;
 	}
@@ -287,6 +302,7 @@ void APTBGameModeBase::ExitToMenu_Implementation()
 	// 미니게임 정리
 	if (ActiveMiniGame)
 	{
+		ActiveMiniGame->OnMiniGameFinished.RemoveDynamic(this, &APTBGameModeBase::HandleMiniGameFinished);
 		if (bIsGameActive)
 		{
 			ActiveMiniGame->FinishMiniGame(EPTBRoundEndReason::Aborted);
