@@ -111,6 +111,9 @@ public:
 	/** Wwise 재생 위치 조회 */
 	float GetPlaybackPositionMs(int32 PlayingId) const;
 
+	/** Wwise 재생 위치 조회 */
+	bool TryGetPlaybackPositionMs(int32 PlayingId, float& OutPositionMs) const;
+
 	/** 이벤트 재생 중 여부 */
 	bool IsEventPlaying(int32 PlayingId) const;
 

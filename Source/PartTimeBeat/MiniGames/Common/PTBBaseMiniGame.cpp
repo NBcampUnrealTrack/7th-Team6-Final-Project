@@ -311,16 +311,17 @@ void APTBBaseMiniGame::BuildRuntimeState()
 
 void APTBBaseMiniGame::PreloadAudioAssets()
 {
-	if (!AudioManager || GameContext.ChartData.WwiseBankName.IsNone())
+	if (!AudioManager)
 	{
 		return;
 	}
 
-	const bool bLoadedBank = AudioManager->LoadSoundBank(GameContext.ChartData.WwiseBankName);
-	UE_LOG(LogWwise, Log, TEXT("[%s] PreloadSoundBank %s -> %s"),
-		*GetNameSafe(this),
-		*GameContext.ChartData.WwiseBankName.ToString(),
-		bLoadedBank ? TEXT("Success") : TEXT("Failed"));
+	if (!GameContext.ChartData.WwiseEventName.IsNone())
+	{
+		UE_LOG(LogWwise, Log, TEXT("[%s] Wwise BGM event ready: %s"),
+			*GetNameSafe(this),
+			*GameContext.ChartData.WwiseEventName.ToString());
+	}
 }
 
 void APTBBaseMiniGame::ApplyRuleSet()
