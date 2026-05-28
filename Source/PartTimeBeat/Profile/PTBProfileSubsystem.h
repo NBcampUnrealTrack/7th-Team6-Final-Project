@@ -147,10 +147,16 @@ protected:
     bool ContainsForbiddenWord(const FString& Nickname) const;
 
     /**
-     * 금칙어 비교용 정규화: 소문자 변환 + 영숫자 이외 문자 제거
-     * 특수문자·공백으로 금칙어를 우회하는 것을 방지
+     * 혼합 정규화: 한글 음절 → 자모 분해, 영숫자 → 소문자 유지, 특수문자 제거
+     * 영어 금칙어 및 "시×발" 같은 특수문자 삽입 우회를 차단
      */
     static FString NormalizeForFilter(const FString& Input);
+
+    /**
+     * 한글 전용 정규화: 한글 자모만 남기고 영숫자 포함 나머지 모두 제거
+     * "ㅅxㅂ"처럼 한글 사이에 영문자를 끼워 넣는 우회를 차단
+     */
+    static FString NormalizeForFilterKoreanOnly(const FString& Input);
 
 private:
     /** 메모리 상의 모든 프로필 */

@@ -512,6 +512,105 @@ FPTBProfileData* UPTBProfileSubsystem::FindProfileMutable(const FGuid& ProfileId
 
 // ── 금칙어 필터 ──────────────────────────────────────────────────────────────
 
+namespace
+{
+    // 초성 19개 (유니코드 한글 호환 자모 U+3131~U+314E)
+    constexpr TCHAR GInitialJamo[19] = {
+        0x3131, // ㄱ
+        0x3132, // ㄲ
+        0x3134, // ㄴ
+        0x3137, // ㄷ
+        0x3138, // ㄸ
+        0x3139, // ㄹ
+        0x3141, // ㅁ
+        0x3142, // ㅂ
+        0x3143, // ㅃ
+        0x3145, // ㅅ
+        0x3146, // ㅆ
+        0x3147, // ㅇ
+        0x3148, // ㅈ
+        0x3149, // ㅉ
+        0x314A, // ㅊ
+        0x314B, // ㅋ
+        0x314C, // ㅌ
+        0x314D, // ㅍ
+        0x314E, // ㅎ
+    };
+
+    // 중성 21개 (U+314F~U+3163)
+    constexpr TCHAR GMedialJamo[21] = {
+        0x314F, // ㅏ
+        0x3150, // ㅐ
+        0x3151, // ㅑ
+        0x3152, // ㅒ
+        0x3153, // ㅓ
+        0x3154, // ㅔ
+        0x3155, // ㅕ
+        0x3156, // ㅖ
+        0x3157, // ㅗ
+        0x3158, // ㅘ
+        0x3159, // ㅙ
+        0x315A, // ㅚ
+        0x315B, // ㅛ
+        0x315C, // ㅜ
+        0x315D, // ㅝ
+        0x315E, // ㅞ
+        0x315F, // ㅟ
+        0x3160, // ㅠ
+        0x3161, // ㅡ
+        0x3162, // ㅢ
+        0x3163, // ㅣ
+    };
+
+    // 종성 28개 (인덱스 0 = 받침 없음)
+    constexpr TCHAR GFinalJamo[28] = {
+        0,      // (없음)
+        0x3131, // ㄱ
+        0x3132, // ㄲ
+        0x3133, // ㄳ
+        0x3134, // ㄴ
+        0x3135, // ㄵ
+        0x3136, // ㄶ
+        0x3137, // ㄷ
+        0x3139, // ㄹ
+        0x313A, // ㄺ
+        0x313B, // ㄻ
+        0x313C, // ㄼ
+        0x313D, // ㄽ
+        0x313E, // ㄾ
+        0x313F, // ㄿ
+        0x3140, // ㅀ
+        0x3141, // ㅁ
+        0x3142, // ㅂ
+        0x3144, // ㅄ
+        0x3145, // ㅅ
+        0x3146, // ㅆ
+        0x3147, // ㅇ
+        0x3148, // ㅈ
+        0x314A, // ㅊ
+        0x314B, // ㅋ
+        0x314C, // ㅌ
+        0x314D, // ㅍ
+        0x314E, // ㅎ
+    };
+
+    /** 한글 음절 1개를 초성+중성+종성 자모로 분해해 Result에 추가 */
+    void AppendDecomposedSyllable(TCHAR Syllable, FString& Result)
+    {
+        const int32 Offset     = Syllable - 0xAC00;
+        const int32 FinalIdx   = Offset % 28;
+        const int32 MedialIdx  = (Offset / 28) % 21;
+        const int32 InitialIdx = Offset / 28 / 21;
+
+        Result.AppendChar(GInitialJamo[InitialIdx]);
+        Result.AppendChar(GMedialJamo[MedialIdx]);
+        if (FinalIdx != 0)
+        {
+            Result.AppendChar(GFinalJamo[FinalIdx]);
+        }
+    }
+} // namespace
+
 void UPTBProfileSubsystem::LoadForbiddenWords()
 {
     ForbiddenWords.Empty();
@@ -549,126 +648,34 @@ void UPTBProfileSubsystem::LoadForbiddenWords()
 
 FString UPTBProfileSubsystem::NormalizeForFilter(const FString& Input)
 {
-    // ── 한글 자모 테이블 ────────────────────────────────────────────
-    //
-    // 한글 음절(가~힣, U+AC00~U+D7A3)을 초성·중성·종성 호환 자모로 분해한다.
-    // 이렇게 하면 아래 세 입력이 동일한 문자열로 정규화된다:
-    //   "시발"           → "ㅅㅣㅂㅏㄹ"   (음절 → 자모 분해)
-    //   "ㅅ ㅣ ㅂ ㅏ ㄹ" → "ㅅㅣㅂㅏㄹ"   (공백 제거)
-    //   "시×발"          → "ㅅㅣㅂㅏㄹ"   (특수문자 제거 후 분해)
-    //
-    // 초성 19개 (유니코드 한글 호환 자모 블록 U+3131~U+314E)
-    static const TCHAR InitialJamo[19] = {
-        0x3131, // ㄱ
-        0x3132, // ㄲ
-        0x3134, // ㄴ
-        0x3137, // ㄷ
-        0x3138, // ㄸ
-        0x3139, // ㄹ
-        0x3141, // ㅁ
-        0x3142, // ㅂ
-        0x3143, // ㅃ
-        0x3145, // ㅅ
-        0x3146, // ㅆ
-        0x3147, // ㅇ
-        0x3148, // ㅈ
-        0x3149, // ㅉ
-        0x314A, // ㅊ
-        0x314B, // ㅋ
-        0x314C, // ㅌ
-        0x314D, // ㅍ
-        0x314E, // ㅎ
-    };
-
-    // 중성 21개 (U+314F~U+3163)
-    static const TCHAR MedialJamo[21] = {
-        0x314F, // ㅏ
-        0x3150, // ㅐ
-        0x3151, // ㅑ
-        0x3152, // ㅒ
-        0x3153, // ㅓ
-        0x3154, // ㅔ
-        0x3155, // ㅕ
-        0x3156, // ㅖ
-        0x3157, // ㅗ
-        0x3158, // ㅘ
-        0x3159, // ㅙ
-        0x315A, // ㅚ
-        0x315B, // ㅛ
-        0x315C, // ㅜ
-        0x315D, // ㅝ
-        0x315E, // ㅞ
-        0x315F, // ㅟ
-        0x3160, // ㅠ
-        0x3161, // ㅡ
-        0x3162, // ㅢ
-        0x3163, // ㅣ
-    };
-
-    // 종성 28개 (인덱스 0 = 받침 없음)
-    static const TCHAR FinalJamo[28] = {
-        0,      // (없음)
-        0x3131, // ㄱ
-        0x3132, // ㄲ
-        0x3133, // ㄳ
-        0x3134, // ㄴ
-        0x3135, // ㄵ
-        0x3136, // ㄶ
-        0x3137, // ㄷ
-        0x3139, // ㄹ
-        0x313A, // ㄺ
-        0x313B, // ㄻ
-        0x313C, // ㄼ
-        0x313D, // ㄽ
-        0x313E, // ㄾ
-        0x313F, // ㄿ
-        0x3140, // ㅀ
-        0x3141, // ㅁ
-        0x3142, // ㅂ
-        0x3144, // ㅄ
-        0x3145, // ㅅ
-        0x3146, // ㅆ
-        0x3147, // ㅇ
-        0x3148, // ㅈ
-        0x314A, // ㅊ
-        0x314B, // ㅋ
-        0x314C, // ㅌ
-        0x314D, // ㅍ
-        0x314E, // ㅎ
-    };
-
-    // ── 정규화 ───────────────────────────────────────────────────────
+    // 한글 음절 → 자모 분해, 영숫자 → 소문자 유지, 특수문자 제거.
+    // 커버 범위: "시×발" "시 발" "ㅅㅣㅂㅏㄹ" "f*ck" 등
     FString Result;
-    Result.Reserve(Input.Len() * 3); // 음절 1개 → 최대 자모 3개
+    Result.Reserve(Input.Len() * 3);
 
     for (const TCHAR Ch : Input)
     {
-        // ① 한글 음절(가~힣): 초성+중성+종성 자모로 분해
-        if (Ch >= 0xAC00 && Ch <= 0xD7A3)
-        {
-            const int32 Offset     = Ch - 0xAC00;
-            const int32 FinalIdx   = Offset % 28;
-            const int32 MedialIdx  = (Offset / 28) % 21;
-            const int32 InitialIdx = Offset / 28 / 21;
+        if      (Ch >= 0xAC00 && Ch <= 0xD7A3) AppendDecomposedSyllable(Ch, Result); // 한글 음절
+        else if (Ch >= 0x3131 && Ch <= 0x3163) Result.AppendChar(Ch);                // 한글 호환 자모
+        else if (FChar::IsAlpha(Ch) || FChar::IsDigit(Ch)) Result.AppendChar(FChar::ToLower(Ch)); // 영숫자
+        // 공백·특수문자: 제거
+    }
 
-            Result.AppendChar(InitialJamo[InitialIdx]);
-            Result.AppendChar(MedialJamo[MedialIdx]);
-            if (FinalIdx != 0)
-            {
-                Result.AppendChar(FinalJamo[FinalIdx]);
-            }
-        }
-        // ② 한글 호환 자모(ㄱ~ㅣ): 이미 자모 형태이므로 그대로 유지
-        else if (Ch >= 0x3131 && Ch <= 0x3163)
-        {
-            Result.AppendChar(Ch);
-        }
-        // ③ 영숫자: 소문자로 변환
-        else if (FChar::IsAlpha(Ch) || FChar::IsDigit(Ch))
-        {
-            Result.AppendChar(FChar::ToLower(Ch));
-        }
-        // ④ 공백·특수문자·이모지 등: 제거 (우회 차단)
+    return Result;
+}
+
+FString UPTBProfileSubsystem::NormalizeForFilterKoreanOnly(const FString& Input)
+{
+    // 한글 자모만 남기고 영숫자 포함 나머지를 모두 제거.
+    // 커버 범위: "ㅅxㅂ" "ㅅ1ㅂ" 처럼 한글 사이에 영문자를 끼워 넣는 우회 시도
+    FString Result;
+    Result.Reserve(Input.Len() * 3);
+
+    for (const TCHAR Ch : Input)
+    {
+        if      (Ch >= 0xAC00 && Ch <= 0xD7A3) AppendDecomposedSyllable(Ch, Result); // 한글 음절
+        else if (Ch >= 0x3131 && Ch <= 0x3163) Result.AppendChar(Ch);                // 한글 호환 자모
+        // 영숫자·특수문자: 모두 제거 (NormalizeForFilter와의 유일한 차이)
     }
 
     return Result;
@@ -681,14 +688,16 @@ bool UPTBProfileSubsystem::ContainsForbiddenWord(const FString& Nickname) const
         return false;
     }
 
-    const FString Normalized = NormalizeForFilter(Nickname);
+    const FString Mixed = NormalizeForFilter(Nickname);
+    const FString KoreanOnly = NormalizeForFilterKoreanOnly(Nickname);
 
     for (const FString& Word : ForbiddenWords)
     {
-        if (Normalized.Contains(Word, ESearchCase::CaseSensitive))
+        if (Mixed.Contains(Word, ESearchCase::CaseSensitive) ||
+            KoreanOnly.Contains(Word, ESearchCase::CaseSensitive))
         {
-            // 어떤 단어에 걸렸는지는 로그에 남기지 않음 (금칙어 노출 방지)
-            PTB_WARNING(LogPTBProfile, TEXT("ContainsForbiddenWord: 금칙어 감지됨 (닉네임 길이=%d)"), Nickname.Len());
+            PTB_WARNING(LogPTBProfile,
+                TEXT("ContainsForbiddenWord: 금칙어 감지됨 (닉네임 길이=%d)"), Nickname.Len());
             return true;
         }
     }
