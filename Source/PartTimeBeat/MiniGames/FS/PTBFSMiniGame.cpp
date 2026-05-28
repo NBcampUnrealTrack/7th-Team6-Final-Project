@@ -19,34 +19,71 @@ APTBFSMiniGame::APTBFSMiniGame()
 void APTBFSMiniGame::BuildRuntimeState()
 {
 	Super::BuildRuntimeState();
-	
-	CacheFishingRuleSet();
-	if (!FishRuleSet) return;
-	
-	TArray<AActor*> FoundActor;
-	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AActor::StaticClass(), FoundActor);
-	if (!FoundActor.Num()>0)
-	{
-		FishActor = Cast<AFishActor>(FoundActor[0]);
-	}
+	FishRuleSet = Cast<UPTBFSMiniGameRuleSet>(RuleSet);
 	
 	APTBRhythmCharacterBase* Character = 
 	Cast<APTBRhythmCharacterBase>(UGameplayStatics::GetPlayerCharacter(GetWorld(), 0));
 	
+	TArray<AActor*> FoundActor;
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AFishActor::StaticClass(), FoundActor);
+	if (FoundActor.Num() > 0)
+	{
+		FishActor = Cast<AFishActor>(FoundActor[0]);
+	}
+	
+	if (!Character)return;
+	if (!FishActor)return;
+	if (!FishRuleSet) return;
+	if (!ChartAsset) return;
+	
 	int32 TotalNoteCount = ChartAsset->NoteEvents.Num();
-	
-	
+	if (TotalNoteCount <= 0)return;
 	float TotalDistance = FVector::Dist(FishActor->GetActorLocation(), Character->GetActorLocation());
-	float StepDistance = TotalDistance /NoteCount;	
+	StepDistance = TotalDistance /TotalNoteCount;	
 }
 
-void APTBFSMiniGame::CacheFishingRuleSet()
+void APTBFSMiniGame::HandleNoteCue(FPTBNoteEvent Note)
 {
-	FishRuleSet = Cast<UPTBFSMiniGameRuleSet>(RuleSet);
-	if (!FishRuleSet)
-	{
-		PTB_WARNING(LogPTBMiniGames,TEXT("낚시게임 룰셋 생성 실패"));
-	}
+	Super::HandleNoteCue(Note);
+}
+
+void APTBFSMiniGame::HandleNoteArm(FPTBNoteEvent Note)
+{
+	Super::HandleNoteArm(Note);
+}
+
+void APTBFSMiniGame::HandleChartEvent(FPTBNoteEvent Note)
+{
+	Super::HandleChartEvent(Note);
+}
+
+void APTBFSMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
+{
+	Super::HandleJudgementResult(Result);
+}
+
+void APTBFSMiniGame::PlayJudgementFeedback(const FPTBJudgementResult& Result)
+{
+	Super::PlayJudgementFeedback(Result);
+}
+
+FPTBMiniGameResultPayload APTBFSMiniGame::BuildResultPayload() const
+{
+	return Super::BuildResultPayload();
+}
+
+void APTBFSMiniGame::OnAllNotesPassedFishing()
+{
+}
+
+void APTBFSMiniGame::ApplyDistanceDelta(float Delta)
+{
+}
+
+EFishingLineState APTBFSMiniGame::CalculateLineState(float Distance) const
+{
+	
+	return EFishingLineState::None;
 }
 
 void APTBFSMiniGame::HandleActionAInput()
