@@ -128,17 +128,7 @@ void APTBGameModeBase::BeginRound()
 
 void APTBGameModeBase::PauseGame()
 {
-	// ── 진단 로그 (문제 해결 후 제거) ──────────────────────────
-	if (GEngine)
-	{
-		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Cyan,
-			FString::Printf(TEXT("[PauseGame] bIsGameActive=%s bIsPaused=%s"),
-				bIsGameActive ? TEXT("true") : TEXT("false"),
-				bIsPaused     ? TEXT("true") : TEXT("false")));
-	}
-	// ────────────────────────────────────────────────────────────
-
-	if (bIsPaused) { return; }
+if (bIsPaused) { return; }
 
 	bIsPaused = true;
 
