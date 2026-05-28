@@ -6,15 +6,15 @@
    "Generator": "2023.1.7.8574"
   },
   "RootPaths": {
-   "ProjectRoot": "../../../../Users/dignw/Documents/WwiseProjects/Test",
-   "SourceFilesRoot": "../../../../Users/dignw/Documents/WwiseProjects/Test/.cache/Windows",
+   "ProjectRoot": "../..",
+   "SourceFilesRoot": "../../.cache/Windows",
    "SoundBanksRoot": ".",
    "ExternalSourcesInputFile": "",
-   "ExternalSourcesOutputRoot": "../../../../Users/dignw/Documents/WwiseProjects/Test/GeneratedSoundBanks/Windows"
+   "ExternalSourcesOutputRoot": "."
   },
   "DefaultAlign": "16",
   "Settings": {
-   "AutoSoundBankDefinition": "false",
+   "AutoSoundBankDefinition": "true",
    "CopyLooseStreamedMediaFiles": "true",
    "SubFoldersForGeneratedFiles": "false",
    "RemoveUnusedGeneratedFiles": "true",
@@ -32,6 +32,6 @@
    "PrintObjectGuid": "true",
    "PrintObjectPath": "true"
   },
-  "FileHash": "{1078C72D-42E0-EBF1-B0EC-F6174F958E99}"
+  "FileHash": "{C1AA0E1B-78F0-2F6B-B382-E461D89ACD85}"
  }
 }

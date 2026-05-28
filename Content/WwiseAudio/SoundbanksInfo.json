@@ -5,11 +5,11 @@
   "SchemaVersion": "16",
   "SoundBankVersion": "150",
   "RootPaths": {
-   "ProjectRoot": "../../../../Users/dignw/Documents/WwiseProjects/Test",
-   "SourceFilesRoot": "../../../../Users/dignw/Documents/WwiseProjects/Test/.cache/Windows",
+   "ProjectRoot": "../..",
+   "SourceFilesRoot": "../../.cache/Windows",
    "SoundBanksRoot": ".",
    "ExternalSourcesInputFile": "",
-   "ExternalSourcesOutputRoot": "../../../../Users/dignw/Documents/WwiseProjects/Test/GeneratedSoundBanks/Windows"
+   "ExternalSourcesOutputRoot": "."
   },
   "DialogueEvents": [],
   "SoundBanks": [
@@ -28,7 +28,7 @@
        "Id": "2317455096",
        "Name": "No_Output",
        "ObjectPath": "\\Audio Devices\\Default Work Unit\\No_Output",
-       "GUID": "{6D3020EB-0EB0-4253-91F2-FA0EF598BD32}",
+       "GUID": "{012A2E62-6036-48E8-B115-B7B9CDD39A11}",
        "LibName": "No Output",
        "LibId": "11862023"
       },
@@ -36,7 +36,7 @@
        "Id": "3859886410",
        "Name": "System",
        "ObjectPath": "\\Audio Devices\\Default Work Unit\\System",
-       "GUID": "{98832439-5747-41B0-A0B6-143E226A0DC2}",
+       "GUID": "{9ED6E86C-F849-47D9-B65E-2EF354F4C470}",
        "LibName": "System",
        "LibId": "11403271"
       }
@@ -578,42 +578,42 @@
     ]
    },
    {
-    "Id": "1831431028",
+    "Id": "1568083734",
     "Type": "User",
-    "GUID": "{D2017E67-0CC6-4319-9032-8F4A2B46ABB6}",
+    "GUID": "{DDAE794D-61D4-451C-A316-2444772C90B7}",
     "Language": "SFX",
-    "Hash": "{C6E532A8-2C30-07AD-A6B2-A0BF9D80C97E}",
-    "ObjectPath": "\\SoundBanks\\Default Work Unit\\testSoundBank",
-    "ShortName": "testSoundBank",
-    "Path": "testSoundBank.bnk",
+    "Hash": "{F47B4F59-E5CE-61AD-8E78-390E04E9404D}",
+    "ObjectPath": "\\SoundBanks\\Default Work Unit\\TG",
+    "ShortName": "TG",
+    "Path": "TG.bnk",
     "Media": [
      {
-      "Id": "166282579",
+      "Id": "467031385",
       "Language": "SFX",
       "Streaming": "false",
       "Location": "Memory",
-      "ShortName": "766542__mrgungus__bat-swoosh.wav",
-      "CachePath": "SFX/766542__mrgungus__bat-swoosh_818F3B66.wem"
+      "ShortName": "PTB_JJ_Easy_260527.wav",
+      "CachePath": "SFX/PTB_JJ_Easy_260527_818F3B66.wem"
      }
     ],
     "Events": [
      {
-      "Id": "1097980931",
-      "Name": "testevent",
-      "ObjectPath": "\\Events\\Default Work Unit\\testevent",
-      "GUID": "{ADDC300C-B194-4C2B-B47E-56BA41EA2F36}",
+      "Id": "3508531682",
+      "Name": "Play_TG_BGM",
+      "ObjectPath": "\\Events\\Default Work Unit\\Play_TG_BGM",
+      "GUID": "{459599A4-86D7-476F-8F53-2F5881A6B8BA}",
       "DurationType": "OneShot",
-      "DurationMin": "0.92904764",
-      "DurationMax": "0.92904764",
+      "DurationMin": "59.99327",
+      "DurationMax": "59.99327",
       "MediaRefs": [
        {
-        "Id": "166282579"
+        "Id": "467031385"
        }
       ]
      }
     ]
    }
   ],
-  "FileHash": "{56AFCAEE-4952-93EF-3212-C2FF15F61468}"
+  "FileHash": "{262796D4-1199-4171-6310-11D39291611B}"
  }
 }

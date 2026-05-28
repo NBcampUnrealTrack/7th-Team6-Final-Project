@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <SoundBanksInfo Platform="Windows" BasePlatform="Windows" SchemaVersion="16" SoundBankVersion="150">
 	<RootPaths>
-		<ProjectRoot>../../../../Users/dignw/Documents/WwiseProjects/Test</ProjectRoot>
-		<SourceFilesRoot>../../../../Users/dignw/Documents/WwiseProjects/Test/.cache/Windows</SourceFilesRoot>
+		<ProjectRoot>../..</ProjectRoot>
+		<SourceFilesRoot>../../.cache/Windows</SourceFilesRoot>
 		<SoundBanksRoot>.</SoundBanksRoot>
 		<ExternalSourcesInputFile></ExternalSourcesInputFile>
-		<ExternalSourcesOutputRoot>../../../../Users/dignw/Documents/WwiseProjects/Test/GeneratedSoundBanks/Windows</ExternalSourcesOutputRoot>
+		<ExternalSourcesOutputRoot>.</ExternalSourcesOutputRoot>
 	</RootPaths>
 	<DialogueEvents/>
 	<SoundBanks>
@@ -15,8 +15,8 @@
 			<Path>Init.bnk</Path>
 			<Plugins>
 				<AudioDevices>
-					<Plugin Id="2317455096" Name="No_Output" ObjectPath="\Audio Devices\Default Work Unit\No_Output" GUID="{6D3020EB-0EB0-4253-91F2-FA0EF598BD32}" LibName="No Output" LibId="11862023"/>
-					<Plugin Id="3859886410" Name="System" ObjectPath="\Audio Devices\Default Work Unit\System" GUID="{98832439-5747-41B0-A0B6-143E226A0DC2}" LibName="System" LibId="11403271"/>
+					<Plugin Id="2317455096" Name="No_Output" ObjectPath="\Audio Devices\Default Work Unit\No_Output" GUID="{012A2E62-6036-48E8-B115-B7B9CDD39A11}" LibName="No Output" LibId="11862023"/>
+					<Plugin Id="3859886410" Name="System" ObjectPath="\Audio Devices\Default Work Unit\System" GUID="{9ED6E86C-F849-47D9-B65E-2EF354F4C470}" LibName="System" LibId="11403271"/>
 				</AudioDevices>
 			</Plugins>
 			<Busses>
@@ -163,24 +163,24 @@
 				</AcousticTexture>
 			</AcousticTextures>
 		</SoundBank>
-		<SoundBank Id="1831431028" Type="User" GUID="{D2017E67-0CC6-4319-9032-8F4A2B46ABB6}" Language="SFX" Hash="{C6E532A8-2C30-07AD-A6B2-A0BF9D80C97E}">
-			<ObjectPath>\SoundBanks\Default Work Unit\testSoundBank</ObjectPath>
-			<ShortName>testSoundBank</ShortName>
-			<Path>testSoundBank.bnk</Path>
+		<SoundBank Id="1568083734" Type="User" GUID="{DDAE794D-61D4-451C-A316-2444772C90B7}" Language="SFX" Hash="{F47B4F59-E5CE-61AD-8E78-390E04E9404D}">
+			<ObjectPath>\SoundBanks\Default Work Unit\TG</ObjectPath>
+			<ShortName>TG</ShortName>
+			<Path>TG.bnk</Path>
 			<Media>
-				<File Id="166282579" Language="SFX" Streaming="false" Location="Memory">
-					<ShortName>766542__mrgungus__bat-swoosh.wav</ShortName>
-					<CachePath>SFX/766542__mrgungus__bat-swoosh_818F3B66.wem</CachePath>
+				<File Id="467031385" Language="SFX" Streaming="false" Location="Memory">
+					<ShortName>PTB_JJ_Easy_260527.wav</ShortName>
+					<CachePath>SFX/PTB_JJ_Easy_260527_818F3B66.wem</CachePath>
 				</File>
 			</Media>
 			<Events>
-				<Event Id="1097980931" Name="testevent" ObjectPath="\Events\Default Work Unit\testevent" GUID="{ADDC300C-B194-4C2B-B47E-56BA41EA2F36}" DurationType="OneShot" DurationMin="0.92904764" DurationMax="0.92904764">
+				<Event Id="3508531682" Name="Play_TG_BGM" ObjectPath="\Events\Default Work Unit\Play_TG_BGM" GUID="{459599A4-86D7-476F-8F53-2F5881A6B8BA}" DurationType="OneShot" DurationMin="59.99327" DurationMax="59.99327">
 					<MediaRefs>
-						<MediaRef Id="166282579"/>
+						<MediaRef Id="467031385"/>
 					</MediaRefs>
 				</Event>
 			</Events>
 		</SoundBank>
 	</SoundBanks>
-	<FileHash>{8C77B92A-6A57-1F65-0110-3562805340E3}</FileHash>
+	<FileHash>{95B221B9-82AC-8C9E-AAFB-7DB0B395A6A7}</FileHash>
 </SoundBanksInfo>
