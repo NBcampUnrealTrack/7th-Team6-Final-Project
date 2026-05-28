@@ -1,5 +1,6 @@
 #include "Core/PTBGameModeBase.h"
 #include "Core/PTBGameInstance.h"
+#include "Profile/PTBProfileSubsystem.h"
 #include "MiniGames/Common/PTBBaseMiniGame.h"
 #include "Kismet/GameplayStatics.h"
 #include "TimerManager.h"
@@ -185,43 +186,34 @@ void APTBGameModeBase::SubmitRoundResult(const FPTBRoundResult& Result)
 	UPTBGameInstance* GI = Cast<UPTBGameInstance>(GetGameInstance());
 	if (GI)
 	{
-		// 싱글 모드: 점수/별 갱신 + 저장
+		// 싱글 모드: 점수/별 갱신 + 저장 (PTBProfileSubsystem 위임)
 		if (GI->CurrentPlayMode == EPTBPlayMode::Single)
 		{
-			// 최고 점수 갱신
-			FPTBProfileData& Profile = GI->ActiveProfile;
-			int32* BestScore = Profile.BestScoresByMiniGame.Find(Result.MiniGameId);
-			if (!BestScore || Result.Score > *BestScore)
+			if (UPTBProfileSubsystem* PS = GI->GetSubsystem<UPTBProfileSubsystem>())
 			{
-				Profile.BestScoresByMiniGame.Add(Result.MiniGameId, Result.Score);
+				// 진행도 반영 (내부에서 RequestSave 자동 호출)
+				FPTBProfileProgressUpdate Update;
+				Update.MiniGameId  = Result.MiniGameId;
+				Update.Score       = Result.Score;
+				Update.EarnedStars = Result.StarCount;
+				Update.EarnedMoney = Result.EarnedMoney;
+				PS->ApplyRoundResultToActive(Update);
+
+				// 보상 요약 생성 (결과 화면용)
+				bool bHasActive = false;
+				const FPTBProfileData UpdatedProfile = PS->GetActiveProfile(bHasActive);
+
+				FPTBRewardSummary Reward;
+				Reward.EarnedMoney = Result.EarnedMoney;
+				Reward.EarnedStars = Result.StarCount;
+				Reward.TotalMoney  = bHasActive ? UpdatedProfile.TotalEarnedMoney : Result.EarnedMoney;
+				Reward.TotalStars  = 0;
+				if (bHasActive)
+				{
+					for (auto& Pair : UpdatedProfile.EarnedStarsByMiniGame)
+						Reward.TotalStars += Pair.Value;
+				}
 			}
-
-			int32* BestStars = Profile.EarnedStarsByMiniGame.Find(Result.MiniGameId);
-			if (!BestStars || Result.StarCount > *BestStars)
-			{
-				Profile.EarnedStarsByMiniGame.Add(Result.MiniGameId, Result.StarCount);
-			}
-
-			// 보상 요약 생성
-			FPTBRewardSummary Reward;
-			Reward.EarnedMoney = Result.EarnedMoney;
-			Reward.EarnedStars = Result.StarCount;
-			Reward.TotalMoney = Profile.TotalEarnedMoney + Result.EarnedMoney;
-			Reward.TotalStars = 0;
-			for (auto& Pair : Profile.EarnedStarsByMiniGame)
-			{
-				Reward.TotalStars += Pair.Value;
-			}
-
-			// SaveGame에 반영
-			// if (GI->CurrentSaveGame)
-			// {
-			//     GI->CurrentSaveGame->ApplyRewardSummary(
-			//         GI->ActiveProfileId, Reward);
-			//     GI->CurrentSaveGame->UpsertProfile(Profile);
-			// }
-
-			GI->AutoSave();
 		}
 		// 멀티 모드: 서버 검증 로직
 		// else { ... }

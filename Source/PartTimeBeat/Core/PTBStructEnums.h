@@ -298,6 +298,10 @@ struct PARTTIMEBEAT_API FPTBProfileData
     UPROPERTY(BlueprintReadWrite, SaveGame, Category = "Profile|Identity")
     FString Nickname;
 
+    /** 프로필 선택 화면의 슬롯 인덱스 (0~2) */
+    UPROPERTY(BlueprintReadWrite, SaveGame, Category = "Profile|Identity")
+    int32 SlotIndex = -1;
+
     UPROPERTY(BlueprintReadWrite, SaveGame, Category = "Profile|Identity")
     EPTBGender Gender = EPTBGender::Unset;
 

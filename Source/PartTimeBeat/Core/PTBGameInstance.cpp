@@ -1,7 +1,8 @@
-﻿#include "Core/PTBGameInstance.h"
+#include "Core/PTBGameInstance.h"
 #include "Core/PTBSaveGame.h"
 #include "Kismet/GameplayStatics.h"
 #include "UI/PTBMainTitleWidget.h"
+#include "Debug/PTBTeamLog.h"
 
 // 내부에서 SaveGame 오브젝트를 보관할 멤버가 헤더에 없으므로
 // 헤더에 아래를 추가하는 것을 권장합니다:
@@ -25,7 +26,7 @@ void UPTBGameInstance::InitPTBSystems()
 		if (NewSave)
 		{
 			NewSave->InitializeDefaultSave();
-			// CurrentSaveGame = NewSave;
+			CurrentSaveGame = NewSave;
 			CachedSettings = NewSave->Settings;
 			SaveGame();
 		}
@@ -43,7 +44,7 @@ void UPTBGameInstance::InitPTBSystems()
 	CurrentFlowState = EGameFlowState::MainMenu;
 	OnFlowStateChanged.Broadcast(CurrentFlowState);
 
-	UE_LOG(LogTemp, Log, TEXT("PTBSystems initialized"));
+	PTB_RECORD(LogPTBCore, TEXT("PTBSystems initialized"));
 
 	// 타이틀 위젯 생성 및 표시
 	if (UWorld* World = GetWorld())
@@ -52,7 +53,7 @@ void UPTBGameInstance::InitPTBSystems()
 	}
 	else
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[PTBGameInstance] InitPTBSystems: World is null, widget creation skipped"));
+		PTB_WARNING(LogPTBCore, TEXT("[PTBGameInstance] InitPTBSystems: World is null, widget creation skipped"));
 	}
 }
 
@@ -64,65 +65,7 @@ void UPTBGameInstance::ShutdownPTBSystems()
 	// 오디오 매니저 정리
 	// if (AudioManager) { AudioManager->Shutdown(); }
 
-	UE_LOG(LogTemp, Log, TEXT("PTBSystems shut down"));
-}
-
-bool UPTBGameInstance::LoadProfile(const FString& ProfileId)
-{
-	FGuid TargetGuid;
-	if (!FGuid::Parse(ProfileId, TargetGuid))
-	{
-		UE_LOG(LogTemp, Warning, TEXT("LoadProfile: Invalid GUID format [%s]"), *ProfileId);
-		return false;
-	}
-
-	// CurrentSaveGame에서 프로필 검색
-	// UPTBSaveGame* Save = CurrentSaveGame;
-	// if (!Save) return false;
-	//
-	// for (int32 i = 0; i < Save->Profiles.Num(); i++)
-	// {
-	//     if (Save->Profiles[i].ProfileId == TargetGuid)
-	//     {
-	//         ActiveProfileId = ProfileId;
-	//         ActiveProfile = Save->Profiles[i];
-	//         Save->ActiveProfileIndex = i;
-	//         OnProfileChanged.Broadcast(ActiveProfile);
-	//         UE_LOG(LogTemp, Log, TEXT("Profile loaded: %s (%s)"),
-	//             *ActiveProfile.Nickname, *ProfileId);
-	//         return true;
-	//     }
-	// }
-
-	UE_LOG(LogTemp, Warning, TEXT("LoadProfile: Profile not found [%s]"), *ProfileId);
-	return false;
-}
-
-FString UPTBGameInstance::CreateProfile(const FPTBProfileData& Data)
-{
-	FPTBProfileData NewData = Data;
-	NewData.ProfileId = FGuid::NewGuid();
-	NewData.CreatedAt = FDateTime::Now();
-	NewData.TotalEarnedMoney = 0;
-	NewData.BestScoresByMiniGame.Empty();
-	NewData.EarnedStarsByMiniGame.Empty();
-
-	// SaveGame에 등록
-	// if (CurrentSaveGame)
-	// {
-	//     CurrentSaveGame->UpsertProfile(NewData);
-	// }
-
-	FString NewIdStr = NewData.ProfileId.ToString();
-
-	// 생성 직후 활성화
-	LoadProfile(NewIdStr);
-	SaveGame();
-
-	UE_LOG(LogTemp, Log, TEXT("Profile created: %s (%s)"),
-		*NewData.Nickname, *NewIdStr);
-
-	return NewIdStr;
+	PTB_RECORD(LogPTBCore, TEXT("PTBSystems shut down"));
 }
 
 void UPTBGameInstance::ApplyUserSettings(const FPTBUserSettings& InSettings)
@@ -154,20 +97,26 @@ void UPTBGameInstance::ApplyUserSettings(const FPTBUserSettings& InSettings)
 
 	SaveGame();
 
-	UE_LOG(LogTemp, Log, TEXT("UserSettings applied — Master:%.2f BGM:%.2f SFX:%.2f Offset:%.1fms"),
+	PTB_RECORD(LogPTBCore, TEXT("UserSettings applied — Master:%.2f BGM:%.2f SFX:%.2f Offset:%.1fms"),
 		InSettings.MasterVolume, InSettings.BGMVolume,
 		InSettings.SFXVolume, InSettings.JudgementOffsetMs);
 }
 
 void UPTBGameInstance::SaveGame()
 {
-	// if (CurrentSaveGame)
-	// {
-	//     UGameplayStatics::SaveGameToSlot(
-	//         CurrentSaveGame,
-	//         CurrentSaveGame->SaveSlotName,
-	//         CurrentSaveGame->UserIndex);
-	// }
+	if (!CurrentSaveGame)
+	{
+		PTB_WARNING(LogPTBCore, TEXT("SaveGame: CurrentSaveGame is null, skipped"));
+		return;
+	}
+	
+	CurrentSaveGame->Settings = CachedSettings;
+
+	UGameplayStatics::SaveGameToSlot(
+		CurrentSaveGame,
+		CurrentSaveGame->SaveSlotName,
+		CurrentSaveGame->UserIndex);
+	PTB_RECORD(LogPTBCore, TEXT("SaveGame: saved to slot [%s]"), *CurrentSaveGame->SaveSlotName);
 }
 
 bool UPTBGameInstance::LoadGame()
@@ -184,52 +133,45 @@ bool UPTBGameInstance::LoadGame()
 	UPTBSaveGame* PTBSave = Cast<UPTBSaveGame>(Loaded);
 	if (!PTBSave)
 	{
-		UE_LOG(LogTemp, Error, TEXT("LoadGame: Cast failed"));
+		PTB_ERROR(LogPTBCore, TEXT("LoadGame: Cast failed"));
 		return false;
 	}
 
-	// CurrentSaveGame = PTBSave;
+	CurrentSaveGame = PTBSave;
 	CachedSettings = PTBSave->Settings;
 
-	// 마지막 활성 프로필 복원
-	if (PTBSave->Profiles.IsValidIndex(PTBSave->ActiveProfileIndex))
-	{
-		ActiveProfile = PTBSave->Profiles[PTBSave->ActiveProfileIndex];
-		ActiveProfileId = ActiveProfile.ProfileId.ToString();
-	}
-
-	UE_LOG(LogTemp, Log, TEXT("SaveGame loaded from slot [%s]"), *SlotName);
+	PTB_RECORD(LogPTBCore, TEXT("SaveGame loaded from slot [%s]"), *SlotName);
 	return true;
 }
 
 void UPTBGameInstance::AutoSave()
 {
-	UE_LOG(LogTemp, Log, TEXT("AutoSave triggered"));
+	PTB_RECORD(LogPTBCore, TEXT("AutoSave triggered"));
 	SaveGame();
 }
 
 void UPTBGameInstance::CreateTitleWidget()
 {
-	UE_LOG(LogTemp, Log, TEXT("[PTBGameInstance] CreateTitleWidget called"));
+	PTB_RECORD(LogPTBCore, TEXT("[PTBGameInstance] CreateTitleWidget called"));
 
 	if (!TitleWidgetClass)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[PTBGameInstance] TitleWidgetClass is null"));
+		PTB_WARNING(LogPTBCore, TEXT("[PTBGameInstance] TitleWidgetClass is null"));
 		return;
 	}
 
 	APlayerController* PC = GetFirstLocalPlayerController();
 	if (!PC)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[PTBGameInstance] PlayerController is null"));
+		PTB_WARNING(LogPTBCore, TEXT("[PTBGameInstance] PlayerController is null"));
 		return;
 	}
 
-	UE_LOG(LogTemp, Log, TEXT("[PTBGameInstance] Creating widget..."));
+	PTB_RECORD(LogPTBCore, TEXT("[PTBGameInstance] Creating widget..."));
 	TitleWidgetInstance = CreateWidget<UPTBMainTitleWidget>(PC, TitleWidgetClass);
 	if (TitleWidgetInstance)
 	{
-		UE_LOG(LogTemp, Log, TEXT("[PTBGameInstance] Widget created successfully"));
+		PTB_RECORD(LogPTBCore, TEXT("[PTBGameInstance] Widget created successfully"));
 		TitleWidgetInstance->AddToViewport();
 	}
 }
