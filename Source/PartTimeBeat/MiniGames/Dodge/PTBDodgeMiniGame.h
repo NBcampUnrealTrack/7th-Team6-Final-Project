@@ -41,7 +41,7 @@ public:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PTB|Dodge")
     bool bIsJumping = false;
 
-    // 장애물 낙하 속도 (BPM 기반으로 자동 계산)
+    // 장애물 낙하 속도 (StartMiniGame 이후 계산)
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PTB|Dodge")
     float ObstacleFallSpeed = 0.0f;
 
@@ -50,7 +50,9 @@ public:
 
     // 베이스 클래스 오버라이드
     virtual void BuildRuntimeState() override;
+    virtual void StartMiniGame() override;
     virtual void HandleNoteCue(FPTBNoteEvent Note) override;
+    virtual void HandleNoteArm(FPTBNoteEvent Note) override;
     virtual void HandleJudgementResult(FPTBJudgementResult Result) override;
     virtual FPTBMiniGameResultPayload BuildResultPayload() const override;
 
@@ -69,4 +71,12 @@ public:
     // 난이도별 LookAhead 시간
     UFUNCTION(BlueprintCallable, Category = "PTB|Dodge")
     float GetLookAheadMsByDifficulty() const;
+
+    // Blueprint 에서 장애물 스폰 연출 구현
+    UFUNCTION(BlueprintImplementableEvent, Category = "PTB|Dodge")
+    void OnObstacleSpawn(float FallSpeed, float BeatTime);
+
+    // Blueprint 에서 장애물 판정 진입 연출 구현
+    UFUNCTION(BlueprintImplementableEvent, Category = "PTB|Dodge")
+    void OnObstacleArmed(float BeatTime);
 };
