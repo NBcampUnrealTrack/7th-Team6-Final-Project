@@ -39,6 +39,17 @@ FGuid UPTBProfileSubsystem::CreateProfile(
         return FGuid();
     }
 
+    // SlotIndex 중복 검사 — 같은 슬롯에 프로필이 이미 있으면 거부
+    bool bSlotTaken = false;
+    GetProfileBySlot(SlotIndex, bSlotTaken);
+    if (bSlotTaken)
+    {
+        PTB_ERROR(LogPTBProfile,
+            TEXT("CreateProfile failed: SlotIndex %d is already occupied. 덮어쓰려면 먼저 DeleteProfile을 호출하세요."),
+            SlotIndex);
+        return FGuid();
+    }
+
     const EPTBNicknameValidationResult ValidationResult = ValidateNickname(Nickname);
     if (ValidationResult != EPTBNicknameValidationResult::Valid)
     {
@@ -91,30 +102,67 @@ int32 UPTBProfileSubsystem::GetProfileCount() const
 
 FPTBProfileData UPTBProfileSubsystem::GetProfileBySlot(int32 SlotIndex, bool& bOutFound) const
 {
+    const FPTBProfileData* FirstFound = nullptr;
+    int32 MatchCount = 0;
+
     for (const FPTBProfileData& Profile : AllProfiles)
     {
         if (Profile.SlotIndex == SlotIndex)
         {
-            bOutFound = true;
-            return Profile;
+            if (!FirstFound)
+            {
+                FirstFound = &Profile;
+            }
+            ++MatchCount;
         }
     }
+
+    // 중복 슬롯 감지 — CreateProfile의 SlotIndex 검사가 정상 동작했다면 발생하지 않아야 함
+    if (MatchCount > 1)
+    {
+        PTB_WARNING(LogPTBProfile,
+            TEXT("GetProfileBySlot: SlotIndex %d에 중복 프로필 %d개 감지 — 첫 번째 반환. 데이터 정합성을 확인하세요."),
+            SlotIndex, MatchCount);
+    }
+
+    if (FirstFound)
+    {
+        bOutFound = true;
+        return *FirstFound;
+    }
+
     bOutFound = false;
     return FPTBProfileData::MakeInvalid();
 }
 
 bool UPTBProfileSubsystem::DeleteProfile(const FGuid& ProfileId)
 {
+    // 삭제 전: 대상 프로필이 실제로 어떤 슬롯/닉네임인지 먼저 확인
+    bool bPreCheck = false;
+    const FPTBProfileData TargetProfile = GetProfile(ProfileId, bPreCheck);
+    if (!bPreCheck)
+    {
+        PTB_ERROR(LogPTBProfile,
+            TEXT("DeleteProfile failed: ProfileId=[%s] not found in AllProfiles"),
+            *ProfileId.ToString());
+        return false;
+    }
+
+    PTB_RECORD(LogPTBProfile,
+        TEXT("DeleteProfile: 삭제 대상 — Nickname=%s SlotIndex=%d Id=%s"),
+        *TargetProfile.Nickname, TargetProfile.SlotIndex, *ProfileId.ToString());
+
     const int32 RemovedCount = AllProfiles.RemoveAll(
         [&ProfileId](const FPTBProfileData& Profile)
         {
             return Profile.ProfileId == ProfileId;
         });
 
+    // 위에서 bPreCheck==true였는데 RemovedCount==0이면 내부 정합성 오류
     if (RemovedCount == 0)
     {
-        PTB_ERROR(LogPTBProfile, TEXT("DeleteProfile failed: not found"));
-
+        PTB_ERROR(LogPTBProfile,
+            TEXT("DeleteProfile: 내부 오류 — PreCheck 통과 후 RemoveAll 0개 제거. 데이터 정합성을 확인하세요."));
         return false;
     }
 
@@ -123,12 +171,33 @@ bool UPTBProfileSubsystem::DeleteProfile(const FGuid& ProfileId)
         ActiveProfileId = FGuid();
     }
 
-    PTB_RECORD(LogPTBProfile, TEXT("DeleteProfile success"));
+    PTB_RECORD(LogPTBProfile,
+        TEXT("DeleteProfile success: Nickname=%s SlotIndex=%d"),
+        *TargetProfile.Nickname, TargetProfile.SlotIndex);
 
     OnProfileListChanged.Broadcast();
     RequestSave();
 
     return true;
+}
+
+bool UPTBProfileSubsystem::DeleteProfileBySlot(int32 SlotIndex)
+{
+    bool bFound = false;
+    const FPTBProfileData Profile = GetProfileBySlot(SlotIndex, bFound);
+
+    if (!bFound)
+    {
+        PTB_ERROR(LogPTBProfile,
+            TEXT("DeleteProfileBySlot failed: SlotIndex=%d에 프로필이 없습니다."), SlotIndex);
+        return false;
+    }
+
+    PTB_RECORD(LogPTBProfile,
+        TEXT("DeleteProfileBySlot: SlotIndex=%d → Nickname=%s Id=%s"),
+        SlotIndex, *Profile.Nickname, *Profile.ProfileId.ToString());
+
+    return DeleteProfile(Profile.ProfileId);
 }
 
 bool UPTBProfileSubsystem::SetActiveProfile(const FGuid& ProfileId)

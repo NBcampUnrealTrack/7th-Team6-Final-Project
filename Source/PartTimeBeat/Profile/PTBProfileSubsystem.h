@@ -48,10 +48,9 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Profile")
     int32 GetMaxProfileSlotCount() const { return MaxProfiles; }
 
-    /** 프로필 삭제 */
+    /** 슬롯 인덱스로 프로필 삭제 */
     UFUNCTION(BlueprintCallable, Category = "Profile")
-    bool DeleteProfile(const FGuid& ProfileId);
-
+    bool DeleteProfileBySlot(int32 SlotIndex);
 
     /** 활성화된 프로필 슬롯 설정 */
     UFUNCTION(BlueprintCallable, Category = "Profile|Active")
@@ -112,7 +111,10 @@ public:
 protected:
     // 내부 헬퍼
 
-    // SaveGame에서 프로필 목록을 메모리로 로드 
+    /** GUID 기반 삭제 — C++ 내부 전용. Blueprint에서는 DeleteProfileBySlot을 사용할 것. */
+    bool DeleteProfile(const FGuid& ProfileId);
+
+    // SaveGame에서 프로필 목록을 메모리로 로드
     void LoadProfilesFromSave();
 
     // 활성화 된 프로필 복원 
