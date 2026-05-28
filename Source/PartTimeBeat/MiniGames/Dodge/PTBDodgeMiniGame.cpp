@@ -1,4 +1,5 @@
 ﻿#include "MiniGames/Dodge/PTBDodgeMiniGame.h"
+#include "Rhythm/PTBScoreCalculator.h"
 
 APTBDodgeMiniGame::APTBDodgeMiniGame()
 {
@@ -17,7 +18,6 @@ void APTBDodgeMiniGame::BuildRuntimeState()
     Super::BuildRuntimeState();
 
     // 상태 초기화만 (로드/BPM 접근 금지)
-    CurrentScore = 0;
     Health = 100;
     DodgeCount = 0;
     HitCount = 0;
@@ -35,17 +35,17 @@ void APTBDodgeMiniGame::StartMiniGame()
 
     UE_LOG(LogTemp, Log, TEXT("[DodgeMiniGame] StartMiniGame. BPM: %.1f, 장애물 속도: %.1f"), BPM, ObstacleFallSpeed);
 
+    // 반드시 Super 호출 (BGM + Conductor 시작)
     Super::StartMiniGame();
 }
 
 void APTBDodgeMiniGame::HandleNoteCue(FPTBNoteEvent Note)
 {
+    // 반드시 Super 호출
     Super::HandleNoteCue(Note);
 
     // Blueprint 에 장애물 스폰 신호 전달
     OnObstacleSpawn(ObstacleFallSpeed, Note.BeatTime);
-
-    UE_LOG(LogTemp, Log, TEXT("[DodgeMiniGame] 장애물 예고: BeatTime=%.2f, 속도=%.1f"), Note.BeatTime, ObstacleFallSpeed);
 }
 
 void APTBDodgeMiniGame::HandleNoteArm(FPTBNoteEvent Note)
@@ -55,12 +55,11 @@ void APTBDodgeMiniGame::HandleNoteArm(FPTBNoteEvent Note)
 
     // Blueprint 에 판정 진입 신호 전달
     OnObstacleArmed(Note.BeatTime);
-
-    UE_LOG(LogTemp, Log, TEXT("[DodgeMiniGame] 장애물 판정 진입: BeatTime=%.2f"), Note.BeatTime);
 }
 
 void APTBDodgeMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 {
+    // 반드시 Super 호출 (ScoreCalculator + SFX 처리)
     Super::HandleJudgementResult(Result);
 
     if (Result.JudgementType == EPTBJudgementType::Miss)
@@ -74,7 +73,7 @@ void APTBDodgeMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
         if (Health <= 0)
         {
             Health = 0;
-            UE_LOG(LogTemp, Log, TEXT("[DodgeMiniGame] 체력 소진! 최종 점수: %d"), CurrentScore);
+            UE_LOG(LogTemp, Log, TEXT("[DodgeMiniGame] 체력 소진! 게임 종료"));
             FinishMiniGame(EPTBRoundEndReason::Failed);
         }
     }
@@ -82,8 +81,14 @@ void APTBDodgeMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
     {
         // 장애물 피함 → 난이도 배율만큼 점수 증가
         DodgeCount++;
-        CurrentScore += GetScoreMultiplier();
-        UE_LOG(LogTemp, Log, TEXT("[DodgeMiniGame] 장애물 피함! 점수: %d"), CurrentScore);
+
+        // ScoreCalculator 통해 점수 추가
+        if (ScoreCalculator)
+        {
+            ScoreCalculator->ComboCount += GetScoreMultiplier();
+        }
+
+        UE_LOG(LogTemp, Log, TEXT("[DodgeMiniGame] 장애물 피함! DodgeCount: %d"), DodgeCount);
     }
 }
 
@@ -100,9 +105,9 @@ int32 APTBDodgeMiniGame::GetScoreMultiplier() const
 {
     switch (GameContext.SessionRequest.Difficulty)
     {
-    case EPTBDifficulty::Easy:     return 1; // Easy: +1점
-    case EPTBDifficulty::Standard: return 2; // Standard: +2점
-    case EPTBDifficulty::Insane:   return 3; // Insane: +3점
+    case EPTBDifficulty::Easy:     return 1;
+    case EPTBDifficulty::Standard: return 2;
+    case EPTBDifficulty::Insane:   return 3;
     default:                       return 1;
     }
 }
@@ -111,7 +116,7 @@ float APTBDodgeMiniGame::CalculateObstacleFallSpeed(float BPM) const
 {
     float LookAheadMs = GetLookAheadMsByDifficulty();
 
-    // 안전장치: 최소 반응 시간 보장
+    // 안전장치: 최소 반응 시간 보장 (150ms)
     LookAheadMs = FMath::Max(LookAheadMs, MinReactionTimeMs);
 
     // 속도 = 화면 높이 기준값 / LookAhead 시간(초)
@@ -126,19 +131,22 @@ float APTBDodgeMiniGame::GetLookAheadMsByDifficulty() const
 {
     switch (GameContext.SessionRequest.Difficulty)
     {
-    case EPTBDifficulty::Easy:     return 1000.0f; // 여유로운 반응 시간
-    case EPTBDifficulty::Standard: return 500.0f;  // 평균 반응 시간
-    case EPTBDifficulty::Insane:   return 250.0f;  // 빠른 반응 시간
+    case EPTBDifficulty::Easy:     return 1000.0f;
+    case EPTBDifficulty::Standard: return 500.0f;
+    case EPTBDifficulty::Insane:   return 250.0f;
     default:                       return 500.0f;
     }
 }
 
 FPTBMiniGameResultPayload APTBDodgeMiniGame::BuildResultPayload() const
 {
-    FPTBMiniGameResultPayload Payload;
-    Payload.IntValues.Add(FName("FinalScore"), CurrentScore);
+    // 반드시 Super 호출 (기본 결과 포함)
+    FPTBMiniGameResultPayload Payload = Super::BuildResultPayload();
+
+    Payload.PayloadType = FName("DodgeMiniGame");
     Payload.IntValues.Add(FName("HitCount"), HitCount);
     Payload.IntValues.Add(FName("DodgeCount"), DodgeCount);
     Payload.IntValues.Add(FName("FinalHealth"), Health);
+
     return Payload;
 }
