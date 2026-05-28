@@ -8,5 +8,7 @@ UCLASS()
 class PARTTIMEBEAT_API APTBPlayerControllerBase : public APlayerController
 {
 	GENERATED_BODY()
-	
+
+public:
+	virtual bool InputKey(const FInputKeyEventArgs& EventArgs) override;
 };
