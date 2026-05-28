@@ -2,6 +2,8 @@
 
 #include "PTBProfileCreateWidget.h"
 #include "Components/EditableTextBox.h"
+#include "Profile/PTBProfileSubsystem.h"
+#include "Core/PTBStructEnums.h"
 
 void UPTBProfileCreateWidget::NativeConstruct()
 {
@@ -74,26 +76,56 @@ bool UPTBProfileCreateWidget::TryConfirm()
 {
 	const FString Nickname = GetNickname();
 
-	if (Nickname.IsEmpty())
+	UPTBProfileSubsystem* PS = nullptr;
+	if (UGameInstance* GI = GetGameInstance())
 	{
-		OnConfirmFailed(TEXT("닉네임을 입력해주세요."));
-		return false;
+		PS = GI->GetSubsystem<UPTBProfileSubsystem>();
 	}
 
-	if (Nickname.Len() < MinNicknameLength)
+	if (!PS)
 	{
+		// 서브시스템 취득 실패 — 최소한의 빈 문자열 검사만 수행
+		if (Nickname.IsEmpty())
+		{
+			OnConfirmFailed(TEXT("닉네임을 입력해주세요."));
+			return false;
+		}
+		OnConfirmSuccess(Nickname, SelectedModelIndex);
+		return true;
+	}
+
+	switch (PS->ValidateNickname(Nickname))
+	{
+	case EPTBNicknameValidationResult::Valid:
+		OnConfirmSuccess(Nickname, SelectedModelIndex);
+		return true;
+
+	case EPTBNicknameValidationResult::Empty:
+		OnConfirmFailed(TEXT("닉네임을 입력해주세요."));
+		break;
+
+	case EPTBNicknameValidationResult::TooShort:
 		OnConfirmFailed(FString::Printf(
 			TEXT("닉네임은 %d자 이상이어야 합니다."), MinNicknameLength));
-		return false;
-	}
+		break;
 
-	if (Nickname.Len() > MaxNicknameLength)
-	{
+	case EPTBNicknameValidationResult::TooLong:
 		OnConfirmFailed(FString::Printf(
 			TEXT("닉네임은 %d자 이하여야 합니다."), MaxNicknameLength));
-		return false;
+		break;
+
+	case EPTBNicknameValidationResult::AlreadyTaken:
+		OnConfirmFailed(TEXT("이미 사용 중인 닉네임입니다."));
+		break;
+
+	case EPTBNicknameValidationResult::ContainsForbiddenWord:
+		OnConfirmFailed(TEXT("사용할 수 없는 닉네임입니다."));
+		break;
+
+	default:
+		OnConfirmFailed(TEXT("닉네임이 유효하지 않습니다."));
+		break;
 	}
 
-	OnConfirmSuccess(Nickname, SelectedModelIndex);
-	return true;
+	return false;
 }
