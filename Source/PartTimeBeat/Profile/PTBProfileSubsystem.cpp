@@ -615,8 +615,8 @@ void UPTBProfileSubsystem::LoadForbiddenWords()
 {
     ForbiddenWords.Empty();
 
-    // 패키징 후에도 접근 가능한 경로: Content/Data/ForbiddenWords.txt
-    const FString FilePath = FPaths::ProjectContentDir() / TEXT("Data/ForbiddenWords.txt");
+    // 패키징 후에도 접근 가능한 경로: Content/PTB/Data/ForbiddenWords.txt
+    const FString FilePath = FPaths::ProjectContentDir() / TEXT("PTB/Data/ForbiddenWords.txt");
 
     FString RawContent;
     if (!FFileHelper::LoadFileToString(RawContent, *FilePath))
