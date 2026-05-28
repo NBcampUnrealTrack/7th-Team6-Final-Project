@@ -458,6 +458,7 @@ void APTBBaseMiniGame::StartMiniGame()
 
 	bIsRoundActive = true;
 	bInputLocked = false;
+	OnMiniGameStarted.Broadcast();
 
 	UE_LOG(LogRhythm, Log, TEXT("[%s] MiniGame started. Notes=%d BPM=%.2f OffsetMs=%.2f"), *GetNameSafe(this), ChartAsset->NoteEvents.Num(), GameContext.ChartData.BPM, GameContext.ChartData.OffsetMs);
 }

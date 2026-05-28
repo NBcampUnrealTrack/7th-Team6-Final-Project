@@ -18,6 +18,7 @@ class UAkComponent;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FPTBOnMiniGameFinished, FPTBRoundResult, Result);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FPTBOnMiniGameReadyToStart);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FPTBOnMiniGameStarted);
 
 struct FPTBActiveHoldState
 {
@@ -67,6 +68,10 @@ public:
 	/** 미니게임 시작 준비 완료 */
 	UPROPERTY(BlueprintAssignable, Category = "PTB|MiniGame")
 	FPTBOnMiniGameReadyToStart OnMiniGameReadyToStart;
+
+	/** 미니게임 실제 시작 */
+	UPROPERTY(BlueprintAssignable, Category = "PTB|MiniGame")
+	FPTBOnMiniGameStarted OnMiniGameStarted;
 
 	/** 컨텍스트 주입 */
 	virtual void InitializeMiniGame(const FPTBMiniGameContext& Context);
