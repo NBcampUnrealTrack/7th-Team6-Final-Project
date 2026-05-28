@@ -45,16 +45,16 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|MiniGame")
 	TObjectPtr<UPTBMiniGameRuleSet> RuleSet;
 
-	/** Wwise 이벤트 매핑 */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|Audio")
+	/** RuleSet에서 적용되는 Wwise 이벤트 매핑 */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PTB|Audio", AdvancedDisplay)
 	TObjectPtr<UPTBWwiseEventMapAsset> AudioEventSet;
 
-	/** 재생할 채보 Asset */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|Rhythm")
+	/** RuleSet 난이도 설정에서 선택된 채보 Asset */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PTB|Rhythm", AdvancedDisplay)
 	TObjectPtr<UPTBRhythmChartAsset> ChartAsset;
 
 	/** Deprecated: ChartAsset.SourceJsonFilePath를 사용 */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|Rhythm")
+	UPROPERTY()
 	FString ChartJsonFilePath;
 
 	/** 로딩 화면 Widget 클래스 */
@@ -117,19 +117,19 @@ protected:
 	virtual void Tick(float DeltaTime) override;
 
 	/** 고유 ID */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|MiniGame")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PTB|MiniGame", AdvancedDisplay)
 	FName MiniGameId;
 
 	/** 2글자 코드 */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|MiniGame")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PTB|MiniGame", AdvancedDisplay)
 	FName MiniGameCode;
 
 	/** UI 표시 이름 */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|MiniGame")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PTB|MiniGame", AdvancedDisplay)
 	FText DisplayName;
 
-	/** Wwise 런타임 매니저 */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|Audio")
+	/** 자동 생성되는 Wwise 런타임 매니저 */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PTB|Audio", AdvancedDisplay)
 	TObjectPtr<UPTBWwiseAudioManager> AudioManager;
 
 	/** 미니게임 전용 AkComponent */
@@ -181,7 +181,7 @@ protected:
 	bool bIsRoundActive = false;
 
 	/** 입력 잠금 */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|MiniGame")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PTB|MiniGame", AdvancedDisplay)
 	bool bInputLocked = true;
 
 	/** 라운드 완료 예약 여부 */

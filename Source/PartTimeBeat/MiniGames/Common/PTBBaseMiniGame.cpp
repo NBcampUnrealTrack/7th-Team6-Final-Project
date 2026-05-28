@@ -203,6 +203,11 @@ void APTBBaseMiniGame::InitializeMiniGame(const FPTBMiniGameContext& Context)
 		ScoreCalculator->Reset();
 	}
 
+	if (RuleSet)
+	{
+		AudioEventSet = RuleSet->AudioEventSet;
+	}
+
 	if (AudioManager)
 	{
 		AudioManager->SetMainAkComponent(AkComponent);
