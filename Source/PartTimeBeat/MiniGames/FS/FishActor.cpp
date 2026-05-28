@@ -3,6 +3,7 @@
 
 #include "FishActor.h"
 
+#include "Debug/PTBTeamLog.h"
 
 
 AFishActor::AFishActor()
@@ -20,7 +21,9 @@ void AFishActor::SetTargetLocation(FVector NewLocation)
 void AFishActor::BeginPlay()
 {
 	Super::BeginPlay();
+	
 	TargetLocation = GetActorLocation();
+	PTB_WARNING(LogPTBMiniGames,TEXT("미니게임 엑터 호출완료"));
 }
 
 void AFishActor::Tick(float DeltaTime)

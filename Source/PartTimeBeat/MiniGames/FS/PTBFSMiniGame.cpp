@@ -19,13 +19,22 @@ APTBFSMiniGame::APTBFSMiniGame()
 void APTBFSMiniGame::BeginPlay()
 {
 	Super::BeginPlay();
-    
 	if (RhythmConductor)
 	{
 		RhythmConductor->OnAllNotesPassed.AddDynamic(
 			this, &APTBFSMiniGame::OnAllNotesPassedFishing
 		);
+		PTB_WARNING(LogPTBMiniGames, TEXT("[Fishing] RhythmConductor 바인딩 완료"));
 	}
+	else
+	{
+		PTB_WARNING(LogPTBMiniGames, TEXT("[Fishing] RhythmConductor 없음"));
+	}
+
+	FPTBMiniGameContext Context;
+	Context.SessionRequest.MiniGameId = FName("FishMiniGame");
+	Context.SessionRequest.Difficulty = EPTBDifficulty::Standard;
+	InitializeMiniGame(Context);
 }
 
 void APTBFSMiniGame::BuildRuntimeState()
@@ -124,6 +133,11 @@ void APTBFSMiniGame::PlayJudgementFeedback(const FPTBJudgementResult& Result)
 FPTBMiniGameResultPayload APTBFSMiniGame::BuildResultPayload() const
 {
 	return Super::BuildResultPayload();
+}
+
+void APTBFSMiniGame::InitializeMiniGame(const FPTBMiniGameContext& Context)
+{
+	Super::InitializeMiniGame(Context);
 }
 
 void APTBFSMiniGame::OnAllNotesPassedFishing()

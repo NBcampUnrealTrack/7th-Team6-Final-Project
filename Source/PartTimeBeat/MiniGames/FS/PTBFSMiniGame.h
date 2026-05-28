@@ -120,11 +120,14 @@ protected:
 	virtual void PlayJudgementFeedback(const FPTBJudgementResult& Result) override;
 	
 	virtual FPTBMiniGameResultPayload BuildResultPayload() const override;
+	
+	UFUNCTION(BlueprintCallable, Category = "PTB|MiniGame")
+	virtual void InitializeMiniGame(const FPTBMiniGameContext& Context)override;
 private:
 	UFUNCTION()
 	void OnAllNotesPassedFishing();
 	
-	float FishDistance;
+	float FishDistance =0;
 	
 	EFishingLineState CurrentLineState = EFishingLineState::None;
 	
