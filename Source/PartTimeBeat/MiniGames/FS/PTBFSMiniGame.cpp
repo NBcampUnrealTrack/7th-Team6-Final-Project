@@ -2,34 +2,74 @@
 
 
 #include "PTBFSMiniGame.h"
-
+#include "Characters/PTBRhythmCharacterBase.h"
 #include "FishActor.h"
+#include "PTBFSMiniGameRuleSet.h"
+#include "Debug/PTBTeamLog.h"
+#include "Kismet/GameplayStatics.h"
+#include "Rhythm/PTBRhythmChartAsset.h"
 
 
 // Sets default values
 APTBFSMiniGame::APTBFSMiniGame()
 {
-	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = true;
-}
-
-// Called when the game starts or when spawned
-void APTBFSMiniGame::BeginPlay()
-{
-	Super::BeginPlay();
-	
+	PrimaryActorTick.bCanEverTick = false;
 }
 
 void APTBFSMiniGame::BuildRuntimeState()
 {
 	Super::BuildRuntimeState();
-	// 물고기 위치 가져오기
-	//
+	
+	CacheFishingRuleSet();
+	if (!FishRuleSet) return;
+	
+	TArray<AActor*> FoundActor;
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AActor::StaticClass(), FoundActor);
+	if (!FoundActor.Num()>0)
+	{
+		FishActor = Cast<AFishActor>(FoundActor[0]);
+	}
+	
+	APTBRhythmCharacterBase* Character = 
+	Cast<APTBRhythmCharacterBase>(UGameplayStatics::GetPlayerCharacter(GetWorld(), 0));
+	
+	int32 TotalNoteCount = ChartAsset->NoteEvents.Num();
+	
+	
+	float TotalDistance = FVector::Dist(FishActor->GetActorLocation(), Character->GetActorLocation());
+	float StepDistance = TotalDistance /NoteCount;	
 }
 
-// Called every frame
-void APTBFSMiniGame::Tick(float DeltaTime)
+void APTBFSMiniGame::CacheFishingRuleSet()
 {
-	Super::Tick(DeltaTime);
+	FishRuleSet = Cast<UPTBFSMiniGameRuleSet>(RuleSet);
+	if (!FishRuleSet)
+	{
+		PTB_WARNING(LogPTBMiniGames,TEXT("낚시게임 룰셋 생성 실패"));
+	}
 }
 
+void APTBFSMiniGame::HandleActionAInput()
+{
+	HandleRhythmInput(EPTBActionType::ActionA);
+}
+
+void APTBFSMiniGame::HandleActionBInput()
+{
+	HandleRhythmInput(EPTBActionType::ActionB);
+}
+
+void APTBFSMiniGame::HandleActionCInput()
+{
+	HandleRhythmInput(EPTBActionType::ActionC);
+}
+
+void APTBFSMiniGame::HandleActionDInput()
+{
+	HandleRhythmInput(EPTBActionType::ActionD);
+}
+
+void APTBFSMiniGame::HandleActionEInput()
+{
+	HandleRhythmInput(EPTBActionType::ActionE);
+}

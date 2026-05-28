@@ -6,21 +6,51 @@
 #include "MiniGames/Common/PTBBaseMiniGame.h"
 #include "PTBFSMiniGame.generated.h"
 
+
+class AFishActor;
+class UPTBFSMiniGameRuleSet;
+class APTBRhythmCharacterBase;
+
+UENUM(BlueprintType)
+enum class EFishingLineState : uint8
+{
+	Loose,
+	Taut,
+	Maximum,
+};
+
 UCLASS()
 class PARTTIMEBEAT_API APTBFSMiniGame : public APTBBaseMiniGame
 {
 	GENERATED_BODY()
-
+ 
 public:
-	// Sets default values for this actor's properties
 	APTBFSMiniGame();
-
+ 
+	void BuildRuntimeState();
+	
+	UFUNCTION(BlueprintCallable, Category = "Fishing|Input")
+	void HandleActionAInput(); 
+ 
+	UFUNCTION(BlueprintCallable, Category = "Fishing|Input")
+	void HandleActionBInput(); 
+ 
+	UFUNCTION(BlueprintCallable, Category = "Fishing|Input")
+	void HandleActionCInput(); 
+ 
+	UFUNCTION(BlueprintCallable, Category = "Fishing|Input")
+	void HandleActionDInput(); 
+	
+	UFUNCTION(BlueprintCallable, Category = "Fishing|Input")
+	void HandleActionEInput();
 protected:
-	// Called when the game starts or when spawned
-	virtual void BeginPlay() override;
-
-	virtual void BuildRuntimeState() override;
-public:
-	// Called every frame
-	virtual void Tick(float DeltaTime) override;
+	void CacheFishingRuleSet();
+private:
+	UPROPERTY()
+	TObjectPtr<AFishActor> FishActor;
+	
+	UPROPERTY()
+	TObjectPtr<UPTBFSMiniGameRuleSet> FishRuleSet;
+	
+	int32 NoteCount;
 };
