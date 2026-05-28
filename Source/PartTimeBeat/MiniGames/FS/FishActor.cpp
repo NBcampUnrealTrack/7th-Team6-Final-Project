@@ -4,23 +4,33 @@
 #include "FishActor.h"
 
 
-// Sets default values
+
 AFishActor::AFishActor()
 {
-	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 }
 
-// Called when the game starts or when spawned
+void AFishActor::SetTargetLocation(FVector NewLocation)
+{
+	TargetLocation = NewLocation;
+}
+
 void AFishActor::BeginPlay()
 {
 	Super::BeginPlay();
-	
+	TargetLocation = GetActorLocation();
 }
 
-// Called every frame
 void AFishActor::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+	FVector Current = GetActorLocation();
+	FVector NewLocation = FMath::VInterpTo(
+		Current,     
+		TargetLocation,
+		DeltaTime,
+		InterpSpeed  
+	);
+	SetActorLocation(NewLocation);
 }
 

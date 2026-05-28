@@ -3,6 +3,8 @@
 
 #include "PTBFSMiniGame.h"
 
+#include "FishActor.h"
+
 
 // Sets default values
 APTBFSMiniGame::APTBFSMiniGame()
@@ -16,6 +18,13 @@ void APTBFSMiniGame::BeginPlay()
 {
 	Super::BeginPlay();
 	
+}
+
+void APTBFSMiniGame::BuildRuntimeState()
+{
+	Super::BuildRuntimeState();
+	// 물고기 위치 가져오기
+	//
 }
 
 // Called every frame
