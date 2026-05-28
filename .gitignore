@@ -588,3 +588,6 @@ Content/Developers/
 !Source/PartTimeBeat/Debug/
 !Source/PartTimeBeat/Debug/PTBTeamLog.h
 Source/PartTimeBeat/Debug/PTBFlowTestActor.*
+
+# 금칙어 목록
+Content/Data/ForbiddenWords.txt
