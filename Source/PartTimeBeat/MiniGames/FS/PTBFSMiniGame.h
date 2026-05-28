@@ -52,6 +52,32 @@ class PARTTIMEBEAT_API APTBFSMiniGame : public APTBBaseMiniGame
 public:
 	APTBFSMiniGame();
  
+	virtual void BeginPlay() override;
+	
+	/** 물고기 거리 변화 시 발행 — 물고기 수심, 낚싯줄 길이 연출 연동 */
+	UPROPERTY(BlueprintAssignable, Category = "Fishing|Events")
+	FOnFishDistanceChanged OnFishDistanceChanged;
+ 
+	/** 줄 긴장 상태 변화 시 발행 — 줄 색깔, 팽팽함 애니메이션, 사운드 연동 */
+	UPROPERTY(BlueprintAssignable, Category = "Fishing|Events")
+	FOnFishingLineStateChanged OnFishingLineStateChanged;
+ 
+	/** Cue 시점 발행 — 물고기 발버둥 모션 + 요구 키 HUD */
+	UPROPERTY(BlueprintAssignable, Category = "Fishing|Events")
+	FOnFishingPromptShown OnFishingPromptShown;
+ 
+	/** 성공 입력 시 발행 — 물튀김 이펙트, 컨트롤러 진동 강도 연동 */
+	UPROPERTY(BlueprintAssignable, Category = "Fishing|Events")
+	FOnFishPulled OnFishPulled;
+ 
+	/** Miss 시 발행 — 줄 흔들림 연출, 실패 사운드 연동 */
+	UPROPERTY(BlueprintAssignable, Category = "Fishing|Events")
+	FOnFishSlipped OnFishSlipped;
+ 
+	/** AllNotesPassed 시 발행 — 물고기 점프 연출, 종류 공개 UI 연동 */
+	UPROPERTY(BlueprintAssignable, Category = "Fishing|Events")
+	FOnFishRevealed OnFishRevealed;
+	
 	UFUNCTION(BlueprintPure, Category = "Fishing")
 	float GetFishDistance() const { return FishDistance; }
 
@@ -108,18 +134,26 @@ private:
 	
 	int32 MovingCount = 0;
 	
-	FVector FishLocation = FVector::ZeroVector;
+	FVector FishStartLocation = FVector::ZeroVector;
 	
 	FVector CharacterLocation = FVector::ZeroVector;
 	
-	FTimerHandle FinishTimer;
+	FTimerHandle FishTimer;
 	
 	UPROPERTY()
-	TObjectPtr<AFishActor> FishActor;
+	TObjectPtr<AFishActor> FishActor=nullptr;
 	
 	UPROPERTY()
-	TObjectPtr<UPTBFSMiniGameRuleSet> FishRuleSet;
+	TObjectPtr<UPTBFSMiniGameRuleSet> FishRuleSet =nullptr
+	;
 	
+	UPROPERTY()
+	TObjectPtr<APTBRhythmCharacterBase> Character = nullptr;
+	
+	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category = "Fishing",meta = (AllowPrivateAccess = "true"))
+	float AutoDriftMultiplier = 0.3f;
+	
+	/**물고기 거리조정함수*/
 	void ApplyDistanceDelta(float Delta);
 	
 	EFishingLineState CalculateLineState(float Distance)const;
