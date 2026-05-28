@@ -62,6 +62,49 @@ namespace PTBRhythmChartParserInternal
 		ChartData.TimeSignatureChangeNumerators.Add(Numerator);
 		ChartData.TimeSignatureChangeDenominators.Add(Denominator);
 	}
+
+	bool ReadArrayNumber(
+		const TMap<FString, int32>& NoteFormatIndex,
+		const TArray<TSharedPtr<FJsonValue>>& Values,
+		const FString& FieldName,
+		double& OutValue)
+	{
+		const int32* FieldIndex = NoteFormatIndex.Find(FieldName);
+		if (!FieldIndex || !Values.IsValidIndex(*FieldIndex) || !Values[*FieldIndex].IsValid())
+		{
+			return false;
+		}
+
+		return Values[*FieldIndex]->TryGetNumber(OutValue);
+	}
+
+	bool ReadArrayString(
+		const TMap<FString, int32>& NoteFormatIndex,
+		const TArray<TSharedPtr<FJsonValue>>& Values,
+		const FString& FieldName,
+		FString& OutValue)
+	{
+		const int32* FieldIndex = NoteFormatIndex.Find(FieldName);
+		if (!FieldIndex || !Values.IsValidIndex(*FieldIndex) || !Values[*FieldIndex].IsValid())
+		{
+			return false;
+		}
+
+		return Values[*FieldIndex]->TryGetString(OutValue);
+	}
+
+	int32 GenerateMissingNoteId(TSet<int32>& AssignedNoteIds, int32& NextGeneratedNoteId)
+	{
+		while (AssignedNoteIds.Contains(NextGeneratedNoteId))
+		{
+			++NextGeneratedNoteId;
+		}
+
+		const int32 GeneratedNoteId = NextGeneratedNoteId;
+		AssignedNoteIds.Add(GeneratedNoteId);
+		++NextGeneratedNoteId;
+		return GeneratedNoteId;
+	}
 }
 
 bool UPTBRhythmChartParser::ParseChartFile(const FString& FilePath, FPTBChartData& OutChartData, TArray<FPTBNoteEvent>& OutNoteEvents, TArray<FText>& OutErrors)
@@ -237,48 +280,13 @@ bool UPTBRhythmChartParser::ParseChartString(const FString& JsonString, FPTBChar
 		}
 	}
 
-	auto ReadArrayNumber = [&NoteFormatIndex](const TArray<TSharedPtr<FJsonValue>>& Values, const FString& FieldName, double& OutValue) -> bool
-	{
-		const int32* FieldIndex = NoteFormatIndex.Find(FieldName);
-		if (!FieldIndex || !Values.IsValidIndex(*FieldIndex))
-		{
-			return false;
-		}
-
-		return Values[*FieldIndex]->TryGetNumber(OutValue);
-	};
-
-	auto ReadArrayString = [&NoteFormatIndex](const TArray<TSharedPtr<FJsonValue>>& Values, const FString& FieldName, FString& OutValue) -> bool
-	{
-		const int32* FieldIndex = NoteFormatIndex.Find(FieldName);
-		if (!FieldIndex || !Values.IsValidIndex(*FieldIndex))
-		{
-			return false;
-		}
-
-		return Values[*FieldIndex]->TryGetString(OutValue);
-	};
-
 	TArray<PTBRhythmChartParserInternal::FParsedChartNote> ParsedNotes;
 	TSet<int32> AssignedNoteIds;
 	int32 NextGeneratedNoteId = 1;
-	auto GenerateMissingNoteId = [&AssignedNoteIds, &NextGeneratedNoteId]() -> int32
-	{
-		while (AssignedNoteIds.Contains(NextGeneratedNoteId))
-		{
-			++NextGeneratedNoteId;
-		}
-
-		const int32 GeneratedNoteId = NextGeneratedNoteId;
-		AssignedNoteIds.Add(GeneratedNoteId);
-		++NextGeneratedNoteId;
-		return GeneratedNoteId;
-	};
 
 	for (int32 Index = 0; Index < NotesArray->Num(); ++Index)
 	{
 		const TSharedPtr<FJsonValue>& RawNote = (*NotesArray)[Index];
-		const TSharedPtr<FJsonObject> NoteObject = RawNote->AsObject();
 		PTBRhythmChartParserInternal::FParsedChartNote ParsedNote;
 		FPTBNoteEvent& Note = ParsedNote.Note;
 		bool bHasTimeMs = false;
@@ -289,8 +297,15 @@ bool UPTBRhythmChartParser::ParseChartString(const FString& JsonString, FPTBChar
 		bool bHasNoteType = false;
 		ParsedNote.SourceIndex = Index;
 
-		if (NoteObject.IsValid())
+		if (RawNote.IsValid() && RawNote->Type == EJson::Object)
 		{
+			const TSharedPtr<FJsonObject> NoteObject = RawNote->AsObject();
+			if (!NoteObject.IsValid())
+			{
+				OutErrors.Add(FText::FromString(FString::Printf(TEXT("notes[%d] must be a valid object."), Index)));
+				continue;
+			}
+
 			if (NoteObject->TryGetNumberField(TEXT("id"), NumberValue))
 			{
 				Note.NoteId = static_cast<int32>(NumberValue);
@@ -344,29 +359,31 @@ bool UPTBRhythmChartParser::ParseChartString(const FString& JsonString, FPTBChar
 				Note.SectionName = FName(*SectionString);
 			}
 		}
-		else if (RawNote->Type == EJson::Array)
+		else if (RawNote.IsValid() && RawNote->Type == EJson::Array)
 		{
 			const TArray<TSharedPtr<FJsonValue>>& NoteValues = RawNote->AsArray();
 
-			if (ReadArrayNumber(NoteValues, TEXT("id"), NumberValue))
+			if (PTBRhythmChartParserInternal::ReadArrayNumber(NoteFormatIndex, NoteValues, TEXT("id"), NumberValue))
 			{
 				Note.NoteId = static_cast<int32>(NumberValue);
 				bHasNoteId = true;
 			}
 
-			if (ReadArrayNumber(NoteValues, TEXT("timeMs"), NumberValue) || ReadArrayNumber(NoteValues, TEXT("time"), NumberValue))
+			if (PTBRhythmChartParserInternal::ReadArrayNumber(NoteFormatIndex, NoteValues, TEXT("timeMs"), NumberValue)
+				|| PTBRhythmChartParserInternal::ReadArrayNumber(NoteFormatIndex, NoteValues, TEXT("time"), NumberValue))
 			{
 				Note.TimeMs = static_cast<float>(NumberValue);
 				bHasTimeMs = true;
 			}
 
-			if (ReadArrayNumber(NoteValues, TEXT("beat"), NumberValue) || ReadArrayNumber(NoteValues, TEXT("beatTime"), NumberValue))
+			if (PTBRhythmChartParserInternal::ReadArrayNumber(NoteFormatIndex, NoteValues, TEXT("beat"), NumberValue)
+				|| PTBRhythmChartParserInternal::ReadArrayNumber(NoteFormatIndex, NoteValues, TEXT("beatTime"), NumberValue))
 			{
 				Note.BeatTime = static_cast<float>(NumberValue);
 			}
 
 			FString ActionString;
-			if (ReadArrayString(NoteValues, TEXT("action"), ActionString))
+			if (PTBRhythmChartParserInternal::ReadArrayString(NoteFormatIndex, NoteValues, TEXT("action"), ActionString))
 			{
 				bHasAction = true;
 				Note.ActionType = ParseActionType(ActionString);
@@ -374,7 +391,7 @@ bool UPTBRhythmChartParser::ParseChartString(const FString& JsonString, FPTBChar
 			}
 
 			FString NoteTypeString;
-			if (ReadArrayString(NoteValues, TEXT("type"), NoteTypeString))
+			if (PTBRhythmChartParserInternal::ReadArrayString(NoteFormatIndex, NoteValues, TEXT("type"), NoteTypeString))
 			{
 				bHasNoteType = true;
 				if (!PTBRhythmChartParserInternal::TryParseNoteType(NoteTypeString, Note.NoteType))
@@ -383,12 +400,13 @@ bool UPTBRhythmChartParser::ParseChartString(const FString& JsonString, FPTBChar
 				}
 			}
 
-			if (ReadArrayNumber(NoteValues, TEXT("durationBeat"), NumberValue) || ReadArrayNumber(NoteValues, TEXT("duration"), NumberValue))
+			if (PTBRhythmChartParserInternal::ReadArrayNumber(NoteFormatIndex, NoteValues, TEXT("durationBeat"), NumberValue)
+				|| PTBRhythmChartParserInternal::ReadArrayNumber(NoteFormatIndex, NoteValues, TEXT("duration"), NumberValue))
 			{
 				Note.DurationBeat = static_cast<float>(NumberValue);
 			}
 
-			if (ReadArrayNumber(NoteValues, TEXT("lane"), NumberValue))
+			if (PTBRhythmChartParserInternal::ReadArrayNumber(NoteFormatIndex, NoteValues, TEXT("lane"), NumberValue))
 			{
 				IntValue = static_cast<int32>(NumberValue);
 				Note.Lane = IntValue;
@@ -396,7 +414,8 @@ bool UPTBRhythmChartParser::ParseChartString(const FString& JsonString, FPTBChar
 			}
 
 			FString SectionString;
-			if (ReadArrayString(NoteValues, TEXT("section"), SectionString) || ReadArrayString(NoteValues, TEXT("sectionName"), SectionString))
+			if (PTBRhythmChartParserInternal::ReadArrayString(NoteFormatIndex, NoteValues, TEXT("section"), SectionString)
+				|| PTBRhythmChartParserInternal::ReadArrayString(NoteFormatIndex, NoteValues, TEXT("sectionName"), SectionString))
 			{
 				Note.SectionName = FName(*SectionString);
 			}
@@ -442,7 +461,7 @@ bool UPTBRhythmChartParser::ParseChartString(const FString& JsonString, FPTBChar
 
 		if (!bHasNoteId)
 		{
-			Note.NoteId = GenerateMissingNoteId();
+			Note.NoteId = PTBRhythmChartParserInternal::GenerateMissingNoteId(AssignedNoteIds, NextGeneratedNoteId);
 		}
 		else if (Note.NoteId > 0)
 		{
