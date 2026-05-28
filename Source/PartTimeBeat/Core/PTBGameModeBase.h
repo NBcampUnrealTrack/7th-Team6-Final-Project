@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/GameModeBase.h"
 #include "PTBStructEnums.h"
+#include "UI/PTBPauseMenuWidget.h"
 #include "PTBGameModeBase.generated.h"
 
 class APTBBaseMiniGame;
@@ -26,9 +27,9 @@ public:
 	/** 시작 카운트다운(기본 3) */
 	int32 CountdownSeconds;
 	/** 게임 진행 중 여부 */
-	bool bIsGameActive;
+	bool bIsGameActive = false;
 	/**	일시정지 상태 */
-	bool bIsPaused;
+	bool bIsPaused = false;
 
 	//	라운드 준비 시작
 	void StartGameFlow(const FPTBGameSessionRequest& Request);
@@ -38,16 +39,30 @@ public:
 	APTBBaseMiniGame* SpawnMiniGame(TSubclassOf<APTBBaseMiniGame> Cls);
 	//	카운트다운 → BGM → Conductor → StartMiniGame
 	void BeginRound();
-	//게임 + Wwise 일시정지
-	void PauseGame(); 
-	// 게임 + Wwise 재개
+
+	UFUNCTION(BlueprintCallable, Category = "PTB|Game")
+	void PauseGame();
+
+	UFUNCTION(BlueprintCallable, Category = "PTB|Game")
 	void ResumeGame();
+
 	//	결과 제출(싱글 = 저장, 멀티 = 검증)
 	void SubmitRoundResult(const FPTBRoundResult& Result);
-	//	현재 라운드 재시작
+
+	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "PTB|Game")
 	void RetryGame();
-	//	미니게임 선택으로 복귀
+
+	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "PTB|Game")
 	void ExitToMenu();
+
+	/** 일시정지 메뉴 위젯 클래스 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|UI")
+	TSubclassOf<UPTBPauseMenuWidget> PauseMenuClass;
+
+	/** 일시정지 메뉴 표시 */
+	void ShowPauseMenu();
+	/** 일시정지 메뉴 숨기기 */
+	void HidePauseMenu();
 
 	// 1) 카운트다운 후 게임 시작 시 호출
 	UPROPERTY(BlueprintAssignable, Category = "Game State")
@@ -64,4 +79,8 @@ public:
 	// 4) 게임 재개 시 호출
 	UPROPERTY(BlueprintAssignable, Category = "Game State")
 	FOnGameResumed OnGameResumed;
+
+protected:
+	UPROPERTY()
+	TObjectPtr<UPTBPauseMenuWidget> PauseMenuInstance;
 };

@@ -128,7 +128,17 @@ void APTBGameModeBase::BeginRound()
 
 void APTBGameModeBase::PauseGame()
 {
-	if (!bIsGameActive || bIsPaused) { return; }
+	// ── 진단 로그 (문제 해결 후 제거) ──────────────────────────
+	if (GEngine)
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Cyan,
+			FString::Printf(TEXT("[PauseGame] bIsGameActive=%s bIsPaused=%s"),
+				bIsGameActive ? TEXT("true") : TEXT("false"),
+				bIsPaused     ? TEXT("true") : TEXT("false")));
+	}
+	// ────────────────────────────────────────────────────────────
+
+	if (bIsPaused) { return; }
 
 	bIsPaused = true;
 
@@ -151,6 +161,8 @@ void APTBGameModeBase::PauseGame()
 
 	OnGamePaused.Broadcast();
 
+	ShowPauseMenu();
+
 	UE_LOG(LogTemp, Log, TEXT("PauseGame"));
 }
 
@@ -159,6 +171,8 @@ void APTBGameModeBase::ResumeGame()
 	if (!bIsPaused) { return; }
 
 	bIsPaused = false;
+
+	HidePauseMenu();
 
 	// UGameplayStatics::SetGamePaused(GetWorld(), false);
 
@@ -177,6 +191,32 @@ void APTBGameModeBase::ResumeGame()
 	OnGameResumed.Broadcast();
 
 	UE_LOG(LogTemp, Log, TEXT("ResumeGame"));
+}
+
+void APTBGameModeBase::ShowPauseMenu()
+{
+	if (!PauseMenuClass) { return; }
+
+	APlayerController* PC = GetWorld()->GetFirstPlayerController();
+	if (!PC) { return; }
+
+	if (!PauseMenuInstance)
+	{
+		PauseMenuInstance = CreateWidget<UPTBPauseMenuWidget>(PC, PauseMenuClass);
+	}
+
+	if (PauseMenuInstance)
+	{
+		PauseMenuInstance->OpenMenu();
+	}
+}
+
+void APTBGameModeBase::HidePauseMenu()
+{
+	if (PauseMenuInstance && PauseMenuInstance->IsInViewport())
+	{
+		PauseMenuInstance->CloseMenu();
+	}
 }
 
 void APTBGameModeBase::SubmitRoundResult(const FPTBRoundResult& Result)
@@ -229,8 +269,10 @@ void APTBGameModeBase::SubmitRoundResult(const FPTBRoundResult& Result)
 		Result.Score, static_cast<int32>(Result.Grade), Result.StarCount);
 }
 
-void APTBGameModeBase::RetryGame()
+void APTBGameModeBase::RetryGame_Implementation()
 {
+	HidePauseMenu();
+
 	// 기존 미니게임 정리
 	if (ActiveMiniGame)
 	{
@@ -248,8 +290,10 @@ void APTBGameModeBase::RetryGame()
 		*CurrentRequest.MiniGameId.ToString());
 }
 
-void APTBGameModeBase::ExitToMenu()
+void APTBGameModeBase::ExitToMenu_Implementation()
 {
+	HidePauseMenu();
+
 	// 미니게임 정리
 	if (ActiveMiniGame)
 	{
