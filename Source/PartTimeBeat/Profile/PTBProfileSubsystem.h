@@ -117,13 +117,13 @@ protected:
     // SaveGame에서 프로필 목록을 메모리로 로드
     void LoadProfilesFromSave();
 
-    // 활성화 된 프로필 복원 
+    // 활성화 된 프로필 복원
     void ClearActiveProfile();
 
-    // SaveGame 인스턴스 불러오기 또는 만들기 
+    // SaveGame 인스턴스 불러오기 또는 만들기
     UPTBSaveGame* GetOrCreateSaveGame() const;
 
-    // 닉네임 정리 (앞뒤 공백 제거 등) 
+    // 닉네임 정리 (앞뒤 공백 제거 등)
     FString NormalizeNickname(const FString& InNickname) const;
 
     // 활성화 된 프로필 데이터에 대한 수정 가능 포인터 없으면 nullptr
@@ -132,10 +132,33 @@ protected:
     // ID로 프로필 수정 가능 포인터 검색
     FPTBProfileData* FindProfileMutable(const FGuid& ProfileId);
 
+    // ── 금칙어 필터 ──────────────────────────────────────────────
+
+    /**
+     * Content/Data/ForbiddenWords.txt 에서 금칙어 목록을 로드
+     * Initialize() 에서 1회 호출
+     */
+    void LoadForbiddenWords();
+
+    /**
+     * 닉네임에 금칙어가 포함되어 있는지 검사
+     * 영숫자만 남긴 소문자 문자열로 정규화 후 부분 문자열 매칭
+     */
+    bool ContainsForbiddenWord(const FString& Nickname) const;
+
+    /**
+     * 금칙어 비교용 정규화: 소문자 변환 + 영숫자 이외 문자 제거
+     * 특수문자·공백으로 금칙어를 우회하는 것을 방지
+     */
+    static FString NormalizeForFilter(const FString& Input);
+
 private:
     /** 메모리 상의 모든 프로필 */
     UPROPERTY()
     TArray<FPTBProfileData> AllProfiles;
+
+    /** 정규화된 금칙어 목록 (LoadForbiddenWords에서 채워짐) */
+    TArray<FString> ForbiddenWords;
 
     /** 활성화 된 프로필 ID */
     UPROPERTY()
