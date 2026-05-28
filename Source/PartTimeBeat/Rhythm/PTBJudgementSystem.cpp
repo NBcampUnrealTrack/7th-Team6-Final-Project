@@ -145,10 +145,18 @@ void UPTBJudgementSystem::RegisterNoteEvent(const FPTBNoteEvent& Note)
 
 FPTBJudgementResult UPTBJudgementSystem::EvaluateInput(EPTBActionType Action, float InputTimeMs)
 {
+	return EvaluateInput(Action, InputTimeMs, true);
+}
+
+FPTBJudgementResult UPTBJudgementSystem::EvaluateInput(EPTBActionType Action, float InputTimeMs, bool bBroadcastResult)
+{
 	if (Action == EPTBActionType::None)
 	{
 		const FPTBJudgementResult Result = PTBJudgementSystemInternal::MakeMissResult(Action, EPTBJudgementReason::EmptyInput);
-		OnJudgementResult.Broadcast(Result);
+		if (bBroadcastResult)
+		{
+			OnJudgementResult.Broadcast(Result);
+		}
 		return Result;
 	}
 
@@ -178,7 +186,10 @@ FPTBJudgementResult UPTBJudgementSystem::EvaluateInput(EPTBActionType Action, fl
 	if (BestNoteIndex == INDEX_NONE)
 	{
 		const FPTBJudgementResult Result = PTBJudgementSystemInternal::MakeMissResult(Action, EPTBJudgementReason::EmptyInput);
-		OnJudgementResult.Broadcast(Result);
+		if (bBroadcastResult)
+		{
+			OnJudgementResult.Broadcast(Result);
+		}
 		return Result;
 	}
 
@@ -196,8 +207,47 @@ FPTBJudgementResult UPTBJudgementSystem::EvaluateInput(EPTBActionType Action, fl
 		JudgementType,
 		BestSignedDeltaMs);
 
-	OnJudgementResult.Broadcast(Result);
+	if (bBroadcastResult)
+	{
+		OnJudgementResult.Broadcast(Result);
+	}
 	return Result;
+}
+
+bool UPTBJudgementSystem::FindBestPendingNote(EPTBActionType Action, float InputTimeMs, FPTBNoteEvent& OutNote) const
+{
+	if (Action == EPTBActionType::None)
+	{
+		return false;
+	}
+
+	const float CorrectedInputTimeMs = InputTimeMs + JudgementOffsetMs;
+	int32 BestNoteIndex = INDEX_NONE;
+	float BestAbsDeltaMs = HitWindowMissMs;
+
+	for (int32 Index = 0; Index < PendingNotes.Num(); ++Index)
+	{
+		const FPTBNoteEvent& Note = PendingNotes[Index];
+		if (Note.ActionType != Action)
+		{
+			continue;
+		}
+
+		const float AbsDeltaMs = FMath::Abs(CorrectedInputTimeMs - Note.TimeMs);
+		if (AbsDeltaMs <= HitWindowMissMs && (BestNoteIndex == INDEX_NONE || AbsDeltaMs < BestAbsDeltaMs))
+		{
+			BestNoteIndex = Index;
+			BestAbsDeltaMs = AbsDeltaMs;
+		}
+	}
+
+	if (BestNoteIndex == INDEX_NONE)
+	{
+		return false;
+	}
+
+	OutNote = PendingNotes[BestNoteIndex];
+	return true;
 }
 
 TArray<FPTBJudgementResult> UPTBJudgementSystem::ForceMissExpiredNotes(float CurrentTimeMs)

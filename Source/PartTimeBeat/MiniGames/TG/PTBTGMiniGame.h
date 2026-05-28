@@ -9,6 +9,7 @@ class UPTBTGMiniGameRuleSet;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FPTBTGNoteEvent, FPTBNoteEvent, Note);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FPTBTGJudgementEvent, FPTBJudgementResult, Result, FPTBNoteEvent, Note);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FPTBTGNoteClearedEvent, int32, NoteId, EPTBJudgementType, JudgementType);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FPTBTGHoldStartedEvent, FPTBJudgementResult, Result, FPTBNoteEvent, Note);
 
 /**
  * 공용 리듬 코어를 실제로 플레이하며 검증하는 TestGame 미니게임 Actor입니다
@@ -37,6 +38,10 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "PTB|TestGame")
 	FPTBTGJudgementEvent OnTGJudgement;
 
+	/** Hold 시작 입력 성공 이벤트 */
+	UPROPERTY(BlueprintAssignable, Category = "PTB|TestGame")
+	FPTBTGHoldStartedEvent OnTGHoldStarted;
+
 	/** 노트 제거 이벤트 */
 	UPROPERTY(BlueprintAssignable, Category = "PTB|TestGame")
 	FPTBTGNoteClearedEvent OnTGNoteCleared;
@@ -63,27 +68,54 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "PTB|TestGame")
 	void HandleTGInput(EPTBActionType Action, float TimeMs = -1.0f);
 
+	/** TestGame Action 입력 해제 처리 */
+	UFUNCTION(BlueprintCallable, Category = "PTB|TestGame")
+	void HandleTGInputReleased(EPTBActionType Action, float TimeMs = -1.0f);
+
 	/** ActionA 입력 처리 */
 	UFUNCTION(BlueprintCallable, Category = "PTB|TestGame")
 	void HandleActionAInput(float TimeMs = -1.0f);
+
+	/** ActionA 입력 해제 처리 */
+	UFUNCTION(BlueprintCallable, Category = "PTB|TestGame")
+	void HandleActionAReleased(float TimeMs = -1.0f);
 
 	/** ActionB 입력 처리 */
 	UFUNCTION(BlueprintCallable, Category = "PTB|TestGame")
 	void HandleActionBInput(float TimeMs = -1.0f);
 
+	/** ActionB 입력 해제 처리 */
+	UFUNCTION(BlueprintCallable, Category = "PTB|TestGame")
+	void HandleActionBReleased(float TimeMs = -1.0f);
+
 	/** ActionC 입력 처리 */
 	UFUNCTION(BlueprintCallable, Category = "PTB|TestGame")
 	void HandleActionCInput(float TimeMs = -1.0f);
+
+	/** ActionC 입력 해제 처리 */
+	UFUNCTION(BlueprintCallable, Category = "PTB|TestGame")
+	void HandleActionCReleased(float TimeMs = -1.0f);
 
 	/** ActionD 입력 처리 */
 	UFUNCTION(BlueprintCallable, Category = "PTB|TestGame")
 	void HandleActionDInput(float TimeMs = -1.0f);
 
+	/** ActionD 입력 해제 처리 */
+	UFUNCTION(BlueprintCallable, Category = "PTB|TestGame")
+	void HandleActionDReleased(float TimeMs = -1.0f);
+
 	/** ActionE 입력 처리 */
 	UFUNCTION(BlueprintCallable, Category = "PTB|TestGame")
 	void HandleActionEInput(float TimeMs = -1.0f);
 
+	/** ActionE 입력 해제 처리 */
+	UFUNCTION(BlueprintCallable, Category = "PTB|TestGame")
+	void HandleActionEReleased(float TimeMs = -1.0f);
+
 protected:
+	/** Hold 시작 입력 판정 */
+	virtual FPTBJudgementResult EvaluateHoldInput(EPTBActionType Action, float TimeMs) override;
+
 	/** TestGame RuleSet 조회 */
 	const UPTBTGMiniGameRuleSet* GetTGRuleSet() const;
 

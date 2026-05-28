@@ -2,6 +2,7 @@
 
 #include "Debug/PTBLogChannels.h"
 #include "MiniGames/TG/PTBTGMiniGameRuleSet.h"
+#include "Rhythm/PTBJudgementSystem.h"
 #include "Rhythm/PTBRhythmChartAsset.h"
 #include "Rhythm/PTBScoreCalculator.h"
 
@@ -172,6 +173,58 @@ void APTBTGMiniGame::HandleActionDInput(float TimeMs)
 void APTBTGMiniGame::HandleActionEInput(float TimeMs)
 {
 	HandleTGInput(EPTBActionType::ActionE, TimeMs);
+}
+
+void APTBTGMiniGame::HandleTGInputReleased(EPTBActionType Action, float TimeMs)
+{
+	if (Action == EPTBActionType::None)
+	{
+		UE_LOG(LogPTBMiniGames, Warning, TEXT("[%s] Invalid TG action release input."), *GetNameSafe(this));
+		return;
+	}
+
+	HandleRhythmInputReleased(Action, TimeMs);
+}
+
+void APTBTGMiniGame::HandleActionAReleased(float TimeMs)
+{
+	HandleTGInputReleased(EPTBActionType::ActionA, TimeMs);
+}
+
+void APTBTGMiniGame::HandleActionBReleased(float TimeMs)
+{
+	HandleTGInputReleased(EPTBActionType::ActionB, TimeMs);
+}
+
+void APTBTGMiniGame::HandleActionCReleased(float TimeMs)
+{
+	HandleTGInputReleased(EPTBActionType::ActionC, TimeMs);
+}
+
+void APTBTGMiniGame::HandleActionDReleased(float TimeMs)
+{
+	HandleTGInputReleased(EPTBActionType::ActionD, TimeMs);
+}
+
+void APTBTGMiniGame::HandleActionEReleased(float TimeMs)
+{
+	HandleTGInputReleased(EPTBActionType::ActionE, TimeMs);
+}
+
+FPTBJudgementResult APTBTGMiniGame::EvaluateHoldInput(EPTBActionType Action, float TimeMs)
+{
+	FPTBNoteEvent HoldNote;
+	const bool bHasHoldNote = JudgementSystem
+		&& JudgementSystem->FindBestPendingNote(Action, TimeMs, HoldNote)
+		&& HoldNote.NoteType == EPTBNoteType::Hold;
+
+	const FPTBJudgementResult Result = Super::EvaluateHoldInput(Action, TimeMs);
+	if (bHasHoldNote && Result.Reason == EPTBJudgementReason::Note && Result.JudgementType != EPTBJudgementType::Miss)
+	{
+		OnTGHoldStarted.Broadcast(Result, HoldNote);
+	}
+
+	return Result;
 }
 
 const UPTBTGMiniGameRuleSet* APTBTGMiniGame::GetTGRuleSet() const

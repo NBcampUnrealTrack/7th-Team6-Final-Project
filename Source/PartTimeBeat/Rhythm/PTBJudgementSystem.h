@@ -38,6 +38,12 @@ public:
 	
 	/** 입력 액션과 입력 시간 기준 판정 */
 	FPTBJudgementResult EvaluateInput(EPTBActionType Action, float InputTimeMs);
+
+	/** 입력 액션과 입력 시간 기준 판정 */
+	FPTBJudgementResult EvaluateInput(EPTBActionType Action, float InputTimeMs, bool bBroadcastResult);
+
+	/** 입력 시간 기준 가장 가까운 대기 노트 조회 */
+	bool FindBestPendingNote(EPTBActionType Action, float InputTimeMs, FPTBNoteEvent& OutNote) const;
 	
 	/** 판정 가능 시간을 넘긴 노트 Miss 처리 */
 	TArray<FPTBJudgementResult> ForceMissExpiredNotes(float CurrentTimeMs);

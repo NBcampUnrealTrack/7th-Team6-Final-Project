@@ -19,6 +19,14 @@ class UAkComponent;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FPTBOnMiniGameFinished, FPTBRoundResult, Result);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FPTBOnMiniGameReadyToStart);
 
+struct FPTBActiveHoldState
+{
+	FPTBNoteEvent Note;
+	FPTBJudgementResult PendingResult;
+	float PressedTimeMs = 0.0f;
+	float RequiredHoldUntilTimeMs = 0.0f;
+};
+
 /**
  * 공통 리듬 라운드의 초기화, 입력 판정, 점수 계산, 오디오 요청을 담당하는 미니게임 베이스 Actor입니다.
  *
@@ -86,6 +94,18 @@ public:
 	/** 입력을 판정으로 전달 */
 	UFUNCTION(BlueprintCallable, Category = "PTB|MiniGame")
 	virtual void HandleRhythmInput(EPTBActionType Action, float TimeMs = -1.0f);
+
+	/** 입력 해제를 홀드 유지 검사로 전달 */
+	UFUNCTION(BlueprintCallable, Category = "PTB|MiniGame")
+	virtual void HandleRhythmInputReleased(EPTBActionType Action, float TimeMs = -1.0f);
+
+	/** 현재 연출 기준 차트 시간(ms) */
+	UFUNCTION(BlueprintPure, Category = "PTB|MiniGame|Time")
+	float GetCurrentChartTimeMs() const;
+
+	/** 현재 입력 판정 기준 시간(ms) */
+	UFUNCTION(BlueprintPure, Category = "PTB|MiniGame|Time")
+	float GetCurrentInputJudgeTimeMs() const;
 
 protected:
 	virtual void BeginPlay() override;
@@ -175,6 +195,9 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PTB|MiniGame")
 	TMap<EPTBActionType, float> EmptyInputActionLockUntilTimeMs;
 
+	/** 유지 중인 Hold 노트 */
+	TArray<FPTBActiveHoldState> ActiveHoldStates;
+
 	/** 라운드 시작 전 에셋 준비(하위 override 권장) */
 	virtual void PreloadAssets();
 
@@ -214,6 +237,21 @@ protected:
 	/** 단일 판정 */
 	virtual FPTBJudgementResult EvaluateInput(EPTBActionType Action, float TimeMs);
 
+	/** Hold 시작 입력 판정 */
+	virtual FPTBJudgementResult EvaluateHoldInput(EPTBActionType Action, float TimeMs);
+
+	/** Hold 성공 유지 시간 도달 처리 */
+	void ResolveSatisfiedHoldInputs(float CurrentTimeMs);
+
+	/** Hold 성공 확정 */
+	void ConfirmActiveHold(int32 HoldIndex);
+
+	/** Hold 조기 해제 실패 처리 */
+	void FailActiveHoldEarlyRelease(int32 HoldIndex, float ReleaseTimeMs);
+
+	/** 지연 판정 결과 전달 */
+	void DispatchDeferredJudgementResult(const FPTBJudgementResult& Result);
+
 	/** 점수 / HUD / SFX 반영 */
 	UFUNCTION()
 	virtual void HandleJudgementResult(FPTBJudgementResult Result);
@@ -241,12 +279,6 @@ protected:
 
 	/** 소리 출력 오프셋 계산 */
 	virtual float ResolveSoundOffsetMs(const FPTBMiniGameContext& Context) const;
-
-	/** 현재 판정 기준 차트 시간(ms) */
-	float GetCurrentChartTimeMs() const;
-
-	/** 현재 입력 판정 기준 시간(ms) */
-	float GetCurrentInputJudgeTimeMs() const;
 
 	/** 라운드 종료 기준 차트 시간(ms) */
 	float GetRoundEndChartTimeMs() const;
