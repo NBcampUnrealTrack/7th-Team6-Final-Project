@@ -93,7 +93,13 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Game State")
 	FPTBRewardSummary LastRewardSummary;
 
+	/** 결과 화면 레벨 이름 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Game Flow")
+	FName ResultLevelName = TEXT("L_MiniGameResult");
+
 protected:
+	virtual void BeginPlay() override;
+
 	/** 미니게임 실제 시작 델리게이트 수신 */
 	UFUNCTION()
 	void HandleMiniGameStarted();

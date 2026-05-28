@@ -1,8 +1,39 @@
 #include "Core/PTBGameModeBase.h"
 #include "Core/PTBGameInstance.h"
+#include "Flow/PTBGameFlowSubsystem.h"
 #include "Profile/PTBProfileSubsystem.h"
 #include "MiniGames/Common/PTBBaseMiniGame.h"
 #include "Kismet/GameplayStatics.h"
+
+void APTBGameModeBase::BeginPlay()
+{
+	Super::BeginPlay();
+
+	const UGameInstance* GameInstance = GetGameInstance();
+	if (!GameInstance)
+	{
+		return;
+	}
+
+	const UPTBGameFlowSubsystem* FlowSubsystem = GameInstance->GetSubsystem<UPTBGameFlowSubsystem>();
+	if (!FlowSubsystem)
+	{
+		return;
+	}
+
+	if (FlowSubsystem->CurrentFlowState != EGameFlowState::InGame)
+	{
+		return;
+	}
+
+	const FPTBGameSessionRequest& PendingRequest = FlowSubsystem->PendingSessionRequest;
+	if (PendingRequest.MiniGameId.IsNone())
+	{
+		return;
+	}
+
+	StartGameFlow(PendingRequest);
+}
 
 void APTBGameModeBase::StartGameFlow(const FPTBGameSessionRequest& Request)
 {
@@ -247,16 +278,32 @@ void APTBGameModeBase::SubmitRoundResult(const FPTBRoundResult& Result)
 		// 결과 화면으로 전환
 		GI->CurrentFlowState = EGameFlowState::Result;
 		GI->OnFlowStateChanged.Broadcast(EGameFlowState::Result);
+
+		if (UPTBGameFlowSubsystem* FlowSubsystem = GI->GetSubsystem<UPTBGameFlowSubsystem>())
+		{
+			FlowSubsystem->SetFlowState(EGameFlowState::Result);
+		}
 	}
 
 	LastRoundResult = Result;
 	LastRewardSummary = Reward;
+
+	if (GI)
+	{
+		GI->LastRoundResult = Result;
+		GI->LastRewardSummary = Reward;
+	}
 
 	OnRoundResultReady.Broadcast(Result, Reward);
 	OnGameEnded.Broadcast(Result);
 
 	UE_LOG(LogTemp, Log, TEXT("SubmitRoundResult: Score=%d Grade=%d Stars=%d"),
 		Result.Score, static_cast<int32>(Result.Grade), Result.StarCount);
+
+	if (!ResultLevelName.IsNone())
+	{
+		UGameplayStatics::OpenLevel(this, ResultLevelName);
+	}
 }
 
 void APTBGameModeBase::RetryGame_Implementation()

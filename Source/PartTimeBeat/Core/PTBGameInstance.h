@@ -55,6 +55,14 @@ public:
 	/** 현재 플로우 상태(FlowSubsystem과 동기) */
 	EGameFlowState CurrentFlowState;
 
+	/** 마지막 라운드 결과 */
+	UPROPERTY(BlueprintReadOnly, Category = "PTB|Result")
+	FPTBRoundResult LastRoundResult;
+
+	/** 마지막 보상 요약 */
+	UPROPERTY(BlueprintReadOnly, Category = "PTB|Result")
+	FPTBRewardSummary LastRewardSummary;
+
 	// 변수 추가
 	UPROPERTY(EditDefaultsOnly, Category = "PTB|UI")
 	TSubclassOf<UPTBMainTitleWidget> TitleWidgetClass;
