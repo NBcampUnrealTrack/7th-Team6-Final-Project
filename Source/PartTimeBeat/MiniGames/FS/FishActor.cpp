@@ -8,6 +8,8 @@
 AFishActor::AFishActor()
 {
 	PrimaryActorTick.bCanEverTick = true;
+	SkeletalMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("SkeletalMesh"));
+	SetRootComponent(SkeletalMesh);
 }
 
 void AFishActor::SetTargetLocation(FVector NewLocation)
