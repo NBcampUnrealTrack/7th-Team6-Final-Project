@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<WwiseDocument Type="WorkUnit" ID="{78E022C3-5C03-4A9F-B583-39A433161F35}" SchemaVersion="119">
+	<AudioObjects>
+		<WorkUnit Name="TG" ID="{78E022C3-5C03-4A9F-B583-39A433161F35}" PersistMode="Standalone">
+			<ChildrenList>
+				<Sound Name="PTB_JJ_Easy_260527" ID="{63CD2746-16C5-42F0-948C-BACF87D4B585}" ShortID="492245899">
+					<ReferenceList>
+						<Reference Name="Conversion">
+							<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{01EA0F64-0215-4D91-8B1B-BBF638BBC5DC}"/>
+						</Reference>
+						<Reference Name="OutputBus">
+							<ObjectRef Name="Master Audio Bus" ID="{1514A4D8-1DA6-412A-A17E-75CA0C2149F3}" WorkUnitID="{95FF6337-5249-4E55-B0BA-291C12594EA3}"/>
+						</Reference>
+					</ReferenceList>
+					<ChildrenList>
+						<AudioFileSource Name="PTB_JJ_Easy_260527" ID="{222CD3D0-3FF2-4F45-B380-71D983D9E571}">
+							<Language>SFX</Language>
+							<AudioFile>PTB_JJ_Easy_260527.wav</AudioFile>
+							<MediaIDList>
+								<MediaID ID="467031385"/>
+							</MediaIDList>
+						</AudioFileSource>
+					</ChildrenList>
+					<ActiveSourceList>
+						<ActiveSource Name="PTB_JJ_Easy_260527" ID="{222CD3D0-3FF2-4F45-B380-71D983D9E571}" Platform="Linked"/>
+					</ActiveSourceList>
+				</Sound>
+			</ChildrenList>
+		</WorkUnit>
+	</AudioObjects>
+</WwiseDocument>

@@ -1,0 +1,6 @@
+Event	ID	Name			Wwise Object Path	Notes
+	3508531682	Play_TG_BGM			\Default Work Unit\Play_TG_BGM	
+
+In Memory Audio	ID	Name	Audio source file		Wwise Object Path	Notes	Data Size
+	467031385	PTB_JJ_Easy_260527	C:\UP\7th-Team6-Final-Project\WwiseProject\PartTimeBeat\.cache\Windows\SFX\PTB_JJ_Easy_260527_818F3B66.wem		\Actor-Mixer Hierarchy\TG\PTB_JJ_Easy_260527		11518804
+
