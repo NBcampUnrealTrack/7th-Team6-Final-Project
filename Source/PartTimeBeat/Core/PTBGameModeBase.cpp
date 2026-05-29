@@ -41,6 +41,16 @@ void APTBGameModeBase::StartGameFlow(const FPTBGameSessionRequest& Request)
 	bIsGameActive = false;
 	bIsPaused = false;
 
+	UGameInstance* GameInstance = GetGameInstance();
+	UPTBGameFlowSubsystem* FlowSubsystem = GameInstance
+		? GameInstance->GetSubsystem<UPTBGameFlowSubsystem>()
+		: nullptr;
+
+	if (FlowSubsystem)
+	{
+		FlowSubsystem->ClearRetryTarget();
+	}
+
 	// 1) 미니게임 클래스 해석
 	TSubclassOf<APTBBaseMiniGame> Cls = ResolveMiniGameClass(Request.MiniGameId);
 	if (!Cls)
@@ -83,6 +93,12 @@ void APTBGameModeBase::StartGameFlow(const FPTBGameSessionRequest& Request)
 	Context.LocalPlayerIndex = 0;
 
 	ActiveMiniGame->InitializeMiniGame(Context);
+
+	const FString CurrentLevelName = UGameplayStatics::GetCurrentLevelName(this, true);
+	if (FlowSubsystem && !CurrentLevelName.IsEmpty())
+	{
+		FlowSubsystem->CacheRetryTarget(CurrentRequest, FName(*CurrentLevelName));
+	}
 
 	UE_LOG(LogTemp, Log, TEXT("StartGameFlow: initialized [%s]"),
 		*Request.MiniGameId.ToString());
@@ -353,6 +369,12 @@ void APTBGameModeBase::ExitToMenu_Implementation()
 	UPTBGameInstance* GI = Cast<UPTBGameInstance>(GetGameInstance());
 	if (GI)
 	{
+		if (UPTBGameFlowSubsystem* FlowSubsystem = GI->GetSubsystem<UPTBGameFlowSubsystem>())
+		{
+			FlowSubsystem->ClearRetryTarget();
+			FlowSubsystem->SetFlowState(EGameFlowState::MiniGameSelect);
+		}
+
 		GI->CurrentFlowState = EGameFlowState::MiniGameSelect;
 		GI->OnFlowStateChanged.Broadcast(EGameFlowState::MiniGameSelect);
 	}

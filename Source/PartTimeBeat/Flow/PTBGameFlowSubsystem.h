@@ -43,6 +43,22 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "PTB|Flow")
 	void ReturnToMiniGameSelect();
 
+	/** 결과 화면에서 마지막 플레이를 다시 시작 */
+	UFUNCTION(BlueprintCallable, Category = "PTB|Flow")
+	bool RetryLastGame();
+
+	/** 현재 라운드의 재시작 대상을 저장 */
+	UFUNCTION(BlueprintCallable, Category = "PTB|Flow")
+	void CacheRetryTarget(const FPTBGameSessionRequest& SessionRequest, FName LevelName);
+
+	/** 저장된 재시작 대상을 초기화 */
+	UFUNCTION(BlueprintCallable, Category = "PTB|Flow")
+	void ClearRetryTarget();
+
+	/** 결과 화면에서 재시작 가능 여부 */
+	UFUNCTION(BlueprintPure, Category = "PTB|Flow")
+	bool HasRetryTarget() const;
+
 	/** 설정 화면 진입 */
 	UFUNCTION(BlueprintCallable, Category = "PTB|Flow")
 	void OpenSettings();
@@ -66,4 +82,10 @@ public:
 	/** GameMode로 넘길 요청 */
 	UPROPERTY(BlueprintReadOnly, Category = "PTB|Flow")
 	FPTBGameSessionRequest PendingSessionRequest;
+	/** 결과 화면에서 다시 진입할 마지막 미니게임 맵 */
+	UPROPERTY(BlueprintReadOnly, Category = "PTB|Flow")
+	FName LastPlayedMiniGameLevelName;
+	/** 결과 화면에서 다시 사용할 마지막 세션 요청 */
+	UPROPERTY(BlueprintReadOnly, Category = "PTB|Flow")
+	FPTBGameSessionRequest LastSessionRequest;
 };

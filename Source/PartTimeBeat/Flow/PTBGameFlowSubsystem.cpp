@@ -1,8 +1,9 @@
 #include "Flow/PTBGameFlowSubsystem.h"
 
 #include "Core/PTBGameInstance.h"
-#include "Profile/PTBProfileSubsystem.h"
 #include "Debug/PTBTeamLog.h"
+#include "Kismet/GameplayStatics.h"
+#include "Profile/PTBProfileSubsystem.h"
 
 namespace
 {
@@ -270,7 +271,84 @@ void UPTBGameFlowSubsystem::ReturnToMiniGameSelect()
 {
 	PTB_RECORD(LogPTBFlow, TEXT("[PTBFlow] 미니게임 선택 화면으로 돌아갑니다."));
 
+	ClearRetryTarget();
+
 	SetFlowState(EGameFlowState::MiniGameSelect);
+}
+
+bool UPTBGameFlowSubsystem::RetryLastGame()
+{
+	if (LastSessionRequest.MiniGameId.IsNone())
+	{
+		PTB_WARNING(LogPTBFlow,
+			TEXT("[PTBFlow] RetryLastGame 실패: 마지막 세션 요청이 없습니다."));
+		return false;
+	}
+
+	if (LastPlayedMiniGameLevelName.IsNone())
+	{
+		PTB_WARNING(LogPTBFlow,
+			TEXT("[PTBFlow] RetryLastGame 실패: 마지막 미니게임 맵 이름이 없습니다."));
+		return false;
+	}
+
+	SelectedMiniGameId = LastSessionRequest.MiniGameId;
+	SelectedDifficulty = LastSessionRequest.Difficulty;
+	PendingSessionRequest = LastSessionRequest;
+
+	if (UPTBGameInstance* PTBGI = Cast<UPTBGameInstance>(GetGameInstance()))
+	{
+		PTBGI->CurrentPlayMode = LastSessionRequest.PlayMode;
+	}
+
+	PTB_RECORD(LogPTBFlow,
+		TEXT("[PTBFlow] 마지막 게임 재시작: 미니게임=%s 맵=%s 난이도=%s"),
+		*LastSessionRequest.MiniGameId.ToString(),
+		*LastPlayedMiniGameLevelName.ToString(),
+		*GetDifficultyName(LastSessionRequest.Difficulty));
+
+	SetFlowState(EGameFlowState::InGame);
+	UGameplayStatics::OpenLevel(this, LastPlayedMiniGameLevelName);
+	return true;
+}
+
+void UPTBGameFlowSubsystem::CacheRetryTarget(const FPTBGameSessionRequest& SessionRequest, FName LevelName)
+{
+	if (SessionRequest.MiniGameId.IsNone())
+	{
+		PTB_WARNING(LogPTBFlow,
+			TEXT("[PTBFlow] CacheRetryTarget 실패: MiniGameId가 None입니다."));
+		return;
+	}
+
+	if (LevelName.IsNone())
+	{
+		PTB_WARNING(LogPTBFlow,
+			TEXT("[PTBFlow] CacheRetryTarget 실패: LevelName이 None입니다."));
+		return;
+	}
+
+	LastSessionRequest = SessionRequest;
+	LastPlayedMiniGameLevelName = LevelName;
+
+	PTB_RECORD(LogPTBFlow,
+		TEXT("[PTBFlow] 재시작 대상 저장: 미니게임=%s 맵=%s 난이도=%s"),
+		*LastSessionRequest.MiniGameId.ToString(),
+		*LastPlayedMiniGameLevelName.ToString(),
+		*GetDifficultyName(LastSessionRequest.Difficulty));
+}
+
+void UPTBGameFlowSubsystem::ClearRetryTarget()
+{
+	LastSessionRequest = FPTBGameSessionRequest();
+	LastPlayedMiniGameLevelName = NAME_None;
+
+	PTB_RECORD(LogPTBFlow, TEXT("[PTBFlow] 재시작 대상 초기화"));
+}
+
+bool UPTBGameFlowSubsystem::HasRetryTarget() const
+{
+	return !LastSessionRequest.MiniGameId.IsNone() && !LastPlayedMiniGameLevelName.IsNone();
 }
 
 void UPTBGameFlowSubsystem::OpenSettings() 
