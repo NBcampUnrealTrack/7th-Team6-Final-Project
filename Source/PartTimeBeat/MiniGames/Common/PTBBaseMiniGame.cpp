@@ -10,6 +10,7 @@
 #include "Rhythm/PTBRhythmChartAsset.h"
 #include "Rhythm/PTBRhythmConductorComponent.h"
 #include "Rhythm/PTBScoreCalculator.h"
+#include "GameFramework/PlayerController.h"
 
 namespace PTBBaseMiniGameInternal
 {
@@ -409,6 +410,38 @@ void APTBBaseMiniGame::HideLoadingWidget()
 	LoadingWidgetInstance = nullptr;
 }
 
+void APTBBaseMiniGame::ApplyGameOnlyInputMode()
+{
+	APlayerController* PlayerController = GetWorld() ? GetWorld()->GetFirstPlayerController() : nullptr;
+	if (!PlayerController)
+	{
+		return;
+	}
+
+	FInputModeGameOnly InputMode;
+	PlayerController->SetInputMode(InputMode);
+	PlayerController->SetShowMouseCursor(false);
+}
+
+
+void APTBBaseMiniGame::ApplyGameAndUIInputMode()
+{
+	APlayerController* PlayerController = GetWorld() ? GetWorld()->GetFirstPlayerController() : nullptr;
+	if (!PlayerController)
+	{
+		return;
+	}
+
+	FInputModeGameAndUI InputMode;
+	if (LoadingWidgetInstance)
+	{
+		InputMode.SetWidgetToFocus(LoadingWidgetInstance->TakeWidget());
+	}
+	InputMode.SetHideCursorDuringCapture(false);
+	PlayerController->SetInputMode(InputMode);
+	PlayerController->SetShowMouseCursor(true);
+}
+
 void APTBBaseMiniGame::StartMiniGame()
 {
 	if (bIsRoundActive)
@@ -427,6 +460,7 @@ void APTBBaseMiniGame::StartMiniGame()
 	}
 
 	HideLoadingWidget();
+	ApplyGameOnlyInputMode();
 
 	if (AudioManager)
 	{
@@ -496,6 +530,7 @@ FPTBRoundResult APTBBaseMiniGame::FinishMiniGame(EPTBRoundEndReason Reason)
 	bIsReadyToStart = false;
 	bInputLocked = true;
 	bPendingRoundFinish = false;
+	ApplyGameAndUIInputMode();
 
 	if (JudgementSystem)
 	{
@@ -557,6 +592,7 @@ void APTBBaseMiniGame::PauseMiniGame()
 	}
 
 	bInputLocked = true;
+	ApplyGameAndUIInputMode();
 	if (RhythmConductor)
 	{
 		RhythmConductor->PauseConductor();
@@ -586,6 +622,7 @@ void APTBBaseMiniGame::ResumeMiniGame()
 	}
 
 	bInputLocked = false;
+	ApplyGameOnlyInputMode();
 }
 
 void APTBBaseMiniGame::HandleChartEvent(FPTBNoteEvent Note)

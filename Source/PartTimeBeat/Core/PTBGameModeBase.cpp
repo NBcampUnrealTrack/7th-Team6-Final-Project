@@ -4,6 +4,7 @@
 #include "Profile/PTBProfileSubsystem.h"
 #include "MiniGames/Common/PTBBaseMiniGame.h"
 #include "Kismet/GameplayStatics.h"
+#include "GameFramework/PlayerController.h"
 
 void APTBGameModeBase::BeginPlay()
 {
@@ -155,6 +156,14 @@ void APTBGameModeBase::HandleMiniGameStarted()
 	{
 		GI->CurrentFlowState = EGameFlowState::InGame;
 		GI->OnFlowStateChanged.Broadcast(EGameFlowState::InGame);
+	}
+
+	if (APlayerController* PC = GetWorld() ? GetWorld()->GetFirstPlayerController() : nullptr)
+	{
+		FInputModeGameOnly InputMode;
+		PC->SetInputMode(InputMode);
+		PC->SetShowMouseCursor(false);
+		PC->bShowMouseCursor = false;
 	}
 
 	OnGameStarted.Broadcast();

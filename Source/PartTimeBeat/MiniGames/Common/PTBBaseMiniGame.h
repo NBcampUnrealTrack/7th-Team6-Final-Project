@@ -227,6 +227,12 @@ protected:
 	/** 로딩 Widget 제거 */
 	virtual void HideLoadingWidget();
 
+	/** 미니게임 진행 중에 사용할 GameOnly 입력 모드 적용 */
+	virtual void ApplyGameOnlyInputMode();
+
+	/** 로딩/일시정지/결과 UI에서 사용할 GameAndUI 입력 모드 적용 */
+	virtual void ApplyGameAndUIInputMode();
+
 	/** 채보 이벤트 처리(하위 override) */
 	UFUNCTION()
 	virtual void HandleChartEvent(FPTBNoteEvent Note);
