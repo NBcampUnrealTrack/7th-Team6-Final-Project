@@ -274,6 +274,23 @@ void UPTBGameFlowSubsystem::ReturnToMiniGameSelect()
 	ClearRetryTarget();
 
 	SetFlowState(EGameFlowState::MiniGameSelect);
+
+	if (MiniGameSelectLevelName.IsNone())
+	{
+		PTB_WARNING(LogPTBFlow,
+			TEXT("[PTBFlow] ReturnToMiniGameSelect 실패: 미니게임 선택 화면 맵 이름이 없습니다."));
+		return;
+	}
+
+	const FString CurrentLevelName = UGameplayStatics::GetCurrentLevelName(this, true);
+	if (CurrentLevelName.Equals(MiniGameSelectLevelName.ToString(), ESearchCase::CaseSensitive))
+	{
+		PTB_VERBOSE(LogPTBFlow,
+			TEXT("[PTBFlow] ReturnToMiniGameSelect 무시: 이미 미니게임 선택 화면 맵입니다."));
+		return;
+	}
+
+	UGameplayStatics::OpenLevel(this, MiniGameSelectLevelName);
 }
 
 bool UPTBGameFlowSubsystem::RetryLastGame()

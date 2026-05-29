@@ -371,8 +371,8 @@ void APTBGameModeBase::ExitToMenu_Implementation()
 	{
 		if (UPTBGameFlowSubsystem* FlowSubsystem = GI->GetSubsystem<UPTBGameFlowSubsystem>())
 		{
-			FlowSubsystem->ClearRetryTarget();
-			FlowSubsystem->SetFlowState(EGameFlowState::MiniGameSelect);
+			FlowSubsystem->ReturnToMiniGameSelect();
+			return;
 		}
 
 		GI->CurrentFlowState = EGameFlowState::MiniGameSelect;

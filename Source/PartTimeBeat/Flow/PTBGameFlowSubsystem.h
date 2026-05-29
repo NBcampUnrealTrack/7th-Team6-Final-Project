@@ -88,4 +88,7 @@ public:
 	/** 결과 화면에서 다시 사용할 마지막 세션 요청 */
 	UPROPERTY(BlueprintReadOnly, Category = "PTB|Flow")
 	FPTBGameSessionRequest LastSessionRequest;
+	/** 미니게임 선택 화면 레벨 이름 */
+	UPROPERTY(BlueprintReadOnly, Category = "PTB|Flow")
+	FName MiniGameSelectLevelName = TEXT("L_GameMap");
 };
