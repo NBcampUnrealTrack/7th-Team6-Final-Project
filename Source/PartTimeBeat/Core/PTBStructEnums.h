@@ -59,7 +59,8 @@ enum class EPTBJudgementReason : uint8
 {
     Note       UMETA(DisplayName = "Note"),
     ExpiredNote        UMETA(DisplayName = "Expired Note"),
-    EmptyInput       UMETA(DisplayName = "Empty Input")
+    EmptyInput       UMETA(DisplayName = "Empty Input"),
+    EarlyRelease       UMETA(DisplayName = "Early Release")
 };
 
 UENUM(BlueprintType)

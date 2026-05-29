@@ -23,20 +23,20 @@ class PARTTIMEBEAT_API UPTBRhythmChartAsset : public UPrimaryDataAsset
 	GENERATED_BODY()
 
 public:
-	/** 채보 식별자 */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Rhythm|Chart")
+	/** 파싱된 채보 식별자 */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PTB|Rhythm|Parsed")
 	FName ChartId;
 
-	/** 곡, 난이도, BPM, Offset, Wwise 이벤트 등 공통 메타 */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Rhythm|Chart")
+	/** 파싱된 곡, 난이도, BPM, Offset, Wwise 이벤트 등 공통 메타 */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PTB|Rhythm|Parsed", AdvancedDisplay)
 	FPTBChartData ChartData;
 
 	/** 원본 JSON 파일 경로 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Rhythm|Source")
 	FString SourceJsonFilePath;
 
-	/** 시간순으로 정렬되는 공통 노트 배열 */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Rhythm|Chart")
+	/** 파싱된 시간순 공통 노트 배열 */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PTB|Rhythm|Parsed", AdvancedDisplay)
 	TArray<FPTBNoteEvent> NoteEvents;
 
 	/** 유효성 검사 */

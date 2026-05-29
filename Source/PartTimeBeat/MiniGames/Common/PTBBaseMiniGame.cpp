@@ -13,6 +13,8 @@
 
 namespace PTBBaseMiniGameInternal
 {
+	constexpr float RequiredHoldRatio = 0.75f;
+
 	float ResolveLatestNoteTimeMs(const UPTBRhythmChartAsset* InChartAsset)
 	{
 		if (!InChartAsset || InChartAsset->NoteEvents.IsEmpty())
@@ -20,7 +22,17 @@ namespace PTBBaseMiniGameInternal
 			return 0.0f;
 		}
 
-		return InChartAsset->NoteEvents.Last().TimeMs;
+		float LatestTimeMs = 0.0f;
+		for (const FPTBNoteEvent& Note : InChartAsset->NoteEvents)
+		{
+			LatestTimeMs = FMath::Max(LatestTimeMs, Note.TimeMs);
+			if (Note.bIsLongNote)
+			{
+				LatestTimeMs = FMath::Max(LatestTimeMs, Note.ReleaseTimeMs);
+			}
+		}
+
+		return LatestTimeMs;
 	}
 
 	void RemoveResolvedNote(TArray<FPTBNoteEvent>& ActiveNotes, const FPTBJudgementResult& Result)
@@ -30,20 +42,27 @@ namespace PTBBaseMiniGameInternal
 			return;
 		}
 
-		const int32 FoundIndex = ActiveNotes.IndexOfByPredicate([&Result](const FPTBNoteEvent& Note)
+		for (int32 Index = 0; Index < ActiveNotes.Num(); ++Index)
 		{
-			if (Note.NoteId == Result.NoteId)
+			if (ActiveNotes[Index].NoteId == Result.NoteId)
 			{
-				return true;
+				ActiveNotes.RemoveAt(Index);
+				return;
 			}
-
-			return false;
-		});
-
-		if (FoundIndex != INDEX_NONE)
-		{
-			ActiveNotes.RemoveAt(FoundIndex);
 		}
+	}
+
+	FPTBJudgementResult MakeEarlyReleaseResult(const FPTBNoteEvent& Note, float ReleaseTimeMs, float RequiredHoldUntilTimeMs)
+	{
+		FPTBJudgementResult Result;
+		Result.NoteId = Note.NoteId;
+		Result.ActionType = Note.ActionType;
+		Result.JudgementType = EPTBJudgementType::Miss;
+		Result.Reason = EPTBJudgementReason::EarlyRelease;
+		Result.DeltaMs = ReleaseTimeMs - RequiredHoldUntilTimeMs;
+		Result.ScoreDelta = 0;
+		Result.bBreaksCombo = true;
+		return Result;
 	}
 }
 
@@ -128,10 +147,13 @@ void APTBBaseMiniGame::Tick(float DeltaTime)
 		return;
 	}
 
-	JudgementSystem->ForceMissExpiredNotes(GetCurrentInputJudgeTimeMs());
+	const float CurrentInputTimeMs = GetCurrentInputJudgeTimeMs();
+	JudgementSystem->ForceMissExpiredNotes(CurrentInputTimeMs);
+	ResolveSatisfiedHoldInputs(CurrentInputTimeMs);
 
 	const bool bHasPendingNotes = !JudgementSystem->PendingNotes.IsEmpty();
-	if (bPendingRoundFinish && !bHasPendingNotes)
+	const bool bHasActiveHolds = !ActiveHoldStates.IsEmpty();
+	if (bPendingRoundFinish && !bHasPendingNotes && !bHasActiveHolds)
 	{
 		FinishMiniGame(EPTBRoundEndReason::Completed);
 		return;
@@ -140,6 +162,7 @@ void APTBBaseMiniGame::Tick(float DeltaTime)
 	if (ActiveBGMPlayingId == 0
 		&& bAllNotesDispatched
 		&& !bHasPendingNotes
+		&& !bHasActiveHolds
 		&& GetCurrentChartTimeMs() >= GetRoundEndChartTimeMs())
 	{
 		FinishMiniGame(EPTBRoundEndReason::Completed);
@@ -152,6 +175,7 @@ void APTBBaseMiniGame::InitializeMiniGame(const FPTBMiniGameContext& Context)
 	MiniGameId = Context.SessionRequest.MiniGameId;
 	MiniGameCode = Context.SessionRequest.MiniGameCode;
 	ActiveNoteQueue.Reset();
+	ActiveHoldStates.Reset();
 	EmptyInputActionLockUntilTimeMs.Reset();
 	RoundResult = FPTBRoundResult();
 	bPendingRoundFinish = false;
@@ -177,6 +201,11 @@ void APTBBaseMiniGame::InitializeMiniGame(const FPTBMiniGameContext& Context)
 	if (ScoreCalculator)
 	{
 		ScoreCalculator->Reset();
+	}
+
+	if (RuleSet)
+	{
+		AudioEventSet = RuleSet->AudioEventSet;
 	}
 
 	if (AudioManager)
@@ -282,16 +311,17 @@ void APTBBaseMiniGame::BuildRuntimeState()
 
 void APTBBaseMiniGame::PreloadAudioAssets()
 {
-	if (!AudioManager || GameContext.ChartData.WwiseBankName.IsNone())
+	if (!AudioManager)
 	{
 		return;
 	}
 
-	const bool bLoadedBank = AudioManager->LoadSoundBank(GameContext.ChartData.WwiseBankName);
-	UE_LOG(LogWwise, Log, TEXT("[%s] PreloadSoundBank %s -> %s"),
-		*GetNameSafe(this),
-		*GameContext.ChartData.WwiseBankName.ToString(),
-		bLoadedBank ? TEXT("Success") : TEXT("Failed"));
+	if (!GameContext.ChartData.WwiseEventName.IsNone())
+	{
+		UE_LOG(LogWwise, Log, TEXT("[%s] Wwise BGM event ready: %s"),
+			*GetNameSafe(this),
+			*GameContext.ChartData.WwiseEventName.ToString());
+	}
 }
 
 void APTBBaseMiniGame::ApplyRuleSet()
@@ -434,6 +464,7 @@ void APTBBaseMiniGame::StartMiniGame()
 
 	bIsRoundActive = true;
 	bInputLocked = false;
+	OnMiniGameStarted.Broadcast();
 
 	UE_LOG(LogRhythm, Log, TEXT("[%s] MiniGame started. Notes=%d BPM=%.2f OffsetMs=%.2f"), *GetNameSafe(this), ChartAsset->NoteEvents.Num(), GameContext.ChartData.BPM, GameContext.ChartData.OffsetMs);
 }
@@ -469,6 +500,19 @@ FPTBRoundResult APTBBaseMiniGame::FinishMiniGame(EPTBRoundEndReason Reason)
 	if (JudgementSystem)
 	{
 		JudgementSystem->ForceMissExpiredNotes(GetRoundEndChartTimeMs());
+	}
+
+	const float CurrentInputTimeMs = GetCurrentInputJudgeTimeMs();
+	for (int32 Index = ActiveHoldStates.Num() - 1; Index >= 0; --Index)
+	{
+		if (CurrentInputTimeMs >= ActiveHoldStates[Index].RequiredHoldUntilTimeMs)
+		{
+			ConfirmActiveHold(Index);
+		}
+		else
+		{
+			FailActiveHoldEarlyRelease(Index, CurrentInputTimeMs);
+		}
 	}
 
 	if (RhythmConductor)
@@ -609,7 +653,61 @@ void APTBBaseMiniGame::HandleRhythmInput(EPTBActionType Action, float TimeMs)
 		EmptyInputActionLockUntilTimeMs.Remove(Action);
 	}
 
+	FPTBNoteEvent TargetNote;
+	if (JudgementSystem
+		&& JudgementSystem->FindBestPendingNote(Action, ResolvedTimeMs, TargetNote)
+		&& TargetNote.NoteType == EPTBNoteType::Hold)
+	{
+		EvaluateHoldInput(Action, ResolvedTimeMs);
+		return;
+	}
+
 	EvaluateInput(Action, ResolvedTimeMs);
+}
+
+void APTBBaseMiniGame::HandleRhythmInputReleased(EPTBActionType Action, float TimeMs)
+{
+	if (!CanAcceptInput())
+	{
+		return;
+	}
+
+	if (RuleSet && !RuleSet->SupportsAction(Action))
+	{
+		return;
+	}
+
+	const float ResolvedTimeMs = TimeMs >= 0.0f ? TimeMs : GetCurrentInputJudgeTimeMs();
+	int32 TargetHoldIndex = INDEX_NONE;
+	float EarliestRequiredTimeMs = 0.0f;
+
+	for (int32 Index = 0; Index < ActiveHoldStates.Num(); ++Index)
+	{
+		const FPTBActiveHoldState& HoldState = ActiveHoldStates[Index];
+		if (HoldState.Note.ActionType != Action)
+		{
+			continue;
+		}
+
+		if (TargetHoldIndex == INDEX_NONE || HoldState.RequiredHoldUntilTimeMs < EarliestRequiredTimeMs)
+		{
+			TargetHoldIndex = Index;
+			EarliestRequiredTimeMs = HoldState.RequiredHoldUntilTimeMs;
+		}
+	}
+
+	if (TargetHoldIndex == INDEX_NONE)
+	{
+		return;
+	}
+
+	if (ResolvedTimeMs >= ActiveHoldStates[TargetHoldIndex].RequiredHoldUntilTimeMs)
+	{
+		ConfirmActiveHold(TargetHoldIndex);
+		return;
+	}
+
+	FailActiveHoldEarlyRelease(TargetHoldIndex, ResolvedTimeMs);
 }
 
 FPTBJudgementResult APTBBaseMiniGame::EvaluateInput(EPTBActionType Action, float TimeMs)
@@ -632,6 +730,107 @@ FPTBJudgementResult APTBBaseMiniGame::EvaluateInput(EPTBActionType Action, float
 		static_cast<int32>(Result.JudgementType),
 		Result.DeltaMs);
 	return Result;
+}
+
+FPTBJudgementResult APTBBaseMiniGame::EvaluateHoldInput(EPTBActionType Action, float TimeMs)
+{
+	if (!JudgementSystem)
+	{
+		return FPTBJudgementResult();
+	}
+
+	FPTBNoteEvent MatchedNote;
+	const bool bHasMatchedNote = JudgementSystem->FindBestPendingNote(Action, TimeMs, MatchedNote);
+	const FPTBJudgementResult Result = JudgementSystem->EvaluateInput(Action, TimeMs, false);
+	if (Result.Reason == EPTBJudgementReason::EmptyInput && RuleSet && RuleSet->ShouldLockActionOnEmptyInput())
+	{
+		EmptyInputActionLockUntilTimeMs.Add(Action, TimeMs + RuleSet->EmptyInputActionLockMs);
+	}
+
+	if (!bHasMatchedNote
+		|| MatchedNote.NoteType != EPTBNoteType::Hold
+		|| Result.JudgementType == EPTBJudgementType::Miss
+		|| Result.Reason != EPTBJudgementReason::Note)
+	{
+		DispatchDeferredJudgementResult(Result);
+		return Result;
+	}
+
+	const float HoldDurationMs = MatchedNote.ReleaseTimeMs - MatchedNote.TimeMs;
+	if (HoldDurationMs <= 0.0f)
+	{
+		DispatchDeferredJudgementResult(Result);
+		return Result;
+	}
+
+	FPTBActiveHoldState HoldState;
+	HoldState.Note = MatchedNote;
+	HoldState.PendingResult = Result;
+	HoldState.PressedTimeMs = TimeMs;
+	HoldState.RequiredHoldUntilTimeMs = MatchedNote.TimeMs + HoldDurationMs * PTBBaseMiniGameInternal::RequiredHoldRatio;
+	ActiveHoldStates.Add(HoldState);
+
+	if (TimeMs >= HoldState.RequiredHoldUntilTimeMs)
+	{
+		ConfirmActiveHold(ActiveHoldStates.Num() - 1);
+	}
+
+	UE_LOG(LogRhythm, Verbose, TEXT("[%s] Hold started NoteId=%d Action=%d RequiredUntilMs=%.2f"),
+		*GetNameSafe(this),
+		MatchedNote.NoteId,
+		static_cast<int32>(MatchedNote.ActionType),
+		HoldState.RequiredHoldUntilTimeMs);
+
+	return Result;
+}
+
+void APTBBaseMiniGame::ResolveSatisfiedHoldInputs(float CurrentTimeMs)
+{
+	for (int32 Index = ActiveHoldStates.Num() - 1; Index >= 0; --Index)
+	{
+		if (CurrentTimeMs >= ActiveHoldStates[Index].RequiredHoldUntilTimeMs)
+		{
+			ConfirmActiveHold(Index);
+		}
+	}
+}
+
+void APTBBaseMiniGame::ConfirmActiveHold(int32 HoldIndex)
+{
+	if (!ActiveHoldStates.IsValidIndex(HoldIndex))
+	{
+		return;
+	}
+
+	const FPTBJudgementResult Result = ActiveHoldStates[HoldIndex].PendingResult;
+	ActiveHoldStates.RemoveAt(HoldIndex);
+	DispatchDeferredJudgementResult(Result);
+}
+
+void APTBBaseMiniGame::FailActiveHoldEarlyRelease(int32 HoldIndex, float ReleaseTimeMs)
+{
+	if (!ActiveHoldStates.IsValidIndex(HoldIndex))
+	{
+		return;
+	}
+
+	const FPTBActiveHoldState HoldState = ActiveHoldStates[HoldIndex];
+	ActiveHoldStates.RemoveAt(HoldIndex);
+	DispatchDeferredJudgementResult(PTBBaseMiniGameInternal::MakeEarlyReleaseResult(
+		HoldState.Note,
+		ReleaseTimeMs,
+		HoldState.RequiredHoldUntilTimeMs));
+}
+
+void APTBBaseMiniGame::DispatchDeferredJudgementResult(const FPTBJudgementResult& Result)
+{
+	if (JudgementSystem)
+	{
+		JudgementSystem->OnJudgementResult.Broadcast(Result);
+		return;
+	}
+
+	HandleJudgementResult(Result);
 }
 
 void APTBBaseMiniGame::HandleJudgementResult(FPTBJudgementResult Result)

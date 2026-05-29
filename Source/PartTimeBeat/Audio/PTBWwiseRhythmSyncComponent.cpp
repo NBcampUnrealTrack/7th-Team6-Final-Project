@@ -123,13 +123,15 @@ void UPTBWwiseRhythmSyncComponent::TickComponent(float DeltaTime, ELevelTick Tic
 	float PlaybackMs = SyncData.CurrentPlaybackMs;
 	if (WwiseManager && CurrentPlayingId != 0)
 	{
-		if (!WwiseManager->IsEventPlaying(CurrentPlayingId))
+		float WwisePlaybackMs = 0.0f;
+		if (WwiseManager->TryGetPlaybackPositionMs(CurrentPlayingId, WwisePlaybackMs))
 		{
-			SyncData.bIsPlaying = false;
-			return;
+			PlaybackMs = WwisePlaybackMs;
 		}
-
-		PlaybackMs = WwiseManager->GetPlaybackPositionMs(CurrentPlayingId);
+		else
+		{
+			PlaybackMs += DeltaTime * PTBWwiseRhythmSyncInternal::MillisecondsPerSecond;
+		}
 	}
 	else
 	{

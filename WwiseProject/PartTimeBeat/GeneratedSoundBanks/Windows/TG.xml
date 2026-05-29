@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<SoundBanksInfo Platform="Windows" BasePlatform="Windows" SchemaVersion="16" SoundBankVersion="150">
+	<SoundBanks>
+		<SoundBank Id="1568083734" Type="User" GUID="{DDAE794D-61D4-451C-A316-2444772C90B7}" Language="SFX" Hash="{F47B4F59-E5CE-61AD-8E78-390E04E9404D}">
+			<ObjectPath>\SoundBanks\Default Work Unit\TG</ObjectPath>
+			<ShortName>TG</ShortName>
+			<Path>TG.bnk</Path>
+			<Media>
+				<File Id="467031385" Language="SFX" Streaming="false" Location="Memory">
+					<ShortName>PTB_JJ_Easy_260527.wav</ShortName>
+					<CachePath>SFX/PTB_JJ_Easy_260527_818F3B66.wem</CachePath>
+				</File>
+			</Media>
+			<Events>
+				<Event Id="3508531682" Name="Play_TG_BGM" ObjectPath="\Events\Default Work Unit\Play_TG_BGM" GUID="{459599A4-86D7-476F-8F53-2F5881A6B8BA}" DurationType="OneShot" DurationMin="59.99327" DurationMax="59.99327">
+					<MediaRefs>
+						<MediaRef Id="467031385"/>
+					</MediaRefs>
+				</Event>
+			</Events>
+		</SoundBank>
+	</SoundBanks>
+	<FileHash>{8944E98F-CDAB-4052-B662-9322099EB49A}</FileHash>
+</SoundBanksInfo>

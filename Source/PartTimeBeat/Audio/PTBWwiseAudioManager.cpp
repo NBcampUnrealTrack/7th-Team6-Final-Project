@@ -5,7 +5,21 @@
 #include "AkComponent.h"
 #include "AkGameplayStatics.h"
 #include "Audio/PTBWwiseEventMapAsset.h"
+#include "Debug/PTBLogChannels.h"
 #include "AK/SoundEngine/Common/AkSoundEngine.h"
+
+namespace PTBWwiseAudioManagerInternal
+{
+	void EnsureEventDataLoaded(UAkAudioEvent* Event)
+	{
+		if (!Event || Event->IsLoaded())
+		{
+			return;
+		}
+
+		Event->LoadData();
+	}
+}
 
 UPTBWwiseAudioManager::UPTBWwiseAudioManager()
 {
@@ -148,14 +162,31 @@ int32 UPTBWwiseAudioManager::PostBGMEvent(FName EventKey)
 	const TObjectPtr<UAkAudioEvent>* FoundEvent = EventMap.Find(EventKey);
 	if (!FoundEvent || !FoundEvent->Get() || !MainAkComponent)
 	{
+		UE_LOG(LogWwise, Warning, TEXT("PostBGMEvent failed before post. Key=%s Event=%s AkComponent=%s"),
+			*EventKey.ToString(),
+			FoundEvent && FoundEvent->Get() ? *GetNameSafe(FoundEvent->Get()) : TEXT("None"),
+			*GetNameSafe(MainAkComponent.Get()));
 		return 0;
+	}
+
+	UAkAudioEvent* Event = FoundEvent->Get();
+	PTBWwiseAudioManagerInternal::EnsureEventDataLoaded(Event);
+
+	if (!Event->IsLoaded() || !Event->IsDataFullyLoaded())
+	{
+		UE_LOG(LogWwise, Warning, TEXT("PostBGMEvent event data is not ready. Key=%s Event=%s ShortId=%u Loaded=%d FullyLoaded=%d"),
+			*EventKey.ToString(),
+			*GetNameSafe(Event),
+			Event->GetShortID(),
+			Event->IsLoaded() ? 1 : 0,
+			Event->IsDataFullyLoaded() ? 1 : 0);
 	}
 
 	FOnAkPostEventCallback Callback;
 	Callback.BindDynamic(this, &UPTBWwiseAudioManager::HandleBGMPostEventCallback);
 
 	const int32 CallbackMask = AK_EndOfEvent | AK_EnableGetSourcePlayPosition;
-	CurrentBGMPlayingId = MainAkComponent->PostAkEvent(FoundEvent->Get(), CallbackMask, Callback);
+	CurrentBGMPlayingId = MainAkComponent->PostAkEvent(Event, CallbackMask, Callback);
 	bIsBGMPlaying = CurrentBGMPlayingId != 0;
 
 	return CurrentBGMPlayingId;
@@ -253,25 +284,34 @@ void UPTBWwiseAudioManager::ApplySettings(const FPTBUserSettings& Settings)
 
 float UPTBWwiseAudioManager::GetPlaybackPositionMs(int32 PlayingId) const
 {
-	if (PlayingId == 0)
-	{
-		return 0.0f;
-	}
-
-	AkTimeMs PositionMs = 0;
-	const AKRESULT Result = AK::SoundEngine::GetSourcePlayPosition(static_cast<AkPlayingID>(PlayingId), &PositionMs, true);
-	return Result == AK_Success ? static_cast<float>(PositionMs) : 0.0f;
+	float PositionMs = 0.0f;
+	return TryGetPlaybackPositionMs(PlayingId, PositionMs) ? PositionMs : 0.0f;
 }
 
-bool UPTBWwiseAudioManager::IsEventPlaying(int32 PlayingId) const
+bool UPTBWwiseAudioManager::TryGetPlaybackPositionMs(int32 PlayingId, float& OutPositionMs) const
 {
+	OutPositionMs = 0.0f;
+
 	if (PlayingId == 0)
 	{
 		return false;
 	}
 
 	AkTimeMs PositionMs = 0;
-	return AK::SoundEngine::GetSourcePlayPosition(static_cast<AkPlayingID>(PlayingId), &PositionMs, true) == AK_Success;
+	const AKRESULT Result = AK::SoundEngine::GetSourcePlayPosition(static_cast<AkPlayingID>(PlayingId), &PositionMs, true);
+	if (Result != AK_Success)
+	{
+		return false;
+	}
+
+	OutPositionMs = static_cast<float>(PositionMs);
+	return true;
+}
+
+bool UPTBWwiseAudioManager::IsEventPlaying(int32 PlayingId) const
+{
+	float PositionMs = 0.0f;
+	return TryGetPlaybackPositionMs(PlayingId, PositionMs);
 }
 
 void UPTBWwiseAudioManager::HandleBGMPostEventCallback(EAkCallbackType CallbackType, UAkCallbackInfo* CallbackInfo)
