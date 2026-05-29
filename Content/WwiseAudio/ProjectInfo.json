@@ -1,29 +1,29 @@
 {
  "ProjectInfo": {
   "Project": {
-   "Name": "Test",
-   "GUID": "{2E189443-FB7C-4D9F-8106-B8950E3F7321}",
+   "Name": "PartTimeBeat",
+   "GUID": "{A21EC574-520B-4E3E-A171-6FFC30C40182}",
    "Generator": "2023.1.7.8574"
   },
-  "CacheRoot": "../../../../Users/dignw/Documents/WwiseProjects/Test/.cache",
+  "CacheRoot": "../../WwiseProject/PartTimeBeat/.cache",
   "Platforms": [
    {
     "Name": "Windows",
-    "GUID": "{D09918FE-CF6C-4D5D-A3E1-346DD88581C6}",
+    "GUID": "{1C8C341D-35A2-46A9-BD49-499114B09E4D}",
     "BasePlatform": "Windows",
     "BasePlatformGUID": "{6E0CB257-C6C8-4C5C-8366-2740DFC441EB}",
-    "Path": "../../../../Users/dignw/Documents/WwiseProjects/Test/Windows"
+    "Path": "../../WwiseProject/PartTimeBeat/GeneratedSoundBanks/Windows"
    }
   ],
   "Languages": [
    {
     "Name": "English(US)",
     "Id": "684519430",
-    "GUID": "{8B78CCB7-F295-49D3-9216-51F92289D510}",
+    "GUID": "{72974E96-D48E-4D13-88F2-A7DA9707E828}",
     "Default": "true",
     "UseAsStandIn": "true"
    }
   ],
-  "FileHash": "{1E3E445F-BFE8-06F6-C289-BB950F18BAB3}"
+  "FileHash": "{02A47B2B-B8DC-963D-8F6A-AC76290CBEBF}"
  }
 }
