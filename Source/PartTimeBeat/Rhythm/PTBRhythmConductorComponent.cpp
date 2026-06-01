@@ -89,6 +89,7 @@ void UPTBRhythmConductorComponent::TickComponent(float DeltaTime, ELevelTick Tic
 	}
 
 	float ChartTimeMs = 0.0f;
+	float VisualChartTimeMs = 0.0f;
 	float CueBeat = 0.0f;
 
 	if (RhythmSyncComponent)
@@ -96,12 +97,14 @@ void UPTBRhythmConductorComponent::TickComponent(float DeltaTime, ELevelTick Tic
 		CurrentTimeMs = RhythmSyncComponent->GetRawPlaybackTimeMs();
 		CurrentBeat = RhythmSyncComponent->GetChartBeat();
 		ChartTimeMs = RhythmSyncComponent->GetChartTimeMs();
+		VisualChartTimeMs = RhythmSyncComponent->GetVisualChartTimeMs();
 		CueBeat = RhythmSyncComponent->GetVisualBeat();
 	}
 	else if (AudioManager && WwisePlayingId != 0)
 	{
 		CurrentTimeMs = AudioManager->GetPlaybackPositionMs(WwisePlayingId);
 		ChartTimeMs = CurrentTimeMs - ChartOffsetMs;
+		VisualChartTimeMs = ChartTimeMs;
 		CurrentBeat = PTBRhythmConductorInternal::CalculateBeat(ChartTimeMs, ChartData.BPM);
 		CueBeat = CurrentBeat;
 	}
@@ -109,6 +112,7 @@ void UPTBRhythmConductorComponent::TickComponent(float DeltaTime, ELevelTick Tic
 	{
 		CurrentTimeMs += DeltaTime * PTBRhythmConductorInternal::MillisecondsPerSecond;
 		ChartTimeMs = CurrentTimeMs - ChartOffsetMs;
+		VisualChartTimeMs = ChartTimeMs;
 		CurrentBeat = PTBRhythmConductorInternal::CalculateBeat(ChartTimeMs, ChartData.BPM);
 		CueBeat = CurrentBeat;
 	}
@@ -137,6 +141,7 @@ void UPTBRhythmConductorComponent::TickComponent(float DeltaTime, ELevelTick Tic
 
 	const TArray<FPTBNoteEvent>& Notes = ChartAsset->NoteEvents;
 	const float CueLeadBeats = FMath::Max(0.0f, LookAheadBeats);
+	const float EffectiveCueLeadTimeMs = FMath::Max(0.0f, CueLeadTimeMs);
 	const float EffectiveArmLeadTimeMs = FMath::Max(0.0f, ArmLeadTimeMs);
 
 	while (Notes.IsValidIndex(NextArmIndex) && Notes[NextArmIndex].TimeMs - EffectiveArmLeadTimeMs <= ChartTimeMs)
@@ -145,7 +150,11 @@ void UPTBRhythmConductorComponent::TickComponent(float DeltaTime, ELevelTick Tic
 		++NextArmIndex;
 	}
 
-	while (Notes.IsValidIndex(NextCueIndex) && Notes[NextCueIndex].BeatTime - CueLeadBeats <= CueBeat)
+	while (Notes.IsValidIndex(NextCueIndex)
+		&& ((CueLeadTimeMode == EPTBCueLeadTimeMode::Millisecond
+			&& Notes[NextCueIndex].TimeMs - EffectiveCueLeadTimeMs <= VisualChartTimeMs)
+			|| (CueLeadTimeMode == EPTBCueLeadTimeMode::Beat
+				&& Notes[NextCueIndex].BeatTime - CueLeadBeats <= CueBeat)))
 	{
 		OnNoteCue.Broadcast(Notes[NextCueIndex]);
 		++NextCueIndex;
@@ -283,6 +292,16 @@ void UPTBRhythmConductorComponent::SetArmLeadTimeMs(float InArmLeadTimeMs)
 void UPTBRhythmConductorComponent::SetLookAheadBeats(float InLookAheadBeats)
 {
 	LookAheadBeats = FMath::Max(0.0f, InLookAheadBeats);
+}
+
+void UPTBRhythmConductorComponent::SetCueLeadTimeMode(EPTBCueLeadTimeMode InCueLeadTimeMode)
+{
+	CueLeadTimeMode = InCueLeadTimeMode;
+}
+
+void UPTBRhythmConductorComponent::SetCueLeadTimeMs(float InCueLeadTimeMs)
+{
+	CueLeadTimeMs = FMath::Max(0.0f, InCueLeadTimeMs);
 }
 
 void UPTBRhythmConductorComponent::SetBeatsPerBar(int32 InBeatsPerBar)

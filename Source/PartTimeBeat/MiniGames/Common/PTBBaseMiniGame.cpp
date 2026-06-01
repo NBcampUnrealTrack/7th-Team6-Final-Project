@@ -352,6 +352,8 @@ void APTBBaseMiniGame::ApplyRuleSet()
 	if (RhythmConductor)
 	{
 		RhythmConductor->SetLookAheadBeats(RuleSet->LookAheadBeats);
+		RhythmConductor->SetCueLeadTimeMode(RuleSet->CueLeadTimeMode);
+		RhythmConductor->SetCueLeadTimeMs(RuleSet->CueLeadTimeMs);
 
 		if (RuleSet->bUseArmLeadTimeOverride)
 		{

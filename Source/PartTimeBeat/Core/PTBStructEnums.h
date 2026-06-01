@@ -48,10 +48,10 @@ enum class EPTBNoteType : uint8
 UENUM(BlueprintType)
 enum class EPTBJudgementType : uint8
 {
-    HighPerfect      UMETA(DisplayName = "21ms"),
-    Perfect        UMETA(DisplayName = "50ms"),
-    Good       UMETA(DisplayName = "70ms"),
-    Miss    UMETA(DisplayName = "초과")
+    HighPerfect      UMETA(DisplayName = "21ms(High Perfect)"),
+    Perfect        UMETA(DisplayName = "50ms(Perfect)"),
+    Good       UMETA(DisplayName = "70ms(Good)"),
+    Miss    UMETA(DisplayName = "초과(Miss)")
 };
 
 UENUM(BlueprintType)
@@ -66,8 +66,15 @@ enum class EPTBJudgementReason : uint8
 UENUM(BlueprintType)
 enum class EPTBEmptyInputPolicy : uint8
 {
-    Ignore       UMETA(DisplayName = "Ignore"),
-    Miss        UMETA(DisplayName = "Miss")
+    Ignore       UMETA(DisplayName = "Ignore(공입력 무시)"),
+    Miss        UMETA(DisplayName = "Miss(공입력시 미스)")
+};
+
+UENUM(BlueprintType)
+enum class EPTBCueLeadTimeMode : uint8
+{
+    Beat       UMETA(DisplayName = "Beat"),
+    MS        UMETA(DisplayName = "ms")
 };
 
 UENUM(BlueprintType)
