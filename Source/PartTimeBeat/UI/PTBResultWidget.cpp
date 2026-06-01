@@ -2,6 +2,18 @@
 
 #include "PTBResultWidget.h"
 
+#include "Flow/PTBGameFlowSubsystem.h"
+
+void UPTBResultWidget::NativeConstruct()
+{
+	Super::NativeConstruct();
+
+	if (bAutoShowFlowResultOnConstruct)
+	{
+		ShowResultFromFlowSubsystem();
+	}
+}
+
 void UPTBResultWidget::NativeDestruct()
 {
 	if (UWorld* World = GetWorld())
@@ -9,6 +21,22 @@ void UPTBResultWidget::NativeDestruct()
 		World->GetTimerManager().ClearTimer(PopupTimerHandle);
 	}
 	Super::NativeDestruct();
+}
+
+bool UPTBResultWidget::ShowResultFromFlowSubsystem()
+{
+	UGameInstance* GameInstance = GetGameInstance();
+	UPTBGameFlowSubsystem* FlowSubsystem = GameInstance
+		? GameInstance->GetSubsystem<UPTBGameFlowSubsystem>()
+		: nullptr;
+
+	if (!FlowSubsystem || !FlowSubsystem->HasRoundResult())
+	{
+		return false;
+	}
+
+	ShowResult(FlowSubsystem->GetLastRoundResult(), FlowSubsystem->GetLastRewardSummary());
+	return true;
 }
 
 void UPTBResultWidget::ShowResult(

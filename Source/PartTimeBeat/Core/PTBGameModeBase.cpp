@@ -299,15 +299,6 @@ void APTBGameModeBase::SubmitRoundResult(const FPTBRoundResult& Result)
 		// else { ... }
 
 		GI->AutoSave();
-		
-		// 결과 화면으로 전환
-		GI->CurrentFlowState = EGameFlowState::Result;
-		GI->OnFlowStateChanged.Broadcast(EGameFlowState::Result);
-
-		if (UPTBGameFlowSubsystem* FlowSubsystem = GI->GetSubsystem<UPTBGameFlowSubsystem>())
-		{
-			FlowSubsystem->SetFlowState(EGameFlowState::Result);
-		}
 	}
 
 	LastRoundResult = Result;
@@ -317,6 +308,17 @@ void APTBGameModeBase::SubmitRoundResult(const FPTBRoundResult& Result)
 	{
 		GI->LastRoundResult = Result;
 		GI->LastRewardSummary = Reward;
+
+		if (UPTBGameFlowSubsystem* FlowSubsystem = GI->GetSubsystem<UPTBGameFlowSubsystem>())
+		{
+			FlowSubsystem->StoreRoundResult(Result, Reward);
+			FlowSubsystem->SetFlowState(EGameFlowState::Result);
+		}
+		else
+		{
+			GI->CurrentFlowState = EGameFlowState::Result;
+			GI->OnFlowStateChanged.Broadcast(EGameFlowState::Result);
+		}
 	}
 
 	OnRoundResultReady.Broadcast(Result, Reward);
