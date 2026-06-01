@@ -309,12 +309,14 @@ void APTBTGMiniGame::LogNoteDebug(const TCHAR* EventName, const FPTBNoteEvent& N
 void APTBTGMiniGame::LogJudgementDebug(const FPTBJudgementResult& Result) const
 {
 	UE_LOG(LogPTBMiniGames, Log,
-		TEXT("[%s] TG Judgement NoteId=%d Action=%d Type=%d Reason=%d DeltaMs=%.3f ScoreDelta=%d Count=%d"),
+		TEXT("[%s] TG Judgement NoteId=%d Action=%d Type=%d Reason=%d ChartMs=%.3f InputMs=%.3f DeltaMs=%.3f ScoreDelta=%d Count=%d"),
 		*GetNameSafe(this),
 		Result.NoteId,
 		static_cast<int32>(Result.ActionType),
 		static_cast<int32>(Result.JudgementType),
 		static_cast<int32>(Result.Reason),
+		Result.ChartTimeMs,
+		Result.InputTimeMs,
 		Result.DeltaMs,
 		Result.ScoreDelta,
 		JudgementCount);

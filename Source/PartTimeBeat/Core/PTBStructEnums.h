@@ -229,6 +229,14 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
     EPTBJudgementReason Reason = EPTBJudgementReason::Note;
 
+    /** 판정 기준 채보 시간(ms) */
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
+    float ChartTimeMs = 0.0f;
+
+    /** 판정에 사용된 입력 시간(ms) */
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
+    float InputTimeMs = 0.0f;
+
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
     float DeltaMs = 0.0f;
 
