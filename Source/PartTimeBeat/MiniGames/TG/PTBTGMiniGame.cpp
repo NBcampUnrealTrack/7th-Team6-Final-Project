@@ -77,12 +77,6 @@ void APTBTGMiniGame::HandleNoteCue(FPTBNoteEvent Note)
 
 void APTBTGMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 {
-	if (Result.Reason == EPTBJudgementReason::EmptyInput && (!RuleSet || !RuleSet->ShouldTreatEmptyInputAsMiss()))
-	{
-		Super::HandleJudgementResult(Result);
-		return;
-	}
-
 	FPTBNoteEvent JudgedNote;
 	const bool bHasJudgedNote = FindTrackedNote(Result.NoteId, JudgedNote);
 
