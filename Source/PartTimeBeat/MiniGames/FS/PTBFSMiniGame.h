@@ -127,7 +127,7 @@ private:
 	UFUNCTION()
 	void OnAllNotesPassedFishing();
 	
-	float FishDistance =0;
+	float FishDistance =0.0f;
 	
 	EFishingLineState CurrentLineState = EFishingLineState::None;
 	
