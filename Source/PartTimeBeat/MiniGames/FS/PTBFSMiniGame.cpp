@@ -40,7 +40,7 @@ void APTBFSMiniGame::BuildRuntimeState()
 {
 	Super::BuildRuntimeState();
 	FishRuleSet = Cast<UPTBFSMiniGameRuleSet>(RuleSet);
-	Character = Cast<APTBRhythmCharacterBase>(UGameplayStatics::GetPlayerCharacter(GetWorld(), 0));
+	Character = Cast<APTBRhythmCharacterBase>(UGameplayStatics::GetPlayerPawn(GetWorld(), 0));
 	TArray<AActor*> FoundActor;
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AFishActor::StaticClass(), FoundActor);
 	if (FoundActor.Num() > 0)
@@ -205,6 +205,7 @@ EFishingLineState APTBFSMiniGame::CalculateLineState(float Distance) const
 
 void APTBFSMiniGame::HandleActionAInput()
 {
+	PTB_WARNING(LogPTBMiniGames,TEXT("호출됬다 드디어"));
 	HandleRhythmInput(EPTBActionType::ActionA);
 }
 

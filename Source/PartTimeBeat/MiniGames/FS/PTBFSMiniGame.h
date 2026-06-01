@@ -92,7 +92,7 @@ public:
  
 	
 	UFUNCTION(BlueprintCallable, Category = "Fishing|Input")
-	void HandleActionAInput(); 
+	virtual void HandleActionAInput(); 
  
 	UFUNCTION(BlueprintCallable, Category = "Fishing|Input")
 	void HandleActionBInput(); 
