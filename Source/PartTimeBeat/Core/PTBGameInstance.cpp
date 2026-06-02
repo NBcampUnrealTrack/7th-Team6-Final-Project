@@ -45,16 +45,6 @@ void UPTBGameInstance::InitPTBSystems()
 	OnFlowStateChanged.Broadcast(CurrentFlowState);
 
 	PTB_RECORD(LogPTBCore, TEXT("PTBSystems initialized"));
-
-	// 타이틀 위젯 생성 및 표시
-	if (UWorld* World = GetWorld())
-	{
-		World->GetTimerManager().SetTimerForNextTick(FTimerDelegate::CreateUObject(this, &UPTBGameInstance::CreateTitleWidget));
-	}
-	else
-	{
-		PTB_WARNING(LogPTBCore, TEXT("[PTBGameInstance] InitPTBSystems: World is null, widget creation skipped"));
-	}
 }
 
 void UPTBGameInstance::ShutdownPTBSystems()

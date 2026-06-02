@@ -38,7 +38,7 @@ public:
 	UPROPERTY(BlueprintReadWrite, Category = "PTB|Profile")
 	int32 PendingSlotIndex = 0;
 
-	UFUNCTION()
+	UFUNCTION(BlueprintCallable, Category = "PTB|UI")
 	void CreateTitleWidget();
 
 	virtual void Init() override;
