@@ -1,0 +1,1 @@
+#include "MiniGames/JJ/PTBJJMiniGame.h"
