@@ -279,9 +279,6 @@ protected:
 	UFUNCTION()
 	virtual void HandleJudgementResult(FPTBJudgementResult Result);
 
-	/** 미니게임 전용 피드백(하위 override) */
-	virtual void PlayJudgementFeedback(const FPTBJudgementResult& Result);
-
 	/** 전용 결과(하위 override) */
 	virtual FPTBMiniGameResultPayload BuildResultPayload() const;
 

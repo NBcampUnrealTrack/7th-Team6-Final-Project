@@ -927,16 +927,11 @@ void APTBBaseMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 		}
 	}
 
-	PlayJudgementFeedback(Result);
-
 	if (RuleSet && ScoreCalculator && RuleSet->ShouldFailForMissCount(ScoreCalculator->MissCount))
 	{
 		FinishMiniGame(EPTBRoundEndReason::Failed);
 	}
-}
-
-void APTBBaseMiniGame::PlayJudgementFeedback(const FPTBJudgementResult& Result)
-{
+	
 	UE_LOG(LogRhythm, Log, TEXT("[%s] Judgement NoteId=%d Action=%d Type=%d ChartMs=%.2f InputMs=%.2f DeltaMs=%.2f ScoreDelta=%d"),
 		*GetNameSafe(this),
 		Result.NoteId,
