@@ -1,0 +1,31 @@
+{
+  "chartVersion": 1,
+  "chartId": "PTB_FOD_Easy_260602",
+  "miniGameId": "FOD",
+  "songId": "",
+  "difficulty": "Easy",
+  "bpm": 120,
+  "offsetMs": 0,
+  "timeSignature": { "numerator": 4, "denominator": 4 },
+  "tempoEvents": [
+    { "beat": 0, "bpm": 120 }
+  ],
+  "timeSignatureEvents": [
+    { "beat": 0, "numerator": 4, "denominator": 4 }
+  ],
+  "wwise": {
+    "bankName": "FOD",
+    "bgmEventName": "Play_FOD_BGM"
+  },
+  "noteFormat": ["id", "timeMs", "beat", "action", "lane", "type"],
+  "notes": [
+    [1, 2000, 4, "A", 0, "Tap"],
+    [2, 4000, 8, "A", 0, "Tap"],
+    [3, 6000, 12, "A", 0, "Tap"],
+    [4, 8000, 16, "A", 0, "Tap"],
+    [5, 10000, 20, "A", 0, "Tap"],
+    [6, 12000, 24, "A", 0, "Tap"],
+    [7, 14000, 28, "A", 0, "Tap"],
+    [8, 16000, 32, "A", 0, "Tap"]
+  ]
+}
