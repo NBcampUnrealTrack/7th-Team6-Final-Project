@@ -39,6 +39,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "PTB|Flow")
 	void FinishGameplay(const FPTBRoundResult& Result);
 
+	/** 진행도와 보상 요약 적용 → Result 화면 */
+	UFUNCTION(BlueprintCallable, Category = "PTB|Flow")
+	void FinishGameplayWithReward(const FPTBRoundResult& Result, const FPTBRewardSummary& Reward);
+
 	/** 결과 화면에서 표시할 마지막 라운드 결과 저장 */
 	UFUNCTION(BlueprintCallable, Category = "PTB|Flow")
 	void StoreRoundResult(const FPTBRoundResult& Result, const FPTBRewardSummary& Reward);

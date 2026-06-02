@@ -311,8 +311,7 @@ void APTBGameModeBase::SubmitRoundResult(const FPTBRoundResult& Result)
 
 		if (UPTBGameFlowSubsystem* FlowSubsystem = GI->GetSubsystem<UPTBGameFlowSubsystem>())
 		{
-			FlowSubsystem->StoreRoundResult(Result, Reward);
-			FlowSubsystem->SetFlowState(EGameFlowState::Result);
+			FlowSubsystem->FinishGameplayWithReward(Result, Reward);
 		}
 		else
 		{

@@ -248,7 +248,14 @@ void UPTBGameFlowSubsystem::StartGameplay()
 
 void UPTBGameFlowSubsystem::FinishGameplay(const FPTBRoundResult& Result)
 {
-	StoreRoundResult(Result, FPTBRewardSummary());
+	if (bHasRoundResult)
+	{
+		LastRoundResult = Result;
+	}
+	else
+	{
+		StoreRoundResult(Result, FPTBRewardSummary());
+	}
 
 	if (Result.MiniGameId.IsNone())
 	{
@@ -269,6 +276,12 @@ void UPTBGameFlowSubsystem::FinishGameplay(const FPTBRoundResult& Result)
 	// TODO(Save): 저장 정책 확정 후 GameInstance::AutoSave() 호출
 
 	SetFlowState(EGameFlowState::Result);
+}
+
+void UPTBGameFlowSubsystem::FinishGameplayWithReward(const FPTBRoundResult& Result, const FPTBRewardSummary& Reward)
+{
+	StoreRoundResult(Result, Reward);
+	FinishGameplay(Result);
 }
 
 void UPTBGameFlowSubsystem::StoreRoundResult(const FPTBRoundResult& Result, const FPTBRewardSummary& Reward)
