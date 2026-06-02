@@ -60,6 +60,8 @@ namespace PTBBaseMiniGameInternal
 		Result.ActionType = Note.ActionType;
 		Result.JudgementType = EPTBJudgementType::Miss;
 		Result.Reason = EPTBJudgementReason::EarlyRelease;
+		Result.ChartTimeMs = RequiredHoldUntilTimeMs;
+		Result.InputTimeMs = ReleaseTimeMs;
 		Result.DeltaMs = ReleaseTimeMs - RequiredHoldUntilTimeMs;
 		Result.ScoreDelta = 0;
 		Result.bBreaksCombo = true;
@@ -350,6 +352,8 @@ void APTBBaseMiniGame::ApplyRuleSet()
 	if (RhythmConductor)
 	{
 		RhythmConductor->SetLookAheadBeats(RuleSet->LookAheadBeats);
+		RhythmConductor->SetCueLeadTimeMode(RuleSet->CueLeadTimeMode);
+		RhythmConductor->SetCueLeadTimeMs(RuleSet->CueLeadTimeMs);
 
 		if (RuleSet->bUseArmLeadTimeOverride)
 		{
@@ -760,11 +764,13 @@ FPTBJudgementResult APTBBaseMiniGame::EvaluateInput(EPTBActionType Action, float
 		EmptyInputActionLockUntilTimeMs.Add(Action, TimeMs + RuleSet->EmptyInputActionLockMs);
 	}
 
-	UE_LOG(LogRhythm, Verbose, TEXT("[%s] EvaluateInput Action=%d TimeMs=%.2f -> Judgement=%d Delta=%.2f"),
+	UE_LOG(LogRhythm, Verbose, TEXT("[%s] EvaluateInput Action=%d TimeMs=%.2f -> Judgement=%d ChartMs=%.2f InputMs=%.2f DeltaMs=%.2f"),
 		*GetNameSafe(this),
 		static_cast<int32>(Action),
 		TimeMs,
 		static_cast<int32>(Result.JudgementType),
+		Result.ChartTimeMs,
+		Result.InputTimeMs,
 		Result.DeltaMs);
 	return Result;
 }
@@ -913,11 +919,13 @@ void APTBBaseMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 
 void APTBBaseMiniGame::PlayJudgementFeedback(const FPTBJudgementResult& Result)
 {
-	UE_LOG(LogRhythm, Log, TEXT("[%s] Judgement NoteId=%d Action=%d Type=%d Delta=%.2f ScoreDelta=%d"),
+	UE_LOG(LogRhythm, Log, TEXT("[%s] Judgement NoteId=%d Action=%d Type=%d ChartMs=%.2f InputMs=%.2f DeltaMs=%.2f ScoreDelta=%d"),
 		*GetNameSafe(this),
 		Result.NoteId,
 		static_cast<int32>(Result.ActionType),
 		static_cast<int32>(Result.JudgementType),
+		Result.ChartTimeMs,
+		Result.InputTimeMs,
 		Result.DeltaMs,
 		Result.ScoreDelta);
 }

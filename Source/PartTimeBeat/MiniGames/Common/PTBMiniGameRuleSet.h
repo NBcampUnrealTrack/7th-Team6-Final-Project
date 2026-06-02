@@ -47,9 +47,17 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Audio")
 	TObjectPtr<UPTBWwiseEventMapAsset> AudioEventSet;
 
+	/** 비주얼 큐 선행 시간 기준 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Timing")
+	EPTBCueLeadTimeMode CueLeadTimeMode = EPTBCueLeadTimeMode::Beat;
+
 	/** 비주얼 큐 선행 Beat 수 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Timing", meta = (ClampMin = "0", UIMin = "0"))
 	float LookAheadBeats = 2.0f;
+
+	/** 비주얼 큐 선행 시간(ms) */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Timing", meta = (ClampMin = "0", UIMin = "0"))
+	float CueLeadTimeMs = 2000.0f;
 
 	/** 판정 등록 선행 시간 override 사용 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Timing")

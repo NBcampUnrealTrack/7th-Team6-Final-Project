@@ -61,8 +61,14 @@ public:
 	/** 판정 선행 등록 시간(ms) 설정 */
 	void SetArmLeadTimeMs(float InArmLeadTimeMs);
 
+	/** 비주얼 큐 선행 시간 기준 설정 */
+	void SetCueLeadTimeMode(EPTBCueLeadTimeMode InCueLeadTimeMode);
+
 	/** 비주얼 큐 선행 Beat 수 설정 */
 	void SetLookAheadBeats(float InLookAheadBeats);
+
+	/** 비주얼 큐 선행 시간(ms) 설정 */
+	void SetCueLeadTimeMs(float InCueLeadTimeMs);
 
 	/** 마디당 Beat 수 설정 */
 	void SetBeatsPerBar(int32 InBeatsPerBar);
@@ -105,6 +111,10 @@ public:
 	int32 BeatsPerBar = 4;
 	/**	비주얼 큐 선행 Beat 수 */
 	float LookAheadBeats = 2.0;
+	/** 비주얼 큐 선행 시간 기준 */
+	EPTBCueLeadTimeMode CueLeadTimeMode = EPTBCueLeadTimeMode::Beat;
+	/** 비주얼 큐 선행 시간(ms) */
+	float CueLeadTimeMs = 2000.0f;
 	/** 판정 등록 선행 시간(ms) */
 	float ArmLeadTimeMs = 120.0f;
 	/**	채보 오프셋 */

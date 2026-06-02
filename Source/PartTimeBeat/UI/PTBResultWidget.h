@@ -24,6 +24,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "PTB|UI")
 	void ShowResult(const FPTBRoundResult& InResult, const FPTBRewardSummary& InReward);
 
+	UFUNCTION(BlueprintCallable, Category = "PTB|UI")
+	bool ShowResultFromFlowSubsystem();
+
 	UPROPERTY(BlueprintAssignable, BlueprintCallable, Category = "PTB|UI|Event")
 	FPTBResultWidgetEvent OnRetryRequested;
 
@@ -39,7 +42,11 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|UI")
 	float PopupDelay = 3.0f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|UI")
+	bool bAutoShowFlowResultOnConstruct = true;
+
 protected:
+	virtual void NativeConstruct() override;
 	virtual void NativeDestruct() override;
 
 	/** EPTBGradeType 에 따라 배경 이미지 교체 */

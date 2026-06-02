@@ -39,6 +39,30 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "PTB|Flow")
 	void FinishGameplay(const FPTBRoundResult& Result);
 
+	/** 진행도와 보상 요약 적용 → Result 화면 */
+	UFUNCTION(BlueprintCallable, Category = "PTB|Flow")
+	void FinishGameplayWithReward(const FPTBRoundResult& Result, const FPTBRewardSummary& Reward);
+
+	/** 결과 화면에서 표시할 마지막 라운드 결과 저장 */
+	UFUNCTION(BlueprintCallable, Category = "PTB|Flow")
+	void StoreRoundResult(const FPTBRoundResult& Result, const FPTBRewardSummary& Reward);
+
+	/** 저장된 마지막 라운드 결과 초기화 */
+	UFUNCTION(BlueprintCallable, Category = "PTB|Flow")
+	void ClearRoundResult();
+
+	/** 결과 화면에서 표시할 라운드 결과가 있는지 여부 */
+	UFUNCTION(BlueprintPure, Category = "PTB|Flow")
+	bool HasRoundResult() const;
+
+	/** 결과 화면에서 표시할 마지막 라운드 결과 */
+	UFUNCTION(BlueprintPure, Category = "PTB|Flow")
+	FPTBRoundResult GetLastRoundResult() const;
+
+	/** 결과 화면에서 표시할 마지막 보상 요약 */
+	UFUNCTION(BlueprintPure, Category = "PTB|Flow")
+	FPTBRewardSummary GetLastRewardSummary() const;
+
 	/** 결과 후 미니게임 선택 화면으로 복귀 */
 	UFUNCTION(BlueprintCallable, Category = "PTB|Flow")
 	void ReturnToMiniGameSelect();
@@ -88,6 +112,15 @@ public:
 	/** 결과 화면에서 다시 사용할 마지막 세션 요청 */
 	UPROPERTY(BlueprintReadOnly, Category = "PTB|Flow")
 	FPTBGameSessionRequest LastSessionRequest;
+	/** 결과 화면에서 표시할 마지막 라운드 결과 */
+	UPROPERTY(BlueprintReadOnly, Category = "PTB|Flow")
+	FPTBRoundResult LastRoundResult;
+	/** 결과 화면에서 표시할 마지막 보상 요약 */
+	UPROPERTY(BlueprintReadOnly, Category = "PTB|Flow")
+	FPTBRewardSummary LastRewardSummary;
+	/** 표시 가능한 마지막 라운드 결과 보유 여부 */
+	UPROPERTY(BlueprintReadOnly, Category = "PTB|Flow")
+	bool bHasRoundResult = false;
 	/** 미니게임 선택 화면 레벨 이름 */
 	UPROPERTY(BlueprintReadOnly, Category = "PTB|Flow")
 	FName MiniGameSelectLevelName = TEXT("L_GameMap");

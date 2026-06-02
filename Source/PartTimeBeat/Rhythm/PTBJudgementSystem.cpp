@@ -50,13 +50,21 @@ namespace PTBJudgementSystemInternal
 		}
 	}
 
-	FPTBJudgementResult MakeMissResult(EPTBActionType Action, EPTBJudgementReason Reason, int32 NoteId = 0, float DeltaMs = 0.0f)
+	FPTBJudgementResult MakeMissResult(
+		EPTBActionType Action,
+		EPTBJudgementReason Reason,
+		int32 NoteId = 0,
+		float DeltaMs = 0.0f,
+		float ChartTimeMs = 0.0f,
+		float InputTimeMs = 0.0f)
 	{
 		FPTBJudgementResult Result;
 		Result.NoteId = NoteId;
 		Result.ActionType = Action;
 		Result.JudgementType = EPTBJudgementType::Miss;
 		Result.Reason = Reason;
+		Result.ChartTimeMs = ChartTimeMs;
+		Result.InputTimeMs = InputTimeMs;
 		Result.DeltaMs = DeltaMs;
 		Result.ScoreDelta = 0;
 		Result.bBreaksCombo = true;
@@ -70,6 +78,8 @@ namespace PTBJudgementSystemInternal
 		Result.ActionType = Note.ActionType;
 		Result.JudgementType = JudgementType;
 		Result.Reason = EPTBJudgementReason::Note;
+		Result.ChartTimeMs = Note.TimeMs;
+		Result.InputTimeMs = Note.TimeMs + DeltaMs;
 		Result.DeltaMs = DeltaMs;
 		Result.ScoreDelta = GetBaseScoreForJudgement(JudgementType);
 		Result.bBreaksCombo = JudgementType == EPTBJudgementType::Miss;
@@ -150,9 +160,17 @@ FPTBJudgementResult UPTBJudgementSystem::EvaluateInput(EPTBActionType Action, fl
 
 FPTBJudgementResult UPTBJudgementSystem::EvaluateInput(EPTBActionType Action, float InputTimeMs, bool bBroadcastResult)
 {
+	const float CorrectedInputTimeMs = InputTimeMs + JudgementOffsetMs;
+
 	if (Action == EPTBActionType::None)
 	{
-		const FPTBJudgementResult Result = PTBJudgementSystemInternal::MakeMissResult(Action, EPTBJudgementReason::EmptyInput);
+		const FPTBJudgementResult Result = PTBJudgementSystemInternal::MakeMissResult(
+			Action,
+			EPTBJudgementReason::EmptyInput,
+			0,
+			0.0f,
+			0.0f,
+			CorrectedInputTimeMs);
 		if (bBroadcastResult)
 		{
 			OnJudgementResult.Broadcast(Result);
@@ -160,7 +178,6 @@ FPTBJudgementResult UPTBJudgementSystem::EvaluateInput(EPTBActionType Action, fl
 		return Result;
 	}
 
-	const float CorrectedInputTimeMs = InputTimeMs + JudgementOffsetMs;
 	int32 BestNoteIndex = INDEX_NONE;
 	float BestAbsDeltaMs = HitWindowMissMs;
 	float BestSignedDeltaMs = 0.0f;
@@ -185,7 +202,13 @@ FPTBJudgementResult UPTBJudgementSystem::EvaluateInput(EPTBActionType Action, fl
 
 	if (BestNoteIndex == INDEX_NONE)
 	{
-		const FPTBJudgementResult Result = PTBJudgementSystemInternal::MakeMissResult(Action, EPTBJudgementReason::EmptyInput);
+		const FPTBJudgementResult Result = PTBJudgementSystemInternal::MakeMissResult(
+			Action,
+			EPTBJudgementReason::EmptyInput,
+			0,
+			0.0f,
+			0.0f,
+			CorrectedInputTimeMs);
 		if (bBroadcastResult)
 		{
 			OnJudgementResult.Broadcast(Result);
@@ -264,7 +287,15 @@ TArray<FPTBJudgementResult> UPTBJudgementSystem::ForceMissExpiredNotes(float Cur
 			continue;
 		}
 
-		MissResults.Insert(PTBJudgementSystemInternal::MakeMissResult(Note.ActionType, EPTBJudgementReason::ExpiredNote, Note.NoteId, SignedDeltaMs), 0);
+		MissResults.Insert(
+			PTBJudgementSystemInternal::MakeMissResult(
+				Note.ActionType,
+				EPTBJudgementReason::ExpiredNote,
+				Note.NoteId,
+				SignedDeltaMs,
+				Note.TimeMs,
+				CorrectedCurrentTimeMs),
+			0);
 		PendingNotes.RemoveAt(Index);
 	}
 

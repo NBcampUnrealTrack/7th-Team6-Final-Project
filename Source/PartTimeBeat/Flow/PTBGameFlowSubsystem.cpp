@@ -194,6 +194,8 @@ void UPTBGameFlowSubsystem::StartGameplay()
 		return;
 	}
 
+	ClearRoundResult();
+
 	// TODO(Refactor): UPTBGameInstance 접근 방식이 정리되면
 	// GetGameInstance<UPTBGameInstance>() 또는 공용 헬퍼로 교체 필요
 	UGameInstance* GI = GetGameInstance();
@@ -246,6 +248,15 @@ void UPTBGameFlowSubsystem::StartGameplay()
 
 void UPTBGameFlowSubsystem::FinishGameplay(const FPTBRoundResult& Result)
 {
+	if (bHasRoundResult)
+	{
+		LastRoundResult = Result;
+	}
+	else
+	{
+		StoreRoundResult(Result, FPTBRewardSummary());
+	}
+
 	if (Result.MiniGameId.IsNone())
 	{
 		PTB_WARNING(LogPTBFlow, 
@@ -265,6 +276,41 @@ void UPTBGameFlowSubsystem::FinishGameplay(const FPTBRoundResult& Result)
 	// TODO(Save): 저장 정책 확정 후 GameInstance::AutoSave() 호출
 
 	SetFlowState(EGameFlowState::Result);
+}
+
+void UPTBGameFlowSubsystem::FinishGameplayWithReward(const FPTBRoundResult& Result, const FPTBRewardSummary& Reward)
+{
+	StoreRoundResult(Result, Reward);
+	FinishGameplay(Result);
+}
+
+void UPTBGameFlowSubsystem::StoreRoundResult(const FPTBRoundResult& Result, const FPTBRewardSummary& Reward)
+{
+	LastRoundResult = Result;
+	LastRewardSummary = Reward;
+	bHasRoundResult = true;
+}
+
+void UPTBGameFlowSubsystem::ClearRoundResult()
+{
+	LastRoundResult = FPTBRoundResult();
+	LastRewardSummary = FPTBRewardSummary();
+	bHasRoundResult = false;
+}
+
+bool UPTBGameFlowSubsystem::HasRoundResult() const
+{
+	return bHasRoundResult;
+}
+
+FPTBRoundResult UPTBGameFlowSubsystem::GetLastRoundResult() const
+{
+	return LastRoundResult;
+}
+
+FPTBRewardSummary UPTBGameFlowSubsystem::GetLastRewardSummary() const
+{
+	return LastRewardSummary;
 }
 
 void UPTBGameFlowSubsystem::ReturnToMiniGameSelect() 
