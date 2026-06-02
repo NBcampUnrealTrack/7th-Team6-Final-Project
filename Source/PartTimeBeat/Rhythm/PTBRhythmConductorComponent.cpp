@@ -151,7 +151,7 @@ void UPTBRhythmConductorComponent::TickComponent(float DeltaTime, ELevelTick Tic
 	}
 
 	while (Notes.IsValidIndex(NextCueIndex)
-		&& ((CueLeadTimeMode == EPTBCueLeadTimeMode::Millisecond
+		&& ((CueLeadTimeMode == EPTBCueLeadTimeMode::MS
 			&& Notes[NextCueIndex].TimeMs - EffectiveCueLeadTimeMs <= VisualChartTimeMs)
 			|| (CueLeadTimeMode == EPTBCueLeadTimeMode::Beat
 				&& Notes[NextCueIndex].BeatTime - CueLeadBeats <= CueBeat)))
