@@ -61,6 +61,18 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|UI")
 	TSubclassOf<UPTBMiniGameLoadingWidget> LoadingWidgetClass;
 
+	/** 미니게임 맵을 직접 PIE로 열었을 때 이 Actor로 테스트 라운드를 자동 시작 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|MiniGame|PIE Test")
+	bool bAutoStartWhenOpenedDirectlyInPIE = false;
+
+	/** 직접 PIE 테스트에 사용할 난이도 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|MiniGame|PIE Test")
+	EPTBDifficulty DirectPIEDifficulty = EPTBDifficulty::Standard;
+
+	/** 직접 PIE 테스트에 사용할 플레이 모드 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|MiniGame|PIE Test")
+	EPTBPlayMode DirectPIEPlayMode = EPTBPlayMode::Single;
+
 	/** 미니게임 종료 결과 */
 	UPROPERTY(BlueprintAssignable, Category = "PTB|MiniGame")
 	FPTBOnMiniGameFinished OnMiniGameFinished;

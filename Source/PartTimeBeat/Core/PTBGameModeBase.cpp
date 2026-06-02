@@ -4,6 +4,7 @@
 #include "Flow/PTBGameFlowSubsystem.h"
 #include "Profile/PTBProfileSubsystem.h"
 #include "MiniGames/Common/PTBBaseMiniGame.h"
+#include "MiniGames/Common/PTBMiniGameRuleSet.h"
 #include "Kismet/GameplayStatics.h"
 #include "GameFramework/PlayerController.h"
 
@@ -11,30 +12,129 @@ void APTBGameModeBase::BeginPlay()
 {
 	Super::BeginPlay();
 
-	const UGameInstance* GameInstance = GetGameInstance();
+	UGameInstance* GameInstance = GetGameInstance();
 	if (!GameInstance)
 	{
 		return;
 	}
 
-	const UPTBGameFlowSubsystem* FlowSubsystem = GameInstance->GetSubsystem<UPTBGameFlowSubsystem>();
-	if (!FlowSubsystem)
+	UPTBGameFlowSubsystem* FlowSubsystem = GameInstance->GetSubsystem<UPTBGameFlowSubsystem>();
+	if (FlowSubsystem && FlowSubsystem->CurrentFlowState == EGameFlowState::InGame)
 	{
-		return;
+		const FPTBGameSessionRequest& PendingRequest = FlowSubsystem->PendingSessionRequest;
+		if (!PendingRequest.MiniGameId.IsNone())
+		{
+			StartGameFlow(PendingRequest);
+			return;
+		}
 	}
 
-	if (FlowSubsystem->CurrentFlowState != EGameFlowState::InGame)
+	TryStartDirectPIEMiniGame();
+}
+
+bool APTBGameModeBase::TryStartDirectPIEMiniGame()
+{
+	UWorld* World = GetWorld();
+	if (!World || World->WorldType != EWorldType::PIE)
 	{
-		return;
+		return false;
 	}
 
-	const FPTBGameSessionRequest& PendingRequest = FlowSubsystem->PendingSessionRequest;
-	if (PendingRequest.MiniGameId.IsNone())
+	TArray<AActor*> MiniGameActors;
+	UGameplayStatics::GetAllActorsOfClass(this, APTBBaseMiniGame::StaticClass(), MiniGameActors);
+
+	APTBBaseMiniGame* DirectMiniGame = nullptr;
+	for (AActor* Actor : MiniGameActors)
 	{
-		return;
+		APTBBaseMiniGame* Candidate = Cast<APTBBaseMiniGame>(Actor);
+		if (Candidate && Candidate->bAutoStartWhenOpenedDirectlyInPIE)
+		{
+			DirectMiniGame = Candidate;
+			break;
+		}
 	}
 
-	StartGameFlow(PendingRequest);
+	if (!DirectMiniGame)
+	{
+		return false;
+	}
+
+	if (!DirectMiniGame->RuleSet)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Direct PIE MiniGame start failed: RuleSet is missing on [%s]."), *GetNameSafe(DirectMiniGame));
+		return false;
+	}
+
+	if (DirectMiniGame->RuleSet->MiniGameId.IsNone())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Direct PIE MiniGame start failed: RuleSet.MiniGameId is None on [%s]."), *GetNameSafe(DirectMiniGame));
+		return false;
+	}
+
+	CurrentRequest = FPTBGameSessionRequest();
+	CurrentRequest.MiniGameId = DirectMiniGame->RuleSet->MiniGameId;
+	CurrentRequest.MiniGameCode = DirectMiniGame->RuleSet->MiniGameCode.IsNone()
+		? CurrentRequest.MiniGameId
+		: DirectMiniGame->RuleSet->MiniGameCode;
+	CurrentRequest.Difficulty = DirectMiniGame->DirectPIEDifficulty;
+	CurrentRequest.PlayMode = DirectMiniGame->DirectPIEPlayMode;
+	CurrentRequest.RandomSeed = FMath::Rand();
+	CurrentRequest.ExpectedPlayerCount = 1;
+
+	bIsGameActive = false;
+	bIsPaused = false;
+
+	UPTBGameInstance* GI = Cast<UPTBGameInstance>(GetGameInstance());
+	UPTBGameFlowSubsystem* FlowSubsystem = GI ? GI->GetSubsystem<UPTBGameFlowSubsystem>() : nullptr;
+	if (GI)
+	{
+		GI->CurrentPlayMode = CurrentRequest.PlayMode;
+
+		if (UPTBProfileSubsystem* ProfileSubsystem = GI->GetSubsystem<UPTBProfileSubsystem>())
+		{
+			bool bHasActiveProfile = false;
+			const FPTBProfileData ActiveProfile = ProfileSubsystem->GetActiveProfile(bHasActiveProfile);
+			if (bHasActiveProfile)
+			{
+				CurrentRequest.ProfileId = ActiveProfile.ProfileId;
+			}
+		}
+	}
+
+	if (FlowSubsystem)
+	{
+		FlowSubsystem->ClearRetryTarget();
+		FlowSubsystem->SelectedMiniGameId = CurrentRequest.MiniGameId;
+		FlowSubsystem->SelectedDifficulty = CurrentRequest.Difficulty;
+		FlowSubsystem->PendingSessionRequest = CurrentRequest;
+		FlowSubsystem->SetFlowState(EGameFlowState::InGame);
+	}
+
+	ActiveMiniGame = DirectMiniGame;
+	ActiveMiniGame->OnMiniGameStarted.AddUniqueDynamic(this, &APTBGameModeBase::HandleMiniGameStarted);
+	ActiveMiniGame->OnMiniGameFinished.AddUniqueDynamic(this, &APTBGameModeBase::HandleMiniGameFinished);
+
+	FPTBMiniGameContext Context;
+	Context.SessionRequest = CurrentRequest;
+	if (GI)
+	{
+		Context.UserSettings = GI->CachedSettings;
+	}
+	Context.LocalPlayerIndex = 0;
+
+	ActiveMiniGame->InitializeMiniGame(Context);
+
+	const FString CurrentLevelName = UGameplayStatics::GetCurrentLevelName(this, true);
+	if (FlowSubsystem && !CurrentLevelName.IsEmpty())
+	{
+		FlowSubsystem->CacheRetryTarget(CurrentRequest, FName(*CurrentLevelName));
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("Direct PIE MiniGame initialized [%s] from placed actor [%s]."),
+		*CurrentRequest.MiniGameId.ToString(),
+		*GetNameSafe(ActiveMiniGame));
+
+	return true;
 }
 
 void APTBGameModeBase::StartGameFlow(const FPTBGameSessionRequest& Request)

@@ -108,6 +108,9 @@ public:
 protected:
 	virtual void BeginPlay() override;
 
+	/** Flow 요청 없이 미니게임 맵을 직접 PIE로 연 경우 배치된 미니게임 Actor로 테스트 시작 */
+	bool TryStartDirectPIEMiniGame();
+
 	/** 일시정지 메뉴 위젯 인스턴스 */
 	UPROPERTY()
 	TObjectPtr<UPTBPauseMenuWidget> PauseMenuInstance;
