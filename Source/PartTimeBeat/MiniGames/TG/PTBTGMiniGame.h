@@ -61,9 +61,6 @@ public:
 	/** 점수 / HUD / SFX 반영 */
 	virtual void HandleJudgementResult(FPTBJudgementResult Result) override;
 
-	/** 전용 결과 */
-	virtual FPTBMiniGameResultPayload BuildResultPayload() const override;
-
 	/** TestGame Action 입력 처리 */
 	UFUNCTION(BlueprintCallable, Category = "PTB|TestGame")
 	void HandleTGInput(EPTBActionType Action, float TimeMs = -1.0f);

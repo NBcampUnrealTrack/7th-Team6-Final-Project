@@ -35,7 +35,4 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|TestGame")
 	bool bLogLongNoteDetails = true;
 
-	/** 결과 Payload에 테스트 통계 포함 */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|TestGame")
-	bool bIncludeDebugPayload = true;
 };

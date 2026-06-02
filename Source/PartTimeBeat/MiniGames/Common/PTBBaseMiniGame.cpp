@@ -933,7 +933,7 @@ void APTBBaseMiniGame::PlayJudgementFeedback(const FPTBJudgementResult& Result)
 FPTBMiniGameResultPayload APTBBaseMiniGame::BuildResultPayload() const
 {
 	FPTBMiniGameResultPayload Payload;
-	Payload.PayloadType = TEXT("BaseMiniGame");
+	Payload.PayloadType = MiniGameCode.IsNone() ? MiniGameId : MiniGameCode;
 	Payload.StringValues.Add(TEXT("MiniGameCode"), MiniGameCode.ToString());
 	Payload.StringValues.Add(TEXT("ChartId"), GameContext.ChartData.ChartId.ToString());
 	Payload.IntValues.Add(TEXT("ActiveNotesRemaining"), ActiveNoteQueue.Num());

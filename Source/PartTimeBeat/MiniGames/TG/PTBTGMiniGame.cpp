@@ -105,34 +105,6 @@ void APTBTGMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 	}
 }
 
-FPTBMiniGameResultPayload APTBTGMiniGame::BuildResultPayload() const
-{
-	FPTBMiniGameResultPayload Payload = Super::BuildResultPayload();
-	Payload.PayloadType = TEXT("TG");
-
-	const UPTBTGMiniGameRuleSet* TGRuleSet = GetTGRuleSet();
-	if (TGRuleSet && !TGRuleSet->bIncludeDebugPayload)
-	{
-		return Payload;
-	}
-
-	Payload.IntValues.Add(TEXT("CueCount"), CueCount);
-	Payload.IntValues.Add(TEXT("ArmCount"), ArmCount);
-	Payload.IntValues.Add(TEXT("NoteEventCount"), NoteEventCount);
-	Payload.IntValues.Add(TEXT("LongNoteCueCount"), LongNoteCueCount);
-	Payload.IntValues.Add(TEXT("JudgementCount"), JudgementCount);
-	Payload.IntValues.Add(TEXT("CuedNotesRemaining"), CuedNotes.Num());
-	Payload.IntValues.Add(TEXT("ArmedNotesRemaining"), ArmedNotes.Num());
-	Payload.IntValues.Add(TEXT("ReachedNotesRemaining"), ReachedNotes.Num());
-
-	if (ScoreCalculator)
-	{
-		Payload.IntValues.Add(TEXT("MissCount"), ScoreCalculator->MissCount);
-	}
-
-	return Payload;
-}
-
 void APTBTGMiniGame::HandleTGInput(EPTBActionType Action, float TimeMs)
 {
 	if (Action == EPTBActionType::None)
