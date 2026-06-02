@@ -4,10 +4,9 @@
 APTBDodgeMiniGame::APTBDodgeMiniGame()
 {
     PrimaryActorTick.bCanEverTick = true;
-    MiniGameId = FName("Dodge");
-    MiniGameCode = FName("DG");
+    MiniGameId = FName("FOD");
+    MiniGameCode = FName("FOD");
 }
-
 void APTBDodgeMiniGame::BeginPlay()
 {
     Super::BeginPlay();
