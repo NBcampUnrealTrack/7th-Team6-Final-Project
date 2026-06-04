@@ -385,8 +385,16 @@ struct PARTTIMEBEAT_API FPTBProfileData
     UPROPERTY(BlueprintReadOnly, SaveGame, Category = "Profile|Progress")
     TSet<FName> CompletedTutorialIds;
 
+    /** 미니게임 전체 최고 점수 (난이도 무관) */
     UPROPERTY(BlueprintReadOnly, SaveGame, Category = "Profile|Progress")
     TMap<FName, int32> BestScoresByMiniGame;
+
+    /**
+     * 난이도별 최고 점수.
+     * 키 형식: "MiniGameId_Difficulty" (예: "TG_Standard")
+     */
+    UPROPERTY(BlueprintReadOnly, SaveGame, Category = "Profile|Progress")
+    TMap<FName, int32> BestScoresByDifficulty;
 
     UPROPERTY(BlueprintReadOnly, SaveGame, Category = "Profile|Progress")
     TMap<FName, int32> EarnedStarsByMiniGame;
@@ -409,14 +417,14 @@ struct PARTTIMEBEAT_API FPTBProfileData
     FDateTime LastPlayedAt;
 
     FPTBProfileData()
-        : ProfileId(FGuid::NewGuid())
-        , Nickname(TEXT(""))
+        : Nickname(TEXT(""))
         , Gender(EPTBGender::Unset)
         , Birthday(FDateTime::Now())
         , TotalEarnedMoney(0)
         , CreatedAt(FDateTime::Now())
         , LastPlayedAt(FDateTime::Now())
     {
+        // ProfileId는 CreateProfile에서 명시적으로 FGuid::NewGuid()로 할당
     }
 
     static FPTBProfileData MakeInvalid()
@@ -442,6 +450,10 @@ struct PARTTIMEBEAT_API FPTBProfileProgressUpdate
     /** 어떤 미니게임의 결과인지 */
     UPROPERTY(BlueprintReadWrite, Category = "Profile|Update")
     FName MiniGameId;
+
+    /** 플레이한 난이도 */
+    UPROPERTY(BlueprintReadWrite, Category = "Profile|Update")
+    EPTBDifficulty Difficulty = EPTBDifficulty::Standard;
 
     /** 이번 라운드 점수. 기존 최고점보다 높으면 갱신. */
     UPROPERTY(BlueprintReadWrite, Category = "Profile|Update")

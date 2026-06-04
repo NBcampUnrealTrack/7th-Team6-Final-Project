@@ -88,9 +88,13 @@ public:
     //UFUNCTION(BlueprintCallable, Category = "Profile|Progression")
     //void UnlockCostume(FName CostumeId);
 
-    /** 미니게임 최고 점수 */
+    /** 미니게임 최고 점수 (난이도 무관 전체 최고) */
     UFUNCTION(BlueprintCallable, Category = "Profile|Query")
     int32 GetBestScore(FName MiniGameId) const;
+
+    /** 특정 난이도의 미니게임 최고 점수. 기록 없으면 0 반환. */
+    UFUNCTION(BlueprintCallable, Category = "Profile|Query")
+    int32 GetBestScoreForDifficulty(FName MiniGameId, EPTBDifficulty Difficulty) const;
 
     /** 미니게임 획득 별 */
     UFUNCTION(BlueprintCallable, Category = "Profile|Query")
@@ -157,6 +161,13 @@ protected:
      * "ㅅxㅂ"처럼 한글 사이에 영문자를 끼워 넣는 우회를 차단
      */
     static FString NormalizeForFilterKoreanOnly(const FString& Input);
+
+    /**
+     * 난이도별 점수 키 생성 유틸리티.
+     * 반환 형식: "MiniGameId_DifficultyName" (예: "TG_Standard")
+     */
+    UFUNCTION(BlueprintPure, Category = "Profile|Query")
+    static FName MakeDifficultyScoreKey(FName MiniGameId, EPTBDifficulty Difficulty);
 
 private:
     /** 메모리 상의 모든 프로필 */

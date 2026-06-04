@@ -263,6 +263,7 @@ void APTBGameModeBase::SubmitRoundResult(const FPTBRoundResult& Result)
 				// 진행도 반영 (내부에서 RequestSave 자동 호출)
 				FPTBProfileProgressUpdate Update;
 				Update.MiniGameId  = Result.MiniGameId;
+				Update.Difficulty  = Result.Difficulty;
 				Update.Score       = Result.Score;
 				Update.EarnedStars = Result.StarCount;
 				Update.EarnedMoney = Result.EarnedMoney;
