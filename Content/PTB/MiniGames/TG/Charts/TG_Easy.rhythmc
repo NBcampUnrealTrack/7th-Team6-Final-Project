@@ -1,0 +1,36 @@
+{
+  "chartVersion": 1,
+  "chartId": "PTB_JJ_Easy_260527",
+  "miniGameId": "TG",
+  "songId": "",
+  "difficulty": "Easy",
+  "bpm": 140,
+  "offsetMs": 340,
+  "timeSignature": { "numerator": 4, "denominator": 4 },
+  "tempoEvents": [
+    { "beat": 0, "bpm": 140 }
+  ],
+  "timeSignatureEvents": [
+    { "beat": 0, "numerator": 4, "denominator": 4 }
+  ],
+  "wwise": {
+    "bankName": "TG",
+    "bgmEventName": "Play_TG_BGM"
+  },
+  "noteFormat": ["id", "timeMs", "beat", "action", "lane", "type"],
+  "notes": [
+    [1, 1090, 1.75, "A", 0, "Tap"],
+    [2, 1518.571, 2.75, "B", 1, "Tap"],
+    [3, 1893.571, 3.625, "C", 2, "Tap"],
+    [4, 3607.857, 7.625, "B", 1, "Hold"],
+    [5, 3929.286, 8.375, "B", 1, "Release"],
+    [6, 5643.571, 12.375, "A", 0, "Hold"],
+    [7, 5911.429, 13, "A", 0, "Release"],
+    [8, 6982.857, 15.5, "C", 2, "Hold"],
+    [9, 7250.714, 16.125, "C", 2, "Release"],
+    [10, 9125.714, 20.5, "D", 3, "Hold"],
+    [11, 9393.571, 21.125, "D", 3, "Release"],
+    [12, 10679.286, 24.125, "E", 4, "Hold"],
+    [13, 11000.714, 24.875, "E", 4, "Release"]
+  ]
+}
