@@ -78,8 +78,8 @@ void APTBGameModeBase::StartGameFlow(const FPTBGameSessionRequest& Request)
 		return;
 	}
 
-	ActiveMiniGame->OnMiniGameStarted.AddDynamic(this, &APTBGameModeBase::HandleMiniGameStarted);
-	ActiveMiniGame->OnMiniGameFinished.AddDynamic(this, &APTBGameModeBase::HandleMiniGameFinished);
+	ActiveMiniGame->OnMiniGameStarted.AddUniqueDynamic(this, &APTBGameModeBase::HandleMiniGameStarted);
+	ActiveMiniGame->OnMiniGameFinished.AddUniqueDynamic(this, &APTBGameModeBase::HandleMiniGameFinished);
 
 	// 4) 미니게임 컨텍스트 구성 & 주입
 	FPTBMiniGameContext Context;
@@ -160,15 +160,11 @@ void APTBGameModeBase::HandleMiniGameStarted()
 
 	if (APlayerController* PC = GetWorld() ? GetWorld()->GetFirstPlayerController() : nullptr)
 	{
-		FInputModeGameOnly InputMode;
-		PC->SetInputMode(InputMode);
+		PC->SetInputMode(FInputModeGameOnly());
 		PC->SetShowMouseCursor(false);
-		PC->bShowMouseCursor = false;
 	}
 
 	OnGameStarted.Broadcast();
-
-	UE_LOG(LogTemp, Log, TEXT("HandleMiniGameStarted: Game started"));
 }
 
 void APTBGameModeBase::PauseGame()
@@ -183,9 +179,6 @@ void APTBGameModeBase::PauseGame()
 		ActiveMiniGame->PauseMiniGame();
 	}
 
-	// 엔진 레벨 일시정지 (선택사항 — UI 애니메이션은 살려야 할 수 있음)
-	// UGameplayStatics::SetGamePaused(GetWorld(), true);
-
 	// FlowState 갱신
 	UPTBGameInstance* GI = Cast<UPTBGameInstance>(GetGameInstance());
 	if (GI)
@@ -197,8 +190,6 @@ void APTBGameModeBase::PauseGame()
 	OnGamePaused.Broadcast();
 
 	ShowPauseMenu();
-
-	UE_LOG(LogTemp, Log, TEXT("PauseGame"));
 }
 
 void APTBGameModeBase::ResumeGame()
@@ -208,8 +199,6 @@ void APTBGameModeBase::ResumeGame()
 	bIsPaused = false;
 
 	HidePauseMenu();
-
-	// UGameplayStatics::SetGamePaused(GetWorld(), false);
 
 	if (ActiveMiniGame)
 	{
@@ -224,8 +213,6 @@ void APTBGameModeBase::ResumeGame()
 	}
 
 	OnGameResumed.Broadcast();
-
-	UE_LOG(LogTemp, Log, TEXT("ResumeGame"));
 }
 
 void APTBGameModeBase::HandleMiniGameFinished(FPTBRoundResult Result)
@@ -351,8 +338,6 @@ void APTBGameModeBase::RetryGame_Implementation()
 	// 동일 요청으로 재시작
 	StartGameFlow(CurrentRequest);
 
-	UE_LOG(LogTemp, Log, TEXT("RetryGame: Restarting [%s]"),
-		*CurrentRequest.MiniGameId.ToString());
 }
 
 void APTBGameModeBase::ExitToMenu_Implementation()
@@ -389,8 +374,4 @@ void APTBGameModeBase::ExitToMenu_Implementation()
 		GI->OnFlowStateChanged.Broadcast(EGameFlowState::MiniGameSelect);
 	}
 
-	// 레벨 전환 (맵 이름은 프로젝트에 맞게 수정)
-	// UGameplayStatics::OpenLevel(this, FName("MainMenuMap"));
-
-	UE_LOG(LogTemp, Log, TEXT("ExitToMenu"));
 }
