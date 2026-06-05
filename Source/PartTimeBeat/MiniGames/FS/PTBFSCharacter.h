@@ -1,0 +1,28 @@
+﻿// Fill out your copyright notice in the Description page of Project Settings.
+
+#pragma once
+
+#include "CoreMinimal.h"
+#include "Characters/PTBRhythmCharacterBase.h"
+#include "PTBFSCharacter.generated.h"
+
+UCLASS()
+class PARTTIMEBEAT_API APTBFSCharacter : public APTBRhythmCharacterBase
+{
+	GENERATED_BODY()
+
+public:
+	APTBFSCharacter();
+	
+	void OnPlayCastAnimMontage();
+	void OnPlayRealAnimMontage();
+
+	
+	
+private:
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|FSAnim",meta=(AllowPrivateAccess=true))
+	TObjectPtr<UAnimMontage> RealAnimMontage = nullptr;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|FSAnim",meta=(AllowPrivateAccess=true))
+	TObjectPtr<UAnimMontage> CastAnimMontage = nullptr;
+};

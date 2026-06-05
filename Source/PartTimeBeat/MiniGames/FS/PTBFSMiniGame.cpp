@@ -2,6 +2,7 @@
 #include "PTBFSMiniGame.h"
 #include "Characters/PTBRhythmCharacterBase.h"
 #include "FishActor.h"
+#include "PTBFSCharacter.h"
 #include "PTBFSMiniGameRuleSet.h"
 #include "Debug/PTBTeamLog.h"
 #include "Kismet/GameplayStatics.h"
@@ -35,13 +36,17 @@ void APTBFSMiniGame::BeginPlay()
 	Context.SessionRequest.Difficulty = EPTBDifficulty::Standard;
 	InitializeMiniGame(Context);
 	StartMiniGame();
+	if (Character)
+	{
+		Character->OnPlayCastAnimMontage();
+	}
 }
 
 void APTBFSMiniGame::BuildRuntimeState()
 {
 	Super::BuildRuntimeState();
 	FishRuleSet = Cast<UPTBFSMiniGameRuleSet>(RuleSet);
-	Character = Cast<APTBRhythmCharacterBase>(UGameplayStatics::GetPlayerPawn(GetWorld(), 0));
+	Character = Cast<APTBFSCharacter>(UGameplayStatics::GetPlayerPawn(GetWorld(), 0));
 	TArray<AActor*> FoundActor;
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AFishActor::StaticClass(), FoundActor);
 	if (FoundActor.Num() > 0)
@@ -122,16 +127,19 @@ void APTBFSMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 	case EPTBJudgementType::HighPerfect:
 		OnFishPulled.Broadcast(1.0f);
 		ApplyDistanceDelta(-StepDistance * 2.0f);
+		Character->OnPlayRealAnimMontage();
 		CorrectCount++;
 		break;
 	case EPTBJudgementType::Perfect:
 		ApplyDistanceDelta(-StepDistance * 1.0f);
 		OnFishPulled.Broadcast(2.0f);
+		Character->OnPlayRealAnimMontage();
 		CorrectCount++;
 		break;
 	case EPTBJudgementType::Good:
 		ApplyDistanceDelta(-StepDistance * 1.0f);
 		OnFishPulled.Broadcast(1.0f);
+		Character->OnPlayRealAnimMontage();
 		CorrectCount++;
 		break;
 	case EPTBJudgementType::Miss:

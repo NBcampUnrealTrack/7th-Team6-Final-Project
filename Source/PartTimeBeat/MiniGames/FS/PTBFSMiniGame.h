@@ -10,6 +10,7 @@
 class AFishActor;
 class UPTBFSMiniGameRuleSet;
 class APTBRhythmCharacterBase;
+class APTBFSCharacter;
 
 UENUM(BlueprintType)
 enum class EFishingLineState : uint8
@@ -151,7 +152,7 @@ private:
 	;
 	
 	UPROPERTY()
-	TObjectPtr<APTBRhythmCharacterBase> Character = nullptr;
+	TObjectPtr<APTBFSCharacter> Character = nullptr;
 	
 	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category = "Fishing",meta = (AllowPrivateAccess = "true"))
 	float AutoDriftMultiplier = 0.3f;
@@ -160,4 +161,5 @@ private:
 	void ApplyDistanceDelta(float Delta);
 	
 	EFishingLineState CalculateLineState(float Distance)const;
+	
 };
