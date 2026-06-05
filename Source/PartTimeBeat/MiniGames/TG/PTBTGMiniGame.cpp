@@ -129,13 +129,13 @@ void APTBTGMiniGame::HandleNoteArm(FPTBNoteEvent Note)
 			FTimerHandle NowHandle;
 			World->GetTimerManager().SetTimer(
 				NowHandle,
-				FTimerDelegate::CreateWeakLambda(this, [this, CapturedAction]()
+				FTimerDelegate::CreateWeakLambda(this, [CapturedAction, PerfectWindowMs, GoodWindowMs]()
 				{
 					PTBTGDebug::Screen(3000, 0.4f, FColor::White,
 						FString::Printf(TEXT("★ 지금! [%s]  Perfect: ±%.0fms / Good: ±%.0fms"),
 							*PTBTGDebug::KeyLabel(CapturedAction),
-							JudgementSystem ? JudgementSystem->HitWindowPerfectMs : 50.0f,
-							JudgementSystem ? JudgementSystem->HitWindowGoodMs : 120.0f));
+							PerfectWindowMs,
+							GoodWindowMs));
 				}),
 				DelayToPreNow, false);
 		}

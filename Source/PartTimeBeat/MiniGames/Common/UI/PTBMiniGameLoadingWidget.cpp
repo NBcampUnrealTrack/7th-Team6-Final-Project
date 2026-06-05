@@ -24,7 +24,13 @@ void UPTBMiniGameLoadingWidget::SetReadyToStartState()
 
 FReply UPTBMiniGameLoadingWidget::NativeOnKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent)
 {
-	return RequestStartIfReady();
+	const FReply StartReply = RequestStartIfReady();
+	if (StartReply.IsEventHandled())
+	{
+		return StartReply;
+	}
+
+	return Super::NativeOnKeyDown(InGeometry, InKeyEvent);
 }
 
 FReply UPTBMiniGameLoadingWidget::RequestStartIfReady()
