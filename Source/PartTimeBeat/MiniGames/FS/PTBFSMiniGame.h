@@ -28,7 +28,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnFishDistanceChanged, float, NewDi
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnFishingLineStateChanged, EFishingLineState, NewState);
  
 /** Cue 시점 발행 — BP에서 어떤 키를 눌러야 하는지 HUD 표시 */
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnFishingPromptShown, EPTBActionType, RequiredAction);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnFishingPromptShown, EPTBActionType, RequiredAction, bool, bIsLongNote);
  
 /**
  * 성공 입력 시 발행
@@ -43,7 +43,8 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnFishSlipped, float, SlipStrength)
 /** AllNotesPassed 시 발행 — 물고기 점프 연출, 종류 공개 UI 연동 */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnFishRevealed, AFishActor*, CaughtFish);
  
-
+/** 롱노드판정을위한 */
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnFishingPromptReleased, EPTBActionType, ReleasedAction);
 
 UCLASS()
 class PARTTIMEBEAT_API APTBFSMiniGame : public APTBBaseMiniGame
@@ -54,6 +55,10 @@ public:
 	APTBFSMiniGame();
  
 	virtual void BeginPlay() override;
+	
+	/**롱노드 판정을위한 델리게이트*/
+	UPROPERTY(BlueprintAssignable, Category = "Fishing|Events")
+	FOnFishingPromptReleased OnFishingPromptReleased;
 	
 	/** 물고기 거리 변화 시 발행 — 물고기 수심, 낚싯줄 길이 연출 연동 */
 	UPROPERTY(BlueprintAssignable, Category = "Fishing|Events")
@@ -106,6 +111,21 @@ public:
 	
 	UFUNCTION(BlueprintCallable, Category = "Fishing|Input")
 	void HandleActionEInput();
+	
+	UFUNCTION(BlueprintCallable, Category = "Fishing|Input")
+	void HandleActionAInputReleased();
+
+	UFUNCTION(BlueprintCallable, Category = "Fishing|Input")
+	void HandleActionBInputReleased();
+
+	UFUNCTION(BlueprintCallable, Category = "Fishing|Input")
+	void HandleActionCInputReleased();
+
+	UFUNCTION(BlueprintCallable, Category = "Fishing|Input")
+	void HandleActionDInputReleased();
+
+	UFUNCTION(BlueprintCallable, Category = "Fishing|Input")
+	void HandleActionEInputReleased();
 
 protected:
 	virtual void BuildRuntimeState()override;
@@ -124,6 +144,7 @@ protected:
 	
 	UFUNCTION(BlueprintCallable, Category = "PTB|MiniGame")
 	virtual void InitializeMiniGame(const FPTBMiniGameContext& Context)override;
+
 private:
 	UFUNCTION()
 	void OnAllNotesPassedFishing();

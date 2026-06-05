@@ -32,6 +32,11 @@ void APTBFSPlayerController::SetupInputComponent()
         if (IA_ActionC) EnhancedInput->BindAction(IA_ActionC, ETriggerEvent::Started, this, &APTBFSPlayerController::OnActionC);
         if (IA_ActionD) EnhancedInput->BindAction(IA_ActionD, ETriggerEvent::Started, this, &APTBFSPlayerController::OnActionD);
         if (IA_ActionE) EnhancedInput->BindAction(IA_ActionE, ETriggerEvent::Started, this, &APTBFSPlayerController::OnActionE);
+        if (IA_ActionA) EnhancedInput->BindAction(IA_ActionA, ETriggerEvent::Completed, this, &APTBFSPlayerController::OnActionAReleased);
+        if (IA_ActionB) EnhancedInput->BindAction(IA_ActionB, ETriggerEvent::Completed, this, &APTBFSPlayerController::OnActionBReleased);
+        if (IA_ActionC) EnhancedInput->BindAction(IA_ActionC, ETriggerEvent::Completed, this, &APTBFSPlayerController::OnActionCReleased);
+        if (IA_ActionD) EnhancedInput->BindAction(IA_ActionD, ETriggerEvent::Completed, this, &APTBFSPlayerController::OnActionDReleased);
+        if (IA_ActionE) EnhancedInput->BindAction(IA_ActionE, ETriggerEvent::Completed, this, &APTBFSPlayerController::OnActionEReleased);
     }
 }
 
@@ -96,6 +101,71 @@ void APTBFSPlayerController::OnActionE(const FInputActionValue& Value)
         if (APTBFSMiniGame* MiniGame = Cast<APTBFSMiniGame>(FoundActors[0]))
         {
             MiniGame->HandleActionEInput();
+        }
+    }
+}
+
+void APTBFSPlayerController::OnActionAReleased(const FInputActionValue& Value)
+{
+    TArray<AActor*> FoundActors;
+    UGameplayStatics::GetAllActorsOfClass(GetWorld(), APTBFSMiniGame::StaticClass(), FoundActors);
+    if (FoundActors.Num() > 0)
+    {
+        if (APTBFSMiniGame* MiniGame = Cast<APTBFSMiniGame>(FoundActors[0]))
+        {
+            MiniGame->HandleActionAInputReleased();
+        }
+    }
+}
+
+void APTBFSPlayerController::OnActionBReleased(const FInputActionValue& Value)
+{
+    TArray<AActor*> FoundActors;
+    UGameplayStatics::GetAllActorsOfClass(GetWorld(), APTBFSMiniGame::StaticClass(), FoundActors);
+    if (FoundActors.Num() > 0)
+    {
+        if (APTBFSMiniGame* MiniGame = Cast<APTBFSMiniGame>(FoundActors[0]))
+        {
+            MiniGame->HandleActionBInputReleased();
+        }
+    }
+}
+
+void APTBFSPlayerController::OnActionCReleased(const FInputActionValue& Value)
+{
+    TArray<AActor*> FoundActors;
+    UGameplayStatics::GetAllActorsOfClass(GetWorld(), APTBFSMiniGame::StaticClass(), FoundActors);
+    if (FoundActors.Num() > 0)
+    {
+        if (APTBFSMiniGame* MiniGame = Cast<APTBFSMiniGame>(FoundActors[0]))
+        {
+            MiniGame->HandleActionCInputReleased();
+        }
+    }
+}
+
+void APTBFSPlayerController::OnActionDReleased(const FInputActionValue& Value)
+{
+    TArray<AActor*> FoundActors;
+    UGameplayStatics::GetAllActorsOfClass(GetWorld(), APTBFSMiniGame::StaticClass(), FoundActors);
+    if (FoundActors.Num() > 0)
+    {
+        if (APTBFSMiniGame* MiniGame = Cast<APTBFSMiniGame>(FoundActors[0]))
+        {
+            MiniGame->HandleActionDInputReleased();
+        }
+    }
+}
+
+void APTBFSPlayerController::OnActionEReleased(const FInputActionValue& Value)
+{
+    TArray<AActor*> FoundActors;
+    UGameplayStatics::GetAllActorsOfClass(GetWorld(), APTBFSMiniGame::StaticClass(), FoundActors);
+    if (FoundActors.Num() > 0)
+    {
+        if (APTBFSMiniGame* MiniGame = Cast<APTBFSMiniGame>(FoundActors[0]))
+        {
+            MiniGame->HandleActionEInputReleased();
         }
     }
 }

@@ -42,4 +42,10 @@ private:
 	void OnActionC(const FInputActionValue& Value);
 	void OnActionD(const FInputActionValue& Value);
 	void OnActionE(const FInputActionValue& Value);
+	
+	void OnActionAReleased(const FInputActionValue& Value);
+	void OnActionBReleased(const FInputActionValue& Value);
+	void OnActionCReleased(const FInputActionValue& Value);
+	void OnActionDReleased(const FInputActionValue& Value);
+	void OnActionEReleased(const FInputActionValue& Value);
 };

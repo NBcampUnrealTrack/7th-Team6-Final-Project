@@ -6,6 +6,7 @@
 #include "Characters/PTBRhythmCharacterBase.h"
 #include "PTBFSCharacter.generated.h"
 
+class UCableComponent;
 UCLASS()
 class PARTTIMEBEAT_API APTBFSCharacter : public APTBRhythmCharacterBase
 {
@@ -17,7 +18,12 @@ public:
 	void OnPlayCastAnimMontage();
 	void OnPlayRealAnimMontage();
 
-	
+protected:
+	UPROPERTY(VisibleAnywhere, Category = "Fishing")
+	TObjectPtr<UStaticMeshComponent> FishingRodMesh;
+
+	UPROPERTY(VisibleAnywhere, Category = "Fishing")
+	TObjectPtr<UCableComponent> FishingCable;
 	
 private:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|FSAnim",meta=(AllowPrivateAccess=true))
@@ -25,4 +31,6 @@ private:
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|FSAnim",meta=(AllowPrivateAccess=true))
 	TObjectPtr<UAnimMontage> CastAnimMontage = nullptr;
+
+	
 };

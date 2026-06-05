@@ -109,7 +109,7 @@ void APTBFSMiniGame::HandleNoteArm(FPTBNoteEvent Note)
 void APTBFSMiniGame::HandleChartEvent(FPTBNoteEvent Note)
 {
 	Super::HandleChartEvent(Note);
-	OnFishingPromptShown.Broadcast(Note.ActionType);
+	OnFishingPromptShown.Broadcast(Note.ActionType,Note.bIsLongNote);
 }
 
 void APTBFSMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
@@ -119,30 +119,40 @@ void APTBFSMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 	if (Result.Reason == EPTBJudgementReason::EmptyInput) return;
 	if (Result.Reason == EPTBJudgementReason::EarlyRelease)
 	{
+		PTB_WARNING(LogPTBMiniGames, TEXT("[Fishing] EarlyRelease NoteId: %d ActionType: %d"), Result.NoteId, static_cast<int32>(Result.ActionType));
 		OnFishSlipped.Broadcast(1.0f);
+		OnFishingPromptReleased.Broadcast(Result.ActionType);
 		return;
 	}
 	switch (Result.JudgementType)
 	{
 	case EPTBJudgementType::HighPerfect:
 		OnFishPulled.Broadcast(1.0f);
+		OnFishingPromptReleased.Broadcast(Result.ActionType);
 		ApplyDistanceDelta(-StepDistance * 2.0f);
 		Character->OnPlayRealAnimMontage();
 		CorrectCount++;
 		break;
 	case EPTBJudgementType::Perfect:
 		ApplyDistanceDelta(-StepDistance * 1.0f);
+		OnFishingPromptReleased.Broadcast(Result.ActionType);
 		OnFishPulled.Broadcast(2.0f);
 		Character->OnPlayRealAnimMontage();
 		CorrectCount++;
 		break;
 	case EPTBJudgementType::Good:
 		ApplyDistanceDelta(-StepDistance * 1.0f);
-		OnFishPulled.Broadcast(1.0f);
+		OnFishingPromptReleased.Broadcast(Result.ActionType);
+		OnFishPulled.Broadcast(2.0f);
 		Character->OnPlayRealAnimMontage();
 		CorrectCount++;
 		break;
 	case EPTBJudgementType::Miss:
+		PTB_WARNING(LogPTBMiniGames, TEXT("[Fishing] Miss NoteId: %d ActionType: %d Reason: %d DeltaMs: %f"), 
+		  Result.NoteId, 
+		  static_cast<int32>(Result.ActionType),
+		  static_cast<int32>(Result.Reason),
+		  Result.DeltaMs);	
 		PTB_WARNING(LogPTBMiniGames, TEXT("[Fishing] OnFishSlipped 브로드캐스트"));
 		OnFishSlipped.Broadcast(1.0f);
 		break;
@@ -243,4 +253,29 @@ void APTBFSMiniGame::HandleActionDInput()
 void APTBFSMiniGame::HandleActionEInput()
 {
 	HandleRhythmInput(EPTBActionType::ActionE);
+}
+
+void APTBFSMiniGame::HandleActionAInputReleased()
+{
+	HandleRhythmInputReleased(EPTBActionType::ActionA);
+}
+
+void APTBFSMiniGame::HandleActionBInputReleased()
+{
+	HandleRhythmInputReleased(EPTBActionType::ActionB);
+}
+
+void APTBFSMiniGame::HandleActionCInputReleased()
+{
+	HandleRhythmInputReleased(EPTBActionType::ActionC);
+}
+
+void APTBFSMiniGame::HandleActionDInputReleased()
+{
+	HandleRhythmInputReleased(EPTBActionType::ActionD);
+}
+
+void APTBFSMiniGame::HandleActionEInputReleased()
+{
+	HandleRhythmInputReleased(EPTBActionType::ActionE);
 }
