@@ -138,8 +138,6 @@ protected:
 	
 	virtual void HandleJudgementResult(FPTBJudgementResult Result) override;
 	
-	virtual void PlayJudgementFeedback(const FPTBJudgementResult& Result) override;
-	
 	virtual FPTBMiniGameResultPayload BuildResultPayload() const override;
 	
 	UFUNCTION(BlueprintCallable, Category = "PTB|MiniGame")

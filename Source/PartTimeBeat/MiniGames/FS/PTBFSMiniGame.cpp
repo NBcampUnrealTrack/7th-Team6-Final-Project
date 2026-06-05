@@ -91,6 +91,8 @@ void APTBFSMiniGame::BuildRuntimeState()
 	
 	PTB_WARNING(LogPTBMiniGames, TEXT("[Fishing] StepDistance: %f,TotalNoteCount: %d"), 
 	StepDistance,TotalNoteCount);
+	
+	Character->SetFishLineTarget(FishActor);
 }
 
 void APTBFSMiniGame::HandleNoteCue(FPTBNoteEvent Note)
@@ -127,9 +129,9 @@ void APTBFSMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 	switch (Result.JudgementType)
 	{
 	case EPTBJudgementType::HighPerfect:
-		OnFishPulled.Broadcast(1.0f);
+		ApplyDistanceDelta(-StepDistance * 1.0f);
 		OnFishingPromptReleased.Broadcast(Result.ActionType);
-		ApplyDistanceDelta(-StepDistance * 2.0f);
+		OnFishPulled.Broadcast(2.0f);
 		Character->OnPlayRealAnimMontage();
 		CorrectCount++;
 		break;
@@ -157,11 +159,6 @@ void APTBFSMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 		OnFishSlipped.Broadcast(1.0f);
 		break;
 	}
-}
-
-void APTBFSMiniGame::PlayJudgementFeedback(const FPTBJudgementResult& Result)
-{
-	Super::PlayJudgementFeedback(Result);
 }
 
 FPTBMiniGameResultPayload APTBFSMiniGame::BuildResultPayload() const

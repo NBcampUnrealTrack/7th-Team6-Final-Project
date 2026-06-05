@@ -18,12 +18,19 @@ public:
 	void OnPlayCastAnimMontage();
 	void OnPlayRealAnimMontage();
 
+	UFUNCTION()
+	void SetFishLineTarget(AActor* InFishActor);
+	
+	void AttachFishingLine();
 protected:
 	UPROPERTY(VisibleAnywhere, Category = "Fishing")
 	TObjectPtr<UStaticMeshComponent> FishingRodMesh;
 
 	UPROPERTY(VisibleAnywhere, Category = "Fishing")
 	TObjectPtr<UCableComponent> FishingCable;
+	
+	UPROPERTY()
+	TObjectPtr<AActor> FishLineTarget;
 	
 private:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|FSAnim",meta=(AllowPrivateAccess=true))

@@ -4,6 +4,7 @@
 #include "PTBFSCharacter.h"
 #include "CableComponent.h"
 #include "Components/StaticMeshComponent.h"
+#include "Debug/PTBTeamLog.h"
 
 
 // Sets default values
@@ -42,5 +43,21 @@ void APTBFSCharacter::OnPlayRealAnimMontage()
 	}
 }
 
+void APTBFSCharacter::SetFishLineTarget(AActor* InFishActor)
+{
+	FishLineTarget = InFishActor;
+}
 
-
+void APTBFSCharacter::AttachFishingLine()
+{
+	if (FishingCable && FishLineTarget)
+	{
+		UMeshComponent* FishMesh = FishLineTarget->FindComponentByClass<UMeshComponent>();
+		if (FishMesh)
+		{
+			FishingCable->bAttachEnd=true;
+			FishingCable->SetAttachEndToComponent(FishMesh, FName("TestSocket"));
+			FishingCable->EndLocation = FVector::ZeroVector; 
+		}
+	}
+}
