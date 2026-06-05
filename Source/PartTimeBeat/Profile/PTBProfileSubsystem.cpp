@@ -417,12 +417,10 @@ int32 UPTBProfileSubsystem::GetBestScoreForDifficulty(FName MiniGameId, EPTBDiff
     if (!bFound) { return 0; }
 
     const FName Key = MakeDifficultyScoreKey(MiniGameId, Difficulty);
-    if (const int32* Found = Active.BestScoresByDifficulty.Find(Key))
-    {
-        PTB_RECORD(LogPTBProfile, TEXT("GetBestScoreForDifficulty: key=%s → %d (map_size=%d)"),
-            *Key.ToString(), *Found, Active.BestScoresByDifficulty.Num());
-        return *Found;
-    }
+	if (const int32* Found = Active.BestScoresByDifficulty.Find(Key))
+	{
+		return *Found;
+	}
 
     PTB_RECORD(LogPTBProfile, TEXT("GetBestScoreForDifficulty: key=%s → 없음 (map_size=%d)"),
         *Key.ToString(), Active.BestScoresByDifficulty.Num());
