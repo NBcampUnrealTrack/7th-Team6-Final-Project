@@ -102,6 +102,7 @@ void APTBTGMiniGame::HandleNoteArm(FPTBNoteEvent Note)
 	OnTGNoteArm.Broadcast(Note);
 
 	// ── [Arm] 판정 가능 구간 시작 ───────────────────────────────
+	if (PTBTGDebug::bEnabled)
 	{
 		const float ArmMs = (RuleSet && RuleSet->bUseArmLeadTimeOverride)
 			? RuleSet->ArmLeadTimeMsOverride
