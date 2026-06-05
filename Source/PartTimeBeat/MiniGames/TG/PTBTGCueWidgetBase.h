@@ -43,7 +43,7 @@ protected:
 	UFUNCTION(BlueprintImplementableEvent, Category = "PTB|TG|Cue")
 	void OnCueStarted(int32 InNoteId, EPTBActionType InActionType);
 
-	/** RemoveCue() 호출 후 BP에서 페이드아웃 등 처리 */
+	/** RemoveCue() 호출 직전에 BP에서 정리 작업(사운드 중지/상태 플래그 등) 처리 */
 	UFUNCTION(BlueprintImplementableEvent, Category = "PTB|TG|Cue")
 	void OnCueRemoved();
 
