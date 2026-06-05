@@ -7,6 +7,7 @@
 #include "MiniGames/Common/PTBMiniGameRuleSet.h"
 #include "Kismet/GameplayStatics.h"
 #include "GameFramework/PlayerController.h"
+#include "TimerManager.h"
 
 void APTBGameModeBase::BeginPlay()
 {
@@ -29,7 +30,44 @@ void APTBGameModeBase::BeginPlay()
 		}
 	}
 
-	TryStartDirectPIEMiniGame();
+	UWorld* World = GetWorld();
+	if (!World || World->WorldType != EWorldType::PIE)
+	{
+		return;
+	}
+
+	const FString CurrentLevelName = UGameplayStatics::GetCurrentLevelName(this, true);
+	bool bCanTryDirectPIEMiniGame = false;
+	for (const TPair<FName, TSubclassOf<APTBBaseMiniGame>>& ClassEntry : MiniGameClassMap)
+	{
+		const TSubclassOf<APTBBaseMiniGame> CandidateClass = ClassEntry.Value;
+		const APTBBaseMiniGame* CandidateCDO = CandidateClass
+			? CandidateClass->GetDefaultObject<APTBBaseMiniGame>()
+			: nullptr;
+
+		const bool bLevelMatchesClassKey = CurrentLevelName.Contains(ClassEntry.Key.ToString(), ESearchCase::IgnoreCase);
+		const bool bLevelMatchesRuleSetId = CandidateCDO && CandidateCDO->RuleSet
+			&& CurrentLevelName.Contains(CandidateCDO->RuleSet->MiniGameId.ToString(), ESearchCase::IgnoreCase);
+		const bool bLevelMatchesRuleSetCode = CandidateCDO && CandidateCDO->RuleSet
+			&& CurrentLevelName.Contains(CandidateCDO->RuleSet->MiniGameCode.ToString(), ESearchCase::IgnoreCase);
+		if (bLevelMatchesClassKey || bLevelMatchesRuleSetId || bLevelMatchesRuleSetCode)
+		{
+			bCanTryDirectPIEMiniGame = true;
+			break;
+		}
+	}
+
+	if (!bCanTryDirectPIEMiniGame)
+	{
+		return;
+	}
+
+	FTimerDelegate DeferredDirectPIEStart;
+	DeferredDirectPIEStart.BindWeakLambda(this, [this]()
+	{
+		TryStartDirectPIEMiniGame();
+	});
+	World->GetTimerManager().SetTimerForNextTick(DeferredDirectPIEStart);
 }
 
 bool APTBGameModeBase::TryStartDirectPIEMiniGame()
@@ -43,10 +81,21 @@ bool APTBGameModeBase::TryStartDirectPIEMiniGame()
 	TArray<AActor*> MiniGameActors;
 	UGameplayStatics::GetAllActorsOfClass(this, APTBBaseMiniGame::StaticClass(), MiniGameActors);
 
+	const FString CurrentLevelName = UGameplayStatics::GetCurrentLevelName(this, true);
 	APTBBaseMiniGame* DirectMiniGame = nullptr;
+	bool bSpawnedDirectMiniGame = false;
 	for (AActor* Actor : MiniGameActors)
 	{
 		APTBBaseMiniGame* Candidate = Cast<APTBBaseMiniGame>(Actor);
+		if (Candidate)
+		{
+			PTB_VERBOSE(LogPTBMiniGames, TEXT("Direct PIE MiniGame candidate [%s] Class=%s AutoStart=%d RuleSet=%s"),
+				*GetNameSafe(Candidate),
+				*GetNameSafe(Candidate->GetClass()),
+				Candidate->bAutoStartWhenOpenedDirectlyInPIE ? 1 : 0,
+				*GetNameSafe(Candidate->RuleSet));
+		}
+
 		if (Candidate && Candidate->bAutoStartWhenOpenedDirectlyInPIE)
 		{
 			DirectMiniGame = Candidate;
@@ -56,18 +105,73 @@ bool APTBGameModeBase::TryStartDirectPIEMiniGame()
 
 	if (!DirectMiniGame)
 	{
-		return false;
+		TSubclassOf<APTBBaseMiniGame> DirectMiniGameClass = nullptr;
+		for (const TPair<FName, TSubclassOf<APTBBaseMiniGame>>& ClassEntry : MiniGameClassMap)
+		{
+			const TSubclassOf<APTBBaseMiniGame> CandidateClass = ClassEntry.Value;
+			const APTBBaseMiniGame* CandidateCDO = CandidateClass
+				? CandidateClass->GetDefaultObject<APTBBaseMiniGame>()
+				: nullptr;
+
+			if (CandidateCDO)
+			{
+				PTB_VERBOSE(LogPTBMiniGames, TEXT("Direct PIE MiniGame class candidate Id=%s Class=%s AutoStart=%d RuleSet=%s"),
+					*ClassEntry.Key.ToString(),
+					*GetNameSafe(CandidateClass),
+					CandidateCDO->bAutoStartWhenOpenedDirectlyInPIE ? 1 : 0,
+					*GetNameSafe(CandidateCDO->RuleSet));
+			}
+
+			if (CandidateCDO && CandidateCDO->bAutoStartWhenOpenedDirectlyInPIE)
+			{
+				const bool bLevelMatchesClassKey = CurrentLevelName.Contains(ClassEntry.Key.ToString(), ESearchCase::IgnoreCase);
+				const bool bLevelMatchesRuleSetId = CandidateCDO->RuleSet
+					&& CurrentLevelName.Contains(CandidateCDO->RuleSet->MiniGameId.ToString(), ESearchCase::IgnoreCase);
+				const bool bLevelMatchesRuleSetCode = CandidateCDO->RuleSet
+					&& CurrentLevelName.Contains(CandidateCDO->RuleSet->MiniGameCode.ToString(), ESearchCase::IgnoreCase);
+				if (!bLevelMatchesClassKey && !bLevelMatchesRuleSetId && !bLevelMatchesRuleSetCode)
+				{
+					PTB_VERBOSE(LogPTBMiniGames, TEXT("Direct PIE MiniGame class skipped: current level [%s] does not match Id=%s Class=%s."),
+						*CurrentLevelName,
+						*ClassEntry.Key.ToString(),
+						*GetNameSafe(CandidateClass));
+					continue;
+				}
+
+				DirectMiniGameClass = CandidateClass;
+				break;
+			}
+		}
+
+		if (DirectMiniGameClass)
+		{
+			DirectMiniGame = SpawnMiniGame(DirectMiniGameClass);
+			bSpawnedDirectMiniGame = DirectMiniGame != nullptr;
+			if (!DirectMiniGame)
+			{
+				PTB_WARNING(LogPTBMiniGames, TEXT("Direct PIE MiniGame start failed: could not spawn [%s]."),
+					*GetNameSafe(DirectMiniGameClass));
+				return false;
+			}
+		}
+		else
+		{
+			PTB_WARNING(LogPTBMiniGames, TEXT("Direct PIE MiniGame start skipped: no placed actor or mapped class has bAutoStartWhenOpenedDirectlyInPIE enabled. PlacedFound=%d ClassMapEntries=%d"),
+				MiniGameActors.Num(),
+				MiniGameClassMap.Num());
+			return false;
+		}
 	}
 
 	if (!DirectMiniGame->RuleSet)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Direct PIE MiniGame start failed: RuleSet is missing on [%s]."), *GetNameSafe(DirectMiniGame));
+		PTB_WARNING(LogPTBMiniGames, TEXT("Direct PIE MiniGame start failed: RuleSet is missing on [%s]."), *GetNameSafe(DirectMiniGame));
 		return false;
 	}
 
 	if (DirectMiniGame->RuleSet->MiniGameId.IsNone())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Direct PIE MiniGame start failed: RuleSet.MiniGameId is None on [%s]."), *GetNameSafe(DirectMiniGame));
+		PTB_WARNING(LogPTBMiniGames, TEXT("Direct PIE MiniGame start failed: RuleSet.MiniGameId is None on [%s]."), *GetNameSafe(DirectMiniGame));
 		return false;
 	}
 
@@ -124,14 +228,14 @@ bool APTBGameModeBase::TryStartDirectPIEMiniGame()
 
 	ActiveMiniGame->InitializeMiniGame(Context);
 
-	const FString CurrentLevelName = UGameplayStatics::GetCurrentLevelName(this, true);
 	if (FlowSubsystem && !CurrentLevelName.IsEmpty())
 	{
 		FlowSubsystem->CacheRetryTarget(CurrentRequest, FName(*CurrentLevelName));
 	}
 
-	UE_LOG(LogTemp, Log, TEXT("Direct PIE MiniGame initialized [%s] from placed actor [%s]."),
+	PTB_RECORD(LogPTBMiniGames, TEXT("Direct PIE MiniGame initialized [%s] from %s mini-game [%s]. Waiting for start input."),
 		*CurrentRequest.MiniGameId.ToString(),
+		bSpawnedDirectMiniGame ? TEXT("spawned") : TEXT("placed"),
 		*GetNameSafe(ActiveMiniGame));
 
 	return true;

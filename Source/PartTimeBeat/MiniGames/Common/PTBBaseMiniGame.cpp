@@ -7,11 +7,13 @@
 #include "Debug/PTBLogChannels.h"
 #include "MiniGames/Common/PTBMiniGameRuleSet.h"
 #include "MiniGames/Common/UI/PTBMiniGameLoadingWidget.h"
+#include "Components/InputComponent.h"
 #include "Rhythm/PTBJudgementSystem.h"
 #include "Rhythm/PTBRhythmChartAsset.h"
 #include "Rhythm/PTBRhythmConductorComponent.h"
 #include "Rhythm/PTBScoreCalculator.h"
 #include "GameFramework/PlayerController.h"
+#include "InputCoreTypes.h"
 
 namespace PTBBaseMiniGameInternal
 {
@@ -394,7 +396,17 @@ void APTBBaseMiniGame::HandleReadyToStart()
 {
 	if (LoadingWidgetInstance)
 	{
+		ApplyGameAndUIInputMode();
 		LoadingWidgetInstance->SetReadyToStartState();
+	}
+
+	if (APlayerController* PlayerController = GetWorld() ? GetWorld()->GetFirstPlayerController() : nullptr)
+	{
+		EnableInput(PlayerController);
+		if (InputComponent)
+		{
+			InputComponent->BindKey(EKeys::AnyKey, IE_Pressed, this, &APTBBaseMiniGame::HandleStartInput);
+		}
 	}
 
 	OnMiniGameReadyToStart.Broadcast();
@@ -482,6 +494,7 @@ void APTBBaseMiniGame::StartMiniGame()
 	}
 
 	HideLoadingWidget();
+	DisableInput(GetWorld() ? GetWorld()->GetFirstPlayerController() : nullptr);
 	ApplyGameOnlyInputMode();
 
 	if (AudioManager)
