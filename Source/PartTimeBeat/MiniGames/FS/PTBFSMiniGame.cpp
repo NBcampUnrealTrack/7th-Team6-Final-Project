@@ -5,6 +5,7 @@
 #include "PTBFSMiniGameRuleSet.h"
 #include "Debug/PTBTeamLog.h"
 #include "Kismet/GameplayStatics.h"
+#include "Rhythm/PTBJudgementSystem.h"
 #include "Rhythm/PTBRhythmChartAsset.h"
 #include "Rhythm/PTBRhythmConductorComponent.h"
 
@@ -75,6 +76,14 @@ void APTBFSMiniGame::BuildRuntimeState()
 
 	StepDistance =  1.0f / TotalNoteCount;
 	
+	if (JudgementSystem)
+	{
+		JudgementSystem->HitWindowMissMs = 500.0f;
+		JudgementSystem->HitWindowGoodMs = 350.0f;
+		JudgementSystem->HitWindowPerfectMs = 200.0f;
+		JudgementSystem->HitWindowHighPerfectMs = 80.0f;
+	}
+	
 	PTB_WARNING(LogPTBMiniGames, TEXT("[Fishing] StepDistance: %f,TotalNoteCount: %d"), 
 	StepDistance,TotalNoteCount);
 }
@@ -85,8 +94,6 @@ void APTBFSMiniGame::HandleNoteCue(FPTBNoteEvent Note)
 	PTB_WARNING(LogPTBMiniGames, TEXT("[Fishing] HandleNoteCue 호출됨 MovingCount: %d FishDistance: %f"), MovingCount, FishDistance);
 	if (!FishRuleSet)return;
 	MovingCount++;
-	ApplyDistanceDelta(StepDistance);
-	OnFishingPromptShown.Broadcast(Note.ActionType);
 }
 
 void APTBFSMiniGame::HandleNoteArm(FPTBNoteEvent Note)
@@ -97,6 +104,7 @@ void APTBFSMiniGame::HandleNoteArm(FPTBNoteEvent Note)
 void APTBFSMiniGame::HandleChartEvent(FPTBNoteEvent Note)
 {
 	Super::HandleChartEvent(Note);
+	OnFishingPromptShown.Broadcast(Note.ActionType);
 }
 
 void APTBFSMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
@@ -113,20 +121,21 @@ void APTBFSMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 	{
 	case EPTBJudgementType::HighPerfect:
 		OnFishPulled.Broadcast(1.0f);
-		ApplyDistanceDelta(-StepDistance * 1.0f);
+		ApplyDistanceDelta(-StepDistance * 2.0f);
 		CorrectCount++;
 		break;
 	case EPTBJudgementType::Perfect:
-		ApplyDistanceDelta(-StepDistance * 0.7f);
-		OnFishPulled.Broadcast(0.7f);
+		ApplyDistanceDelta(-StepDistance * 1.0f);
+		OnFishPulled.Broadcast(2.0f);
 		CorrectCount++;
 		break;
 	case EPTBJudgementType::Good:
-		ApplyDistanceDelta(-StepDistance * 0.4f);
-		OnFishPulled.Broadcast(0.4f);
+		ApplyDistanceDelta(-StepDistance * 1.0f);
+		OnFishPulled.Broadcast(1.0f);
 		CorrectCount++;
 		break;
 	case EPTBJudgementType::Miss:
+		PTB_WARNING(LogPTBMiniGames, TEXT("[Fishing] OnFishSlipped 브로드캐스트"));
 		OnFishSlipped.Broadcast(1.0f);
 		break;
 	}
@@ -205,7 +214,6 @@ EFishingLineState APTBFSMiniGame::CalculateLineState(float Distance) const
 
 void APTBFSMiniGame::HandleActionAInput()
 {
-	PTB_WARNING(LogPTBMiniGames,TEXT("호출됬다 드디어"));
 	HandleRhythmInput(EPTBActionType::ActionA);
 }
 
