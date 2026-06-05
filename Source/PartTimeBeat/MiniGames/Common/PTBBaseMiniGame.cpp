@@ -284,6 +284,14 @@ void APTBBaseMiniGame::InitializeMiniGame(const FPTBMiniGameContext& Context)
 		JudgementSystem->Initialize(GameContext.ChartData, 0.0f);
 	}
 
+	if (JudgementSystem && RuleSet && RuleSet->bUseJudgementWindowOverride)
+	{
+		JudgementSystem->HitWindowHighPerfectMs = RuleSet->HitWindowHighPerfectMsOverride;
+		JudgementSystem->HitWindowPerfectMs = RuleSet->HitWindowPerfectMsOverride;
+		JudgementSystem->HitWindowGoodMs = RuleSet->HitWindowGoodMsOverride;
+		JudgementSystem->HitWindowMissMs = RuleSet->HitWindowMissMsOverride;
+	}
+
 	if (RhythmConductor && JudgementSystem)
 	{
 		const float InputCompensationMs = FMath::Abs(ResolveInputOffsetMs(Context));

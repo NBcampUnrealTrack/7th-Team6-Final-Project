@@ -51,8 +51,8 @@ enum class EPTBJudgementType : uint8
 {
     HighPerfect      UMETA(DisplayName = "21ms(High Perfect)"),
     Perfect        UMETA(DisplayName = "50ms(Perfect)"),
-    Good       UMETA(DisplayName = "70ms(Good)"),
-    Miss    UMETA(DisplayName = "초과(Miss)")
+    Good       UMETA(DisplayName = "120ms(Good)"),
+    Miss    UMETA(DisplayName = "250ms 초과(Miss)")
 };
 
 UENUM(BlueprintType)

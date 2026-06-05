@@ -67,6 +67,26 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Timing", meta = (ClampMin = "0", UIMin = "0"))
 	float ArmLeadTimeMsOverride = 120.0f;
 
+	/** 판정 범위 override 사용 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Judgement")
+	bool bUseJudgementWindowOverride = false;
+
+	/** High Perfect 판정 허용 범위(ms) */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Judgement", meta = (EditCondition = "bUseJudgementWindowOverride", ClampMin = "0", UIMin = "0"))
+	float HitWindowHighPerfectMsOverride = 21.0f;
+
+	/** Perfect 판정 허용 범위(ms) */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Judgement", meta = (EditCondition = "bUseJudgementWindowOverride", ClampMin = "0", UIMin = "0"))
+	float HitWindowPerfectMsOverride = 50.0f;
+
+	/** Good 판정 허용 범위(ms) */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Judgement", meta = (EditCondition = "bUseJudgementWindowOverride", ClampMin = "0", UIMin = "0"))
+	float HitWindowGoodMsOverride = 120.0f;
+
+	/** Miss 입력 소비 허용 범위(ms) */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Judgement", meta = (EditCondition = "bUseJudgementWindowOverride", ClampMin = "0", UIMin = "0"))
+	float HitWindowMissMsOverride = 250.0f;
+
 	/** 미스 제한으로 실패 처리 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Failure")
 	bool bFailOnMissLimit = false;

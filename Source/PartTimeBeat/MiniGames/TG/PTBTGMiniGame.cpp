@@ -104,17 +104,22 @@ void APTBTGMiniGame::HandleNoteArm(FPTBNoteEvent Note)
 	// ── [Arm] 판정 가능 구간 시작 ───────────────────────────────
 	if (PTBTGDebug::bEnabled)
 	{
+		const float PerfectWindowMs = JudgementSystem ? JudgementSystem->HitWindowPerfectMs : 50.0f;
+		const float GoodWindowMs = JudgementSystem ? JudgementSystem->HitWindowGoodMs : 120.0f;
+		const float MissWindowMs = JudgementSystem ? JudgementSystem->HitWindowMissMs : 250.0f;
 		const float ArmMs = (RuleSet && RuleSet->bUseArmLeadTimeOverride)
 			? RuleSet->ArmLeadTimeMsOverride
-			: 120.0f;
-		const float WindowSec = (ArmMs + 120.0f) / 1000.0f;
+			: MissWindowMs;
+		const float WindowSec = (ArmMs + MissWindowMs) / 1000.0f;
 		const FString Type = Note.bIsLongNote ? TEXT("Hold") : TEXT("Tap");
 		PTBTGDebug::Screen(
 			Note.NoteId,
 			WindowSec,
 			FColor::Yellow,
-			FString::Printf(TEXT("[%s %s] 지금부터 누를 수 있음 | ±120ms 창"),
-				*Type, *PTBTGDebug::KeyLabel(Note.ActionType)));
+			FString::Printf(TEXT("[%s %s] 지금부터 누를 수 있음 | ±%.0fms 창"),
+				*Type,
+				*PTBTGDebug::KeyLabel(Note.ActionType),
+				MissWindowMs));
 
 		constexpr float PreNowOffsetMs = 100.0f;
 		const float DelayToPreNow = FMath::Max(0.0f, (ArmMs - PreNowOffsetMs) / 1000.0f);
@@ -127,8 +132,10 @@ void APTBTGMiniGame::HandleNoteArm(FPTBNoteEvent Note)
 				FTimerDelegate::CreateWeakLambda(this, [this, CapturedAction]()
 				{
 					PTBTGDebug::Screen(3000, 0.4f, FColor::White,
-						FString::Printf(TEXT("★ 지금! [%s]  Perfect: ±50ms / Good: ±70ms"),
-							*PTBTGDebug::KeyLabel(CapturedAction)));
+						FString::Printf(TEXT("★ 지금! [%s]  Perfect: ±%.0fms / Good: ±%.0fms"),
+							*PTBTGDebug::KeyLabel(CapturedAction),
+							JudgementSystem ? JudgementSystem->HitWindowPerfectMs : 50.0f,
+							JudgementSystem ? JudgementSystem->HitWindowGoodMs : 120.0f));
 				}),
 				DelayToPreNow, false);
 		}

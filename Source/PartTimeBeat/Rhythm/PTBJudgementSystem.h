@@ -58,10 +58,10 @@ public:
 	float HitWindowPerfectMs = 50.0;
 	
 	/** Good 판정 허용 범위(ms) */
-	float HitWindowGoodMs = 70.0;
+	float HitWindowGoodMs = 120.0;
 	
 	/** Miss 입력 소비 허용 범위(ms) */
-	float HitWindowMissMs = 120.0;
+	float HitWindowMissMs = 250.0;
 	
 	/** 판정 대기 노트 목록 */
 	TArray<FPTBNoteEvent> PendingNotes;
