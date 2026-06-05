@@ -1,5 +1,6 @@
 #include "Core/PTBGameModeBase.h"
 #include "Core/PTBGameInstance.h"
+#include "Debug/PTBTeamLog.h"
 #include "Flow/PTBGameFlowSubsystem.h"
 #include "Profile/PTBProfileSubsystem.h"
 #include "MiniGames/Common/PTBBaseMiniGame.h"
@@ -56,7 +57,7 @@ void APTBGameModeBase::StartGameFlow(const FPTBGameSessionRequest& Request)
 	TSubclassOf<APTBBaseMiniGame> Cls = ResolveMiniGameClass(Request.MiniGameId);
 	if (!Cls)
 	{
-		UE_LOG(LogTemp, Error, TEXT("StartGameFlow: MiniGame class not found for [%s]"),
+		PTB_ERROR(LogPTBMiniGames, TEXT("StartGameFlow: MiniGame class not found for [%s]"),
 			*Request.MiniGameId.ToString());
 		return;
 	}
@@ -74,7 +75,7 @@ void APTBGameModeBase::StartGameFlow(const FPTBGameSessionRequest& Request)
 	ActiveMiniGame = SpawnMiniGame(Cls);
 	if (!ActiveMiniGame)
 	{
-		UE_LOG(LogTemp, Error, TEXT("StartGameFlow: SpawnMiniGame failed"));
+		PTB_ERROR(LogPTBMiniGames, TEXT("StartGameFlow: SpawnMiniGame failed"));
 		return;
 	}
 
@@ -101,7 +102,7 @@ void APTBGameModeBase::StartGameFlow(const FPTBGameSessionRequest& Request)
 		FlowSubsystem->CacheRetryTarget(CurrentRequest, FName(*CurrentLevelName));
 	}
 
-	UE_LOG(LogTemp, Log, TEXT("StartGameFlow: initialized [%s]"),
+	PTB_RECORD(LogPTBMiniGames, TEXT("StartGameFlow: initialized [%s]"),
 		*Request.MiniGameId.ToString());
 }
 
@@ -112,7 +113,7 @@ TSubclassOf<APTBBaseMiniGame> APTBGameModeBase::ResolveMiniGameClass(FName Id) c
 		return *Found;
 	}
 
-	UE_LOG(LogTemp, Warning, TEXT("ResolveMiniGameClass: No mapping for [%s]"), *Id.ToString());
+	PTB_WARNING(LogPTBMiniGames, TEXT("ResolveMiniGameClass: No mapping for [%s]"), *Id.ToString());
 	return nullptr;
 }
 
@@ -133,7 +134,7 @@ APTBBaseMiniGame* APTBGameModeBase::SpawnMiniGame(TSubclassOf<APTBBaseMiniGame> 
 
 	if (Spawned)
 	{
-		UE_LOG(LogTemp, Log, TEXT("SpawnMiniGame: [%s] spawned"), *Cls->GetName());
+		PTB_RECORD(LogPTBMiniGames, TEXT("SpawnMiniGame: [%s] spawned"), *Cls->GetName());
 	}
 
 	return Spawned;
@@ -143,7 +144,7 @@ void APTBGameModeBase::HandleMiniGameStarted()
 {
 	if (!ActiveMiniGame)
 	{
-		UE_LOG(LogTemp, Error, TEXT("HandleMiniGameStarted: No active mini-game"));
+		PTB_ERROR(LogPTBMiniGames, TEXT("HandleMiniGameStarted: No active mini-game"));
 		return;
 	}
 
@@ -311,7 +312,7 @@ void APTBGameModeBase::SubmitRoundResult(const FPTBRoundResult& Result)
 	OnRoundResultReady.Broadcast(Result, Reward);
 	OnGameEnded.Broadcast(Result);
 
-	UE_LOG(LogTemp, Log, TEXT("SubmitRoundResult: Score=%d Grade=%d Stars=%d"),
+	PTB_RECORD(LogPTBMiniGames, TEXT("SubmitRoundResult: Score=%d Grade=%d Stars=%d"),
 		Result.Score, static_cast<int32>(Result.Grade), Result.StarCount);
 
 	if (!ResultLevelName.IsNone())

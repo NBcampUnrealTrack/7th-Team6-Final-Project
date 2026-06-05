@@ -1,6 +1,7 @@
 #include "Core/PTBPlayerControllerBase.h"
 #include "Core/PTBGameModeBase.h"
 #include "Core/PTBGameInstance.h"
+#include "Debug/PTBTeamLog.h"
 #include "MiniGames/Common/PTBBaseMiniGame.h"
 #include "Kismet/GameplayStatics.h"
 
@@ -59,7 +60,7 @@ bool APTBPlayerControllerBase::TryRouteRhythmInput(const FInputKeyEventArgs& Eve
 
 	if (!MiniGame)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[PTBPlayerController] 리듬 입력 무시: 활성 미니게임 없음 (Key=%s)"),
+		PTB_VERBOSE(LogPTBCore, TEXT("[PTBPlayerController] 리듬 입력 무시: 활성 미니게임 없음 (Key=%s)"),
 			*EventArgs.Key.ToString());
 		return false;
 	}
