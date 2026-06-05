@@ -167,7 +167,7 @@ void APTBTGMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 	const bool bHasJudgedNote = FindTrackedNote(Result.NoteId, JudgedNote);
 
 	// ── [판정 결과] 색상·오차 표시 ────────────────────────────────
-	if (Result.Reason != EPTBJudgementReason::EmptyInput)
+	if (PTBTGDebug::bEnabled && Result.Reason != EPTBJudgementReason::EmptyInput)
 	{
 		FString ReasonSuffix;
 		switch (Result.Reason)
