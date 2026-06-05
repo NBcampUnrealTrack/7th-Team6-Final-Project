@@ -26,7 +26,7 @@ public:
 	/**
 	 * 큐 위젯 공통 초기화.
 	 * NoteId를 저장하고 ActionType을 설정(OnActionTypeSet 호출)한 뒤
-	 * OnCueStarted()를 발행한다. WBP에서 StartCue()를 구현할 때 Super로 호출한다.
+	 * OnCueStarted()를 발행한다. WBP에서 InitCue()를 구현할 때 Super로 호출한다.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "PTB|TG|Cue")
 	virtual void InitCue(int32 InNoteId, EPTBActionType InActionType);
