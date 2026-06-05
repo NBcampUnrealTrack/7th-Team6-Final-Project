@@ -57,28 +57,28 @@ void APTBFSMiniGame::BuildRuntimeState()
 
 	if (!Character)
 	{
-		PTB_WARNING(LogPTBMiniGames, TEXT("캐릭터 유요하지않음"));
+		PTB_WARNING(LogPTBMiniGames, TEXT("캐릭터 유효하지 않음"));
 		return;
 	}
 	if (!FishActor)
 	{
-		PTB_WARNING(LogPTBMiniGames, TEXT("물고기 유요하지않음"));
+		PTB_WARNING(LogPTBMiniGames, TEXT("물고기 유효하지 않음"));
 		return;
 	}
 	if (!FishRuleSet)
 	{
-		PTB_WARNING(LogPTBMiniGames, TEXT("룰셋데이터에셋이 유효하지않음"));
+		PTB_WARNING(LogPTBMiniGames, TEXT("룰셋데이터에셋이 유효하지 않음"));
 		return;
 	}
 	if (!ChartAsset)
 	{
-		PTB_WARNING(LogPTBMiniGames, TEXT("차트에셋 유효하지않음"));
+		PTB_WARNING(LogPTBMiniGames, TEXT("차트에셋 유효하지 않음"));
 		return;
 	}
 	
 	if (!GI)
 	{
-		PTB_WARNING(LogPTBMiniGames,TEXT("게임인스턴스 유효하지않음"));
+		PTB_WARNING(LogPTBMiniGames,TEXT("게임인스턴스 유효하지 않음"));
 		return;
 	}
 	FishStartLocation = FishActor->GetActorLocation();
@@ -130,7 +130,11 @@ void APTBFSMiniGame::HandleChartEvent(FPTBNoteEvent Note)
 void APTBFSMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 {
 	Super::HandleJudgementResult(Result);
-
+	if (!Character)
+	{
+		PTB_WARNING(LogPTBMiniGames,TEXT("캐릭터 유효하지 않음"));
+		return;
+	}
 	if (Result.Reason == EPTBJudgementReason::EmptyInput) return;
 	if (Result.Reason == EPTBJudgementReason::EarlyRelease)
 	{

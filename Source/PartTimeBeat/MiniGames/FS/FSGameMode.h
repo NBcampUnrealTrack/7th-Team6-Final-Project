@@ -34,7 +34,7 @@ protected:
 	TSubclassOf<UUserWidget> HUDWidgetClass;
 
 private:
-	UPROPERTY(Blueprintable,BlueprintReadOnly,meta=(AllowPrivateAccess=true))
+	UPROPERTY(BlueprintReadOnly,meta=(AllowPrivateAccess=true))
 	TObjectPtr<APTBFSMiniGame> FishingMiniGame;
 
 	UPROPERTY()

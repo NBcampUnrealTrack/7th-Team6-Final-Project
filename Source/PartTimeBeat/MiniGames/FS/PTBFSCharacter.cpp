@@ -18,13 +18,13 @@ APTBFSCharacter::APTBFSCharacter()
 	FVector FishingRodMeshScale = FVector(0.166667f, 0.166667f, 0.166667f);
 	
 	FishingRodMesh = CreateDefaultSubobject<UStaticMeshComponent>("FishingRodMesh");
-	FishingRodMesh->SetupAttachment(GetMesh(),FName(FName("FishingRodSocket")));
+	FishingRodMesh->SetupAttachment(GetMesh(),FName(TEXT("FishingRodSocket")));
 	FishingRodMesh->SetRelativeRotation(FishingRodMeshRotator);
 	FishingRodMesh->SetRelativeLocation(FishingRodMeshLocation);
 	FishingRodMesh->SetRelativeScale3D(FishingRodMeshScale);
 	
 	FishingCable = CreateDefaultSubobject<UCableComponent>(TEXT("FishingCable"));
-	FishingCable->SetupAttachment(FishingRodMesh,FName("FishLine"));
+	FishingCable->SetupAttachment(FishingRodMesh,FName(TEXT("FishLine")));
 }
 
 void APTBFSCharacter::OnPlayCastAnimMontage()

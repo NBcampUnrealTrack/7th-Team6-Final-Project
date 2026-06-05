@@ -1,9 +1,8 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "FSGamMode.h"
+#include "FSGameMode.h"
 #include "FishActor.h"
-#include "FSGamMode.h"
 #include "PTBFSMiniGame.h"
 
 AFSGameMode::AFSGameMode()
