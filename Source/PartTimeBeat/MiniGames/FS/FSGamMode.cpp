@@ -16,7 +16,7 @@ AFSGameMode::AFSGameMode()
 void AFSGameMode::BeginPlay()
 {
 	Super::BeginPlay();
-	FVector FishActorLocation = FVector::ZeroVector;
+	FVector FishActorLocation = FVector(0,0,30);
 	FRotator FishActorRotation = FRotator(0,90,0);
 	SpawnedFishActor = GetWorld()->SpawnActor<AFishActor>(FishActorClass, FishActorLocation, FishActorRotation);
 	

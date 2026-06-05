@@ -1,9 +1,9 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 #include "PTBFSMiniGame.h"
-#include "Characters/PTBRhythmCharacterBase.h"
 #include "FishActor.h"
 #include "PTBFSCharacter.h"
 #include "PTBFSMiniGameRuleSet.h"
+#include "Core/PTBGameInstance.h"
 #include "Debug/PTBTeamLog.h"
 #include "Kismet/GameplayStatics.h"
 #include "Rhythm/PTBJudgementSystem.h"
@@ -49,6 +49,7 @@ void APTBFSMiniGame::BuildRuntimeState()
 	Character = Cast<APTBFSCharacter>(UGameplayStatics::GetPlayerPawn(GetWorld(), 0));
 	TArray<AActor*> FoundActor;
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AFishActor::StaticClass(), FoundActor);
+	UPTBGameInstance* GI = Cast<UPTBGameInstance>(GetGameInstance());
 	if (FoundActor.Num() > 0)
 	{
 		FishActor = Cast<AFishActor>(FoundActor[0]);
@@ -74,6 +75,12 @@ void APTBFSMiniGame::BuildRuntimeState()
 		PTB_WARNING(LogPTBMiniGames, TEXT("차트에셋 유효하지않음"));
 		return;
 	}
+	
+	if (!GI)
+	{
+		PTB_WARNING(LogPTBMiniGames,TEXT("게임인스턴스 유효하지않음"));
+		return;
+	}
 	FishStartLocation = FishActor->GetActorLocation();
 	CharacterLocation = Character->GetActorLocation();
 	int32 TotalNoteCount = ChartAsset->NoteEvents.Num();
@@ -93,6 +100,12 @@ void APTBFSMiniGame::BuildRuntimeState()
 	StepDistance,TotalNoteCount);
 	
 	Character->SetFishLineTarget(FishActor);
+	
+	GI->CachedSettings.RhythmKeys.ActionA = EKeys::Q;
+	GI->CachedSettings.RhythmKeys.ActionB = EKeys::W;
+	GI->CachedSettings.RhythmKeys.ActionC = EKeys::E;
+	GI->CachedSettings.RhythmKeys.ActionD = EKeys::R;
+	GI->CachedSettings.RhythmKeys.ActionE = EKeys::F;
 }
 
 void APTBFSMiniGame::HandleNoteCue(FPTBNoteEvent Note)
