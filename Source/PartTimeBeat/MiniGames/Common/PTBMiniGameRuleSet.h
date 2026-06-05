@@ -64,8 +64,28 @@ public:
 	bool bUseArmLeadTimeOverride = false;
 
 	/** 판정 등록 선행 시간 override(ms) */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Timing", meta = (ClampMin = "0", UIMin = "0"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Timing", meta = (EditCondition = "bUseArmLeadTimeOverride", ClampMin = "0", UIMin = "0"))
 	float ArmLeadTimeMsOverride = 120.0f;
+
+	/** 판정 범위 override 사용 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Judgement")
+	bool bUseJudgementWindowOverride = false;
+
+	/** High Perfect 판정 허용 범위(ms) */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Judgement", meta = (EditCondition = "bUseJudgementWindowOverride", ClampMin = "0", UIMin = "0"))
+	float HitWindowHighPerfectMsOverride = 21.0f;
+
+	/** Perfect 판정 허용 범위(ms) */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Judgement", meta = (EditCondition = "bUseJudgementWindowOverride", ClampMin = "0", UIMin = "0"))
+	float HitWindowPerfectMsOverride = 50.0f;
+
+	/** Good 판정 허용 범위(ms) */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Judgement", meta = (EditCondition = "bUseJudgementWindowOverride", ClampMin = "0", UIMin = "0"))
+	float HitWindowGoodMsOverride = 120.0f;
+
+	/** Miss 입력 소비 허용 범위(ms) */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Judgement", meta = (EditCondition = "bUseJudgementWindowOverride", ClampMin = "0", UIMin = "0"))
+	float HitWindowMissMsOverride = 250.0f;
 
 	/** 미스 제한으로 실패 처리 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Failure")
@@ -80,11 +100,11 @@ public:
 	bool bUseEmptyInputActionLock = false;
 
 	/** 헛입력 Action 잠금 시간(ms) */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Failure", meta = (ClampMin = "0", UIMin = "0"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Failure", meta = (EditCondition = "bUseEmptyInputActionLock", ClampMin = "0", UIMin = "0"))
 	float EmptyInputActionLockMs = 0.0f;
 
 	/** 실패 처리할 최대 미스 수 */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Failure", meta = (ClampMin = "1", UIMin = "1"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Failure", meta = (EditCondition = "bFailOnMissLimit", ClampMin = "1", UIMin = "1"))
 	int32 MaxMissCount = 10;
 
 	/** 판정별 SFX 이벤트 키 */

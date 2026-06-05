@@ -51,8 +51,8 @@ enum class EPTBJudgementType : uint8
 {
     HighPerfect      UMETA(DisplayName = "21ms(High Perfect)"),
     Perfect        UMETA(DisplayName = "50ms(Perfect)"),
-    Good       UMETA(DisplayName = "70ms(Good)"),
-    Miss    UMETA(DisplayName = "초과(Miss)")
+    Good       UMETA(DisplayName = "120ms(Good)"),
+    Miss    UMETA(DisplayName = "250ms 초과(Miss)")
 };
 
 UENUM(BlueprintType)
@@ -62,7 +62,7 @@ enum class EPTBJudgementReason : uint8
     ExpiredNote        UMETA(DisplayName = "Expired Note"),
     EmptyInput       UMETA(DisplayName = "Empty Input"),
     EarlyRelease       UMETA(DisplayName = "Early Release")
-};
+};  
 
 UENUM(BlueprintType)
 enum class EPTBEmptyInputPolicy : uint8
@@ -192,9 +192,6 @@ public:
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
     FName ChartId = NAME_None;
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
-    FName SongId = NAME_None;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
     FName MiniGameId = NAME_None;

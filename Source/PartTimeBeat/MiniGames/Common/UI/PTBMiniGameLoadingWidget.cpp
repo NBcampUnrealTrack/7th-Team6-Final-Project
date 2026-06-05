@@ -17,17 +17,29 @@ void UPTBMiniGameLoadingWidget::SetLoadingState()
 void UPTBMiniGameLoadingWidget::SetReadyToStartState()
 {
 	bCanRequestStart = true;
-	SetKeyboardFocus();
 	HandleReadyToStart();
+	SetKeyboardFocus();
+	SetUserFocus(GetOwningPlayer());
 }
 
 FReply UPTBMiniGameLoadingWidget::NativeOnKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent)
 {
-	if (bCanRequestStart && OwnerMiniGame)
+	const FReply StartReply = RequestStartIfReady();
+	if (StartReply.IsEventHandled())
 	{
-		OwnerMiniGame->HandleStartInput();
-		return FReply::Handled();
+		return StartReply;
 	}
 
 	return Super::NativeOnKeyDown(InGeometry, InKeyEvent);
+}
+
+FReply UPTBMiniGameLoadingWidget::RequestStartIfReady()
+{
+	if (!bCanRequestStart || !OwnerMiniGame)
+	{
+		return FReply::Unhandled();
+	}
+
+	OwnerMiniGame->HandleStartInput();
+	return FReply::Handled();
 }
