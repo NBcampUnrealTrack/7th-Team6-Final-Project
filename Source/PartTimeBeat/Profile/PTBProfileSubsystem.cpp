@@ -422,9 +422,7 @@ int32 UPTBProfileSubsystem::GetBestScoreForDifficulty(FName MiniGameId, EPTBDiff
 		return *Found;
 	}
 
-    PTB_RECORD(LogPTBProfile, TEXT("GetBestScoreForDifficulty: key=%s → 없음 (map_size=%d)"),
-        *Key.ToString(), Active.BestScoresByDifficulty.Num());
-    return 0;
+	return 0;
 }
 
 FName UPTBProfileSubsystem::MakeDifficultyScoreKey(FName MiniGameId, EPTBDifficulty Difficulty)
