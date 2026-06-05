@@ -399,11 +399,10 @@ void UPTBProfileSubsystem::MarkStoryViewed(FName StoryId)
 
 int32 UPTBProfileSubsystem::GetBestScore(FName MiniGameId) const
 {
-    bool bFound = false;
-    const FPTBProfileData Active = GetActiveProfile(bFound);
-    if (!bFound) { return 0; }
+    const FPTBProfileData* Active = FindActiveProfileConst();
+    if (!Active) { return 0; }
 
-    if (const int32* Found = Active.BestScoresByMiniGame.Find(MiniGameId))
+    if (const int32* Found = Active->BestScoresByMiniGame.Find(MiniGameId))
     {
         return *Found;
     }
@@ -412,12 +411,11 @@ int32 UPTBProfileSubsystem::GetBestScore(FName MiniGameId) const
 
 int32 UPTBProfileSubsystem::GetBestScoreForDifficulty(FName MiniGameId, EPTBDifficulty Difficulty) const
 {
-    bool bFound = false;
-    const FPTBProfileData Active = GetActiveProfile(bFound);
-    if (!bFound) { return 0; }
+    const FPTBProfileData* Active = FindActiveProfileConst();
+    if (!Active) { return 0; }
 
     const FName Key = MakeDifficultyScoreKey(MiniGameId, Difficulty);
-	if (const int32* Found = Active.BestScoresByDifficulty.Find(Key))
+	if (const int32* Found = Active->BestScoresByDifficulty.Find(Key))
 	{
 		return *Found;
 	}
@@ -436,14 +434,13 @@ FName UPTBProfileSubsystem::MakeDifficultyScoreKey(FName MiniGameId, EPTBDifficu
 
 int32 UPTBProfileSubsystem::GetEarnedStars(FName MiniGameId) const
 {
-    bool bFound = false;
-    const FPTBProfileData Active = GetActiveProfile(bFound);
-    if (!bFound)
+    const FPTBProfileData* Active = FindActiveProfileConst();
+    if (!Active)
     {
         return 0;
     }
 
-    if (const int32* Found = Active.EarnedStarsByMiniGame.Find(MiniGameId))
+    if (const int32* Found = Active->EarnedStarsByMiniGame.Find(MiniGameId))
     {
         return *Found;
     }
@@ -452,9 +449,8 @@ int32 UPTBProfileSubsystem::GetEarnedStars(FName MiniGameId) const
 
 int32 UPTBProfileSubsystem::GetTotalEarnedMoney() const
 {
-    bool bFound = false;
-    const FPTBProfileData Active = GetActiveProfile(bFound);
-    return bFound ? Active.TotalEarnedMoney : 0;
+    const FPTBProfileData* Active = FindActiveProfileConst();
+    return Active ? Active->TotalEarnedMoney : 0;
 }
 
 
@@ -569,14 +565,24 @@ FPTBProfileData* UPTBProfileSubsystem::FindActiveProfileMutable()
     return FindProfileMutable(ActiveProfileId);
 }
 
+const FPTBProfileData* UPTBProfileSubsystem::FindActiveProfileConst() const
+{
+    return FindProfileConst(ActiveProfileId);
+}
+
 FPTBProfileData* UPTBProfileSubsystem::FindProfileMutable(const FGuid& ProfileId)
+{
+    return const_cast<FPTBProfileData*>(FindProfileConst(ProfileId));
+}
+
+const FPTBProfileData* UPTBProfileSubsystem::FindProfileConst(const FGuid& ProfileId) const
 {
     if (!ProfileId.IsValid())
     {
         return nullptr;
     }
 
-    for (FPTBProfileData& Profile : AllProfiles)
+    for (const FPTBProfileData& Profile : AllProfiles)
     {
         if (Profile.ProfileId == ProfileId)
         {

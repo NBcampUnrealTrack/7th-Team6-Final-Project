@@ -133,8 +133,14 @@ protected:
     // 활성화 된 프로필 데이터에 대한 수정 가능 포인터 없으면 nullptr
     FPTBProfileData* FindActiveProfileMutable();
 
+    // 활성화 된 프로필 데이터에 대한 읽기 전용 포인터 없으면 nullptr
+    const FPTBProfileData* FindActiveProfileConst() const;
+
     // ID로 프로필 수정 가능 포인터 검색
     FPTBProfileData* FindProfileMutable(const FGuid& ProfileId);
+
+    // ID로 프로필 읽기 전용 포인터 검색
+    const FPTBProfileData* FindProfileConst(const FGuid& ProfileId) const;
 
     // ── 금칙어 필터 ──────────────────────────────────────────────
 
