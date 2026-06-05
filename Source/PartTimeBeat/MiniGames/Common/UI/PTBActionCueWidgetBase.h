@@ -28,11 +28,12 @@ public:
 	EPTBActionType GetActionType() const { return CurrentActionType; }
 
 	/**
-	 * ActionType에 대응하는 키보드 키 라벨 반환
-	 * ActionA→"Z"  ActionB→"X"  ActionC→"C"  ActionD→"V"  ActionE→"B"
+	 * ActionType에 대응하는 키보드 키 라벨 반환.
+	 * PTBGameInstance.CachedSettings.RhythmKeys의 실제 바인딩 기준으로 표시하며,
+	 * GameInstance를 가져올 수 없는 경우 기본값(Z/X/C/V/B)을 폴백으로 반환한다.
 	 */
 	UFUNCTION(BlueprintPure, Category = "PTB|Cue")
-	static FText GetActionKeyLabel(EPTBActionType InActionType);
+	FText GetActionKeyLabel(EPTBActionType InActionType) const;
 
 	/**
 	 * ActionType에 대응하는 UI 색상 반환.
