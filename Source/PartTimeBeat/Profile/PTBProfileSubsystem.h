@@ -166,8 +166,7 @@ protected:
      * 난이도별 점수 키 생성 유틸리티.
      * 반환 형식: "MiniGameId_DifficultyName" (예: "TG_Standard")
      */
-    UFUNCTION(BlueprintPure, Category = "Profile|Query")
-    static FName MakeDifficultyScoreKey(FName MiniGameId, EPTBDifficulty Difficulty);
+static FName MakeDifficultyScoreKey(FName MiniGameId, EPTBDifficulty Difficulty);
 
 private:
     /** 메모리 상의 모든 프로필 */
