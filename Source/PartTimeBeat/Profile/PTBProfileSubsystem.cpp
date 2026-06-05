@@ -13,8 +13,7 @@ void UPTBProfileSubsystem::Initialize(FSubsystemCollectionBase& Collection)
     PTB_RECORD(LogPTBProfile, TEXT("Initialize"));
 
     LoadForbiddenWords();
-    LoadProfilesFromSave();
-    ClearActiveProfile();
+    LoadProfilesFromSave();  // 내부에서 LastActiveProfileId 복원 포함
 }
 
 void UPTBProfileSubsystem::Deinitialize()
@@ -60,18 +59,28 @@ FGuid UPTBProfileSubsystem::CreateProfile(
     }
 
     FPTBProfileData NewProfile;
-    NewProfile.Nickname = NormalizeNickname(Nickname);
-    NewProfile.Gender = Gender;
-    NewProfile.Birthday = Birthday;
-    NewProfile.SlotIndex = SlotIndex;
+    NewProfile.ProfileId  = FGuid::NewGuid();
+    NewProfile.Nickname   = NormalizeNickname(Nickname);
+    NewProfile.Gender     = Gender;
+    NewProfile.Birthday   = Birthday;
+    NewProfile.SlotIndex  = SlotIndex;
+    NewProfile.CreatedAt  = FDateTime::Now();
+    NewProfile.LastPlayedAt = FDateTime::Now();
 
     const FGuid NewId = NewProfile.ProfileId;
     AllProfiles.Add(NewProfile);
 
     PTB_RECORD(LogPTBProfile, TEXT("CreateProfile success"));
 
+    // 활성 프로필이 없으면 방금 만든 프로필을 자동으로 활성화
+    if (!ActiveProfileId.IsValid())
+    {
+        ActiveProfileId = NewId;
+        PTB_RECORD(LogPTBProfile, TEXT("CreateProfile - auto-activated new profile"));
+    }
+
     OnProfileListChanged.Broadcast();
-    RequestSave();
+    RequestSave();  // ActiveProfileId 포함 저장
 
     return NewId;
 }
@@ -214,6 +223,16 @@ bool UPTBProfileSubsystem::SetActiveProfile(const FGuid& ProfileId)
     }
 
     ActiveProfileId = ProfileId;
+
+    // 다음 세션에서 복원하기 위해 SaveGame에 기록
+    if (UPTBGameInstance* GI = Cast<UPTBGameInstance>(GetGameInstance()))
+    {
+        if (GI->CurrentSaveGame)
+        {
+            GI->CurrentSaveGame->LastActiveProfileId = ProfileId;
+        }
+    }
+
     PTB_RECORD(LogPTBProfile, TEXT("SetActiveProfile"));
 
     if (FPTBProfileData* Mutable = FindActiveProfileMutable())
@@ -298,15 +317,24 @@ void UPTBProfileSubsystem::ApplyRoundResultToActive(const FPTBProfileProgressUpd
     if (!Active)
     {
         PTB_ERROR(LogPTBProfile, TEXT("ApplyRoundResultToActive failed: no active profile"));
-
         return;
     }
 
+    // 전체 최고 점수 갱신
     int32& BestScore = Active->BestScoresByMiniGame.FindOrAdd(Update.MiniGameId, 0);
     if (Update.Score > BestScore)
     {
         BestScore = Update.Score;
     }
+
+    // 난이도별 최고 점수 갱신
+    const FName DiffKey = MakeDifficultyScoreKey(Update.MiniGameId, Update.Difficulty);
+    int32& BestScoreDiff = Active->BestScoresByDifficulty.FindOrAdd(DiffKey, 0);
+    if (Update.Score > BestScoreDiff)
+    {
+        BestScoreDiff = Update.Score;
+    }
+
 
     int32& BestStars = Active->EarnedStarsByMiniGame.FindOrAdd(Update.MiniGameId, 0);
     if (Update.EarnedStars > BestStars)
@@ -316,10 +344,12 @@ void UPTBProfileSubsystem::ApplyRoundResultToActive(const FPTBProfileProgressUpd
 
     Active->TotalEarnedMoney += Update.EarnedMoney;
     RequestSave();
-    
-    PTB_RECORD(LogPTBProfile, TEXT("ApplyRoundResult: game=%s score=%d stars=%d money=%d (total=%d)"), 
-        *Update.MiniGameId.ToString(), 
-        Update.Score, Update.EarnedStars,
+
+    PTB_RECORD(LogPTBProfile, TEXT("ApplyRoundResult: game=%s diff_key=%s score=%d all_score=%d stars=%d money=%d (total=%d)"),
+        *Update.MiniGameId.ToString(),
+        *DiffKey.ToString(),
+        Update.Score, BestScore,
+        Update.EarnedStars,
         Update.EarnedMoney, Active->TotalEarnedMoney);
     
 }
@@ -369,30 +399,48 @@ void UPTBProfileSubsystem::MarkStoryViewed(FName StoryId)
 
 int32 UPTBProfileSubsystem::GetBestScore(FName MiniGameId) const
 {
-    bool bFound = false;
-    const FPTBProfileData Active = GetActiveProfile(bFound);
-    if (!bFound)
-    {
-        return 0;
-    }
+    const FPTBProfileData* Active = FindActiveProfileConst();
+    if (!Active) { return 0; }
 
-    if (const int32* Found = Active.BestScoresByMiniGame.Find(MiniGameId))
+    if (const int32* Found = Active->BestScoresByMiniGame.Find(MiniGameId))
     {
         return *Found;
     }
     return 0;
 }
 
+int32 UPTBProfileSubsystem::GetBestScoreForDifficulty(FName MiniGameId, EPTBDifficulty Difficulty) const
+{
+    const FPTBProfileData* Active = FindActiveProfileConst();
+    if (!Active) { return 0; }
+
+    const FName Key = MakeDifficultyScoreKey(MiniGameId, Difficulty);
+	if (const int32* Found = Active->BestScoresByDifficulty.Find(Key))
+	{
+		return *Found;
+	}
+
+	return 0;
+}
+
+FName UPTBProfileSubsystem::MakeDifficultyScoreKey(FName MiniGameId, EPTBDifficulty Difficulty)
+{
+    const UEnum* DiffEnum = StaticEnum<EPTBDifficulty>();
+    const FString DiffName = DiffEnum
+        ? DiffEnum->GetNameStringByValue(static_cast<int64>(Difficulty))
+        : FString::FromInt(static_cast<int32>(Difficulty));
+    return FName(*FString::Printf(TEXT("%s_%s"), *MiniGameId.ToString(), *DiffName));
+}
+
 int32 UPTBProfileSubsystem::GetEarnedStars(FName MiniGameId) const
 {
-    bool bFound = false;
-    const FPTBProfileData Active = GetActiveProfile(bFound);
-    if (!bFound)
+    const FPTBProfileData* Active = FindActiveProfileConst();
+    if (!Active)
     {
         return 0;
     }
 
-    if (const int32* Found = Active.EarnedStarsByMiniGame.Find(MiniGameId))
+    if (const int32* Found = Active->EarnedStarsByMiniGame.Find(MiniGameId))
     {
         return *Found;
     }
@@ -401,9 +449,8 @@ int32 UPTBProfileSubsystem::GetEarnedStars(FName MiniGameId) const
 
 int32 UPTBProfileSubsystem::GetTotalEarnedMoney() const
 {
-    bool bFound = false;
-    const FPTBProfileData Active = GetActiveProfile(bFound);
-    return bFound ? Active.TotalEarnedMoney : 0;
+    const FPTBProfileData* Active = FindActiveProfileConst();
+    return Active ? Active->TotalEarnedMoney : 0;
 }
 
 
@@ -417,7 +464,10 @@ void UPTBProfileSubsystem::RequestSave()
         if (GI->CurrentSaveGame)
         {
             GI->CurrentSaveGame->Profiles = AllProfiles;
+            GI->CurrentSaveGame->LastActiveProfileId = ActiveProfileId;  // 항상 동기화
             GI->SaveGame();
+            PTB_RECORD(LogPTBProfile, TEXT("RequestSave - LastActiveProfileId saved: %s"),
+                *ActiveProfileId.ToString());
             return;
         }
     }
@@ -430,6 +480,7 @@ void UPTBProfileSubsystem::RequestSave()
         return;
     }
     SaveGame->Profiles = AllProfiles;
+    SaveGame->LastActiveProfileId = ActiveProfileId;  // 항상 동기화
     const bool bSuccess = UGameplayStatics::SaveGameToSlot(SaveGame, TEXT("PTBSave"), 0);
     PTB_RECORD(LogPTBProfile, TEXT("RequestSave %s"), bSuccess ? TEXT("Success") : TEXT("FAIL"));
 }
@@ -446,6 +497,27 @@ void UPTBProfileSubsystem::LoadProfilesFromSave()
         return;
     }
     AllProfiles = SaveGame->Profiles;
+
+    PTB_RECORD(LogPTBProfile, TEXT("LoadProfilesFromSave - LastActiveProfileId from disk: %s (valid=%d)"),
+        *SaveGame->LastActiveProfileId.ToString(),
+        SaveGame->LastActiveProfileId.IsValid() ? 1 : 0);
+
+    // 이전 세션의 활성 프로필 복원
+    if (SaveGame->LastActiveProfileId.IsValid())
+    {
+        bool bFound = false;
+        GetProfile(SaveGame->LastActiveProfileId, bFound);
+        if (bFound)
+        {
+            ActiveProfileId = SaveGame->LastActiveProfileId;
+            PTB_RECORD(LogPTBProfile, TEXT("LoadProfilesFromSave - restored active profile: %s"),
+                *ActiveProfileId.ToString());
+        }
+        else
+        {
+            PTB_WARNING(LogPTBProfile, TEXT("LoadProfilesFromSave - LastActiveProfileId found in save but not in AllProfiles"));
+        }
+    }
 
     PTB_RECORD(LogPTBProfile, TEXT("LoadProfilesFromSave - loaded %d profiles"), AllProfiles.Num());
 }
@@ -493,14 +565,24 @@ FPTBProfileData* UPTBProfileSubsystem::FindActiveProfileMutable()
     return FindProfileMutable(ActiveProfileId);
 }
 
+const FPTBProfileData* UPTBProfileSubsystem::FindActiveProfileConst() const
+{
+    return FindProfileConst(ActiveProfileId);
+}
+
 FPTBProfileData* UPTBProfileSubsystem::FindProfileMutable(const FGuid& ProfileId)
+{
+    return const_cast<FPTBProfileData*>(FindProfileConst(ProfileId));
+}
+
+const FPTBProfileData* UPTBProfileSubsystem::FindProfileConst(const FGuid& ProfileId) const
 {
     if (!ProfileId.IsValid())
     {
         return nullptr;
     }
 
-    for (FPTBProfileData& Profile : AllProfiles)
+    for (const FPTBProfileData& Profile : AllProfiles)
     {
         if (Profile.ProfileId == ProfileId)
         {

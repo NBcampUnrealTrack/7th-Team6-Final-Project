@@ -3,6 +3,7 @@
 #include "AkComponent.h"
 #include "Audio/PTBWwiseAudioManager.h"
 #include "Audio/PTBWwiseRhythmSyncComponent.h"
+#include "Core/PTBGameModeBase.h"
 #include "Debug/PTBLogChannels.h"
 #include "MiniGames/Common/PTBMiniGameRuleSet.h"
 #include "MiniGames/Common/UI/PTBMiniGameLoadingWidget.h"
@@ -100,6 +101,23 @@ APTBBaseMiniGame::APTBBaseMiniGame()
 void APTBBaseMiniGame::BeginPlay()
 {
 	Super::BeginPlay();
+
+	// GameMode에 자신을 등록하고 결과 델리게이트를 바인딩.
+	// StartGameFlow 경유 스폰과 레벨 직접 배치 두 경우를 모두 처리.
+	if (APTBGameModeBase* GM = GetWorld()->GetAuthGameMode<APTBGameModeBase>())
+	{
+		if (!GM->ActiveMiniGame)
+		{
+			GM->ActiveMiniGame = this;
+			OnMiniGameStarted.AddUniqueDynamic(GM, &APTBGameModeBase::HandleMiniGameStarted);
+			OnMiniGameFinished.AddUniqueDynamic(GM, &APTBGameModeBase::HandleMiniGameFinished);
+		}
+		else if (GM->ActiveMiniGame == this)
+		{
+			OnMiniGameStarted.AddUniqueDynamic(GM, &APTBGameModeBase::HandleMiniGameStarted);
+			OnMiniGameFinished.AddUniqueDynamic(GM, &APTBGameModeBase::HandleMiniGameFinished);
+		}
+	}
 
 	if (!AudioManager)
 	{

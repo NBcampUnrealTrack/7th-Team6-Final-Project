@@ -59,4 +59,8 @@ protected:
 	/** 메뉴가 닫히기 직전 BP에서 정리 처리 */
 	UFUNCTION(BlueprintImplementableEvent, Category = "PTB|UI|ModalMenu")
 	void OnMenuClosed();
+
+private:
+	/** OpenMenu() 호출 시점의 마우스 커서 표시 여부 — CloseMenu()에서 복원에 사용 */
+	bool bPreviousCursorVisible = false;
 };

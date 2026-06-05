@@ -7,8 +7,9 @@ void UPTBModalMenuWidget::OpenMenu()
 	APlayerController* PC = GetOwningPlayer();
 	if (PC)
 	{
+		bPreviousCursorVisible = PC->bShowMouseCursor;
+
 		FInputModeUIOnly InputMode;
-		InputMode.SetWidgetToFocus(TakeWidget());
 		PC->SetInputMode(InputMode);
 		PC->SetShowMouseCursor(true);
 	}
@@ -23,7 +24,13 @@ void UPTBModalMenuWidget::CloseMenu()
 	APlayerController* PC = GetOwningPlayer();
 	if (PC)
 	{
-		if (RestoreMode == EPTBMenuRestoreMode::GameOnly)
+		// RestoreMode가 명시적으로 지정된 경우 그것을 따르고,
+		// 그렇지 않으면 OpenMenu() 시점의 상태로 자동 복원
+		const bool bRestoreGameOnly =
+			(RestoreMode == EPTBMenuRestoreMode::GameOnly) ||
+			(RestoreMode != EPTBMenuRestoreMode::UIOnly && !bPreviousCursorVisible);
+
+		if (bRestoreGameOnly)
 		{
 			PC->SetInputMode(FInputModeGameOnly());
 			PC->SetShowMouseCursor(false);

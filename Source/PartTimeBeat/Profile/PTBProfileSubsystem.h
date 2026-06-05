@@ -88,9 +88,13 @@ public:
     //UFUNCTION(BlueprintCallable, Category = "Profile|Progression")
     //void UnlockCostume(FName CostumeId);
 
-    /** 미니게임 최고 점수 */
+    /** 미니게임 최고 점수 (난이도 무관 전체 최고) */
     UFUNCTION(BlueprintCallable, Category = "Profile|Query")
     int32 GetBestScore(FName MiniGameId) const;
+
+    /** 특정 난이도의 미니게임 최고 점수. 기록 없으면 0 반환. */
+    UFUNCTION(BlueprintCallable, Category = "Profile|Query")
+    int32 GetBestScoreForDifficulty(FName MiniGameId, EPTBDifficulty Difficulty) const;
 
     /** 미니게임 획득 별 */
     UFUNCTION(BlueprintCallable, Category = "Profile|Query")
@@ -129,8 +133,14 @@ protected:
     // 활성화 된 프로필 데이터에 대한 수정 가능 포인터 없으면 nullptr
     FPTBProfileData* FindActiveProfileMutable();
 
+    // 활성화 된 프로필 데이터에 대한 읽기 전용 포인터 없으면 nullptr
+    const FPTBProfileData* FindActiveProfileConst() const;
+
     // ID로 프로필 수정 가능 포인터 검색
     FPTBProfileData* FindProfileMutable(const FGuid& ProfileId);
+
+    // ID로 프로필 읽기 전용 포인터 검색
+    const FPTBProfileData* FindProfileConst(const FGuid& ProfileId) const;
 
     // ── 금칙어 필터 ──────────────────────────────────────────────
 
@@ -157,6 +167,12 @@ protected:
      * "ㅅxㅂ"처럼 한글 사이에 영문자를 끼워 넣는 우회를 차단
      */
     static FString NormalizeForFilterKoreanOnly(const FString& Input);
+
+    /**
+     * 난이도별 점수 키 생성 유틸리티.
+     * 반환 형식: "MiniGameId_DifficultyName" (예: "TG_Standard")
+     */
+static FName MakeDifficultyScoreKey(FName MiniGameId, EPTBDifficulty Difficulty);
 
 private:
     /** 메모리 상의 모든 프로필 */

@@ -1,4 +1,5 @@
 #include "Core/PTBSaveGame.h"
+#include "Debug/PTBTeamLog.h"
 
 void UPTBSaveGame::InitializeDefaultSave()
 {
@@ -40,7 +41,7 @@ void UPTBSaveGame::ApplyRewardSummary(const FString& ProfileId, const FPTBReward
 	FGuid TargetGuid;
 	if (!FGuid::Parse(ProfileId, TargetGuid))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("ApplyRewardSummary: Invalid ProfileId format [%s]"), *ProfileId);
+		PTB_WARNING(LogPTBCore, TEXT("ApplyRewardSummary: Invalid ProfileId format [%s]"), *ProfileId);
 		return;
 	}
 
@@ -57,7 +58,7 @@ void UPTBSaveGame::ApplyRewardSummary(const FString& ProfileId, const FPTBReward
 		}
 	}
 
-	UE_LOG(LogTemp, Warning, TEXT("ApplyRewardSummary: Profile not found [%s]"), *ProfileId);
+	PTB_WARNING(LogPTBCore, TEXT("ApplyRewardSummary: Profile not found [%s]"), *ProfileId);
 }
 
 void UPTBSaveGame::MarkTutorialDone(const FString& ProfileId, FName GameId)
@@ -69,7 +70,7 @@ void UPTBSaveGame::MarkTutorialDone(const FString& ProfileId, FName GameId)
 	FName Key = FName(*(ProfileId + TEXT("_") + GameId.ToString()));
 	TutorialFlags.Add(Key, true);
 	
-	UE_LOG(LogTemp, Log, TEXT("Tutorial marked done — Profile: %s, Game: %s"),
+	PTB_RECORD(LogPTBCore, TEXT("Tutorial marked done — Profile: %s, Game: %s"),
 		*ProfileId, *GameId.ToString());
 }
 
