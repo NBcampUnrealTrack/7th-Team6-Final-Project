@@ -194,9 +194,6 @@ public:
     FName ChartId = NAME_None;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
-    FName SongId = NAME_None;
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
     FName MiniGameId = NAME_None;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
