@@ -7,6 +7,7 @@
 #include "PTBFSCharacter.generated.h"
 
 class UCableComponent;
+
 UCLASS()
 class PARTTIMEBEAT_API APTBFSCharacter : public APTBRhythmCharacterBase
 {
@@ -25,6 +26,9 @@ public:
 	void SetFishLineTarget(AActor* InFishActor);
 	
 	void AttachFishingLine();
+	
+	UPROPERTY(EditAnywhere, Category = "Fishing")
+	FName FishSocketName = FName("TestSocket");
 protected:
 	UPROPERTY(VisibleAnywhere, Category = "Fishing")
 	TObjectPtr<UStaticMeshComponent> FishingRodMesh;

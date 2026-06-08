@@ -17,7 +17,7 @@ APTBFSCharacter::APTBFSCharacter()
 	FVector FishingRodMeshLocation = FVector(-4.3f,-2.5f,-2.2f);
 	FVector FishingRodMeshScale = FVector(0.166667f, 0.166667f, 0.166667f);
 	
-	FishingRodMesh = CreateDefaultSubobject<UStaticMeshComponent>("FishingRodMesh");
+	FishingRodMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("FishingRodMesh"));
 	FishingRodMesh->SetupAttachment(GetMesh(),FName(TEXT("FishingRodSocket")));
 	FishingRodMesh->SetRelativeRotation(FishingRodMeshRotator);
 	FishingRodMesh->SetRelativeLocation(FishingRodMeshLocation);
@@ -64,7 +64,7 @@ void APTBFSCharacter::AttachFishingLine()
 		if (FishMesh)
 		{
 			FishingCable->bAttachEnd=true;
-			FishingCable->SetAttachEndToComponent(FishMesh, FName("TestSocket"));
+			FishingCable->SetAttachEndToComponent(FishMesh,FishSocketName);
 			FishingCable->EndLocation = FVector::ZeroVector; 
 		}
 	}

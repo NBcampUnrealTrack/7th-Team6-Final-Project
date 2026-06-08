@@ -3,7 +3,10 @@
 
 #include "FSGameMode.h"
 #include "FishActor.h"
+#include "Blueprint/UserWidget.h"
 #include "PTBFSMiniGame.h"
+#include "Debug/PTBLogChannels.h"
+#include "Debug/PTBTeamLog.h"
 
 AFSGameMode::AFSGameMode()
 {
@@ -15,6 +18,18 @@ AFSGameMode::AFSGameMode()
 void AFSGameMode::BeginPlay()
 {
 	Super::BeginPlay();
+	
+	if (!FishActorClass)
+	{
+		PTB_WARNING(LogPTBMiniGames, TEXT("FishActorClass 미설정"));
+		return;
+	}
+	if (!MiniGameClass)
+	{
+		PTB_WARNING(LogPTBMiniGames, TEXT("MiniGameClass 미설정"));
+		return;
+	}
+	
 	FVector FishActorLocation = FVector(0,0,30);
 	FRotator FishActorRotation = FRotator(0,90,0);
 	SpawnedFishActor = GetWorld()->SpawnActor<AFishActor>(FishActorClass, FishActorLocation, FishActorRotation);
@@ -22,7 +37,8 @@ void AFSGameMode::BeginPlay()
 	FActorSpawnParameters Params;
 	Params.bDeferConstruction = true;
 	FishingMiniGame = GetWorld()->SpawnActor<APTBFSMiniGame>(MiniGameClass, FVector::ZeroVector, FRotator::ZeroRotator, Params);
-
+	
+	
 	if (FishingMiniGame)
 	{
 		FishingMiniGame->SetFishActor(SpawnedFishActor); 
@@ -30,6 +46,7 @@ void AFSGameMode::BeginPlay()
 
 		FishingMiniGame->OnMiniGameFinished.AddDynamic(
 			this, &AFSGameMode::HandleFishingMiniGameFinished);
+		FishingMiniGame->OnStartFishingGame();
 	}
 
 	APlayerController* PC = GetWorld()->GetFirstPlayerController();
@@ -41,7 +58,6 @@ void AFSGameMode::BeginPlay()
 			HUDWidget->AddToViewport();
 		}
 	}
-	
 }
 
 void AFSGameMode::HandleFishingMiniGameFinished(FPTBRoundResult Result)

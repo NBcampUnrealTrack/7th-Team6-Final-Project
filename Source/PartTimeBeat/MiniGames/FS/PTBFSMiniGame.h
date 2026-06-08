@@ -33,7 +33,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnFishingPromptShown, EPTBActionTy
 /**
  * 성공 입력 시 발행
  * PullStrength로 물튀김 이펙트 강도, 컨트롤러 진동 강도 조절
- * HighPerfect=1.0 / Perfect=0.7 / Good=0.4
+ * HighPerfect=1.0 / Perfect=1.0 / Good=1.0
  */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnFishPulled, float, PullStrength);
  
@@ -130,6 +130,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Fishing")
 	void SetFishActor(AFishActor* InFishActor) { FishActor = InFishActor; }
 
+	void OnStartFishingGame();
 protected:
 	virtual void BuildRuntimeState()override;
 	
@@ -170,8 +171,7 @@ private:
 	TObjectPtr<AFishActor> FishActor=nullptr;
 	
 	UPROPERTY()
-	TObjectPtr<UPTBFSMiniGameRuleSet> FishRuleSet =nullptr
-	;
+	TObjectPtr<UPTBFSMiniGameRuleSet> FishRuleSet =nullptr;
 	
 	UPROPERTY()
 	TObjectPtr<APTBFSCharacter> Character = nullptr;

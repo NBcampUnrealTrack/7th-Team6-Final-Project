@@ -30,16 +30,6 @@ void APTBFSMiniGame::BeginPlay()
 	{
 		PTB_WARNING(LogPTBMiniGames, TEXT("[Fishing] RhythmConductor 없음"));
 	}
-
-	FPTBMiniGameContext Context;
-	Context.SessionRequest.MiniGameId = FName("FishMiniGame");
-	Context.SessionRequest.Difficulty = EPTBDifficulty::Standard;
-	InitializeMiniGame(Context);
-	StartMiniGame();
-	if (Character)
-	{
-		Character->OnPlayCastAnimMontage();
-	}
 }
 
 void APTBFSMiniGame::BuildRuntimeState()
@@ -93,6 +83,7 @@ void APTBFSMiniGame::BuildRuntimeState()
 	StepDistance,TotalNoteCount);
 	
 	Character->SetFishLineTarget(FishActor);
+	Character->OnPlayCastAnimMontage();
 	
 	GI->CachedSettings.RhythmKeys.ActionA = EKeys::Q;
 	GI->CachedSettings.RhythmKeys.ActionB = EKeys::W;
@@ -237,6 +228,15 @@ EFishingLineState APTBFSMiniGame::CalculateLineState(float Distance) const
 	{
 		return EFishingLineState::Loose;
 	}
+}
+
+void APTBFSMiniGame::OnStartFishingGame()
+{
+	FPTBMiniGameContext Context;
+	Context.SessionRequest.MiniGameId = FName("FishMiniGame");
+	Context.SessionRequest.Difficulty = EPTBDifficulty::Standard;
+	InitializeMiniGame(Context);
+	StartMiniGame();
 }
 
 void APTBFSMiniGame::HandleActionAInput()
