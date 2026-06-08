@@ -1,6 +1,8 @@
 #include "MiniGames/BB/PTBBBMiniGame.h"
 #include "MiniGames/BB/PTBBBMiniGameRuleSet.h"
 #include "Audio/PTBWwiseAudioManager.h"
+#include "Debug/PTBTeamLog.h"
+#include "Rhythm/PTBScoreCalculator.h"
 
 // ── 런타임 상태 조회 ─────────────────────────────────────────────
 
@@ -63,7 +65,7 @@ void APTBBBMiniGame::BuildRuntimeState()
 	const UPTBBBMiniGameRuleSet* BBRuleSet = GetBBRuleSet();
 	if (!BBRuleSet)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[BBMiniGame] BuildRuntimeState: BBRuleSet을 찾을 수 없습니다. 기본값을 사용합니다."));
+		PTB_WARNING(LogPTBMiniGames, TEXT("[BBMiniGame] BuildRuntimeState: BBRuleSet을 찾을 수 없습니다. 기본값을 사용합니다."));
 	}
 
 	// HP 초기화
@@ -170,7 +172,10 @@ FPTBMiniGameResultPayload APTBBBMiniGame::BuildResultPayload() const
 	Payload.FloatValues.Add(TEXT("PlayerMaxHP"),          PlayerMaxHP);
 
 	// 목표 점수 도달 여부
-	const bool bReachedTargetScore = (RoundResult.Score >= CachedTargetScore);
+	// BuildResultPayload()는 ScoreCalculator->BuildRoundResult() 이전에 호출되므로
+	// RoundResult.Score는 아직 0이다. ScoreCalculator->CurrentScore를 직접 읽어야 한다.
+	const int32 CurrentScore = ScoreCalculator ? ScoreCalculator->CurrentScore : 0;
+	const bool bReachedTargetScore = (CurrentScore >= CachedTargetScore);
 	Payload.IntValues.Add(TEXT("TargetScore"),        CachedTargetScore);
 	Payload.IntValues.Add(TEXT("ReachedTargetScore"), bReachedTargetScore ? 1 : 0);
 
