@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Core/PTBGameModeBase.h"
-#include "FSGamMode.generated.h"
+#include "FSGameMode.generated.h"
 
 /**
  * 

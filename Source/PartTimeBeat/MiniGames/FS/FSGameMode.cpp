@@ -19,16 +19,19 @@ void AFSGameMode::BeginPlay()
 	FRotator FishActorRotation = FRotator(0,90,0);
 	SpawnedFishActor = GetWorld()->SpawnActor<AFishActor>(FishActorClass, FishActorLocation, FishActorRotation);
 	
-	FVector FSGameActorLocation = FVector::ZeroVector;
-	FRotator FSGameActorRotation = FRotator::ZeroRotator;
-	FishingMiniGame = GetWorld()->SpawnActor<APTBFSMiniGame>(MiniGameClass,FSGameActorLocation,FSGameActorRotation);
-	
+	FActorSpawnParameters Params;
+	Params.bDeferConstruction = true;
+	FishingMiniGame = GetWorld()->SpawnActor<APTBFSMiniGame>(MiniGameClass, FVector::ZeroVector, FRotator::ZeroRotator, Params);
+
 	if (FishingMiniGame)
 	{
+		FishingMiniGame->SetFishActor(SpawnedFishActor); 
+		FishingMiniGame->FinishSpawning(FTransform::Identity);  
+
 		FishingMiniGame->OnMiniGameFinished.AddDynamic(
 			this, &AFSGameMode::HandleFishingMiniGameFinished);
 	}
-	
+
 	APlayerController* PC = GetWorld()->GetFirstPlayerController();
 	if (PC && HUDWidgetClass)
 	{

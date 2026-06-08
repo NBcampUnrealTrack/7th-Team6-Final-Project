@@ -47,14 +47,7 @@ void APTBFSMiniGame::BuildRuntimeState()
 	Super::BuildRuntimeState();
 	FishRuleSet = Cast<UPTBFSMiniGameRuleSet>(RuleSet);
 	Character = Cast<APTBFSCharacter>(UGameplayStatics::GetPlayerPawn(GetWorld(), 0));
-	TArray<AActor*> FoundActor;
-	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AFishActor::StaticClass(), FoundActor);
 	UPTBGameInstance* GI = Cast<UPTBGameInstance>(GetGameInstance());
-	if (FoundActor.Num() > 0)
-	{
-		FishActor = Cast<AFishActor>(FoundActor[0]);
-	}
-
 	if (!Character)
 	{
 		PTB_WARNING(LogPTBMiniGames, TEXT("캐릭터 유효하지 않음"));

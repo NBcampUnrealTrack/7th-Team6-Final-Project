@@ -126,6 +126,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Fishing|Input")
 	void HandleActionEInputReleased();
+	
+	UFUNCTION(BlueprintCallable, Category = "Fishing")
+	void SetFishActor(AFishActor* InFishActor) { FishActor = InFishActor; }
 
 protected:
 	virtual void BuildRuntimeState()override;
