@@ -3,8 +3,8 @@
 
 #include "PTBFSCharacter.h"
 #include "CableComponent.h"
+#include "PTBFSMiniGame.h"
 #include "Components/StaticMeshComponent.h"
-#include "Debug/PTBTeamLog.h"
 
 
 // Sets default values
@@ -42,6 +42,14 @@ void APTBFSCharacter::OnPlayRealAnimMontage()
 		PlayAnimMontage(RealAnimMontage);
 	}
 }
+
+void APTBFSCharacter::UpdateFishingLineLength(float FishDistance)
+{
+	if (!FishingCable) return;
+	FishingCable->CableLength = 50.0f + (2500.0f * FishDistance);
+	FishingCable->MarkRenderStateDirty();
+}
+
 
 void APTBFSCharacter::SetFishLineTarget(AActor* InFishActor)
 {

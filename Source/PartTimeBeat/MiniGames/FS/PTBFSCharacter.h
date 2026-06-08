@@ -19,6 +19,9 @@ public:
 	void OnPlayRealAnimMontage();
 
 	UFUNCTION()
+	void UpdateFishingLineLength(float FishDistance);
+
+	UFUNCTION()
 	void SetFishLineTarget(AActor* InFishActor);
 	
 	void AttachFishingLine();

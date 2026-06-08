@@ -99,6 +99,7 @@ void APTBFSMiniGame::BuildRuntimeState()
 	GI->CachedSettings.RhythmKeys.ActionC = EKeys::E;
 	GI->CachedSettings.RhythmKeys.ActionD = EKeys::R;
 	GI->CachedSettings.RhythmKeys.ActionE = EKeys::F;
+	OnFishDistanceChanged.AddDynamic(Character, &APTBFSCharacter::UpdateFishingLineLength);
 }
 
 void APTBFSMiniGame::HandleNoteCue(FPTBNoteEvent Note)
@@ -166,6 +167,7 @@ void APTBFSMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 		  static_cast<int32>(Result.Reason),
 		  Result.DeltaMs);	
 		PTB_WARNING(LogPTBMiniGames, TEXT("[Fishing] OnFishSlipped 브로드캐스트"));
+		ApplyDistanceDelta(StepDistance * 1.0f); 
 		OnFishSlipped.Broadcast(1.0f);
 		break;
 	}

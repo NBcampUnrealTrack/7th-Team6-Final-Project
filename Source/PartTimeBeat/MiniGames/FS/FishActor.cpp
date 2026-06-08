@@ -36,6 +36,17 @@ void AFishActor::Tick(float DeltaTime)
 		DeltaTime,
 		InterpSpeed  
 	);
+	float MoveDist =  FVector::Dist(Current, NewLocation);
+	if (MoveDist > 1.0f)
+	{
+		if (SwimMontage && !SkeletalMesh->GetAnimInstance()->Montage_IsPlaying(SwimMontage))
+			SkeletalMesh->GetAnimInstance()->Montage_Play(SwimMontage);
+	}
+	else
+	{
+		if (IdleMontage && !SkeletalMesh->GetAnimInstance()->Montage_IsPlaying(IdleMontage))
+			SkeletalMesh->GetAnimInstance()->Montage_Play(IdleMontage);
+	}
 	SetActorLocation(NewLocation);
 }
 
