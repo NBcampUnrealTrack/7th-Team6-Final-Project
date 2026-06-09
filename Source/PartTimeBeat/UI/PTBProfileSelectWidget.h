@@ -15,7 +15,8 @@ class PARTTIMEBEAT_API UPTBProfileSelectWidget : public UPTBDialogHostWidget
 	GENERATED_BODY()
 
 protected:
-	/** 생성 시 Input Mode + 마우스 커서 자동 설정 */
 	virtual void NativeConstruct() override;
+	/** 소멸 시 입력 모드 복원 — 레벨 이동 후 UI 전용 입력 모드가 남는 문제 방지 */
+	virtual void NativeDestruct() override;
 };
 
