@@ -8,6 +8,13 @@ void UPTBResultWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
 
+	if (APlayerController* PC = GetOwningPlayer())
+	{
+		FInputModeUIOnly InputMode;
+		PC->SetInputMode(InputMode);
+		PC->SetShowMouseCursor(true);
+	}
+
 	if (bAutoShowFlowResultOnConstruct)
 	{
 		ShowResultFromFlowSubsystem();
