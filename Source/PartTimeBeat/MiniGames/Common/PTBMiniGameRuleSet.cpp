@@ -6,14 +6,37 @@ void UPTBMiniGameRuleSet::PostLoad()
 
 	if (!bHasMigratedDifficultyMissLimitSettings)
 	{
-		bFailOnMissLimitEasy = bFailOnMissLimit;
-		MaxMissCountEasy = MaxMissCount;
+		constexpr bool bDefaultFailOnMissLimit = false;
+		constexpr int32 DefaultMaxMissCount = 10;
+		const bool bHasLegacyMissLimitSettings = bFailOnMissLimit != bDefaultFailOnMissLimit
+			|| MaxMissCount != DefaultMaxMissCount;
 
-		bFailOnMissLimitStandard = bFailOnMissLimit;
-		MaxMissCountStandard = MaxMissCount;
+		if (bHasLegacyMissLimitSettings)
+		{
+			const bool bEasySettingsAreDefault = bFailOnMissLimitEasy == bDefaultFailOnMissLimit
+				&& MaxMissCountEasy == DefaultMaxMissCount;
+			if (bEasySettingsAreDefault)
+			{
+				bFailOnMissLimitEasy = bFailOnMissLimit;
+				MaxMissCountEasy = MaxMissCount;
+			}
 
-		bFailOnMissLimitInsane = bFailOnMissLimit;
-		MaxMissCountInsane = MaxMissCount;
+			const bool bStandardSettingsAreDefault = bFailOnMissLimitStandard == bDefaultFailOnMissLimit
+				&& MaxMissCountStandard == DefaultMaxMissCount;
+			if (bStandardSettingsAreDefault)
+			{
+				bFailOnMissLimitStandard = bFailOnMissLimit;
+				MaxMissCountStandard = MaxMissCount;
+			}
+
+			const bool bInsaneSettingsAreDefault = bFailOnMissLimitInsane == bDefaultFailOnMissLimit
+				&& MaxMissCountInsane == DefaultMaxMissCount;
+			if (bInsaneSettingsAreDefault)
+			{
+				bFailOnMissLimitInsane = bFailOnMissLimit;
+				MaxMissCountInsane = MaxMissCount;
+			}
+		}
 
 		bHasMigratedDifficultyMissLimitSettings = true;
 	}
