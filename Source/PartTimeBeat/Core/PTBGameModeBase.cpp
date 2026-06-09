@@ -196,11 +196,15 @@ bool APTBGameModeBase::TryStartDirectPIEMiniGame()
 
 		if (UPTBProfileSubsystem* ProfileSubsystem = GI->GetSubsystem<UPTBProfileSubsystem>())
 		{
-			bool bHasActiveProfile = false;
-			const FPTBProfileData ActiveProfile = ProfileSubsystem->GetActiveProfile(bHasActiveProfile);
-			if (bHasActiveProfile)
+			if (ProfileSubsystem->ActivateDevelopmentProfileForPIE())
 			{
-				CurrentRequest.ProfileId = ActiveProfile.ProfileId;
+				bool bHasDevelopmentProfile = false;
+				const FPTBProfileData DevelopmentProfile = ProfileSubsystem->GetActiveProfile(bHasDevelopmentProfile);
+				if (bHasDevelopmentProfile)
+				{
+					CurrentRequest.ProfileId = DevelopmentProfile.ProfileId;
+					PTB_RECORD(LogPTBMiniGames, TEXT("Direct PIE MiniGame start: using development profile [%s]."), *CurrentRequest.ProfileId.ToString());
+				}
 			}
 		}
 	}
@@ -255,14 +259,15 @@ void APTBGameModeBase::StartGameFlow(const FPTBGameSessionRequest& Request)
 	if (FlowSubsystem)
 	{
 		FlowSubsystem->ClearRetryTarget();
+		FlowSubsystem->PendingSessionRequest = CurrentRequest;
 	}
 
 	// 1) 미니게임 클래스 해석
-	TSubclassOf<APTBBaseMiniGame> Cls = ResolveMiniGameClass(Request.MiniGameId);
+	TSubclassOf<APTBBaseMiniGame> Cls = ResolveMiniGameClass(CurrentRequest.MiniGameId);
 	if (!Cls)
 	{
 		PTB_ERROR(LogPTBMiniGames, TEXT("StartGameFlow: MiniGame class not found for [%s]"),
-			*Request.MiniGameId.ToString());
+			*CurrentRequest.MiniGameId.ToString());
 		return;
 	}
 
@@ -288,7 +293,7 @@ void APTBGameModeBase::StartGameFlow(const FPTBGameSessionRequest& Request)
 
 	// 4) 미니게임 컨텍스트 구성 & 주입
 	FPTBMiniGameContext Context;
-	Context.SessionRequest = Request;
+	Context.SessionRequest = CurrentRequest;
 	// Context.ChartData  → 채보 로딩 시스템에서 채워야 함 (DataTable / Asset 등)
 	// Context.UserSettings → GameInstance에서 가져오기
 	UPTBGameInstance* GI = Cast<UPTBGameInstance>(GetGameInstance());

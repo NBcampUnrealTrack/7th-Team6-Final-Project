@@ -948,7 +948,7 @@ void APTBBaseMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 		}
 	}
 
-	if (RuleSet && ScoreCalculator && RuleSet->ShouldFailForMissCount(ScoreCalculator->MissCount))
+	if (RuleSet && ScoreCalculator && RuleSet->ShouldFailForMissCount(GameContext.SessionRequest.Difficulty, ScoreCalculator->MissCount))
 	{
 		FinishMiniGame(EPTBRoundEndReason::Failed);
 	}
