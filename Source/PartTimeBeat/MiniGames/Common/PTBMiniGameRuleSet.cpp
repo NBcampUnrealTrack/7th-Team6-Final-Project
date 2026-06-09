@@ -1,5 +1,24 @@
 #include "MiniGames/Common/PTBMiniGameRuleSet.h"
 
+void UPTBMiniGameRuleSet::PostLoad()
+{
+	Super::PostLoad();
+
+	if (!bHasMigratedDifficultyMissLimitSettings)
+	{
+		bFailOnMissLimitEasy = bFailOnMissLimit;
+		MaxMissCountEasy = MaxMissCount;
+
+		bFailOnMissLimitStandard = bFailOnMissLimit;
+		MaxMissCountStandard = MaxMissCount;
+
+		bFailOnMissLimitInsane = bFailOnMissLimit;
+		MaxMissCountInsane = MaxMissCount;
+
+		bHasMigratedDifficultyMissLimitSettings = true;
+	}
+}
+
 bool UPTBMiniGameRuleSet::SupportsAction(EPTBActionType Action) const
 {
 	if (Action == EPTBActionType::None)
@@ -53,9 +72,20 @@ FName UPTBMiniGameRuleSet::GetJudgementSFXKey(EPTBJudgementType JudgementType) c
 	return JudgementType == EPTBJudgementType::Miss ? FailSFXKey : SuccessSFXKey;
 }
 
-bool UPTBMiniGameRuleSet::ShouldFailForMissCount(int32 MissCount) const
+bool UPTBMiniGameRuleSet::ShouldFailForMissCount(EPTBDifficulty Difficulty, int32 MissCount) const
 {
-	return bFailOnMissLimit && MissCount >= MaxMissCount;
+	switch (Difficulty)
+	{
+	case EPTBDifficulty::Easy:
+		return bFailOnMissLimitEasy && MissCount >= MaxMissCountEasy;
+
+	case EPTBDifficulty::Insane:
+		return bFailOnMissLimitInsane && MissCount >= MaxMissCountInsane;
+
+	case EPTBDifficulty::Standard:
+	default:
+		return bFailOnMissLimitStandard && MissCount >= MaxMissCountStandard;
+	}
 }
 
 bool UPTBMiniGameRuleSet::ShouldTreatEmptyInputAsMiss() const

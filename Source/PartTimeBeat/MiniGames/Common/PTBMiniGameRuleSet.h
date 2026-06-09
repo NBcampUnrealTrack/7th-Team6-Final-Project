@@ -19,6 +19,8 @@ class PARTTIMEBEAT_API UPTBMiniGameRuleSet : public UPrimaryDataAsset
 	GENERATED_BODY()
 
 public:
+	virtual void PostLoad() override;
+
 	/** 미니게임 식별자 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|MiniGame")
 	FName MiniGameId = NAME_None;
@@ -72,40 +74,56 @@ public:
 	bool bUseJudgementWindowOverride = false;
 
 	/** High Perfect 판정 허용 범위(ms) */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Judgement", meta = (EditCondition = "bUseJudgementWindowOverride", ClampMin = "0", UIMin = "0"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Judgement", meta = (EditCondition = "bUseJudgementWindowOverride", EditConditionHides, ClampMin = "0", UIMin = "0"))
 	float HitWindowHighPerfectMsOverride = 21.0f;
 
 	/** Perfect 판정 허용 범위(ms) */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Judgement", meta = (EditCondition = "bUseJudgementWindowOverride", ClampMin = "0", UIMin = "0"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Judgement", meta = (EditCondition = "bUseJudgementWindowOverride", EditConditionHides, ClampMin = "0", UIMin = "0"))
 	float HitWindowPerfectMsOverride = 50.0f;
 
 	/** Good 판정 허용 범위(ms) */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Judgement", meta = (EditCondition = "bUseJudgementWindowOverride", ClampMin = "0", UIMin = "0"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Judgement", meta = (EditCondition = "bUseJudgementWindowOverride", EditConditionHides, ClampMin = "0", UIMin = "0"))
 	float HitWindowGoodMsOverride = 120.0f;
 
 	/** Miss 입력 소비 허용 범위(ms) */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Judgement", meta = (EditCondition = "bUseJudgementWindowOverride", ClampMin = "0", UIMin = "0"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Judgement", meta = (EditCondition = "bUseJudgementWindowOverride", EditConditionHides, ClampMin = "0", UIMin = "0"))
 	float HitWindowMissMsOverride = 250.0f;
 
-	/** 미스 제한으로 실패 처리 */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Failure")
-	bool bFailOnMissLimit = false;
+	/** 초보모드에서 미스 제한으로 실패 처리 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Failure", meta = (DisplayName = "초보모드 미스 제한 실패"))
+	bool bFailOnMissLimitEasy = false;
+
+	/** 초보모드 실패 처리 최대 미스 수 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Failure", meta = (DisplayName = "초보모드 최대 미스 수", EditCondition = "bFailOnMissLimitEasy", EditConditionHides, ClampMin = "1", UIMin = "1"))
+	int32 MaxMissCountEasy = 10;
+
+	/** 통상모드에서 미스 제한으로 실패 처리 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Failure", meta = (DisplayName = "통상모드 미스 제한 실패"))
+	bool bFailOnMissLimitStandard = false;
+
+	/** 통상모드 실패 처리 최대 미스 수 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Failure", meta = (DisplayName = "통상모드 최대 미스 수", EditCondition = "bFailOnMissLimitStandard", EditConditionHides, ClampMin = "1", UIMin = "1"))
+	int32 MaxMissCountStandard = 10;
+
+	/** 발광모드에서 미스 제한으로 실패 처리 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Failure", meta = (DisplayName = "발광모드 미스 제한 실패"))
+	bool bFailOnMissLimitInsane = false;
+
+	/** 발광모드 실패 처리 최대 미스 수 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Failure", meta = (DisplayName = "발광모드 최대 미스 수", EditCondition = "bFailOnMissLimitInsane", EditConditionHides, ClampMin = "1", UIMin = "1"))
+	int32 MaxMissCountInsane = 10;
 
 	/** 헛입력 처리 방식 */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Failure")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Empty Input Policy")
 	EPTBEmptyInputPolicy EmptyInputPolicy = EPTBEmptyInputPolicy::Ignore;
 
 	/** 헛입력 시 해당 Action 잠금 */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Failure")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Empty Input Policy")
 	bool bUseEmptyInputActionLock = false;
 
 	/** 헛입력 Action 잠금 시간(ms) */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Failure", meta = (EditCondition = "bUseEmptyInputActionLock", ClampMin = "0", UIMin = "0"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Empty Input Policy", meta = (EditCondition = "bUseEmptyInputActionLock", EditConditionHides, ClampMin = "0", UIMin = "0"))
 	float EmptyInputActionLockMs = 0.0f;
-
-	/** 실패 처리할 최대 미스 수 */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Failure", meta = (EditCondition = "bFailOnMissLimit", ClampMin = "1", UIMin = "1"))
-	int32 MaxMissCount = 10;
 
 	/** 판정별 SFX 이벤트 키 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Audio")
@@ -131,12 +149,25 @@ public:
 	/** 판정 SFX 이벤트 키 조회 */
 	FName GetJudgementSFXKey(EPTBJudgementType JudgementType) const;
 
-	/** 미스 수 기준 실패 여부 */
-	bool ShouldFailForMissCount(int32 MissCount) const;
+	/** 난이도와 미스 수 기준 실패 여부 */
+	bool ShouldFailForMissCount(EPTBDifficulty Difficulty, int32 MissCount) const;
 
 	/** 헛입력을 Miss로 처리할지 여부 */
 	bool ShouldTreatEmptyInputAsMiss() const;
 
 	/** 헛입력 시 Action을 잠글지 여부 */
 	bool ShouldLockActionOnEmptyInput() const;
+
+private:
+	/** 레거시 공통 미스 제한 실패 여부, 기존 DataAsset 마이그레이션용 */
+	UPROPERTY()
+	bool bFailOnMissLimit = false;
+
+	/** 레거시 공통 최대 미스 수, 기존 DataAsset 마이그레이션용 */
+	UPROPERTY()
+	int32 MaxMissCount = 10;
+
+	/** 레거시 미스 제한 설정을 난이도별 필드로 옮겼는지 여부 */
+	UPROPERTY()
+	bool bHasMigratedDifficultyMissLimitSettings = false;
 };
