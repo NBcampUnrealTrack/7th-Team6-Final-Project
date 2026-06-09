@@ -37,6 +37,8 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "PTB|JumpJump")
 	FPTBJJNoteClearedEvent OnJJNoteCleared;
 
+	virtual void BeginPlay() override;
+
 	/** 오브젝트 / 상태 구성 */
 	virtual void BuildRuntimeState() override;
 
@@ -77,7 +79,7 @@ public:
 
 protected:
 	/** 미니게임 전용 피드백(착지 연출 연결점) */
-	virtual void PlayJudgementFeedback(const FPTBJudgementResult& Result) override;
+	//virtual void PlayJudgementFeedback(const FPTBJudgementResult& Result) override;
 
 	/** JJ RuleSet 조회 */
 	const UPTBJJMiniGameRuleSet* GetJJRuleSet() const;

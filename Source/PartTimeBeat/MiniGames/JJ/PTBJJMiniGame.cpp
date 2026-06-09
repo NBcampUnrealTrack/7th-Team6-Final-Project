@@ -96,18 +96,23 @@ void APTBJJMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 	}
 }
 
-void APTBJJMiniGame::PlayJudgementFeedback(const FPTBJudgementResult& Result)
+void APTBJJMiniGame::BeginPlay()
 {
-	Super::PlayJudgementFeedback(Result);
-
-	// 착지 연출은 여기서만 호출 (Super::HandleJudgementResult 경로로 1회 보장)
-	FPTBNoteEvent JudgedNote;
-	const int32 CharacterIndex = FindTrackedNote(Result.NoteId, JudgedNote)
-		? ResolveCharacterIndex(JudgedNote.ActionType)
-		: ResolveCharacterIndex(Result.ActionType);
-
-	PlayLandingFeedback(CharacterIndex, Result);
+	Super::BeginPlay();
 }
+
+//void APTBJJMiniGame::PlayJudgementFeedback(const FPTBJudgementResult& Result)
+//{
+//	Super::PlayJudgementFeedback(Result);
+//
+//	// 착지 연출은 여기서만 호출 (Super::HandleJudgementResult 경로로 1회 보장)
+//	FPTBNoteEvent JudgedNote;
+//	const int32 CharacterIndex = FindTrackedNote(Result.NoteId, JudgedNote)
+//		? ResolveCharacterIndex(JudgedNote.ActionType)
+//		: ResolveCharacterIndex(Result.ActionType);
+//
+//	PlayLandingFeedback(CharacterIndex, Result);
+//}
 
 FPTBMiniGameResultPayload APTBJJMiniGame::BuildResultPayload() const
 {
