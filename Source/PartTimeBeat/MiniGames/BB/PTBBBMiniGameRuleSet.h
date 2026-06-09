@@ -36,6 +36,7 @@ struct FPTBBBDifficultyConfig
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|BB|Score",
 		meta = (ClampMin = "0"))
 	int32 TargetScore = 50000;
+};
 
 /**
  * BB(보스 잡기) 미니게임 RuleSet.
