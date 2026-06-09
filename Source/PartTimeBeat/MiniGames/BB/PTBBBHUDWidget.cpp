@@ -3,7 +3,6 @@
 #include "Components/CanvasPanel.h"
 #include "Components/CanvasPanelSlot.h"
 #include "Components/ProgressBar.h"
-#include "Blueprint/WidgetLayoutLibrary.h"
 #include "MiniGames/BB/PTBBBMiniGame.h"
 #include "MiniGames/BB/PTBBBCueWidgetBase.h"
 #include "Debug/PTBTeamLog.h"
