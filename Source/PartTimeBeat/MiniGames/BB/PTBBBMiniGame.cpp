@@ -3,6 +3,7 @@
 #include "Audio/PTBWwiseAudioManager.h"
 #include "Debug/PTBTeamLog.h"
 #include "Rhythm/PTBScoreCalculator.h"
+#include "Rhythm/PTBRhythmChartAsset.h"
 
 // ── 런타임 상태 조회 ─────────────────────────────────────────────
 
@@ -68,14 +69,7 @@ void APTBBBMiniGame::BuildRuntimeState()
 		PTB_WARNING(LogPTBMiniGames, TEXT("[BBMiniGame] BuildRuntimeState: BBRuleSet을 찾을 수 없습니다. 기본값을 사용합니다."));
 	}
 
-	// HP 초기화
-	BossMaxHP       = BBRuleSet ? BBRuleSet->BossMaxHP   : 100.f;
-	PlayerMaxHP     = BBRuleSet ? BBRuleSet->PlayerMaxHP : 100.f;
-	BossCurrentHP   = BossMaxHP;
-	PlayerCurrentHP = PlayerMaxHP;
-	bBossDefeated   = false;
-
-	// 현재 난이도 수치 캐시
+	// 난이도 수치 캐시 (BossMaxHP 자동 계산에 DamagePerParry가 필요하므로 먼저 처리)
 	const EPTBDifficulty Difficulty = GameContext.SessionRequest.Difficulty;
 	const FPTBBBDifficultyConfig Config = BBRuleSet
 		? BBRuleSet->GetDifficultyConfig(Difficulty)
@@ -84,6 +78,34 @@ void APTBBBMiniGame::BuildRuntimeState()
 	CachedDamagePerParry    = Config.DamagePerParry;
 	CachedDamageTakenOnMiss = Config.DamageTakenOnMiss;
 	CachedTargetScore       = Config.TargetScore;
+
+	// HP 초기화
+	PlayerMaxHP     = BBRuleSet ? BBRuleSet->PlayerMaxHP : 100.f;
+	PlayerCurrentHP = PlayerMaxHP;
+	bBossDefeated   = false;
+
+	// 보스 MaxHP: bAutoScaleBossHP이면 채보 노트 수 × DamagePerParry로 자동 계산
+	if (BBRuleSet && BBRuleSet->bAutoScaleBossHP && ChartAsset)
+	{
+		int32 HittableCount = 0;
+		for (const FPTBNoteEvent& Note : ChartAsset->NoteEvents)
+		{
+			if (Note.NoteType != EPTBNoteType::Release)
+			{
+				++HittableCount;
+			}
+		}
+		const float ClearRatio = FMath::Clamp(Config.ClearRatio, 0.01f, 1.f);
+		const float RequiredParries = FMath::CeilToFloat(HittableCount * ClearRatio);
+		BossMaxHP = FMath::Max(1.f, RequiredParries * CachedDamagePerParry);
+		PTB_WARNING(LogPTBMiniGames, TEXT("[BBMiniGame] AutoScaleBossHP: %d 노트 x %.2f(ratio) = %.0f회 패링 필요, BossMaxHP=%.1f"),
+			HittableCount, ClearRatio, RequiredParries, BossMaxHP);
+	}
+	else
+	{
+		BossMaxHP = BBRuleSet ? BBRuleSet->BossMaxHP : 100.f;
+	}
+	BossCurrentHP = BossMaxHP;
 }
 
 void APTBBBMiniGame::PreloadAudioAssets()

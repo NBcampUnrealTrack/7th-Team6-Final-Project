@@ -23,6 +23,15 @@ struct FPTBBBDifficultyConfig
 		meta = (ClampMin = "0.0"))
 	float DamageTakenOnMiss = 15.f;
 
+	/**
+	 * bAutoScaleBossHP 사용 시 클리어에 필요한 패링 성공 비율.
+	 * 예) 0.667 → 전체 노트의 2/3를 성공하면 보스 HP가 정확히 0이 된다.
+	 * 범위: 0.01 ~ 1.0
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "BB|Damage",
+		meta = (ClampMin = "0.01", ClampMax = "1.0"))
+	float ClearRatio = 0.667f;
+
 	/** 이 난이도의 목표 점수 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "BB|Score",
 		meta = (ClampMin = "0"))
@@ -42,9 +51,17 @@ class PARTTIMEBEAT_API UPTBBBMiniGameRuleSet : public UPTBMiniGameRuleSet
 	GENERATED_BODY()
 
 public:
-	/** 보스 최대 체력 */
+	/**
+	 * true이면 런타임에 채보의 Tap/Hold 노트 수 × DamagePerParry로 BossMaxHP를 자동 계산한다.
+	 * 모든 노트를 완벽하게 쳐야 마지막 노트에서 보스가 정확히 처치된다.
+	 * false이면 아래 BossMaxHP 고정값을 사용한다.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "BB|HP")
+	bool bAutoScaleBossHP = true;
+
+	/** bAutoScaleBossHP가 false일 때 사용하는 고정 보스 최대 체력 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "BB|HP",
-		meta = (ClampMin = "1.0"))
+		meta = (ClampMin = "1.0", EditCondition = "!bAutoScaleBossHP"))
 	float BossMaxHP = 100.f;
 
 	/** 플레이어 최대 체력 */
