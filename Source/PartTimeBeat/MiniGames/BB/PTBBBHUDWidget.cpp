@@ -125,6 +125,12 @@ UPTBBBCueWidgetBase* UPTBBBHUDWidget::SpawnAndPlaceCue(
 	if (!CueClass || !CueLayer) return nullptr;
 
 	APlayerController* PC = GetOwningPlayer();
+	if (!PC)
+	{
+		PTB_WARNING(LogPTBMiniGames, TEXT("[BBHUDWidget] SpawnAndPlaceCue: OwningPlayer is null"));
+		return nullptr;
+	}
+
 	UPTBBBCueWidgetBase* Cue = CreateWidget<UPTBBBCueWidgetBase>(PC, CueClass);
 	if (!Cue) return nullptr;
 
