@@ -55,16 +55,16 @@ public:
 	 * 모든 노트를 완벽하게 쳐야 마지막 노트에서 보스가 정확히 처치된다.
 	 * false이면 아래 BossMaxHP 고정값을 사용한다.
 	 */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "BB|HP")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|BB|HP")
 	bool bAutoScaleBossHP = true;
 
 	/** bAutoScaleBossHP가 false일 때 사용하는 고정 보스 최대 체력 */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "BB|HP",
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|BB|HP",
 		meta = (ClampMin = "1.0", EditCondition = "!bAutoScaleBossHP"))
 	float BossMaxHP = 100.f;
 
 	/** 플레이어 최대 체력 */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "BB|HP",
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|BB|HP",
 		meta = (ClampMin = "1.0"))
 	float PlayerMaxHP = 100.f;
 
@@ -72,11 +72,11 @@ public:
 	 * 플레이어 HP가 0이 되면 라운드를 즉시 실패 처리할지 여부.
 	 * false(기본)이면 곡이 끝날 때까지 계속 진행한다.
 	 */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "BB|Failure")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|BB|Failure")
 	bool bFailOnPlayerHPDepleted = false;
 
 	/** 난이도별 데미지/목표 점수 설정 */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "BB|Difficulty")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|BB|Difficulty")
 	TMap<EPTBDifficulty, FPTBBBDifficultyConfig> DifficultyConfigs;
 
 	/** 현재 난이도 설정 조회. 없으면 기본값 반환 */
