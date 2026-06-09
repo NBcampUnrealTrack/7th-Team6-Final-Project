@@ -64,6 +64,12 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Profile|Active")
     bool HasActiveProfile() const;
 
+    /** PIE 직접 플레이 테스트용 개발 프로필 활성화 */
+    bool ActivateDevelopmentProfileForPIE();
+
+    /** 현재 개발 프로필을 활성 상태로 사용 중인지 여부 */
+    bool IsUsingDevelopmentProfile() const;
+
 
     UFUNCTION(BlueprintCallable, Category = "Profile|Validation")
     EPTBNicknameValidationResult ValidateNickname(const FString& Nickname) const;
@@ -123,6 +129,12 @@ protected:
 
     // 활성화 된 프로필 복원
     void ClearActiveProfile();
+
+    // 직접 PIE 테스트용 개발 프로필 생성 보장
+    void EnsureDevelopmentProfileInitialized();
+
+    // 개발 프로필 ID인지 여부
+    bool IsDevelopmentProfileId(const FGuid& ProfileId) const;
 
     // SaveGame 인스턴스 불러오기 또는 만들기
     UPTBSaveGame* GetOrCreateSaveGame() const;
@@ -185,6 +197,18 @@ private:
     /** 활성화 된 프로필 ID */
     UPROPERTY()
     FGuid ActiveProfileId;
+
+    /** 직접 PIE 테스트용 런타임 전용 프로필 */
+    UPROPERTY(Transient)
+    FPTBProfileData DevelopmentProfile;
+
+    /** 개발 프로필 초기화 여부 */
+    UPROPERTY(Transient)
+    bool bHasDevelopmentProfile = false;
+
+    /** 현재 활성 프로필로 개발 프로필을 사용 중인지 여부 */
+    UPROPERTY(Transient)
+    bool bUseDevelopmentProfileAsActive = false;
 
     /** 최대 슬롯 수 */
     UPROPERTY()

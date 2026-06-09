@@ -6,6 +6,17 @@
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
 
+namespace PTBProfileSubsystemInternal
+{
+    constexpr int32 DevelopmentProfileSlotIndex = 99;
+    const TCHAR* const DevelopmentProfileNickname = TEXT("개발용 프로필");
+
+    FGuid GetDevelopmentProfileId()
+    {
+        return FGuid(0x51B1A96E, 0xC2F34750, 0x9A1D4C2E, 0x7E5B1034);
+    }
+}
+
 void UPTBProfileSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
     Super::Initialize(Collection);
@@ -73,7 +84,7 @@ FGuid UPTBProfileSubsystem::CreateProfile(
     PTB_RECORD(LogPTBProfile, TEXT("CreateProfile success"));
 
     // 활성 프로필이 없으면 방금 만든 프로필을 자동으로 활성화
-    if (!ActiveProfileId.IsValid())
+    if (!ActiveProfileId.IsValid() && !bUseDevelopmentProfileAsActive)
     {
         ActiveProfileId = NewId;
         PTB_RECORD(LogPTBProfile, TEXT("CreateProfile - auto-activated new profile"));
@@ -87,6 +98,12 @@ FGuid UPTBProfileSubsystem::CreateProfile(
 
 FPTBProfileData UPTBProfileSubsystem::GetProfile(const FGuid& ProfileId, bool& bOutFound) const
 {
+    if (IsDevelopmentProfileId(ProfileId) && bHasDevelopmentProfile)
+    {
+        bOutFound = true;
+        return DevelopmentProfile;
+    }
+
     for (const FPTBProfileData& Profile : AllProfiles)
     {
         if (Profile.ProfileId == ProfileId)
@@ -147,6 +164,12 @@ FPTBProfileData UPTBProfileSubsystem::GetProfileBySlot(int32 SlotIndex, bool& bO
 
 bool UPTBProfileSubsystem::DeleteProfile(const FGuid& ProfileId)
 {
+    if (IsDevelopmentProfileId(ProfileId))
+    {
+        PTB_WARNING(LogPTBProfile, TEXT("DeleteProfile failed: development profile cannot be deleted."));
+        return false;
+    }
+
     // 삭제 전: 대상 프로필이 실제로 어떤 슬롯/닉네임인지 먼저 확인
     bool bPreCheck = false;
     const FPTBProfileData TargetProfile = GetProfile(ProfileId, bPreCheck);
@@ -212,6 +235,12 @@ bool UPTBProfileSubsystem::DeleteProfileBySlot(int32 SlotIndex)
 
 bool UPTBProfileSubsystem::SetActiveProfile(const FGuid& ProfileId)
 {
+    if (IsDevelopmentProfileId(ProfileId))
+    {
+        PTB_WARNING(LogPTBProfile, TEXT("SetActiveProfile failed: use ActivateDevelopmentProfileForPIE for development profile."));
+        return false;
+    }
+
     bool bFound = false;
     const FPTBProfileData Profile = GetProfile(ProfileId, bFound);
 
@@ -223,6 +252,7 @@ bool UPTBProfileSubsystem::SetActiveProfile(const FGuid& ProfileId)
     }
 
     ActiveProfileId = ProfileId;
+    bUseDevelopmentProfileAsActive = false;
 
     // 다음 세션에서 복원하기 위해 SaveGame에 기록
     if (UPTBGameInstance* GI = Cast<UPTBGameInstance>(GetGameInstance()))
@@ -251,6 +281,12 @@ bool UPTBProfileSubsystem::SetActiveProfile(const FGuid& ProfileId)
 
 FPTBProfileData UPTBProfileSubsystem::GetActiveProfile(bool& bOutHasActive) const
 {
+    if (bUseDevelopmentProfileAsActive && bHasDevelopmentProfile)
+    {
+        bOutHasActive = true;
+        return DevelopmentProfile;
+    }
+
     if (!ActiveProfileId.IsValid())
     {
         bOutHasActive = false;
@@ -262,7 +298,22 @@ FPTBProfileData UPTBProfileSubsystem::GetActiveProfile(bool& bOutHasActive) cons
 
 bool UPTBProfileSubsystem::HasActiveProfile() const
 {
-    return ActiveProfileId.IsValid();
+    return (bUseDevelopmentProfileAsActive && bHasDevelopmentProfile) || ActiveProfileId.IsValid();
+}
+
+bool UPTBProfileSubsystem::ActivateDevelopmentProfileForPIE()
+{
+    EnsureDevelopmentProfileInitialized();
+    bUseDevelopmentProfileAsActive = true;
+    DevelopmentProfile.LastPlayedAt = FDateTime::Now();
+    OnActiveProfileChanged.Broadcast(DevelopmentProfile);
+    PTB_RECORD(LogPTBProfile, TEXT("ActivateDevelopmentProfileForPIE: activated development profile for direct PIE : %s"), *DevelopmentProfile.Nickname);
+    return true;
+}
+
+bool UPTBProfileSubsystem::IsUsingDevelopmentProfile() const
+{
+    return bUseDevelopmentProfileAsActive && bHasDevelopmentProfile;
 }
 
 EPTBNicknameValidationResult UPTBProfileSubsystem::ValidateNickname(const FString& Nickname) const
@@ -457,6 +508,7 @@ int32 UPTBProfileSubsystem::GetTotalEarnedMoney() const
 void UPTBProfileSubsystem::RequestSave()
 {
     PTB_RECORD(LogPTBProfile, TEXT("RequestSave profiles=%d"), AllProfiles.Num());
+    const FGuid PersistedActiveProfileId = ActiveProfileId;
 
     // GameInstance의 CurrentSaveGame에 프로필 반영 후 GameInstance를 통해 저장
     if (UPTBGameInstance* GI = Cast<UPTBGameInstance>(GetGameInstance()))
@@ -464,10 +516,10 @@ void UPTBProfileSubsystem::RequestSave()
         if (GI->CurrentSaveGame)
         {
             GI->CurrentSaveGame->Profiles = AllProfiles;
-            GI->CurrentSaveGame->LastActiveProfileId = ActiveProfileId;  // 항상 동기화
+            GI->CurrentSaveGame->LastActiveProfileId = PersistedActiveProfileId;  // 개발 프로필은 저장하지 않음
             GI->SaveGame();
             PTB_RECORD(LogPTBProfile, TEXT("RequestSave - LastActiveProfileId saved: %s"),
-                *ActiveProfileId.ToString());
+                *PersistedActiveProfileId.ToString());
             return;
         }
     }
@@ -480,7 +532,7 @@ void UPTBProfileSubsystem::RequestSave()
         return;
     }
     SaveGame->Profiles = AllProfiles;
-    SaveGame->LastActiveProfileId = ActiveProfileId;  // 항상 동기화
+    SaveGame->LastActiveProfileId = PersistedActiveProfileId;  // 개발 프로필은 저장하지 않음
     const bool bSuccess = UGameplayStatics::SaveGameToSlot(SaveGame, TEXT("PTBSave"), 0);
     PTB_RECORD(LogPTBProfile, TEXT("RequestSave %s"), bSuccess ? TEXT("Success") : TEXT("FAIL"));
 }
@@ -505,17 +557,24 @@ void UPTBProfileSubsystem::LoadProfilesFromSave()
     // 이전 세션의 활성 프로필 복원
     if (SaveGame->LastActiveProfileId.IsValid())
     {
-        bool bFound = false;
-        GetProfile(SaveGame->LastActiveProfileId, bFound);
-        if (bFound)
+        if (IsDevelopmentProfileId(SaveGame->LastActiveProfileId))
         {
-            ActiveProfileId = SaveGame->LastActiveProfileId;
-            PTB_RECORD(LogPTBProfile, TEXT("LoadProfilesFromSave - restored active profile: %s"),
-                *ActiveProfileId.ToString());
+            PTB_WARNING(LogPTBProfile, TEXT("LoadProfilesFromSave - development profile id was found in save and ignored."));
         }
         else
         {
-            PTB_WARNING(LogPTBProfile, TEXT("LoadProfilesFromSave - LastActiveProfileId found in save but not in AllProfiles"));
+            bool bFound = false;
+            GetProfile(SaveGame->LastActiveProfileId, bFound);
+            if (bFound)
+            {
+                ActiveProfileId = SaveGame->LastActiveProfileId;
+                PTB_RECORD(LogPTBProfile, TEXT("LoadProfilesFromSave - restored active profile: %s"),
+                    *ActiveProfileId.ToString());
+            }
+            else
+            {
+                PTB_WARNING(LogPTBProfile, TEXT("LoadProfilesFromSave - LastActiveProfileId found in save but not in AllProfiles"));
+            }
         }
     }
 
@@ -525,6 +584,28 @@ void UPTBProfileSubsystem::LoadProfilesFromSave()
 void UPTBProfileSubsystem::ClearActiveProfile()
 {
     ActiveProfileId = FGuid();
+    bUseDevelopmentProfileAsActive = false;
+}
+
+void UPTBProfileSubsystem::EnsureDevelopmentProfileInitialized()
+{
+    if (bHasDevelopmentProfile)
+    {
+        return;
+    }
+
+    DevelopmentProfile = FPTBProfileData();
+    DevelopmentProfile.ProfileId = PTBProfileSubsystemInternal::GetDevelopmentProfileId();
+    DevelopmentProfile.Nickname = PTBProfileSubsystemInternal::DevelopmentProfileNickname;
+    DevelopmentProfile.SlotIndex = PTBProfileSubsystemInternal::DevelopmentProfileSlotIndex;
+    DevelopmentProfile.CreatedAt = FDateTime::Now();
+    DevelopmentProfile.LastPlayedAt = DevelopmentProfile.CreatedAt;
+    bHasDevelopmentProfile = true;
+}
+
+bool UPTBProfileSubsystem::IsDevelopmentProfileId(const FGuid& ProfileId) const
+{
+    return ProfileId.IsValid() && ProfileId == PTBProfileSubsystemInternal::GetDevelopmentProfileId();
 }
 
 UPTBSaveGame* UPTBProfileSubsystem::GetOrCreateSaveGame() const
@@ -562,11 +643,21 @@ FString UPTBProfileSubsystem::NormalizeNickname(const FString& InNickname) const
 
 FPTBProfileData* UPTBProfileSubsystem::FindActiveProfileMutable()
 {
+    if (bUseDevelopmentProfileAsActive && bHasDevelopmentProfile)
+    {
+        return &DevelopmentProfile;
+    }
+
     return FindProfileMutable(ActiveProfileId);
 }
 
 const FPTBProfileData* UPTBProfileSubsystem::FindActiveProfileConst() const
 {
+    if (bUseDevelopmentProfileAsActive && bHasDevelopmentProfile)
+    {
+        return &DevelopmentProfile;
+    }
+
     return FindProfileConst(ActiveProfileId);
 }
 
@@ -577,6 +668,11 @@ FPTBProfileData* UPTBProfileSubsystem::FindProfileMutable(const FGuid& ProfileId
 
 const FPTBProfileData* UPTBProfileSubsystem::FindProfileConst(const FGuid& ProfileId) const
 {
+    if (IsDevelopmentProfileId(ProfileId) && bHasDevelopmentProfile)
+    {
+        return &DevelopmentProfile;
+    }
+
     if (!ProfileId.IsValid())
     {
         return nullptr;
