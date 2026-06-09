@@ -10,9 +10,19 @@ void UPTBProfileSelectWidget::NativeConstruct()
 
 	APlayerController* PC = GetOwningPlayer();
 	if (!PC) return;
-
+	
 	FInputModeUIOnly InputMode;
-	InputMode.SetWidgetToFocus(TakeWidget());
 	PC->SetInputMode(InputMode);
 	PC->SetShowMouseCursor(true);
+}
+
+void UPTBProfileSelectWidget::NativeDestruct()
+{
+	Super::NativeDestruct();
+	
+	APlayerController* PC = GetOwningPlayer();
+	if (PC)
+	{
+		PC->SetInputMode(FInputModeGameAndUI());
+	}
 }

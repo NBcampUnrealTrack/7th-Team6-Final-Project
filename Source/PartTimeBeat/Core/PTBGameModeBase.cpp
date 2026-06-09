@@ -12,6 +12,11 @@
 void APTBGameModeBase::BeginPlay()
 {
 	Super::BeginPlay();
+	
+	if (UGameViewportClient* VC = GetWorld()->GetGameViewport())
+	{
+		VC->SetIgnoreInput(false);
+	}
 
 	UGameInstance* GameInstance = GetGameInstance();
 	if (!GameInstance)
