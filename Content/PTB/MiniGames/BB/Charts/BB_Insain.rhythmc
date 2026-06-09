@@ -1,8 +1,8 @@
 {
   "chartVersion": 1,
-  "chartId": "PTB_BB_Insain_260609",
+  "chartId": "PTB_BB_Insane_260609",
   "miniGameId": "BB",
-  "difficulty": "Insain",
+  "difficulty": "Insane",
   "bpm": 120,
   "offsetMs": 0,
   "timeSignature": { "numerator": 4, "denominator": 4 },

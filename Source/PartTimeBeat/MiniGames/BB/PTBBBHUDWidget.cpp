@@ -17,6 +17,17 @@ void UPTBBBHUDWidget::BindToMiniGame(APTBBBMiniGame* InMiniGame)
 		return;
 	}
 
+	// 이미 다른 미니게임에 바인딩되어 있다면 먼저 해제
+	if (IsValid(BBMiniGame) && BBMiniGame != InMiniGame)
+	{
+		BBMiniGame->OnBBNoteCue.RemoveDynamic(this, &UPTBBBHUDWidget::HandleBBNoteCue);
+		BBMiniGame->OnBBParrySuccess.RemoveDynamic(this, &UPTBBBHUDWidget::HandleBBParrySuccess);
+		BBMiniGame->OnBBParryFail.RemoveDynamic(this, &UPTBBBHUDWidget::HandleBBParryFail);
+		BBMiniGame->OnBBBossHPChanged.RemoveDynamic(this, &UPTBBBHUDWidget::HandleBBBossHPChanged);
+		BBMiniGame->OnBBPlayerHPChanged.RemoveDynamic(this, &UPTBBBHUDWidget::HandleBBPlayerHPChanged);
+		BBMiniGame->OnBBBossDefeated.RemoveDynamic(this, &UPTBBBHUDWidget::HandleBBBossDefeated);
+	}
+
 	BBMiniGame = InMiniGame;
 
 	InMiniGame->OnBBNoteCue.AddUniqueDynamic(this, &UPTBBBHUDWidget::HandleBBNoteCue);
@@ -124,6 +135,12 @@ UPTBBBCueWidgetBase* UPTBBBHUDWidget::SpawnAndPlaceCue(
 	if (!CueClass || !CueLayer) return nullptr;
 
 	APlayerController* PC = GetOwningPlayer();
+	if (!PC)
+	{
+		PTB_WARNING(LogPTBMiniGames, TEXT("[BBHUDWidget] SpawnAndPlaceCue: OwningPlayer is null"));
+		return nullptr;
+	}
+
 	UPTBBBCueWidgetBase* Cue = CreateWidget<UPTBBBCueWidgetBase>(PC, CueClass);
 	if (!Cue) return nullptr;
 

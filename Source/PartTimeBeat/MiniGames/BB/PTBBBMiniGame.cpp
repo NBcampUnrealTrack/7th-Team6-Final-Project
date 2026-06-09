@@ -9,12 +9,12 @@
 
 float APTBBBMiniGame::GetBossHPPercent() const
 {
-	return (BossMaxHP > 0.f) ? (BossCurrentHP / BossMaxHP * 100.f) : 0.f;
+	return (BossMaxHP > 0.f) ? (BossCurrentHP / BossMaxHP) : 0.f;
 }
 
 float APTBBBMiniGame::GetPlayerHPPercent() const
 {
-	return (PlayerMaxHP > 0.f) ? (PlayerCurrentHP / PlayerMaxHP * 100.f) : 0.f;
+	return (PlayerMaxHP > 0.f) ? (PlayerCurrentHP / PlayerMaxHP) : 0.f;
 }
 
 // ── 입력 편의 함수 ───────────────────────────────────────────────

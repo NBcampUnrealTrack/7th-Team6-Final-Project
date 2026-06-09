@@ -16,7 +16,7 @@ class PARTTIMEBEAT_API UPTBProfileSelectWidget : public UPTBDialogHostWidget
 
 protected:
 	virtual void NativeConstruct() override;
-	/** 소멸 시 bIgnoreInput 초기화 — 레벨 이동 후 입력 차단 방지 */
+	/** 소멸 시 입력 모드 복원 — 레벨 이동 후 UI 전용 입력 모드가 남는 문제 방지 */
 	virtual void NativeDestruct() override;
 };
 
