@@ -14,12 +14,12 @@ struct FPTBBBDifficultyConfig
 	GENERATED_BODY()
 
 	/** 패링 성공(HighPerfect/Perfect/Good) 시 보스에게 주는 데미지 */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "BB|Damage",
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|BB|Damage",
 		meta = (ClampMin = "0.0"))
 	float DamagePerParry = 10.f;
 
 	/** Miss 판정 시 플레이어가 받는 데미지 */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "BB|Damage",
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|BB|Damage",
 		meta = (ClampMin = "0.0"))
 	float DamageTakenOnMiss = 15.f;
 
@@ -28,15 +28,14 @@ struct FPTBBBDifficultyConfig
 	 * 예) 0.667 → 전체 노트의 2/3를 성공하면 보스 HP가 정확히 0이 된다.
 	 * 범위: 0.01 ~ 1.0
 	 */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "BB|Damage",
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|BB|Damage",
 		meta = (ClampMin = "0.01", ClampMax = "1.0"))
 	float ClearRatio = 0.667f;
 
 	/** 이 난이도의 목표 점수 */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "BB|Score",
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|BB|Score",
 		meta = (ClampMin = "0"))
 	int32 TargetScore = 50000;
-};
 
 /**
  * BB(보스 잡기) 미니게임 RuleSet.
