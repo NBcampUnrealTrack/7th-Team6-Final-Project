@@ -1,7 +1,7 @@
 {
   "chartVersion": 1,
-  "chartId": "PTB_JJ_Easy_260527",
-  "miniGameId": "",
+  "chartId": "PTB_CH_Standard",
+  "miniGameId": "CH",
   "songId": "",
   "difficulty": "Standard",
   "bpm": 140,
