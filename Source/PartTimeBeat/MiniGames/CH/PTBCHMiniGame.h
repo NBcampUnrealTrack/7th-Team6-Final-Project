@@ -2,9 +2,12 @@
 
 #include "CoreMinimal.h"
 #include "MiniGames/Common/PTBBaseMiniGame.h"
+#include "MiniGames/CH/PTBCHTypes.h"
 #include "PTBCHMiniGame.generated.h"
 
 class UPTBCHMiniGameRuleSet;
+class UWrapperWidget;
+class UPTBCHHUDWidget;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FPTBCHNoteEvent, FPTBNoteEvent, Note);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FPTBCHJudgementEvent, FPTBJudgementResult, Result, FPTBNoteEvent, Note);
@@ -61,6 +64,9 @@ public:
     /** 점수 / HUD / SFX 반영 */
     virtual void HandleJudgementResult(FPTBJudgementResult Result) override;
 
+    /** 시작 준비 완료 처리 */
+    virtual void HandleReadyToStart() override;
+
     /** CH Action 입력 처리 */
     UFUNCTION(BlueprintCallable, Category = "PTB|CH")
     void HandleCHInput(EPTBActionType Action, float TimeMs = -1.0f);
@@ -108,6 +114,10 @@ public:
     /** ActionE 입력 해제 처리 */
     UFUNCTION(BlueprintCallable, Category = "PTB|CH")
     void HandleActionEReleased(float TimeMs = -1.0f);
+
+    /** HUD 위젯 클래스 (에디터에서 설정) */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|CH")
+    TSubclassOf<UUserWidget> HUDWidgetClass;
 
 protected:
     /** Hold 시작 입력 판정 */
@@ -162,4 +172,27 @@ protected:
     /** 정시점 도달 노트 */
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PTB|CH")
     TArray<FPTBNoteEvent> ReachedNotes;
+
+    /** 현재 커서 위치 (0~8) */
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PTB|CH")
+    int32 CurrentCursorIndex = 0;
+
+    /** 현재 손님 인덱스 */
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PTB|CH")
+    int32 CurrentCustomerIndex = 0;
+
+    /** 현재 손님 주문 목록 */
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PTB|CH")
+    TArray<FPTBCHCustomerOrder> CustomerOrders;
+
+    /** 현재까지 선택한 재료 */
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PTB|CH")
+    TArray<EPTBCHIngredientType> PlacedIngredients;
+
+    /** 생성된 HUD 위젯 인스턴스 */
+    UPROPERTY(BlueprintReadOnly, Category = "PTB|CH")
+    TObjectPtr<UUserWidget> HUDWidget;
+
+    /** HUD 생성 및 화면에 추가 */
+    void CreateAndAddHUD();
 };

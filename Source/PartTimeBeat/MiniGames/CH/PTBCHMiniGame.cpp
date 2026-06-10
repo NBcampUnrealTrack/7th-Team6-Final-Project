@@ -5,6 +5,7 @@
 #include "Rhythm/PTBJudgementSystem.h"
 #include "Rhythm/PTBRhythmChartAsset.h"
 #include "Rhythm/PTBScoreCalculator.h"
+#include "Blueprint/UserWidget.h"
 
 void APTBCHMiniGame::BuildRuntimeState()
 {
@@ -18,6 +19,42 @@ void APTBCHMiniGame::BuildRuntimeState()
     CuedNotes.Reset();
     ArmedNotes.Reset();
     ReachedNotes.Reset();
+    // CH 전용 초기화
+    CurrentCursorIndex = 0;
+    CurrentCustomerIndex = 0;
+    PlacedIngredients.Reset();
+    CustomerOrders.Reset();
+
+    // 손님 8명 랜덤 주문 생성
+    const int32 CustomerCount = 8;
+    for (int32 i = 0; i < CustomerCount; ++i)
+    {
+        FPTBCHCustomerOrder Order;
+        Order.Ingredients.Add(EPTBCHIngredientType::Bread);
+
+        const int32 FillingCount = FMath::RandRange(1, 4);
+        TArray<EPTBCHIngredientType> Fillings = {
+            EPTBCHIngredientType::Sauce,
+            EPTBCHIngredientType::Tomato,
+            EPTBCHIngredientType::Lettuce,
+            EPTBCHIngredientType::Patty,
+            EPTBCHIngredientType::Egg,
+            EPTBCHIngredientType::Bacon,
+            EPTBCHIngredientType::Cheese
+        };
+
+        for (int32 j = 0; j < FillingCount; ++j)
+        {
+            const int32 RandIdx = FMath::RandRange(0, Fillings.Num() - 1);
+            Order.Ingredients.Add(Fillings[RandIdx]);
+            Fillings.RemoveAt(RandIdx);
+        }
+
+        Order.Ingredients.Add(EPTBCHIngredientType::Bread);
+        CustomerOrders.Add(Order);
+    }
+
+    CreateAndAddHUD();
 
     UE_LOG(LogPTBMiniGames, Log, TEXT("[%s] CH BuildRuntimeState RuleSet=%s Chart=%s"),
         *GetNameSafe(this),
@@ -278,4 +315,47 @@ void APTBCHMiniGame::LogJudgementDebug(const FPTBJudgementResult& Result) const
         Result.DeltaMs,
         Result.ScoreDelta,
         JudgementCount);
+}
+
+void APTBCHMiniGame::HandleReadyToStart()
+{
+    UE_LOG(LogPTBMiniGames, Log, TEXT("[%s] CH HandleReadyToStart called. HUDWidget=%s"), *GetNameSafe(this), *GetNameSafe(HUDWidget.Get()));
+
+    Super::HandleReadyToStart();
+
+    if (HUDWidget)
+    {
+        if (UFunction* InitFunc = HUDWidget->FindFunction(TEXT("Init")))
+        {
+            UE_LOG(LogPTBMiniGames, Log, TEXT("[%s] CH Init function found. Calling..."), *GetNameSafe(this));
+            struct { APTBCHMiniGame* InMiniGame; } Params{ this };
+            HUDWidget->ProcessEvent(InitFunc, &Params);
+        }
+        else
+        {
+            UE_LOG(LogPTBMiniGames, Warning, TEXT("[%s] CH Init function NOT found!"), *GetNameSafe(this));
+        }
+    }
+}
+
+void APTBCHMiniGame::CreateAndAddHUD()
+{
+    if (!HUDWidgetClass)
+    {
+        UE_LOG(LogPTBMiniGames, Warning, TEXT("[%s] CH HUDWidgetClass is not set!"), *GetNameSafe(this));
+        return;
+    }
+
+    APlayerController* PC = GetWorld()->GetFirstPlayerController();
+    if (!PC)
+    {
+        return;
+    }
+
+    HUDWidget = CreateWidget<UUserWidget>(PC, HUDWidgetClass);
+    if (HUDWidget)
+    {
+        HUDWidget->AddToViewport();
+        UE_LOG(LogPTBMiniGames, Log, TEXT("[%s] CH HUD created and added to viewport."), *GetNameSafe(this));
+    }
 }
