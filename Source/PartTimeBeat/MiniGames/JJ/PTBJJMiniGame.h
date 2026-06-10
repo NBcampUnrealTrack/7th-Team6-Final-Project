@@ -39,6 +39,7 @@ public:
 
 	virtual void BeginPlay() override;
 
+	virtual void InitializeMiniGame(const FPTBMiniGameContext& Context) override;
 	/** 오브젝트 / 상태 구성 */
 	virtual void BuildRuntimeState() override;
 

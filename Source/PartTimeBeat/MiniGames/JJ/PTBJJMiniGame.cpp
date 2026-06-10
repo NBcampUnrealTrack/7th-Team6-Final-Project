@@ -5,6 +5,7 @@
 #include "MiniGames/JJ/PTBJJMiniGameRuleSet.h"
 #include "Rhythm/PTBRhythmChartAsset.h"
 #include "Rhythm/PTBScoreCalculator.h"
+#include "Debug/PTBTeamLog.h"
 
 void APTBJJMiniGame::BuildRuntimeState()
 {
@@ -94,6 +95,11 @@ void APTBJJMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 		FPTBNoteEvent EmptyInputNote;
 		OnJJLanding.Broadcast(CharacterIndex, Result, EmptyInputNote);
 	}
+}
+
+void APTBJJMiniGame::InitializeMiniGame(const FPTBMiniGameContext& Context)
+{
+	Super::InitializeMiniGame(Context);
 }
 
 void APTBJJMiniGame::BeginPlay()
