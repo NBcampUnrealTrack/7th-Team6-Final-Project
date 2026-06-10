@@ -4,6 +4,8 @@
 #include "MiniGames/Common/PTBBaseMiniGame.h"
 #include "PTBLCMiniGame.generated.h"
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FPTBLCJudgementEvent, FPTBJudgementResult, Result, FPTBNoteEvent, Note);
+
 UCLASS()
 class PARTTIMEBEAT_API APTBLCMiniGame : public APTBBaseMiniGame
 {
@@ -26,8 +28,15 @@ public:
 
 	/** 점수 / HUD / SFX 반영 */
 	virtual void HandleJudgementResult(FPTBJudgementResult Result) override;
+	
+	/** 판정 이벤트 */
+	UPROPERTY(BlueprintAssignable, Category = "PTB|LC|Events")
+	FPTBLCJudgementEvent OnJudgement;
 
 protected:
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|LC|CollisionBox")
+	TObjectPtr<UBoxComponent> CollisionBox;
 
 public:
 };

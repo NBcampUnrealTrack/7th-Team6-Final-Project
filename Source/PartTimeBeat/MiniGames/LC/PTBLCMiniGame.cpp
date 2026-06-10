@@ -2,12 +2,16 @@
 
 #include "PTBLCMiniGame.h"
 
+#include "Components/BoxComponent.h"
+#include "PTBLCLogisticBox.h"
+
 
 // Sets default values
 APTBLCMiniGame::APTBLCMiniGame()
 {
-	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bCanEverTick = false;
+	CollisionBox = CreateDefaultSubobject<UBoxComponent>(TEXT("CollisionBox"));
+	CollisionBox->SetupAttachment(RootComponent);
 }
 
 void APTBLCMiniGame::BuildRuntimeState()
@@ -33,4 +37,40 @@ void APTBLCMiniGame::HandleNoteCue(FPTBNoteEvent Note)
 void APTBLCMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 {
 	Super::HandleJudgementResult(Result);
+	
+	
+	if (Result.Reason == EPTBJudgementReason::EmptyInput)
+	{
+		FPTBNoteEvent EmptyInputNote;
+		OnJudgement.Broadcast(Result, EmptyInputNote);
+		return;
+	}
+	
+	if (Result.Reason == EPTBJudgementReason::Note)
+	{
+		if (CollisionBox)
+		{
+			TArray<AActor*> OverlappingActors;
+			CollisionBox->GetOverlappingActors(OverlappingActors);
+			if (OverlappingActors.Num() == 0)
+			{
+				return;
+			}
+			for (AActor* OverlappingActor : OverlappingActors)
+			{
+				if (OverlappingActor && OverlappingActor->IsA<APTBLCLogisticBox>())
+				{
+					if (Result.JudgementType == EPTBJudgementType::Good || Result.JudgementType == EPTBJudgementType::Perfect || Result.JudgementType == EPTBJudgementType::HighPerfect)
+					{
+						APTBLCLogisticBox* LogisticBox = Cast<APTBLCLogisticBox>(OverlappingActor);
+						if (LogisticBox)
+						{
+							LogisticBox->ChangeMeshToBox();
+							LogisticBox->SetBoxMaterlalInstanceByActionType(Result.ActionType);
+						}
+					}
+				}
+			}
+		}
+	}
 }
