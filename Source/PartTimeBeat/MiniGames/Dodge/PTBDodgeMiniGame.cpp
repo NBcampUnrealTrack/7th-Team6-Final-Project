@@ -44,7 +44,7 @@ void APTBDodgeMiniGame::HandleNoteCue(FPTBNoteEvent Note)
     Super::HandleNoteCue(Note);
 
     // Blueprint 에 장애물 스폰 신호 전달
-    OnObstacleSpawn(ObstacleFallSpeed, Note.BeatTime);
+    OnObstacleSpawn(ObstacleFallSpeed, Note.BeatTime, Note.Lane);
 }
 
 void APTBDodgeMiniGame::HandleNoteArm(FPTBNoteEvent Note)
@@ -58,17 +58,13 @@ void APTBDodgeMiniGame::HandleNoteArm(FPTBNoteEvent Note)
 
 void APTBDodgeMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 {
-    // 반드시 Super 호출 (ScoreCalculator + SFX 처리)
     Super::HandleJudgementResult(Result);
 
     if (Result.JudgementType == EPTBJudgementType::Miss)
     {
-        // 장애물 맞음 → 체력 감소
         Health -= 10;
         HitCount++;
         UE_LOG(LogTemp, Log, TEXT("[DodgeMiniGame] 장애물 맞음! 체력: %d"), Health);
-
-        // 체력 0 → 게임 종료
         if (Health <= 0)
         {
             Health = 0;
@@ -78,17 +74,17 @@ void APTBDodgeMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
     }
     else
     {
-        // 장애물 피함 → 난이도 배율만큼 점수 증가
         DodgeCount++;
-
-        // ScoreCalculator 통해 점수 추가
         if (ScoreCalculator)
         {
             ScoreCalculator->ComboCount += GetScoreMultiplier();
         }
-
         UE_LOG(LogTemp, Log, TEXT("[DodgeMiniGame] 장애물 피함! DodgeCount: %d"), DodgeCount);
     }
+
+    int32 Score = ScoreCalculator ? ScoreCalculator->CurrentScore : 0;
+    OnScoreUpdated(Score);
+    OnJudgementUpdated(Result.JudgementType);
 }
 
 void APTBDodgeMiniGame::OnJumpInput()

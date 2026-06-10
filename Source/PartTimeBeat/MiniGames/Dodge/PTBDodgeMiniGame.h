@@ -74,9 +74,18 @@ public:
 
     // Blueprint 에서 장애물 스폰 연출 구현
     UFUNCTION(BlueprintImplementableEvent, Category = "PTB|Dodge")
-    void OnObstacleSpawn(float FallSpeed, float BeatTime);
+    void OnObstacleSpawn(float FallSpeed, float BeatTime, int32 LaneIndex);
 
     // Blueprint 에서 장애물 판정 진입 연출 구현
     UFUNCTION(BlueprintImplementableEvent, Category = "PTB|Dodge")
     void OnObstacleArmed(float BeatTime);
+
+    // 점수 반영 판정 로직
+    UFUNCTION(BlueprintImplementableEvent, Category = "PTB|Dodge")
+    void OnScoreUpdated(int32 NewScore);
+
+    // 판정 텍스트 표시 이벤트 추가
+    UFUNCTION(BlueprintImplementableEvent, Category = "PTB|Dodge")
+    void OnJudgementUpdated(EPTBJudgementType JudgementType);
+
 };
