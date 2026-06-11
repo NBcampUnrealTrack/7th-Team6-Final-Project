@@ -1,4 +1,4 @@
-#include "MiniGames/Common/PTBBaseMiniGame.h"
+﻿#include "MiniGames/Common/PTBBaseMiniGame.h"
 
 #include "AkComponent.h"
 #include "Audio/PTBWwiseAudioManager.h"
