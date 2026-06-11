@@ -21,8 +21,9 @@ struct FPTBJudgementResult;
  *  - HP 변경(OnBBBossHPChanged/PlayerHPChanged) → ProgressBar 자동 업데이트
  *
  * 에디터에서 설정해야 하는 항목:
- *  - TapCueClass / HoldCueClass : 스폰할 큐 위젯 클래스
- *  - AnchorPositions : ActionType별 캔버스 좌표 (Z→ActionA … B→ActionE)
+ *  - TapCueClass / HoldCueClass    : 스폰할 큐 위젯 클래스
+ *  - AnchorPositions               : ActionType별 캔버스 좌표 (Z→ActionA … B→ActionE)
+ *  - BossSpawnCanvasPosition       : 노트 스폰 시작점 (보스 이미지 중심 좌표)
  *
  * Designer 탭에서 반드시 만들어야 하는 위젯:
  *  - CueLayer (CanvasPanel, BindWidget)
@@ -68,6 +69,15 @@ public:
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|BB|HUD|Cue")
 	TMap<EPTBActionType, FVector2D> AnchorPositions;
+
+	/**
+	 * 노트 스폰 시작 위치 (보스/적의 캔버스 좌표).
+	 * 큐는 이 X 좌표에서 시작해 AnchorPositions의 X 좌표까지 이동한다.
+	 * Y 좌표는 각 ActionType의 AnchorPositions.Y를 그대로 사용한다.
+	 * 에디터에서 보스 이미지 중심에 맞춰 설정한다.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|BB|HUD|Cue")
+	FVector2D BossSpawnCanvasPosition = FVector2D(1200.f, 360.f);
 
 	// ── BindWidget ───────────────────────────────────────────────
 

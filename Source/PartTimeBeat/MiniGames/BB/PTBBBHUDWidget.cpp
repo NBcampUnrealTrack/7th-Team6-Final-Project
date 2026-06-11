@@ -145,12 +145,16 @@ UPTBBBCueWidgetBase* UPTBBBHUDWidget::SpawnAndPlaceCue(
 	if (!Cue) return nullptr;
 
 	// CanvasPanel에 자식으로 추가
+	const FVector2D AnchorPos = GetAnchorCanvasPosition(Note.ActionType);
 	UCanvasPanelSlot* CueSlot = CueLayer->AddChildToCanvas(Cue);
 	if (CueSlot)
 	{
-		const FVector2D Pos = GetAnchorCanvasPosition(Note.ActionType);
-		CueSlot->SetPosition(Pos);
+		CueSlot->SetPosition(AnchorPos);
 	}
+
+	// 보스 X → 앵커 X 방향으로 이동할 초기 Translation 오프셋 전달
+	// Blueprint OnCueStarted에서 SetRenderTranslation + Timeline으로 보간한다
+	Cue->ApproachStartTranslationX = BossSpawnCanvasPosition.X - AnchorPos.X;
 
 	// 큐 초기화 (NoteId, ActionType 설정 + OnCueStarted 발행)
 	// ApproachDurationSec 계산: TG HUD와 동일한 방식
