@@ -207,8 +207,3 @@ void APTBSRMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 	CurrentNoteIndex++;
 	RefreshPreviewUI();
 }
-
-void APTBSRMiniGame::PlayJudgementFeedback(const FPTBJudgementResult& Result)
-{
-	Super::PlayJudgementFeedback(Result);
-}

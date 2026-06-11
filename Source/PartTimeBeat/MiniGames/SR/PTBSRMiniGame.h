@@ -65,7 +65,6 @@ protected:
 	// 엔진 고유 가상 함수 오버라이드
 	virtual void HandleNoteCue(FPTBNoteEvent Note) override;
 	virtual void HandleJudgementResult(FPTBJudgementResult Result) override;
-	virtual void PlayJudgementFeedback(const FPTBJudgementResult& Result) override;
 	virtual void BuildRuntimeState() override;
 	virtual TMap<FKey, EPTBActionType> GetActionMapping() const override;
 	UFUNCTION(BlueprintCallable, Category = "MiniGame")
