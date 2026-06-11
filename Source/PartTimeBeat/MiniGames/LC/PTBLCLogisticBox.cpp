@@ -1,6 +1,7 @@
 #include "PTBLCLogisticBox.h"
 
 #include "AkGeometryComponent.h"
+#include "Debug/PTBTeamLog.h"
 
 APTBLCLogisticBox::APTBLCLogisticBox()
 {
@@ -19,6 +20,25 @@ APTBLCLogisticBox::APTBLCLogisticBox()
 void APTBLCLogisticBox::BeginPlay()
 {
 	Super::BeginPlay();
+
+	if (!BaseMeshComponent)
+	{
+		PTB_WARNING(LogPTBMiniGames, TEXT("[LC] LogisticBox BeginPlay failed: BaseMeshComponent is null."));
+		return;
+	}
+
+	if (!bIsPackaged)
+	{
+		if (TriangleMeshAsset)
+		{
+			BaseMeshComponent->SetStaticMesh(TriangleMeshAsset);
+		}
+		else
+		{
+			PTB_WARNING(LogPTBMiniGames, TEXT("[LC] LogisticBox BeginPlay: TriangleMeshAsset is null on [%s]."),
+			            *GetNameSafe(this));
+		}
+	}
 }
 
 void APTBLCLogisticBox::Tick(float DeltaTime)
@@ -29,9 +49,9 @@ void APTBLCLogisticBox::Tick(float DeltaTime)
 	{
 		float DistanceToMove = MovingSpeed * DeltaTime;
 
-		FVector ForwardVector = GetActorForwardVector();
+		FVector RightVector = GetActorRightVector();
 
-		FVector NewOffset = ForwardVector * DistanceToMove;
+		FVector NewOffset = RightVector * DistanceToMove;
 
 		AddActorWorldOffset(NewOffset);
 	}
@@ -73,21 +93,47 @@ void APTBLCLogisticBox::SetBoxMaterlalInstanceByActionType(EPTBActionType Action
 	{
 		return;
 	}
-	
+
 	switch (ActionType)
 	{
 	case EPTBActionType::ActionA:
 		BaseMeshComponent->SetMaterial(0, RedBoxMaterialInstance);
+		BoxState = EPTBLCLogisticBoxState::UnpackagedRed;
 		break;
 	case EPTBActionType::ActionB:
-		BaseMeshComponent->SetMaterial(0, BlueBoxMaterialInstance);
+		BaseMeshComponent->SetMaterial(0, YellowBoxMaterialInstance);
+		BoxState = EPTBLCLogisticBoxState::UnpackagedBlue;
 		break;
 	case EPTBActionType::ActionC:
-		BaseMeshComponent->SetMaterial(0, YellowBoxMaterialInstance);
+		BaseMeshComponent->SetMaterial(0, BlueBoxMaterialInstance);
+		BoxState = EPTBLCLogisticBoxState::UnpackagedBlue;
 		break;
 	default:
 		break;
 	}
+}
+
+void APTBLCLogisticBox::SetBoxStateByActionType(EPTBActionType ActionType)
+{
+	switch (ActionType)
+	{
+	case EPTBActionType::ActionA:
+		BoxState = EPTBLCLogisticBoxState::RedBox;
+		break;
+	case EPTBActionType::ActionB:
+		BoxState = EPTBLCLogisticBoxState::YellowBox;
+		break;
+	case EPTBActionType::ActionC:
+		BoxState = EPTBLCLogisticBoxState::BlueBox;
+		break;
+	default:
+		break;
+	}
+}
+
+bool APTBLCLogisticBox::GetIsPackaged() const
+{
+	return bIsPackaged;
 }
 
 void APTBLCLogisticBox::StopMovingAndEnablePhysics()
@@ -96,7 +142,7 @@ void APTBLCLogisticBox::StopMovingAndEnablePhysics()
 	{
 		return;
 	}
-	
+
 	bIsMoving = false;
 	BaseMeshComponent->SetSimulatePhysics(true);
 }
@@ -107,6 +153,7 @@ void APTBLCLogisticBox::ChangeMeshToBox()
 	{
 		return;
 	}
-	
+
 	BaseMeshComponent->SetStaticMesh(BoxMeshAsset);
+	bIsPackaged = true;
 }

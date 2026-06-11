@@ -2,6 +2,8 @@
 
 #include "CoreMinimal.h"
 #include "MiniGames/Common/PTBBaseMiniGame.h"
+#include "Components/BoxComponent.h"
+#include "PTBLCLogisticBox.h"
 #include "PTBLCMiniGame.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FPTBLCJudgementEvent, FPTBJudgementResult, Result, FPTBNoteEvent, Note);
@@ -37,6 +39,14 @@ protected:
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|LC|CollisionBox")
 	TObjectPtr<UBoxComponent> CollisionBox;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|LC|Spawn")
+	FVector BoxSpawnLocation;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|LC|Spawn")
+	TSubclassOf<APTBLCLogisticBox> LogisticBoxClass;
 
-public:
+private:
+	
+	
 };

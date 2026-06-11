@@ -46,6 +46,13 @@ public:
 
 	void SetBoxMaterlalInstanceByActionType(EPTBActionType ActionType);
 	
+	void SetBoxStateByActionType(EPTBActionType ActionType);
+	
+	bool GetIsPackaged() const;
+	
+public:
+	
+	UFUNCTION(BlueprintCallable, Category = "PTB|LC|Mesh")
 	void StopMovingAndEnablePhysics();
 	
 	void ChangeMeshToBox();
@@ -79,4 +86,6 @@ private:
 	float MovingSpeed = 300.f;
 	
 	bool bIsMoving = true;
+	
+	bool bIsPackaged = false;
 };
