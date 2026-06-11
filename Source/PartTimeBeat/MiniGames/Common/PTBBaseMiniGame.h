@@ -86,7 +86,6 @@ public:
 	FPTBOnMiniGameStarted OnMiniGameStarted;
 
 	/** 컨텍스트 주입 */
-	UFUNCTION(BlueprintCallable, Category = "PTB|MiniGame")
 	virtual void InitializeMiniGame(const FPTBMiniGameContext& Context);
 
 	/** BGM + Conductor 시작, 입력 허용 */
