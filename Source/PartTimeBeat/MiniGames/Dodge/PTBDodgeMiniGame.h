@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "MiniGames/Common/PTBBaseMiniGame.h"
+#include "Rhythm/PTBJudgementSystem.h"
 #include "PTBDodgeMiniGame.generated.h"
 
 /**
@@ -59,6 +60,10 @@ public:
     // 점프 입력
     UFUNCTION(BlueprintCallable, Category = "PTB|Dodge")
     void OnJumpInput();
+
+    // 판정 b키
+    UFUNCTION(BlueprintCallable, Category = "PTB|Dodge")
+    void OnJumpInputB();
 
     // 난이도별 점수 배율
     UFUNCTION(BlueprintCallable, Category = "PTB|Dodge")

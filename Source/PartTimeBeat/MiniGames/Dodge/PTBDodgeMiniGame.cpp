@@ -91,11 +91,45 @@ void APTBDodgeMiniGame::OnJumpInput()
 {
     if (!CanAcceptInput()) return;
 
+    FPTBNoteEvent TargetNote;
+    bool bHasNote = JudgementSystem && JudgementSystem->FindBestPendingNote(EPTBActionType::ActionA, GetCurrentInputJudgeTimeMs(), TargetNote);
+
     bIsJumping = true;
     HandleRhythmInput(EPTBActionType::ActionA);
+
+    if (!bHasNote)
+    {
+        if (ScoreCalculator)
+        {
+            ScoreCalculator->CurrentScore = FMath::Max(0, ScoreCalculator->CurrentScore - 100);
+        }
+        OnScoreUpdated(ScoreCalculator ? ScoreCalculator->CurrentScore : 0);
+    }
+
     UE_LOG(LogTemp, Log, TEXT("[DodgeMiniGame] 점프 입력"));
 }
 
+void APTBDodgeMiniGame::OnJumpInputB()
+{
+    if (!CanAcceptInput()) return;
+
+    FPTBNoteEvent TargetNote;
+    bool bHasNote = JudgementSystem && JudgementSystem->FindBestPendingNote(EPTBActionType::ActionB, GetCurrentInputJudgeTimeMs(), TargetNote);
+
+    bIsJumping = true;
+    HandleRhythmInput(EPTBActionType::ActionB);
+
+    if (!bHasNote)
+    {
+        if (ScoreCalculator)
+        {
+            ScoreCalculator->CurrentScore = FMath::Max(0, ScoreCalculator->CurrentScore - 100);
+        }
+        OnScoreUpdated(ScoreCalculator ? ScoreCalculator->CurrentScore : 0);
+    }
+
+    UE_LOG(LogTemp, Log, TEXT("[DodgeMiniGame] B 점프 입력"));
+}
 int32 APTBDodgeMiniGame::GetScoreMultiplier() const
 {
     switch (GameContext.SessionRequest.Difficulty)
@@ -106,6 +140,8 @@ int32 APTBDodgeMiniGame::GetScoreMultiplier() const
     default:                       return 1;
     }
 }
+
+
 
 float APTBDodgeMiniGame::CalculateObstacleFallSpeed(float BPM) const
 {

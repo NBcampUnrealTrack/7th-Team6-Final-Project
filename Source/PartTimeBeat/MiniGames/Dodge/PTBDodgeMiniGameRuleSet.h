@@ -20,7 +20,7 @@ public:
     float LookAheadBeatsEasy = 2.0f;
 
     // Standard 난이도 LookAhead Beats
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Dodge")
+    // B|Dodge")
     float LookAheadBeatsStandard = 1.0f;
 
     // Insane 난이도 LookAhead Beats

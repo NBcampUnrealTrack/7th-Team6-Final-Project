@@ -6,4 +6,6 @@ UPTBDodgeMiniGameRuleSet::UPTBDodgeMiniGameRuleSet()
 {
     // 점프 입력만 허용
     SupportedActions.Add(EPTBActionType::ActionA);
+    SupportedActions.Add(EPTBActionType::ActionB);
+
 }
