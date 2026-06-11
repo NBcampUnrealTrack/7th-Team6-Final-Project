@@ -65,6 +65,14 @@ public:
 	/** 일시정지 메뉴 숨기기 */
 	void HidePauseMenu();
 
+	/** 미니게임 실제 시작 델리게이트 수신 */
+	UFUNCTION()
+	void HandleMiniGameStarted();
+
+	/** 미니게임 종료 델리게이트 수신 */
+	UFUNCTION()
+	void HandleMiniGameFinished(FPTBRoundResult Result);
+
 	// 1) 카운트다운 후 게임 시작 시 호출
 	UPROPERTY(BlueprintAssignable, Category = "Game State")
 	FOnGameStarted OnGameStarted;
@@ -100,14 +108,9 @@ public:
 protected:
 	virtual void BeginPlay() override;
 
-	/** 미니게임 실제 시작 델리게이트 수신 */
-	UFUNCTION()
-	void HandleMiniGameStarted();
+	/** Flow 요청 없이 미니게임 맵을 직접 PIE로 연 경우 배치된 미니게임 Actor로 테스트 시작 */
+	bool TryStartDirectPIEMiniGame();
 
-	/** 미니게임 종료 델리게이트 수신 */
-	UFUNCTION()
-	void HandleMiniGameFinished(FPTBRoundResult Result);
-	
 	/** 일시정지 메뉴 위젯 인스턴스 */
 	UPROPERTY()
 	TObjectPtr<UPTBPauseMenuWidget> PauseMenuInstance;

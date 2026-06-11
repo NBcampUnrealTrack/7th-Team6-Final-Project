@@ -1,39 +1,253 @@
 #include "Core/PTBGameModeBase.h"
 #include "Core/PTBGameInstance.h"
+#include "Debug/PTBTeamLog.h"
 #include "Flow/PTBGameFlowSubsystem.h"
 #include "Profile/PTBProfileSubsystem.h"
 #include "MiniGames/Common/PTBBaseMiniGame.h"
+#include "MiniGames/Common/PTBMiniGameRuleSet.h"
 #include "Kismet/GameplayStatics.h"
 #include "GameFramework/PlayerController.h"
+#include "TimerManager.h"
 
 void APTBGameModeBase::BeginPlay()
 {
 	Super::BeginPlay();
+	
+	if (UGameViewportClient* VC = GetWorld()->GetGameViewport())
+	{
+		VC->SetIgnoreInput(false);
+	}
 
-	const UGameInstance* GameInstance = GetGameInstance();
+	UGameInstance* GameInstance = GetGameInstance();
 	if (!GameInstance)
 	{
 		return;
 	}
 
-	const UPTBGameFlowSubsystem* FlowSubsystem = GameInstance->GetSubsystem<UPTBGameFlowSubsystem>();
-	if (!FlowSubsystem)
+	UPTBGameFlowSubsystem* FlowSubsystem = GameInstance->GetSubsystem<UPTBGameFlowSubsystem>();
+	if (FlowSubsystem && FlowSubsystem->CurrentFlowState == EGameFlowState::InGame)
+	{
+		const FPTBGameSessionRequest& PendingRequest = FlowSubsystem->PendingSessionRequest;
+		if (!PendingRequest.MiniGameId.IsNone())
+		{
+			StartGameFlow(PendingRequest);
+			return;
+		}
+	}
+
+	UWorld* World = GetWorld();
+	if (!World || World->WorldType != EWorldType::PIE)
 	{
 		return;
 	}
 
-	if (FlowSubsystem->CurrentFlowState != EGameFlowState::InGame)
+	const FString CurrentLevelName = UGameplayStatics::GetCurrentLevelName(this, true);
+	bool bCanTryDirectPIEMiniGame = false;
+	for (const TPair<FName, TSubclassOf<APTBBaseMiniGame>>& ClassEntry : MiniGameClassMap)
+	{
+		const TSubclassOf<APTBBaseMiniGame> CandidateClass = ClassEntry.Value;
+		const APTBBaseMiniGame* CandidateCDO = CandidateClass
+			? CandidateClass->GetDefaultObject<APTBBaseMiniGame>()
+			: nullptr;
+
+		const bool bLevelMatchesClassKey = CurrentLevelName.Contains(ClassEntry.Key.ToString(), ESearchCase::IgnoreCase);
+		const bool bLevelMatchesRuleSetId = CandidateCDO && CandidateCDO->RuleSet
+			&& CurrentLevelName.Contains(CandidateCDO->RuleSet->MiniGameId.ToString(), ESearchCase::IgnoreCase);
+		const bool bLevelMatchesRuleSetCode = CandidateCDO && CandidateCDO->RuleSet
+			&& CurrentLevelName.Contains(CandidateCDO->RuleSet->MiniGameCode.ToString(), ESearchCase::IgnoreCase);
+		if (bLevelMatchesClassKey || bLevelMatchesRuleSetId || bLevelMatchesRuleSetCode)
+		{
+			bCanTryDirectPIEMiniGame = true;
+			break;
+		}
+	}
+
+	if (!bCanTryDirectPIEMiniGame)
 	{
 		return;
 	}
 
-	const FPTBGameSessionRequest& PendingRequest = FlowSubsystem->PendingSessionRequest;
-	if (PendingRequest.MiniGameId.IsNone())
+	FTimerDelegate DeferredDirectPIEStart;
+	DeferredDirectPIEStart.BindWeakLambda(this, [this]()
 	{
-		return;
+		TryStartDirectPIEMiniGame();
+	});
+	World->GetTimerManager().SetTimerForNextTick(DeferredDirectPIEStart);
+}
+
+bool APTBGameModeBase::TryStartDirectPIEMiniGame()
+{
+	UWorld* World = GetWorld();
+	if (!World || World->WorldType != EWorldType::PIE)
+	{
+		return false;
 	}
 
-	StartGameFlow(PendingRequest);
+	TArray<AActor*> MiniGameActors;
+	UGameplayStatics::GetAllActorsOfClass(this, APTBBaseMiniGame::StaticClass(), MiniGameActors);
+
+	const FString CurrentLevelName = UGameplayStatics::GetCurrentLevelName(this, true);
+	APTBBaseMiniGame* DirectMiniGame = nullptr;
+	bool bSpawnedDirectMiniGame = false;
+	for (AActor* Actor : MiniGameActors)
+	{
+		APTBBaseMiniGame* Candidate = Cast<APTBBaseMiniGame>(Actor);
+		if (Candidate)
+		{
+			PTB_VERBOSE(LogPTBMiniGames, TEXT("Direct PIE MiniGame candidate [%s] Class=%s AutoStart=%d RuleSet=%s"),
+				*GetNameSafe(Candidate),
+				*GetNameSafe(Candidate->GetClass()),
+				Candidate->bAutoStartWhenOpenedDirectlyInPIE ? 1 : 0,
+				*GetNameSafe(Candidate->RuleSet));
+		}
+
+		if (Candidate && Candidate->bAutoStartWhenOpenedDirectlyInPIE)
+		{
+			DirectMiniGame = Candidate;
+			break;
+		}
+	}
+
+	if (!DirectMiniGame)
+	{
+		TSubclassOf<APTBBaseMiniGame> DirectMiniGameClass = nullptr;
+		for (const TPair<FName, TSubclassOf<APTBBaseMiniGame>>& ClassEntry : MiniGameClassMap)
+		{
+			const TSubclassOf<APTBBaseMiniGame> CandidateClass = ClassEntry.Value;
+			const APTBBaseMiniGame* CandidateCDO = CandidateClass
+				? CandidateClass->GetDefaultObject<APTBBaseMiniGame>()
+				: nullptr;
+
+			if (CandidateCDO)
+			{
+				PTB_VERBOSE(LogPTBMiniGames, TEXT("Direct PIE MiniGame class candidate Id=%s Class=%s AutoStart=%d RuleSet=%s"),
+					*ClassEntry.Key.ToString(),
+					*GetNameSafe(CandidateClass),
+					CandidateCDO->bAutoStartWhenOpenedDirectlyInPIE ? 1 : 0,
+					*GetNameSafe(CandidateCDO->RuleSet));
+			}
+
+			if (CandidateCDO && CandidateCDO->bAutoStartWhenOpenedDirectlyInPIE)
+			{
+				const bool bLevelMatchesClassKey = CurrentLevelName.Contains(ClassEntry.Key.ToString(), ESearchCase::IgnoreCase);
+				const bool bLevelMatchesRuleSetId = CandidateCDO->RuleSet
+					&& CurrentLevelName.Contains(CandidateCDO->RuleSet->MiniGameId.ToString(), ESearchCase::IgnoreCase);
+				const bool bLevelMatchesRuleSetCode = CandidateCDO->RuleSet
+					&& CurrentLevelName.Contains(CandidateCDO->RuleSet->MiniGameCode.ToString(), ESearchCase::IgnoreCase);
+				if (!bLevelMatchesClassKey && !bLevelMatchesRuleSetId && !bLevelMatchesRuleSetCode)
+				{
+					PTB_VERBOSE(LogPTBMiniGames, TEXT("Direct PIE MiniGame class skipped: current level [%s] does not match Id=%s Class=%s."),
+						*CurrentLevelName,
+						*ClassEntry.Key.ToString(),
+						*GetNameSafe(CandidateClass));
+					continue;
+				}
+
+				DirectMiniGameClass = CandidateClass;
+				break;
+			}
+		}
+
+		if (DirectMiniGameClass)
+		{
+			DirectMiniGame = SpawnMiniGame(DirectMiniGameClass);
+			bSpawnedDirectMiniGame = DirectMiniGame != nullptr;
+			if (!DirectMiniGame)
+			{
+				PTB_WARNING(LogPTBMiniGames, TEXT("Direct PIE MiniGame start failed: could not spawn [%s]."),
+					*GetNameSafe(DirectMiniGameClass));
+				return false;
+			}
+		}
+		else
+		{
+			PTB_WARNING(LogPTBMiniGames, TEXT("Direct PIE MiniGame start skipped: no placed actor or mapped class has bAutoStartWhenOpenedDirectlyInPIE enabled. PlacedFound=%d ClassMapEntries=%d"),
+				MiniGameActors.Num(),
+				MiniGameClassMap.Num());
+			return false;
+		}
+	}
+
+	if (!DirectMiniGame->RuleSet)
+	{
+		PTB_WARNING(LogPTBMiniGames, TEXT("Direct PIE MiniGame start failed: RuleSet is missing on [%s]."), *GetNameSafe(DirectMiniGame));
+		return false;
+	}
+
+	if (DirectMiniGame->RuleSet->MiniGameId.IsNone())
+	{
+		PTB_WARNING(LogPTBMiniGames, TEXT("Direct PIE MiniGame start failed: RuleSet.MiniGameId is None on [%s]."), *GetNameSafe(DirectMiniGame));
+		return false;
+	}
+
+	CurrentRequest = FPTBGameSessionRequest();
+	CurrentRequest.MiniGameId = DirectMiniGame->RuleSet->MiniGameId;
+	CurrentRequest.MiniGameCode = DirectMiniGame->RuleSet->MiniGameCode.IsNone()
+		? CurrentRequest.MiniGameId
+		: DirectMiniGame->RuleSet->MiniGameCode;
+	CurrentRequest.Difficulty = DirectMiniGame->DirectPIEDifficulty;
+	CurrentRequest.PlayMode = DirectMiniGame->DirectPIEPlayMode;
+	CurrentRequest.RandomSeed = FMath::Rand();
+	CurrentRequest.ExpectedPlayerCount = 1;
+
+	bIsGameActive = false;
+	bIsPaused = false;
+
+	UPTBGameInstance* GI = Cast<UPTBGameInstance>(GetGameInstance());
+	UPTBGameFlowSubsystem* FlowSubsystem = GI ? GI->GetSubsystem<UPTBGameFlowSubsystem>() : nullptr;
+	if (GI)
+	{
+		GI->CurrentPlayMode = CurrentRequest.PlayMode;
+
+		if (UPTBProfileSubsystem* ProfileSubsystem = GI->GetSubsystem<UPTBProfileSubsystem>())
+		{
+			if (ProfileSubsystem->ActivateDevelopmentProfileForPIE())
+			{
+				bool bHasDevelopmentProfile = false;
+				const FPTBProfileData DevelopmentProfile = ProfileSubsystem->GetActiveProfile(bHasDevelopmentProfile);
+				if (bHasDevelopmentProfile)
+				{
+					CurrentRequest.ProfileId = DevelopmentProfile.ProfileId;
+					PTB_RECORD(LogPTBMiniGames, TEXT("Direct PIE MiniGame start: using development profile [%s]."), *CurrentRequest.ProfileId.ToString());
+				}
+			}
+		}
+	}
+
+	if (FlowSubsystem)
+	{
+		FlowSubsystem->ClearRetryTarget();
+		FlowSubsystem->SelectedMiniGameId = CurrentRequest.MiniGameId;
+		FlowSubsystem->SelectedDifficulty = CurrentRequest.Difficulty;
+		FlowSubsystem->PendingSessionRequest = CurrentRequest;
+		FlowSubsystem->SetFlowState(EGameFlowState::InGame);
+	}
+
+	ActiveMiniGame = DirectMiniGame;
+	ActiveMiniGame->OnMiniGameStarted.AddUniqueDynamic(this, &APTBGameModeBase::HandleMiniGameStarted);
+	ActiveMiniGame->OnMiniGameFinished.AddUniqueDynamic(this, &APTBGameModeBase::HandleMiniGameFinished);
+
+	FPTBMiniGameContext Context;
+	Context.SessionRequest = CurrentRequest;
+	if (GI)
+	{
+		Context.UserSettings = GI->CachedSettings;
+	}
+	Context.LocalPlayerIndex = 0;
+
+	ActiveMiniGame->InitializeMiniGame(Context);
+
+	if (FlowSubsystem && !CurrentLevelName.IsEmpty())
+	{
+		FlowSubsystem->CacheRetryTarget(CurrentRequest, FName(*CurrentLevelName));
+	}
+
+	PTB_RECORD(LogPTBMiniGames, TEXT("Direct PIE MiniGame initialized [%s] from %s mini-game [%s]. Waiting for start input."),
+		*CurrentRequest.MiniGameId.ToString(),
+		bSpawnedDirectMiniGame ? TEXT("spawned") : TEXT("placed"),
+		*GetNameSafe(ActiveMiniGame));
+
+	return true;
 }
 
 void APTBGameModeBase::StartGameFlow(const FPTBGameSessionRequest& Request)
@@ -50,14 +264,15 @@ void APTBGameModeBase::StartGameFlow(const FPTBGameSessionRequest& Request)
 	if (FlowSubsystem)
 	{
 		FlowSubsystem->ClearRetryTarget();
+		FlowSubsystem->PendingSessionRequest = CurrentRequest;
 	}
 
 	// 1) 미니게임 클래스 해석
-	TSubclassOf<APTBBaseMiniGame> Cls = ResolveMiniGameClass(Request.MiniGameId);
+	TSubclassOf<APTBBaseMiniGame> Cls = ResolveMiniGameClass(CurrentRequest.MiniGameId);
 	if (!Cls)
 	{
-		UE_LOG(LogTemp, Error, TEXT("StartGameFlow: MiniGame class not found for [%s]"),
-			*Request.MiniGameId.ToString());
+		PTB_ERROR(LogPTBMiniGames, TEXT("StartGameFlow: MiniGame class not found for [%s]"),
+			*CurrentRequest.MiniGameId.ToString());
 		return;
 	}
 
@@ -74,16 +289,16 @@ void APTBGameModeBase::StartGameFlow(const FPTBGameSessionRequest& Request)
 	ActiveMiniGame = SpawnMiniGame(Cls);
 	if (!ActiveMiniGame)
 	{
-		UE_LOG(LogTemp, Error, TEXT("StartGameFlow: SpawnMiniGame failed"));
+		PTB_ERROR(LogPTBMiniGames, TEXT("StartGameFlow: SpawnMiniGame failed"));
 		return;
 	}
 
-	ActiveMiniGame->OnMiniGameStarted.AddDynamic(this, &APTBGameModeBase::HandleMiniGameStarted);
-	ActiveMiniGame->OnMiniGameFinished.AddDynamic(this, &APTBGameModeBase::HandleMiniGameFinished);
+	ActiveMiniGame->OnMiniGameStarted.AddUniqueDynamic(this, &APTBGameModeBase::HandleMiniGameStarted);
+	ActiveMiniGame->OnMiniGameFinished.AddUniqueDynamic(this, &APTBGameModeBase::HandleMiniGameFinished);
 
 	// 4) 미니게임 컨텍스트 구성 & 주입
 	FPTBMiniGameContext Context;
-	Context.SessionRequest = Request;
+	Context.SessionRequest = CurrentRequest;
 	// Context.ChartData  → 채보 로딩 시스템에서 채워야 함 (DataTable / Asset 등)
 	// Context.UserSettings → GameInstance에서 가져오기
 	UPTBGameInstance* GI = Cast<UPTBGameInstance>(GetGameInstance());
@@ -101,7 +316,7 @@ void APTBGameModeBase::StartGameFlow(const FPTBGameSessionRequest& Request)
 		FlowSubsystem->CacheRetryTarget(CurrentRequest, FName(*CurrentLevelName));
 	}
 
-	UE_LOG(LogTemp, Log, TEXT("StartGameFlow: initialized [%s]"),
+	PTB_RECORD(LogPTBMiniGames, TEXT("StartGameFlow: initialized [%s]"),
 		*Request.MiniGameId.ToString());
 }
 
@@ -112,7 +327,7 @@ TSubclassOf<APTBBaseMiniGame> APTBGameModeBase::ResolveMiniGameClass(FName Id) c
 		return *Found;
 	}
 
-	UE_LOG(LogTemp, Warning, TEXT("ResolveMiniGameClass: No mapping for [%s]"), *Id.ToString());
+	PTB_WARNING(LogPTBMiniGames, TEXT("ResolveMiniGameClass: No mapping for [%s]"), *Id.ToString());
 	return nullptr;
 }
 
@@ -133,7 +348,7 @@ APTBBaseMiniGame* APTBGameModeBase::SpawnMiniGame(TSubclassOf<APTBBaseMiniGame> 
 
 	if (Spawned)
 	{
-		UE_LOG(LogTemp, Log, TEXT("SpawnMiniGame: [%s] spawned"), *Cls->GetName());
+		PTB_RECORD(LogPTBMiniGames, TEXT("SpawnMiniGame: [%s] spawned"), *Cls->GetName());
 	}
 
 	return Spawned;
@@ -143,7 +358,7 @@ void APTBGameModeBase::HandleMiniGameStarted()
 {
 	if (!ActiveMiniGame)
 	{
-		UE_LOG(LogTemp, Error, TEXT("HandleMiniGameStarted: No active mini-game"));
+		PTB_ERROR(LogPTBMiniGames, TEXT("HandleMiniGameStarted: No active mini-game"));
 		return;
 	}
 
@@ -160,15 +375,11 @@ void APTBGameModeBase::HandleMiniGameStarted()
 
 	if (APlayerController* PC = GetWorld() ? GetWorld()->GetFirstPlayerController() : nullptr)
 	{
-		FInputModeGameOnly InputMode;
-		PC->SetInputMode(InputMode);
+		PC->SetInputMode(FInputModeGameOnly());
 		PC->SetShowMouseCursor(false);
-		PC->bShowMouseCursor = false;
 	}
 
 	OnGameStarted.Broadcast();
-
-	UE_LOG(LogTemp, Log, TEXT("HandleMiniGameStarted: Game started"));
 }
 
 void APTBGameModeBase::PauseGame()
@@ -183,9 +394,6 @@ void APTBGameModeBase::PauseGame()
 		ActiveMiniGame->PauseMiniGame();
 	}
 
-	// 엔진 레벨 일시정지 (선택사항 — UI 애니메이션은 살려야 할 수 있음)
-	// UGameplayStatics::SetGamePaused(GetWorld(), true);
-
 	// FlowState 갱신
 	UPTBGameInstance* GI = Cast<UPTBGameInstance>(GetGameInstance());
 	if (GI)
@@ -197,8 +405,6 @@ void APTBGameModeBase::PauseGame()
 	OnGamePaused.Broadcast();
 
 	ShowPauseMenu();
-
-	UE_LOG(LogTemp, Log, TEXT("PauseGame"));
 }
 
 void APTBGameModeBase::ResumeGame()
@@ -208,8 +414,6 @@ void APTBGameModeBase::ResumeGame()
 	bIsPaused = false;
 
 	HidePauseMenu();
-
-	// UGameplayStatics::SetGamePaused(GetWorld(), false);
 
 	if (ActiveMiniGame)
 	{
@@ -224,8 +428,6 @@ void APTBGameModeBase::ResumeGame()
 	}
 
 	OnGameResumed.Broadcast();
-
-	UE_LOG(LogTemp, Log, TEXT("ResumeGame"));
 }
 
 void APTBGameModeBase::HandleMiniGameFinished(FPTBRoundResult Result)
@@ -276,6 +478,7 @@ void APTBGameModeBase::SubmitRoundResult(const FPTBRoundResult& Result)
 				// 진행도 반영 (내부에서 RequestSave 자동 호출)
 				FPTBProfileProgressUpdate Update;
 				Update.MiniGameId  = Result.MiniGameId;
+				Update.Difficulty  = Result.Difficulty;
 				Update.Score       = Result.Score;
 				Update.EarnedStars = Result.StarCount;
 				Update.EarnedMoney = Result.EarnedMoney;
@@ -323,7 +526,7 @@ void APTBGameModeBase::SubmitRoundResult(const FPTBRoundResult& Result)
 	OnRoundResultReady.Broadcast(Result, Reward);
 	OnGameEnded.Broadcast(Result);
 
-	UE_LOG(LogTemp, Log, TEXT("SubmitRoundResult: Score=%d Grade=%d Stars=%d"),
+	PTB_RECORD(LogPTBMiniGames, TEXT("SubmitRoundResult: Score=%d Grade=%d Stars=%d"),
 		Result.Score, static_cast<int32>(Result.Grade), Result.StarCount);
 
 	if (!ResultLevelName.IsNone())
@@ -351,8 +554,6 @@ void APTBGameModeBase::RetryGame_Implementation()
 	// 동일 요청으로 재시작
 	StartGameFlow(CurrentRequest);
 
-	UE_LOG(LogTemp, Log, TEXT("RetryGame: Restarting [%s]"),
-		*CurrentRequest.MiniGameId.ToString());
 }
 
 void APTBGameModeBase::ExitToMenu_Implementation()
@@ -389,8 +590,4 @@ void APTBGameModeBase::ExitToMenu_Implementation()
 		GI->OnFlowStateChanged.Broadcast(EGameFlowState::MiniGameSelect);
 	}
 
-	// 레벨 전환 (맵 이름은 프로젝트에 맞게 수정)
-	// UGameplayStatics::OpenLevel(this, FName("MainMenuMap"));
-
-	UE_LOG(LogTemp, Log, TEXT("ExitToMenu"));
 }

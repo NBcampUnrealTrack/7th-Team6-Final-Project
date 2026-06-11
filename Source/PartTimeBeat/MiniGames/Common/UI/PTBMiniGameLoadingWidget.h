@@ -37,6 +37,8 @@ public:
 protected:
 	virtual FReply NativeOnKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent) override;
 
+	FReply RequestStartIfReady();
+
 	/** 소유 미니게임 */
 	UPROPERTY()
 	TObjectPtr<APTBBaseMiniGame> OwnerMiniGame;

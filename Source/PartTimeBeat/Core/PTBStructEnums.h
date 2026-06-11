@@ -1,6 +1,7 @@
 #pragma once
 #include "CoreMinimal.h"
 #include "Engine/DataTable.h"
+#include "InputCoreTypes.h"
 
 #include "PTBStructEnums.generated.h"
 
@@ -50,8 +51,8 @@ enum class EPTBJudgementType : uint8
 {
     HighPerfect      UMETA(DisplayName = "21ms(High Perfect)"),
     Perfect        UMETA(DisplayName = "50ms(Perfect)"),
-    Good       UMETA(DisplayName = "70ms(Good)"),
-    Miss    UMETA(DisplayName = "초과(Miss)")
+    Good       UMETA(DisplayName = "120ms(Good)"),
+    Miss    UMETA(DisplayName = "250ms 초과(Miss)")
 };
 
 UENUM(BlueprintType)
@@ -61,7 +62,7 @@ enum class EPTBJudgementReason : uint8
     ExpiredNote        UMETA(DisplayName = "Expired Note"),
     EmptyInput       UMETA(DisplayName = "Empty Input"),
     EarlyRelease       UMETA(DisplayName = "Early Release")
-};
+};  
 
 UENUM(BlueprintType)
 enum class EPTBEmptyInputPolicy : uint8
@@ -193,9 +194,6 @@ public:
     FName ChartId = NAME_None;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
-    FName SongId = NAME_None;
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
     FName MiniGameId = NAME_None;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
@@ -256,6 +254,57 @@ public:
 };
 
 
+/**
+ * 리듬 게임 입력 키 바인딩.
+ * 기본값: Z / X / C / V / B (ActionA ~ ActionE 순서)
+ * 옵션 메뉴에서 변경 후 FPTBUserSettings와 함께 저장된다.
+ */
+USTRUCT(BlueprintType)
+struct FPTBRhythmKeyBindings
+{
+    GENERATED_BODY()
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|Keys")
+    FKey ActionA = EKeys::Z;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|Keys")
+    FKey ActionB = EKeys::X;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|Keys")
+    FKey ActionC = EKeys::C;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|Keys")
+    FKey ActionD = EKeys::V;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|Keys")
+    FKey ActionE = EKeys::B;
+
+    /** FKey → EPTBActionType 변환. 매핑되지 않은 키는 None 반환. */
+    EPTBActionType ResolveKey(const FKey& Key) const
+    {
+        if (Key == ActionA) return EPTBActionType::ActionA;
+        if (Key == ActionB) return EPTBActionType::ActionB;
+        if (Key == ActionC) return EPTBActionType::ActionC;
+        if (Key == ActionD) return EPTBActionType::ActionD;
+        if (Key == ActionE) return EPTBActionType::ActionE;
+        return EPTBActionType::None;
+    }
+
+    /** EPTBActionType → 현재 바인딩된 FKey 반환 */
+    FKey ResolveAction(EPTBActionType Action) const
+    {
+        switch (Action)
+        {
+        case EPTBActionType::ActionA: return ActionA;
+        case EPTBActionType::ActionB: return ActionB;
+        case EPTBActionType::ActionC: return ActionC;
+        case EPTBActionType::ActionD: return ActionD;
+        case EPTBActionType::ActionE: return ActionE;
+        default:                      return EKeys::Invalid;
+        }
+    }
+};
+
 USTRUCT(BlueprintType)
 struct FPTBUserSettings
 {
@@ -278,6 +327,10 @@ public:
     bool bFullscreen = false;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
     bool bVibrationEnabled = true;
+
+    /** 리듬 게임 키 바인딩 (기본: Z/X/C/V/B) */
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|Keys")
+    FPTBRhythmKeyBindings RhythmKeys;
 };
 
 UENUM(BlueprintType)
@@ -329,8 +382,16 @@ struct PARTTIMEBEAT_API FPTBProfileData
     UPROPERTY(BlueprintReadOnly, SaveGame, Category = "Profile|Progress")
     TSet<FName> CompletedTutorialIds;
 
+    /** 미니게임 전체 최고 점수 (난이도 무관) */
     UPROPERTY(BlueprintReadOnly, SaveGame, Category = "Profile|Progress")
     TMap<FName, int32> BestScoresByMiniGame;
+
+    /**
+     * 난이도별 최고 점수.
+     * 키 형식: "MiniGameId_Difficulty" (예: "TG_Standard")
+     */
+    UPROPERTY(BlueprintReadOnly, SaveGame, Category = "Profile|Progress")
+    TMap<FName, int32> BestScoresByDifficulty;
 
     UPROPERTY(BlueprintReadOnly, SaveGame, Category = "Profile|Progress")
     TMap<FName, int32> EarnedStarsByMiniGame;
@@ -353,14 +414,14 @@ struct PARTTIMEBEAT_API FPTBProfileData
     FDateTime LastPlayedAt;
 
     FPTBProfileData()
-        : ProfileId(FGuid::NewGuid())
-        , Nickname(TEXT(""))
+        : Nickname(TEXT(""))
         , Gender(EPTBGender::Unset)
         , Birthday(FDateTime::Now())
         , TotalEarnedMoney(0)
         , CreatedAt(FDateTime::Now())
         , LastPlayedAt(FDateTime::Now())
     {
+        // ProfileId는 CreateProfile에서 명시적으로 FGuid::NewGuid()로 할당
     }
 
     static FPTBProfileData MakeInvalid()
@@ -386,6 +447,10 @@ struct PARTTIMEBEAT_API FPTBProfileProgressUpdate
     /** 어떤 미니게임의 결과인지 */
     UPROPERTY(BlueprintReadWrite, Category = "Profile|Update")
     FName MiniGameId;
+
+    /** 플레이한 난이도 */
+    UPROPERTY(BlueprintReadWrite, Category = "Profile|Update")
+    EPTBDifficulty Difficulty = EPTBDifficulty::Standard;
 
     /** 이번 라운드 점수. 기존 최고점보다 높으면 갱신. */
     UPROPERTY(BlueprintReadWrite, Category = "Profile|Update")

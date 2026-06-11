@@ -3,14 +3,17 @@
 #include "AkComponent.h"
 #include "Audio/PTBWwiseAudioManager.h"
 #include "Audio/PTBWwiseRhythmSyncComponent.h"
+#include "Core/PTBGameModeBase.h"
 #include "Debug/PTBLogChannels.h"
 #include "MiniGames/Common/PTBMiniGameRuleSet.h"
 #include "MiniGames/Common/UI/PTBMiniGameLoadingWidget.h"
+#include "Components/InputComponent.h"
 #include "Rhythm/PTBJudgementSystem.h"
 #include "Rhythm/PTBRhythmChartAsset.h"
 #include "Rhythm/PTBRhythmConductorComponent.h"
 #include "Rhythm/PTBScoreCalculator.h"
 #include "GameFramework/PlayerController.h"
+#include "InputCoreTypes.h"
 
 namespace PTBBaseMiniGameInternal
 {
@@ -100,6 +103,23 @@ APTBBaseMiniGame::APTBBaseMiniGame()
 void APTBBaseMiniGame::BeginPlay()
 {
 	Super::BeginPlay();
+
+	// GameMode에 자신을 등록하고 결과 델리게이트를 바인딩.
+	// StartGameFlow 경유 스폰과 레벨 직접 배치 두 경우를 모두 처리.
+	if (APTBGameModeBase* GM = GetWorld()->GetAuthGameMode<APTBGameModeBase>())
+	{
+		if (!GM->ActiveMiniGame)
+		{
+			GM->ActiveMiniGame = this;
+			OnMiniGameStarted.AddUniqueDynamic(GM, &APTBGameModeBase::HandleMiniGameStarted);
+			OnMiniGameFinished.AddUniqueDynamic(GM, &APTBGameModeBase::HandleMiniGameFinished);
+		}
+		else if (GM->ActiveMiniGame == this)
+		{
+			OnMiniGameStarted.AddUniqueDynamic(GM, &APTBGameModeBase::HandleMiniGameStarted);
+			OnMiniGameFinished.AddUniqueDynamic(GM, &APTBGameModeBase::HandleMiniGameFinished);
+		}
+	}
 
 	if (!AudioManager)
 	{
@@ -264,6 +284,14 @@ void APTBBaseMiniGame::InitializeMiniGame(const FPTBMiniGameContext& Context)
 		JudgementSystem->Initialize(GameContext.ChartData, 0.0f);
 	}
 
+	if (JudgementSystem && RuleSet && RuleSet->bUseJudgementWindowOverride)
+	{
+		JudgementSystem->HitWindowHighPerfectMs = RuleSet->HitWindowHighPerfectMsOverride;
+		JudgementSystem->HitWindowPerfectMs = RuleSet->HitWindowPerfectMsOverride;
+		JudgementSystem->HitWindowGoodMs = RuleSet->HitWindowGoodMsOverride;
+		JudgementSystem->HitWindowMissMs = RuleSet->HitWindowMissMsOverride;
+	}
+
 	if (RhythmConductor && JudgementSystem)
 	{
 		const float InputCompensationMs = FMath::Abs(ResolveInputOffsetMs(Context));
@@ -376,7 +404,17 @@ void APTBBaseMiniGame::HandleReadyToStart()
 {
 	if (LoadingWidgetInstance)
 	{
+		ApplyGameAndUIInputMode();
 		LoadingWidgetInstance->SetReadyToStartState();
+	}
+
+	if (APlayerController* PlayerController = GetWorld() ? GetWorld()->GetFirstPlayerController() : nullptr)
+	{
+		EnableInput(PlayerController);
+		if (InputComponent)
+		{
+			InputComponent->BindKey(EKeys::AnyKey, IE_Pressed, this, &APTBBaseMiniGame::HandleStartInput);
+		}
 	}
 
 	OnMiniGameReadyToStart.Broadcast();
@@ -464,6 +502,7 @@ void APTBBaseMiniGame::StartMiniGame()
 	}
 
 	HideLoadingWidget();
+	DisableInput(GetWorld() ? GetWorld()->GetFirstPlayerController() : nullptr);
 	ApplyGameOnlyInputMode();
 
 	if (AudioManager)
@@ -909,16 +948,11 @@ void APTBBaseMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 		}
 	}
 
-	PlayJudgementFeedback(Result);
-
-	if (RuleSet && ScoreCalculator && RuleSet->ShouldFailForMissCount(ScoreCalculator->MissCount))
+	if (RuleSet && ScoreCalculator && RuleSet->ShouldFailForMissCount(GameContext.SessionRequest.Difficulty, ScoreCalculator->MissCount))
 	{
 		FinishMiniGame(EPTBRoundEndReason::Failed);
 	}
-}
-
-void APTBBaseMiniGame::PlayJudgementFeedback(const FPTBJudgementResult& Result)
-{
+	
 	UE_LOG(LogRhythm, Log, TEXT("[%s] Judgement NoteId=%d Action=%d Type=%d ChartMs=%.2f InputMs=%.2f DeltaMs=%.2f ScoreDelta=%d"),
 		*GetNameSafe(this),
 		Result.NoteId,

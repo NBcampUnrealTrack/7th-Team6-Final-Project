@@ -11,7 +11,12 @@ class PARTTIMEBEAT_API UPTBSaveGame : public USaveGame
 	GENERATED_BODY()
 public:
 	/** 전체 프로필 */
+	UPROPERTY(SaveGame)
 	TArray<FPTBProfileData> Profiles;
+
+	/** 마지막으로 활성화된 프로필 ID — 다음 세션에서 자동 복원 */
+	UPROPERTY(SaveGame)
+	FGuid LastActiveProfileId;
 
 	/** 현재 활성 */
 	int32 ActiveProfileIndex;

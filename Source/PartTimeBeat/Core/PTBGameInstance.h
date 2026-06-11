@@ -47,7 +47,12 @@ public:
 	FOnFlowStateChanged OnFlowStateChanged;
 
 	/**	설정 캐시 */
+	UPROPERTY(BlueprintReadWrite, Category = "PTB|Settings")
 	FPTBUserSettings CachedSettings;
+
+	/** 판정 오프셋 즉시 적용 (캘리브레이션 테스트용) */
+	UFUNCTION(BlueprintCallable, Category = "PTB|Settings")
+	void SetJudgementOffsetMs(float OffsetMs) { CachedSettings.JudgementOffsetMs = OffsetMs; }
 	/** 현재 모드(Single Multi) */
 	EPTBPlayMode CurrentPlayMode;	
 	/** 전역 Wwise 매니저*/

@@ -135,7 +135,6 @@ bool UPTBRhythmChartParser::ParseChartString(const FString& JsonString, FPTBChar
 	}
 
 	OutChartData.ChartId = ReadNameField(RootObject, TEXT("chartId"));
-	OutChartData.SongId = ReadNameField(RootObject, TEXT("songId"));
 	OutChartData.MiniGameId = ReadNameField(RootObject, TEXT("miniGameId"));
 
 	double NumberValue = 0.0;

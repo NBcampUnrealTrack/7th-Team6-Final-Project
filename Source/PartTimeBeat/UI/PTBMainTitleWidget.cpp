@@ -3,6 +3,7 @@
 #include "PTBMainTitleWidget.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "Components/Button.h"
+#include "Debug/PTBTeamLog.h"
 #include "Flow/PTBGameFlowSubsystem.h"
 #include "Kismet/GameplayStatics.h"
 
@@ -25,7 +26,7 @@ void UPTBMainTitleWidget::NativeConstruct()
     }
     else
     {
-        UE_LOG(LogTemp, Warning, TEXT("[PTBMainTitleWidget] NativeConstruct: World is null, timer not set"));
+        PTB_WARNING(LogPTBUI, TEXT("[PTBMainTitleWidget] NativeConstruct: World is null, timer not set"));
     }
 
 	// 마우스 커서 표시 및 UI 전용 입력 모드 설정
@@ -64,7 +65,7 @@ void UPTBMainTitleWidget::InitializeView()
 // 시작 버튼 클릭 시 프로필 선택 화면으로 이동
 void UPTBMainTitleWidget::OnStartClicked()
 {
-    UE_LOG(LogTemp, Log, TEXT("[PTBMainTitleWidget] OnStartClicked called"));
+    PTB_VERBOSE(LogPTBUI, TEXT("[PTBMainTitleWidget] OnStartClicked called"));
 
     UPTBGameFlowSubsystem* FlowSystem = GetGameInstance()->GetSubsystem<UPTBGameFlowSubsystem>();
     if (FlowSystem)

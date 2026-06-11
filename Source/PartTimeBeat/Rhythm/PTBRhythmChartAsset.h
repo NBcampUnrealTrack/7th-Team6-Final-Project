@@ -24,7 +24,7 @@ class PARTTIMEBEAT_API UPTBRhythmChartAsset : public UPrimaryDataAsset
 
 public:
 	/** 파싱된 채보 식별자 */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PTB|Rhythm|Parsed")
+	UPROPERTY()
 	FName ChartId;
 
 	/** 파싱된 곡, 난이도, BPM, Offset, Wwise 이벤트 등 공통 메타 */

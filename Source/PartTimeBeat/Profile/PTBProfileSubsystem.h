@@ -64,6 +64,12 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Profile|Active")
     bool HasActiveProfile() const;
 
+    /** PIE 직접 플레이 테스트용 개발 프로필 활성화 */
+    bool ActivateDevelopmentProfileForPIE();
+
+    /** 현재 개발 프로필을 활성 상태로 사용 중인지 여부 */
+    bool IsUsingDevelopmentProfile() const;
+
 
     UFUNCTION(BlueprintCallable, Category = "Profile|Validation")
     EPTBNicknameValidationResult ValidateNickname(const FString& Nickname) const;
@@ -88,9 +94,13 @@ public:
     //UFUNCTION(BlueprintCallable, Category = "Profile|Progression")
     //void UnlockCostume(FName CostumeId);
 
-    /** 미니게임 최고 점수 */
+    /** 미니게임 최고 점수 (난이도 무관 전체 최고) */
     UFUNCTION(BlueprintCallable, Category = "Profile|Query")
     int32 GetBestScore(FName MiniGameId) const;
+
+    /** 특정 난이도의 미니게임 최고 점수. 기록 없으면 0 반환. */
+    UFUNCTION(BlueprintCallable, Category = "Profile|Query")
+    int32 GetBestScoreForDifficulty(FName MiniGameId, EPTBDifficulty Difficulty) const;
 
     /** 미니게임 획득 별 */
     UFUNCTION(BlueprintCallable, Category = "Profile|Query")
@@ -120,6 +130,12 @@ protected:
     // 활성화 된 프로필 복원
     void ClearActiveProfile();
 
+    // 직접 PIE 테스트용 개발 프로필 생성 보장
+    void EnsureDevelopmentProfileInitialized();
+
+    // 개발 프로필 ID인지 여부
+    bool IsDevelopmentProfileId(const FGuid& ProfileId) const;
+
     // SaveGame 인스턴스 불러오기 또는 만들기
     UPTBSaveGame* GetOrCreateSaveGame() const;
 
@@ -129,8 +145,14 @@ protected:
     // 활성화 된 프로필 데이터에 대한 수정 가능 포인터 없으면 nullptr
     FPTBProfileData* FindActiveProfileMutable();
 
+    // 활성화 된 프로필 데이터에 대한 읽기 전용 포인터 없으면 nullptr
+    const FPTBProfileData* FindActiveProfileConst() const;
+
     // ID로 프로필 수정 가능 포인터 검색
     FPTBProfileData* FindProfileMutable(const FGuid& ProfileId);
+
+    // ID로 프로필 읽기 전용 포인터 검색
+    const FPTBProfileData* FindProfileConst(const FGuid& ProfileId) const;
 
     // ── 금칙어 필터 ──────────────────────────────────────────────
 
@@ -158,6 +180,12 @@ protected:
      */
     static FString NormalizeForFilterKoreanOnly(const FString& Input);
 
+    /**
+     * 난이도별 점수 키 생성 유틸리티.
+     * 반환 형식: "MiniGameId_DifficultyName" (예: "TG_Standard")
+     */
+static FName MakeDifficultyScoreKey(FName MiniGameId, EPTBDifficulty Difficulty);
+
 private:
     /** 메모리 상의 모든 프로필 */
     UPROPERTY()
@@ -169,6 +197,18 @@ private:
     /** 활성화 된 프로필 ID */
     UPROPERTY()
     FGuid ActiveProfileId;
+
+    /** 직접 PIE 테스트용 런타임 전용 프로필 */
+    UPROPERTY(Transient)
+    FPTBProfileData DevelopmentProfile;
+
+    /** 개발 프로필 초기화 여부 */
+    UPROPERTY(Transient)
+    bool bHasDevelopmentProfile = false;
+
+    /** 현재 활성 프로필로 개발 프로필을 사용 중인지 여부 */
+    UPROPERTY(Transient)
+    bool bUseDevelopmentProfileAsActive = false;
 
     /** 최대 슬롯 수 */
     UPROPERTY()
