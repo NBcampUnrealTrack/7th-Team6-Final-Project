@@ -7,6 +7,7 @@ void APTBPCMiniGame::BuildRuntimeState()
 {
     Super::BuildRuntimeState();
 
+
 }
 
 void APTBPCMiniGame::HandleNoteCue(FPTBNoteEvent Note)
