@@ -43,12 +43,13 @@ void APTBFSCharacter::OnPlayRealAnimMontage()
 	}
 }
 
-void APTBFSCharacter::UpdateFishingLineLength(float FishDistance)
-{
-	if (!FishingCable) return;
+	void APTBFSCharacter::UpdateFishingLineLength(float FishDistance)
+	{
+		if (!FishingCable) return;
 	FishingCable->CableLength = 50.0f + (2500.0f * FishDistance);
+	FishingCable->CableGravityScale = 0.0f;
 	FishingCable->MarkRenderStateDirty();
-}
+	}
 
 
 void APTBFSCharacter::SetFishLineTarget(AActor* InFishActor)
