@@ -87,6 +87,11 @@ void APTBDodgeMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
     OnJudgementUpdated(Result.JudgementType);
 }
 
+void APTBDodgeMiniGame::InitializeMiniGame(const FPTBMiniGameContext& Context)
+{
+    Super::InitializeMiniGame(Context);
+}
+
 void APTBDodgeMiniGame::OnJumpInput()
 {
     if (!CanAcceptInput()) return;
