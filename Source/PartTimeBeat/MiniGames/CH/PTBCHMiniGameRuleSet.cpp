@@ -1,0 +1,1 @@
+﻿#include "MiniGames/CH/PTBCHMiniGameRuleSet.h"
