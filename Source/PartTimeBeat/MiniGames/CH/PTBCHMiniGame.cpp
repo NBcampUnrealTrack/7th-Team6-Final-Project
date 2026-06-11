@@ -32,7 +32,7 @@ void APTBCHMiniGame::BuildRuntimeState()
         FPTBCHCustomerOrder Order;
         Order.Ingredients.Add(EPTBCHIngredientType::Bread);
 
-        const int32 FillingCount = FMath::RandRange(1, 4);
+        const int32 FillingCount = FMath::RandRange(2, 4);
         TArray<EPTBCHIngredientType> Fillings = {
             EPTBCHIngredientType::Sauce,
             EPTBCHIngredientType::Tomato,
@@ -103,7 +103,27 @@ void APTBCHMiniGame::HandleNoteCue(FPTBNoteEvent Note)
     }
 
     TrackNote(CuedNotes, Note);
-    OnCHNoteCue.Broadcast(Note);
+
+    // 현재 차례 재료에 맞는 ActionType으로 바꿔서 브로드캐스트
+    if (CustomerOrders.IsValidIndex(CurrentCustomerIndex))
+    {
+        const FPTBCHCustomerOrder& Order = CustomerOrders[CurrentCustomerIndex];
+        if (Order.Ingredients.IsValidIndex(CurrentIngredientIndex))
+        {
+            EPTBCHIngredientType NextIngredient = Order.Ingredients[CurrentIngredientIndex];
+            FPTBNoteEvent ModifiedNote = Note;
+            switch (NextIngredient)
+            {
+            case EPTBCHIngredientType::Bread:   ModifiedNote.ActionType = EPTBActionType::ActionA; break;
+            case EPTBCHIngredientType::Lettuce: ModifiedNote.ActionType = EPTBActionType::ActionB; break;
+            case EPTBCHIngredientType::Patty:   ModifiedNote.ActionType = EPTBActionType::ActionC; break;
+            case EPTBCHIngredientType::Cheese:  ModifiedNote.ActionType = EPTBActionType::ActionD; break;
+            case EPTBCHIngredientType::Tomato:  ModifiedNote.ActionType = EPTBActionType::ActionE; break;
+            default: break;
+            }
+            OnCHNoteCue.Broadcast(ModifiedNote);
+        }
+    }
 
     const UPTBCHMiniGameRuleSet* CHRuleSet = GetCHRuleSet();
     if (!CHRuleSet || CHRuleSet->bLogNoteCue)
@@ -117,7 +137,51 @@ void APTBCHMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
     FPTBNoteEvent JudgedNote;
     const bool bHasJudgedNote = FindTrackedNote(Result.NoteId, JudgedNote);
 
+    UE_LOG(LogPTBMiniGames, Log, TEXT("[CH] HandleJudgementResult: NoteId=%d bHasJudgedNote=%d Reason=%d"),
+        Result.NoteId, bHasJudgedNote ? 1 : 0, static_cast<int32>(Result.Reason));
     Super::HandleJudgementResult(Result);
+
+    UE_LOG(LogPTBMiniGames, Log, TEXT("[CH] Result.ActionType=%d, NoteId=%d"),
+        static_cast<int32>(Result.ActionType), Result.NoteId);
+    //햄버거 스폰
+    if (Result.NoteId != 0 && Result.Reason == EPTBJudgementReason::Note && LastPressedAction != EPTBActionType::None)
+    {
+        EPTBCHIngredientType IngredientType = EPTBCHIngredientType::None;
+        switch (LastPressedAction)
+        {
+        case EPTBActionType::ActionA: IngredientType = EPTBCHIngredientType::Bread; break;
+        case EPTBActionType::ActionB: IngredientType = EPTBCHIngredientType::Lettuce; break;
+        case EPTBActionType::ActionC: IngredientType = EPTBCHIngredientType::Patty; break;
+        case EPTBActionType::ActionD: IngredientType = EPTBCHIngredientType::Cheese; break;
+        case EPTBActionType::ActionE: IngredientType = EPTBCHIngredientType::Tomato; break;
+        default: break;
+        }
+
+        UE_LOG(LogPTBMiniGames, Log, TEXT("[CH] SpawnCheck: bHasJudged=%d NoteId=%d Reason=%d IngredientType=%d LastPressedAction=%d"),
+            bHasJudgedNote ? 1 : 0,
+            Result.NoteId,
+            static_cast<int32>(Result.Reason),
+            static_cast<int32>(IngredientType),
+            static_cast<int32>(LastPressedAction));
+
+        if (IngredientType != EPTBCHIngredientType::None)
+        {
+            bool bIsLastBread = (CurrentIngredientIndex >= CustomerOrders[CurrentCustomerIndex].Ingredients.Num() - 1);
+            SpawnIngredient(IngredientType, bIsLastBread);
+            CurrentIngredientIndex++;
+            if (bIsLastBread)
+            {
+                for (AActor* Actor : SpawnedIngredients)
+                {
+                    if (Actor) Actor->Destroy();
+                }
+                SpawnedIngredients.Reset();
+                StackHeight = 30.0f;
+                CurrentIngredientIndex = 0;
+                CurrentCustomerIndex++;
+            }
+        }
+    }
 
     ++JudgementCount;
     if (bHasJudgedNote)
@@ -357,5 +421,90 @@ void APTBCHMiniGame::CreateAndAddHUD()
     {
         HUDWidget->AddToViewport();
         UE_LOG(LogPTBMiniGames, Log, TEXT("[%s] CH HUD created and added to viewport."), *GetNameSafe(this));
+    }
+}
+
+void APTBCHMiniGame::HandleRhythmInput(EPTBActionType Action, float TimeMs)
+{
+    UE_LOG(LogPTBMiniGames, Log, TEXT("[CH] HandleRhythmInput called. Action=%d"), static_cast<int32>(Action));
+    if (!CanAcceptInput()) return;
+
+    const float ResolvedTimeMs = TimeMs >= 0.0f ? TimeMs : GetCurrentInputJudgeTimeMs();
+
+    FPTBNoteEvent BestNote;
+    bool bFound = false;
+    float BestDelta = TNumericLimits<float>::Max();
+
+    for (const EPTBActionType ActionType : {
+        EPTBActionType::ActionA, EPTBActionType::ActionB,
+            EPTBActionType::ActionC, EPTBActionType::ActionD,
+            EPTBActionType::ActionE })
+    {
+        FPTBNoteEvent Note;
+        if (JudgementSystem->FindBestPendingNote(ActionType, ResolvedTimeMs, Note))
+        {
+            const float Delta = FMath::Abs(ResolvedTimeMs - Note.TimeMs);
+            if (Delta < BestDelta)
+            {
+                BestDelta = Delta;
+                BestNote = Note;
+                bFound = true;
+            }
+        }
+    }
+
+    if (bFound)
+    {
+        LastPressedAction = Action;
+        Super::HandleRhythmInput(BestNote.ActionType, TimeMs);
+    }
+    else
+    {
+        Super::HandleRhythmInput(Action, TimeMs);
+    }
+}
+
+void APTBCHMiniGame::SpawnIngredient(EPTBCHIngredientType IngredientType, bool bIsLastBread)
+{
+    TSubclassOf<AActor> ClassToSpawn = nullptr;
+
+    switch (IngredientType)
+    {
+    case EPTBCHIngredientType::Bread:
+        ClassToSpawn = IngredientClass_Bread;
+        break;
+    case EPTBCHIngredientType::Lettuce:
+        ClassToSpawn = IngredientClass_Lettuce;
+        break;
+    case EPTBCHIngredientType::Patty:
+        ClassToSpawn = IngredientClass_Patty;
+        break;
+    case EPTBCHIngredientType::Cheese:
+        ClassToSpawn = IngredientClass_Cheese;
+        break;
+    case EPTBCHIngredientType::Tomato:
+        ClassToSpawn = IngredientClass_Tomato;
+        break;
+    default:
+        return;
+    }
+
+    if (!ClassToSpawn || !GetWorld())
+    {
+        return;
+    }
+
+    // SM_Plate X, Y 기준으로 스폰
+    FVector SpawnLocation(840.0f, 0.0f, StackHeight);
+    FRotator SpawnRotation = FRotator::ZeroRotator;
+
+    FActorSpawnParameters SpawnParams;
+    SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+    AActor* SpawnedActor = GetWorld()->SpawnActor<AActor>(ClassToSpawn, SpawnLocation, SpawnRotation, SpawnParams);
+    if (SpawnedActor)
+    {
+        SpawnedIngredients.Add(SpawnedActor);
+        StackHeight += 15.0f;
     }
 }

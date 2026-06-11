@@ -9,6 +9,7 @@
 UENUM(BlueprintType)
 enum class EPTBCHIngredientType : uint8
 {
+    None        UMETA(DisplayName = "없음"),
     Bread       UMETA(DisplayName = "빵"),
     Sauce       UMETA(DisplayName = "소스"),
     Tomato      UMETA(DisplayName = "토마토"),
@@ -18,7 +19,6 @@ enum class EPTBCHIngredientType : uint8
     Bacon       UMETA(DisplayName = "베이컨"),
     Cheese      UMETA(DisplayName = "치즈"),
     Submit      UMETA(DisplayName = "제출"),
-    None        UMETA(DisplayName = "없음")
 };
 
 /**

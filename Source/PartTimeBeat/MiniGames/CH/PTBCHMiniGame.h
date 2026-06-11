@@ -67,6 +67,11 @@ public:
     /** 시작 준비 완료 처리 */
     virtual void HandleReadyToStart() override;
 
+    virtual void HandleRhythmInput(EPTBActionType Action, float TimeMs = -1.0f) override;
+
+    UPROPERTY()
+    EPTBActionType LastPressedAction = EPTBActionType::None;
+
     /** CH Action 입력 처리 */
     UFUNCTION(BlueprintCallable, Category = "PTB|CH")
     void HandleCHInput(EPTBActionType Action, float TimeMs = -1.0f);
@@ -181,6 +186,10 @@ protected:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PTB|CH")
     int32 CurrentCustomerIndex = 0;
 
+    /** 현재 손님의 재료 인덱스 */
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PTB|CH")
+    int32 CurrentIngredientIndex = 0;
+
     /** 현재 손님 주문 목록 */
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PTB|CH")
     TArray<FPTBCHCustomerOrder> CustomerOrders;
@@ -188,6 +197,33 @@ protected:
     /** 현재까지 선택한 재료 */
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PTB|CH")
     TArray<EPTBCHIngredientType> PlacedIngredients;
+
+    /** 재료 Blueprint 클래스 (에디터에서 설정) */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|CH|Ingredients")
+    TSubclassOf<AActor> IngredientClass_Bread;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|CH|Ingredients")
+    TSubclassOf<AActor> IngredientClass_Lettuce;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|CH|Ingredients")
+    TSubclassOf<AActor> IngredientClass_Patty;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|CH|Ingredients")
+    TSubclassOf<AActor> IngredientClass_Cheese;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|CH|Ingredients")
+    TSubclassOf<AActor> IngredientClass_Tomato;
+
+    /** 현재 쌓인 높이 트래킹 */
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PTB|CH")
+    float StackHeight = 15.0f;
+
+    /** 스폰된 재료 Actor 목록 */
+    UPROPERTY()
+    TArray<TObjectPtr<AActor>> SpawnedIngredients;
+
+    /** 재료 스폰 함수 */
+    void SpawnIngredient(EPTBCHIngredientType IngredientType, bool bIsLastBread = false);
 
     /** 생성된 HUD 위젯 인스턴스 */
     UPROPERTY(BlueprintReadOnly, Category = "PTB|CH")
