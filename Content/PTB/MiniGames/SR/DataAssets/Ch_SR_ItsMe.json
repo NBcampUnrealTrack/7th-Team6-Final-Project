@@ -1,0 +1,42 @@
+{
+  "chartId": "SR_ItsMe",
+  "notes": [
+    { "NoteId": 0, "TimeMs": 1200.0, "ActionType": "ActionA" },
+    { "NoteId": 1, "TimeMs": 2400.0, "ActionType": "ActionA" },
+    { "NoteId": 2, "TimeMs": 3600.0, "ActionType": "ActionA" },
+    { "NoteId": 3, "TimeMs": 4800.0, "ActionType": "ActionA" },
+    
+    { "NoteId": 4, "TimeMs": 6000.0, "ActionType": "ActionA" },
+    { "NoteId": 5, "TimeMs": 7200.0, "ActionType": "ActionA" },
+    { "NoteId": 6, "TimeMs": 8400.0, "ActionType": "ActionA" },
+    { "NoteId": 7, "TimeMs": 9600.0, "ActionType": "ActionA" },
+    
+    { "NoteId": 8, "TimeMs": 10200.0, "ActionType": "ActionA" },
+    { "NoteId": 9, "TimeMs": 10800.0, "ActionType": "ActionA" },
+    { "NoteId": 10, "TimeMs": 11400.0, "ActionType": "ActionA" },
+    { "NoteId": 11, "TimeMs": 12000.0, "ActionType": "ActionA" },
+    
+    { "NoteId": 12, "TimeMs": 13200.0, "ActionType": "ActionA" },
+    { "NoteId": 13, "TimeMs": 14400.0, "ActionType": "ActionA" },
+    { "NoteId": 14, "TimeMs": 15600.0, "ActionType": "ActionA" },
+    { "NoteId": 15, "TimeMs": 16200.0, "ActionType": "ActionA" },
+    { "NoteId": 16, "TimeMs": 16800.0, "ActionType": "ActionA" },
+    
+    { "NoteId": 17, "TimeMs": 18000.0, "ActionType": "ActionA" },
+    { "NoteId": 18, "TimeMs": 19200.0, "ActionType": "ActionA" },
+    { "NoteId": 19, "TimeMs": 20400.0, "ActionType": "ActionA" },
+    { "NoteId": 20, "TimeMs": 21600.0, "ActionType": "ActionA" },
+    
+    { "NoteId": 21, "TimeMs": 22200.0, "ActionType": "ActionA" },
+    { "NoteId": 22, "TimeMs": 22800.0, "ActionType": "ActionA" },
+    { "NoteId": 23, "TimeMs": 23400.0, "ActionType": "ActionA" },
+    { "NoteId": 24, "TimeMs": 2400.0, "ActionType": "ActionA" },
+    
+    { "NoteId": 25, "TimeMs": 25200.0, "ActionType": "ActionA" },
+    { "NoteId": 26, "TimeMs": 25800.0, "ActionType": "ActionA" },
+    { "NoteId": 27, "TimeMs": 26400.0, "ActionType": "ActionA" },
+    { "NoteId": 28, "TimeMs": 27600.0, "ActionType": "ActionA" },
+    { "NoteId": 29, "TimeMs": 28200.0, "ActionType": "ActionA" },
+    { "NoteId": 30, "TimeMs": 28800.0, "ActionType": "ActionA" }
+  ]
+}

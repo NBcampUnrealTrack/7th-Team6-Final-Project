@@ -19,6 +19,8 @@ class PARTTIMEBEAT_API UPTBBBCueWidgetBase : public UPTBActionCueWidgetBase
 	GENERATED_BODY()
 
 public:
+	UPTBBBCueWidgetBase();
+
 	/** 이 큐가 나타내는 노트 ID */
 	UFUNCTION(BlueprintPure, Category = "PTB|BB|Cue")
 	int32 GetNoteId() const { return NoteId; }
@@ -26,8 +28,9 @@ public:
 	/**
 	 * 큐 위젯 초기화.
 	 * NoteId를 저장하고 ActionType을 설정(OnActionTypeSet 호출)한 뒤
-	 * OnCueStarted()를 발행한다.
-	 * @param InApproachDurationSec  큐가 판정선에 도달할 때까지의 접근 시간(초). 애니메이션 속도 계산에 사용.
+	 * OnCueStarted()를 발행한다. ApproachStartTranslationX가 설정되어 있으면
+	 * NativeTick 기반 Translation 이동을 자동으로 시작한다.
+	 * @param InApproachDurationSec  큐가 판정선에 도달할 때까지의 접근 시간(초).
 	 */
 	UFUNCTION(BlueprintCallable, Category = "PTB|BB|Cue")
 	virtual void InitCue(int32 InNoteId, EPTBActionType InActionType, float InApproachDurationSec = 0.f);
@@ -47,8 +50,22 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintImplementableEvent, Category = "PTB|BB|Cue")
 	void OnJudgement(EPTBJudgementType JudgementType);
 
+	/**
+	 * Translation 이동을 즉시 멈추고 히트존(X=0)에 스냅한다.
+	 * Blueprint의 OnJudgement 시작 시점에 호출한다.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "PTB|BB|Cue")
+	void StopApproachTranslation();
+
+	/**
+	 * 스폰 시 HUD가 설정하는 초기 이동 오프셋.
+	 * 양수면 보스가 히트존 오른쪽, 음수면 왼쪽에 위치함을 의미한다.
+	 */
+	UPROPERTY(BlueprintReadOnly, Category = "PTB|BB|Cue")
+	float ApproachStartTranslationX = 0.f;
+
 protected:
-	/** InitCue() 호출 후 BP에서 접근 애니메이션 시작 등 처리. ApproachDurationSec으로 애니메이션 속도를 조정한다. */
+	/** InitCue() 호출 후 BP에서 접근 애니메이션 시작 등 처리. */
 	UFUNCTION(BlueprintImplementableEvent, Category = "PTB|BB|Cue")
 	void OnCueStarted(int32 InNoteId, EPTBActionType InActionType, float ApproachDurationSec);
 
@@ -56,6 +73,13 @@ protected:
 	UFUNCTION(BlueprintImplementableEvent, Category = "PTB|BB|Cue")
 	void OnCueRemoved();
 
+	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
+
 	UPROPERTY(BlueprintReadWrite, Category = "PTB|BB|Cue")
 	int32 NoteId = 0;
+
+private:
+	bool bApproaching = false;
+	float ApproachElapsedSec = 0.f;
+	float ApproachTotalDurationSec = 0.f;
 };

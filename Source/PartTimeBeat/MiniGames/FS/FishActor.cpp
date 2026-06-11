@@ -11,6 +11,11 @@ AFishActor::AFishActor()
 	PrimaryActorTick.bCanEverTick = true;
 	SkeletalMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("SkeletalMesh"));
 	SetRootComponent(SkeletalMesh);
+	if (SkeletalMesh)
+	{
+		SkeletalMesh->SetRenderCustomDepth(true);
+		SkeletalMesh->SetCustomDepthStencilValue(1);
+	}
 }
 
 void AFishActor::SetTargetLocation(FVector NewLocation)
@@ -20,7 +25,7 @@ void AFishActor::SetTargetLocation(FVector NewLocation)
 
 void AFishActor::BeginPlay()
 {
-	Super::BeginPlay();
+	Super::BeginPlay();	
 	
 	TargetLocation = GetActorLocation();
 	PTB_WARNING(LogPTBMiniGames,TEXT("미니게임 엑터 호출완료"));
