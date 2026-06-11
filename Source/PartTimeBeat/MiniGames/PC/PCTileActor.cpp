@@ -9,6 +9,7 @@ APCTileActor::APCTileActor()
     ProjectileMovement = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("ProjectileMovement"));
     ProjectileMovement->InitialSpeed = 0.f;
     ProjectileMovement->bAutoActivate = false;
+
 }
 
 void APCTileActor::BeginPlay()
@@ -18,10 +19,9 @@ void APCTileActor::BeginPlay()
 
 void APCTileActor::Launch(FVector Direction)
 {
-    ProjectileMovement->Velocity = Direction.GetSafeNormal() * MoveSpeed;
     ProjectileMovement->Activate();
+    ProjectileMovement->Velocity = Direction.GetSafeNormal() * MoveSpeed;
 
-  
     GetWorldTimerManager().SetTimer(
         DestroyTimerHandle,
         this,
