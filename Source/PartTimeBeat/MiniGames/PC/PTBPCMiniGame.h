@@ -20,12 +20,11 @@ public:
 protected:
 
     virtual void BuildRuntimeState() override;
+    virtual void PreloadAudioAssets() override;
     virtual void HandleNoteCue(FPTBNoteEvent Note) override;
     virtual void HandleNoteArm(FPTBNoteEvent Note) override;
     virtual void HandleChartEvent(FPTBNoteEvent Note) override;
     virtual void HandleJudgementResult(FPTBJudgementResult Result) override;
 
 private:
-    void SpawnCueForNote(const FPTBNoteEvent& Note);
-    void ClearCueForJudgement(const FPTBJudgementResult& Result);
 };

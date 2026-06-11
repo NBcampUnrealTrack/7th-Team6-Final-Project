@@ -1,4 +1,10 @@
 ﻿#include "MiniGames/PC/PTBPCMiniGame.h"
+#include "Audio/PTBWwiseAudioManager.h"
+#include "Engine/Engine.h"
+#include "MiniGames/PC/PTBPCMiniGameRuleSet.h"
+#include "Rhythm/PTBJudgementSystem.h"
+#include "Rhythm/PTBRhythmChartAsset.h"
+#include "Rhythm/PTBScoreCalculator.h"
 
 APTBPCMiniGame::APTBPCMiniGame()
 {}
@@ -10,11 +16,21 @@ void APTBPCMiniGame::BuildRuntimeState()
 
 }
 
+void APTBPCMiniGame::PreloadAudioAssets()
+{
+    Super::PreloadAudioAssets();
+
+    if (AudioManager && !GameContext.ChartData.WwiseBankName.IsNone())
+    {
+        AudioManager->LoadSoundBank(GameContext.ChartData.WwiseBankName);
+    }
+
+}
+
 void APTBPCMiniGame::HandleNoteCue(FPTBNoteEvent Note)
 {
     Super::HandleNoteCue(Note);
 
-    SpawnCueForNote(Note);
 }
 
 void APTBPCMiniGame::HandleNoteArm(FPTBNoteEvent Note)
@@ -33,14 +49,6 @@ void APTBPCMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 {
     Super::HandleJudgementResult(Result);
 
-    ClearCueForJudgement(Result);
 
 }
 
-void APTBPCMiniGame::SpawnCueForNote(const FPTBNoteEvent& Note)
-{
-}
-
-void APTBPCMiniGame::ClearCueForJudgement(const FPTBJudgementResult& Result)
-{
-}

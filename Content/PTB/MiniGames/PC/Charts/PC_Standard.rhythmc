@@ -13,8 +13,8 @@
     { "beat": 0, "numerator": 4, "denominator": 4 }
   ],
   "wwise": {
-    "bankName": "PC",
-    "bgmEventName": "Play_PC_BGM"
+    "bankName": "TG",
+    "bgmEventName": "Play_TG_BGM"
   },
   "noteFormat": ["id", "timeMs", "beat", "action", "lane", "type"],
   "notes": [
