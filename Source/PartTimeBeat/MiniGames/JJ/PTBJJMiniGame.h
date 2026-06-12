@@ -22,6 +22,8 @@ class PARTTIMEBEAT_API APTBJJMiniGame : public APTBBaseMiniGame
 	GENERATED_BODY()
 
 public:
+	APTBJJMiniGame();
+
 	/** 점프 큐 이벤트(선행 비주얼) */
 	UPROPERTY(BlueprintAssignable, Category = "PTB|JumpJump")
 	FPTBJJJumpEvent OnJJJumpCue;
@@ -114,6 +116,8 @@ protected:
 	/** 점프를 실제로 발동(타이머 콜백) */
 	void StartScheduledJump(int32 CharacterIndex, float AirtimeMs, float HeightScale);
 
+	/** JumpActorClass를 JumpSpawnTransforms 위치에 스폰하고 JumpActors에 등록 */
+	void SpawnJumpActors();
 	/** 점프 누적 수 */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PTB|JumpJump")
 	int32 JumpCount = 0;
@@ -163,4 +167,12 @@ protected:
 
 	/** 점프 발동 예약 타이머 핸들 모음(라운드 종료 시 정리용) */
 	TArray<FTimerHandle> PendingJumpTimers;
+
+	/** 스폰할 점프 캐릭터 클래스(BP_JJ_JumpChar 등을 지정) */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|JumpJump|Spawn")
+	TSubclassOf<APTBJJJumpActor> JumpActorClass;
+
+	/** 좌/중/우 스폰 Transform (인덱스 0=좌, 1=중, 2=우). 월드 기준 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|JumpJump|Spawn")
+	TArray<FTransform> JumpSpawnTransforms;
 };

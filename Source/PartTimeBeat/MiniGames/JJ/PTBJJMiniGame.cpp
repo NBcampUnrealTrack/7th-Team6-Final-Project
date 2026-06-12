@@ -10,6 +10,15 @@
 #include "TimerManager.h"
 #include "Engine/World.h"
 
+APTBJJMiniGame::APTBJJMiniGame()
+{
+	// 좌(-) / 중(0) / 우(+) — Y축으로 벌려놓은 임의값. 화면 구도 보고 조절.
+	JumpSpawnTransforms.Reset();
+	JumpSpawnTransforms.Add(FTransform(FVector(0.0f, -200.0f, 0.0f))); // 0: 좌
+	JumpSpawnTransforms.Add(FTransform(FVector(0.0f, 0.0f, 0.0f))); // 1: 중
+	JumpSpawnTransforms.Add(FTransform(FVector(0.0f, 200.0f, 0.0f))); // 2: 우
+}
+
 void APTBJJMiniGame::BuildRuntimeState()
 {
 	Super::BuildRuntimeState();
@@ -26,8 +35,11 @@ void APTBJJMiniGame::BuildRuntimeState()
 		JumpSpeeds.Init(1.0f, 3);
 	}
 
+	// 점프 캐릭터 스폰 + 등록
+	SpawnJumpActors();
+
 	// 채보 스캔 → 노트별 체공시간 산출
-	PrecomputeAirtimes();   
+	PrecomputeAirtimes();
 
 	UE_LOG(LogPTBMiniGames, Log, TEXT("[%s] JJ BuildRuntimeState RuleSet=%s Chart=%s"),
 		*GetNameSafe(this),
@@ -45,24 +57,33 @@ void APTBJJMiniGame::HandleNoteCue(FPTBNoteEvent Note)
 	const int32 CharacterIndex = ResolveCharacterIndex(Note.ActionType);
 	OnJJJumpCue.Broadcast(CharacterIndex, Note);
 
-	const float AirtimeMs = GetAirtimeMsForNote(Note.NoteId);
 	const float SpeedScale = JumpSpeeds.IsValidIndex(CharacterIndex) ? JumpSpeeds[CharacterIndex] : 1.0f;
-
-	// 지금 시각과 착지 목표(정시점) 사이 남은 시간
 	const float NowMs = GetCurrentChartTimeMs();
 	const float TargetMs = Note.TimeMs;
-	const float TimeToReach = TargetMs - NowMs;   // Cue 시점이므로 양수여야 정상
+	const float TimeToReach = TargetMs - NowMs;   // 지금부터 착지까지 실제 남은 시간
 
-	// 점프를 발동해야 하는 시점 = 착지목표 - 체공시간
-	// → 지금부터 (TimeToReach - AirtimeMs) 후에 StartJump
+	// 1) 채보 간격 기반 희망 체공시간
+	const float DesiredAirtime = GetAirtimeMsForNote(Note.NoteId);
+
+	// 2) 실제 쓸 수 있는 시간으로 상한 (Cue 선행이 짧으면 그만큼만)
+	float AirtimeMs = FMath::Min(DesiredAirtime, TimeToReach);
+
+	// 3) 하한 적용 (너무 짧은 점프 방지)
+	AirtimeMs = FMath::Max(AirtimeMs, MinAirtimeMs);
+
 	const float DelayMs = TimeToReach - AirtimeMs;
+
+	const bool bHasActor = JumpActors.IsValidIndex(CharacterIndex) && JumpActors[CharacterIndex] != nullptr;
+
+	UE_LOG(LogPTBMiniGames, Warning,
+		TEXT("CUE NoteId=%d CharIdx=%d Desired=%.0f Airtime=%.0f Now=%.0f Target=%.0f TimeToReach=%.0f Delay=%.0f HasActor=%d Actors=%d"),
+		Note.NoteId, CharacterIndex, DesiredAirtime, AirtimeMs, NowMs, TargetMs, TimeToReach, DelayMs,
+		bHasActor ? 1 : 0, JumpActors.Num());
 
 	if (UWorld* World = GetWorld())
 	{
 		if (DelayMs <= 0.0f)
 		{
-			// 이미 점프해야 할 시각을 지났거나 딱 맞음 → 즉시 발동
-			// (Cue 선행시간 < 체공시간인 설정에서 발생. 가능하면 CueLeadTimeMs를 늘릴 것)
 			StartScheduledJump(CharacterIndex, AirtimeMs, SpeedScale);
 		}
 		else
@@ -355,13 +376,65 @@ float APTBJJMiniGame::GetAirtimeMsForNote(int32 NoteId) const
 
 void APTBJJMiniGame::StartScheduledJump(int32 CharacterIndex, float AirtimeMs, float HeightScale)
 {
-	if (JumpActors.IsValidIndex(CharacterIndex) && JumpActors[CharacterIndex])
+	const bool bHasActor = JumpActors.IsValidIndex(CharacterIndex) && JumpActors[CharacterIndex] != nullptr;
+	UE_LOG(LogPTBMiniGames, Warning,
+		TEXT(">>> StartScheduledJump CharIdx=%d Airtime=%.0f HasActor=%d Now=%.0f"),
+		CharacterIndex, AirtimeMs, bHasActor ? 1 : 0, GetCurrentChartTimeMs());
+
+	if (bHasActor)
 	{
 		JumpActors[CharacterIndex]->StartJump(AirtimeMs, HeightScale);
 	}
 
-	// 기존 TriggerCharacterJump 훅도 유지하고 싶으면 함께 호출
 	TriggerCharacterJump(CharacterIndex, HeightScale);
+}
+
+void APTBJJMiniGame::SpawnJumpActors()
+{
+	UE_LOG(LogPTBMiniGames, Warning, TEXT("=== SpawnJumpActors ENTER === Class=%s SpawnPoints=%d"),
+		*GetNameSafe(JumpActorClass), JumpSpawnTransforms.Num());
+
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		UE_LOG(LogPTBMiniGames, Error, TEXT("SpawnJumpActors: World is null"));
+		return;
+	}
+
+	if (!JumpActorClass)
+	{
+		UE_LOG(LogPTBMiniGames, Error, TEXT("SpawnJumpActors: JumpActorClass NOT SET — 디테일 패널에서 BP 지정 필요"));
+		return;
+	}
+
+	for (TObjectPtr<APTBJJJumpActor>& Existing : JumpActors)
+	{
+		if (Existing) { Existing->Destroy(); }
+	}
+	JumpActors.Reset();
+
+	for (int32 Index = 0; Index < JumpSpawnTransforms.Num(); ++Index)
+	{
+		FActorSpawnParameters Params;
+		Params.Owner = this;
+		Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+		APTBJJJumpActor* Spawned =
+			World->SpawnActor<APTBJJJumpActor>(JumpActorClass, JumpSpawnTransforms[Index], Params);
+
+		if (Spawned)
+		{
+			SetJumpActor(Index, Spawned);
+			UE_LOG(LogPTBMiniGames, Warning, TEXT("SpawnJumpActors: spawned idx=%d at %s"),
+				Index, *Spawned->GetActorLocation().ToString());
+		}
+		else
+		{
+			UE_LOG(LogPTBMiniGames, Error, TEXT("SpawnJumpActors: FAILED idx=%d"), Index);
+		}
+	}
+
+	UE_LOG(LogPTBMiniGames, Warning, TEXT("=== SpawnJumpActors DONE === total=%d"), JumpActors.Num());
 }
 
 void APTBJJMiniGame::SetJumpActor(int32 CharacterIndex, APTBJJJumpActor* JumpActor)
