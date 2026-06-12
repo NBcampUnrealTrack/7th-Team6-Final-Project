@@ -28,5 +28,5 @@ public:
     float SpawnDistance = 2000.f;
 
     // 박자 타이밍에 호출
-    void SpawnTile();
+    APCTileActor* SpawnTile();
 };

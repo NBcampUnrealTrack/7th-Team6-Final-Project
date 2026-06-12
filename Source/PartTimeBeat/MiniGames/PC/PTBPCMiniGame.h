@@ -2,6 +2,8 @@
 
 #include "CoreMinimal.h"
 #include "MiniGames/Common/PTBBaseMiniGame.h"
+#include "MiniGames/PC/PCRailCharacter.h"
+#include "MiniGames/PC/PCTileSpawner.h"
 #include "PTBPCMiniGame.generated.h"
 
 class UPTBPCMiniGameRuleSet;
@@ -17,6 +19,12 @@ class PARTTIMEBEAT_API APTBPCMiniGame : public APTBBaseMiniGame
 public:
 	APTBPCMiniGame();
 
+    UPROPERTY(EditAnywhere)
+    APCRailCharacter* RailCharacter;
+
+    UPROPERTY(EditAnywhere)
+    APCTileSpawner* TileSpawner;
+
 protected:
 
     virtual void BuildRuntimeState() override;
@@ -27,4 +35,9 @@ protected:
     virtual void HandleJudgementResult(FPTBJudgementResult Result) override;
 
 private:
+
+    // NoteId로 타일 찾기용
+    UPROPERTY()
+    TMap<int32, APCTileActor*> ActiveTiles;
+
 };
