@@ -6,6 +6,9 @@
 #include "Rhythm/PTBRhythmChartAsset.h"
 #include "Rhythm/PTBScoreCalculator.h"
 #include "Debug/PTBTeamLog.h"
+#include "MiniGames/JJ/PTBJJJumpActor.h"
+#include "TimerManager.h"
+#include "Engine/World.h"
 
 void APTBJJMiniGame::BuildRuntimeState()
 {
@@ -23,6 +26,9 @@ void APTBJJMiniGame::BuildRuntimeState()
 		JumpSpeeds.Init(1.0f, 3);
 	}
 
+	// 채보 스캔 → 노트별 체공시간 산출
+	PrecomputeAirtimes();   
+
 	UE_LOG(LogPTBMiniGames, Log, TEXT("[%s] JJ BuildRuntimeState RuleSet=%s Chart=%s"),
 		*GetNameSafe(this),
 		*GetNameSafe(RuleSet.Get()),
@@ -38,6 +44,36 @@ void APTBJJMiniGame::HandleNoteCue(FPTBNoteEvent Note)
 
 	const int32 CharacterIndex = ResolveCharacterIndex(Note.ActionType);
 	OnJJJumpCue.Broadcast(CharacterIndex, Note);
+
+	const float AirtimeMs = GetAirtimeMsForNote(Note.NoteId);
+	const float SpeedScale = JumpSpeeds.IsValidIndex(CharacterIndex) ? JumpSpeeds[CharacterIndex] : 1.0f;
+
+	// 지금 시각과 착지 목표(정시점) 사이 남은 시간
+	const float NowMs = GetCurrentChartTimeMs();
+	const float TargetMs = Note.TimeMs;
+	const float TimeToReach = TargetMs - NowMs;   // Cue 시점이므로 양수여야 정상
+
+	// 점프를 발동해야 하는 시점 = 착지목표 - 체공시간
+	// → 지금부터 (TimeToReach - AirtimeMs) 후에 StartJump
+	const float DelayMs = TimeToReach - AirtimeMs;
+
+	if (UWorld* World = GetWorld())
+	{
+		if (DelayMs <= 0.0f)
+		{
+			// 이미 점프해야 할 시각을 지났거나 딱 맞음 → 즉시 발동
+			// (Cue 선행시간 < 체공시간인 설정에서 발생. 가능하면 CueLeadTimeMs를 늘릴 것)
+			StartScheduledJump(CharacterIndex, AirtimeMs, SpeedScale);
+		}
+		else
+		{
+			FTimerHandle Handle;
+			FTimerDelegate Del = FTimerDelegate::CreateUObject(
+				this, &APTBJJMiniGame::StartScheduledJump, CharacterIndex, AirtimeMs, SpeedScale);
+			World->GetTimerManager().SetTimer(Handle, Del, DelayMs / 1000.0f, false);
+			PendingJumpTimers.Add(Handle);
+		}
+	}
 
 	LogNoteDebug(TEXT("JumpCue"), Note);
 }
@@ -55,14 +91,11 @@ void APTBJJMiniGame::HandleChartEvent(FPTBNoteEvent Note)
 {
 	Super::HandleChartEvent(Note);
 
-	// 정시점 도달 = 캐릭터 점프 발동
+	// 정시점 도달 = 이 시점에 캐릭터가 바닥에 착지(점프는 Cue 때 이미 시작됨)
 	++JumpCount;
 	TrackNote(ReachedNotes, Note);
 
 	const int32 CharacterIndex = ResolveCharacterIndex(Note.ActionType);
-	const float SpeedScale = JumpSpeeds.IsValidIndex(CharacterIndex) ? JumpSpeeds[CharacterIndex] : 1.0f;
-
-	TriggerCharacterJump(CharacterIndex, SpeedScale);
 	OnJJJumpTriggered.Broadcast(CharacterIndex, Note);
 
 	LogNoteDebug(TEXT("JumpTriggered"), Note);
@@ -269,4 +302,78 @@ void APTBJJMiniGame::LogNoteDebug(const TCHAR* EventName, const FPTBNoteEvent& N
 		Note.BeatTime,
 		Note.TimeMs,
 		Note.bIsLongNote ? 1 : 0);
+}
+
+void APTBJJMiniGame::PrecomputeAirtimes()
+{
+	NoteAirtimeMs.Reset();
+
+	if (!ChartAsset)
+	{
+		return;
+	}
+
+	const TArray<FPTBNoteEvent>& Notes = ChartAsset->NoteEvents;
+
+	// 액션별로 "바로 다음에 같은 액션이 등장하는 노트의 TimeMs"를 알아내기 위해
+	// 뒤에서 앞으로 스캔하며 각 액션의 직후 등장 시각을 추적한다.
+	TMap<EPTBActionType, float> NextSameActionTimeMs;
+
+	for (int32 Index = Notes.Num() - 1; Index >= 0; --Index)
+	{
+		const FPTBNoteEvent& Note = Notes[Index];
+
+		// 이 노트 기준, 같은 액션의 "다음" 노트 시각
+		float Airtime = MaxAirtimeMs;
+		if (const float* NextTime = NextSameActionTimeMs.Find(Note.ActionType))
+		{
+			const float Gap = *NextTime - Note.TimeMs;   // 같은 액션끼리의 간격
+			if (Gap > 0.0f)
+			{
+				Airtime = FMath::Min(MaxAirtimeMs, Gap);
+			}
+		}
+
+		// 하한 클램프(너무 짧은 점프 방지)
+		Airtime = FMath::Max(Airtime, MinAirtimeMs);
+
+		NoteAirtimeMs.Add(Note.NoteId, Airtime);
+
+		// 다음(앞쪽) 노트 스캔을 위해 이 액션의 등장 시각 갱신
+		NextSameActionTimeMs.Add(Note.ActionType, Note.TimeMs);
+	}
+}
+
+float APTBJJMiniGame::GetAirtimeMsForNote(int32 NoteId) const
+{
+	if (const float* Found = NoteAirtimeMs.Find(NoteId))
+	{
+		return *Found;
+	}
+	return MaxAirtimeMs;
+}
+
+void APTBJJMiniGame::StartScheduledJump(int32 CharacterIndex, float AirtimeMs, float HeightScale)
+{
+	if (JumpActors.IsValidIndex(CharacterIndex) && JumpActors[CharacterIndex])
+	{
+		JumpActors[CharacterIndex]->StartJump(AirtimeMs, HeightScale);
+	}
+
+	// 기존 TriggerCharacterJump 훅도 유지하고 싶으면 함께 호출
+	TriggerCharacterJump(CharacterIndex, HeightScale);
+}
+
+void APTBJJMiniGame::SetJumpActor(int32 CharacterIndex, APTBJJJumpActor* JumpActor)
+{
+	if (CharacterIndex < 0)
+	{
+		return;
+	}
+
+	if (!JumpActors.IsValidIndex(CharacterIndex))
+	{
+		JumpActors.SetNum(CharacterIndex + 1);
+	}
+	JumpActors[CharacterIndex] = JumpActor;
 }
