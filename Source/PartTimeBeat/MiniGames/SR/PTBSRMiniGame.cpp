@@ -38,6 +38,40 @@ void APTBSRMiniGame::InitializeMiniGame(const FPTBMiniGameContext& Context)
 	CurrentNoteIndex = 0;
 }
 
+FPTBRoundResult APTBSRMiniGame::FinishMiniGame(EPTBRoundEndReason Reason)
+{
+	//return Super::FinishMiniGame(Reason);
+
+	FPTBRoundResult FinalResult = Super::FinishMiniGame(Reason);
+
+	FinalResult.MiniGameId = FName("SR");
+	FinalResult.Difficulty = GameContext.SessionRequest.Difficulty; 
+	FinalResult.PlayMode = GameContext.SessionRequest.PlayMode;
+
+	int32 TotalSuccessSushi = SuccessSushiCount;
+
+	// 초밥 1개당 1,000점 / 초밥 1개당 1,900원 계산
+	FinalResult.Score = TotalSuccessSushi * 1000;
+
+	FPTBRewardSummary RewardSummary;
+	RewardSummary.EarnedMoney = TotalSuccessSushi * 1900;
+
+	if (FinalResult.Score >= 30000)       FinalResult.Grade = EPTBGradeType::S;
+	else if (FinalResult.Score >= 20000)  FinalResult.Grade = EPTBGradeType::A;
+	else if (FinalResult.Score >= 3000)  FinalResult.Grade = EPTBGradeType::B;
+	else if (FinalResult.Score >= 1000)   FinalResult.Grade = EPTBGradeType::C;
+	else                                  FinalResult.Grade = EPTBGradeType::Fail;
+
+	RoundResult = FinalResult;
+
+	if (OnMiniGameFinished.IsBound())
+	{
+		OnMiniGameFinished.Broadcast(FinalResult);
+	}
+
+	return FinalResult;
+}
+
 void APTBSRMiniGame::BuildRuntimeState()
 {
 	Super::BuildRuntimeState();
