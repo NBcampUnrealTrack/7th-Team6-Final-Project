@@ -292,6 +292,13 @@ void APTBBaseMiniGame::InitializeMiniGame(const FPTBMiniGameContext& Context)
 		JudgementSystem->HitWindowMissMs = RuleSet->HitWindowMissMsOverride;
 	}
 
+	if (JudgementSystem && RuleSet)
+	{
+		JudgementSystem->bMissNoteOnWrongInput = RuleSet->bMissNoteOnWrongInput;
+		JudgementSystem->bSupportsSimultaneousInputs = RuleSet->bSupportsSimultaneousInputs;
+		JudgementSystem->SimultaneousNoteToleranceMs = RuleSet->SimultaneousNoteToleranceMs;
+	}
+
 	if (RhythmConductor && JudgementSystem)
 	{
 		const float InputCompensationMs = FMath::Abs(ResolveInputOffsetMs(Context));

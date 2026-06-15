@@ -89,6 +89,18 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Judgement", meta = (EditCondition = "bUseJudgementWindowOverride", EditConditionHides, ClampMin = "0", UIMin = "0"))
 	float HitWindowMissMsOverride = 250.0f;
 
+	/** 노트 판정 범위에서 다른 Action 입력 시 해당 노트를 Miss 처리 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Judgement")
+	bool bMissNoteOnWrongInput = false;
+
+	/** 같은 타이밍의 여러 Action 노트 동시 입력 지원. false면 오입력 Miss가 동시노트 그룹을 임의 소비하지 않음 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Judgement")
+	bool bSupportsSimultaneousInputs = true;
+
+	/** 동시노트로 간주할 시간 차(ms) */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Judgement", meta = (ClampMin = "0", UIMin = "0"))
+	float SimultaneousNoteToleranceMs = 1.0f;
+
 	/** 초보모드에서 미스 제한으로 실패 처리 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Failure", meta = (DisplayName = "초보모드 미스 제한 실패"))
 	bool bFailOnMissLimitEasy = false;

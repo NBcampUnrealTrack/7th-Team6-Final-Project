@@ -62,6 +62,15 @@ public:
 	
 	/** Miss 입력 소비 허용 범위(ms) */
 	float HitWindowMissMs = 250.0;
+
+	/** 노트 판정 범위에서 다른 Action 입력 시 해당 노트를 Miss 처리 */
+	bool bMissNoteOnWrongInput = false;
+
+	/** 같은 타이밍의 여러 Action 노트 동시 입력 지원 */
+	bool bSupportsSimultaneousInputs = true;
+
+	/** 동시노트로 간주할 시간 차(ms) */
+	float SimultaneousNoteToleranceMs = 1.0f;
 	
 	/** 판정 대기 노트 목록 */
 	TArray<FPTBNoteEvent> PendingNotes;

@@ -181,6 +181,7 @@ void APTBTGMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 		{
 		case EPTBJudgementReason::ExpiredNote:  ReasonSuffix = TEXT(" (놓침)");   break;
 		case EPTBJudgementReason::EarlyRelease: ReasonSuffix = TEXT(" (조기해제)"); break;
+		case EPTBJudgementReason::WrongInput:   ReasonSuffix = TEXT(" (오입력)");   break;
 		default: break;
 		}
 
