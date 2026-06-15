@@ -126,3 +126,12 @@ FPTBMiniGameResultPayload APTBDodgeMiniGame::BuildResultPayload() const
     Payload.IntValues.Add(FName("FinalHealth"), Health);
     return Payload;
 }
+
+float APTBDodgeMiniGame::ResolveInputOffsetMs(const FPTBMiniGameContext& Context) const
+{
+    // 시스템의 250ms 지연을 강제로 보정하여 싱크를 맞춥니다.
+ /*   float Result = -250.0f;
+    UE_LOG(LogTemp, Warning, TEXT("[DodgeMiniGame] 강제 보정 적용! Result: %.2f"), Result); */
+
+    return 0;
+}

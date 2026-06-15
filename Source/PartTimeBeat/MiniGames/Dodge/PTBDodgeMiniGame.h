@@ -38,6 +38,7 @@ public:
     virtual void HandleNoteCue(FPTBNoteEvent Note) override;
     virtual void HandleNoteArm(FPTBNoteEvent Note) override;
     virtual void HandleJudgementResult(FPTBJudgementResult Result) override;
+    virtual float ResolveInputOffsetMs(const FPTBMiniGameContext& Context) const override;
 
     UFUNCTION(BlueprintCallable, Category = "PTB|Dodge")
     virtual void InitializeMiniGame(const FPTBMiniGameContext& Context) override;
