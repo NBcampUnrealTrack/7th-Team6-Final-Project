@@ -689,6 +689,9 @@ void APTBBaseMiniGame::HandleChartEvent(FPTBNoteEvent Note)
 		static_cast<int32>(Note.ActionType),
 		Note.TimeMs,
 		Note.BeatTime);
+
+	OnMiniGameChartNote.Broadcast(Note);
+	ReceiveChartNote(Note);
 }
 
 void APTBBaseMiniGame::HandleNoteArm(FPTBNoteEvent Note)
@@ -706,6 +709,9 @@ void APTBBaseMiniGame::HandleNoteArm(FPTBNoteEvent Note)
 		static_cast<int32>(Note.ActionType),
 		RhythmConductor ? RhythmConductor->ArmLeadTimeMs : 0.0f,
 		Note.TimeMs);
+
+	OnMiniGameNoteArmed.Broadcast(Note);
+	ReceiveNoteArmed(Note);
 }
 
 void APTBBaseMiniGame::HandleNoteCue(FPTBNoteEvent Note)
@@ -716,6 +722,9 @@ void APTBBaseMiniGame::HandleNoteCue(FPTBNoteEvent Note)
 		static_cast<int32>(Note.ActionType),
 		Note.BeatTime,
 		Note.TimeMs);
+
+	OnMiniGameNoteCue.Broadcast(Note);
+	ReceiveNoteCue(Note);
 }
 
 void APTBBaseMiniGame::HandleRhythmInput(EPTBActionType Action, float TimeMs)
@@ -961,6 +970,9 @@ void APTBBaseMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 		}
 	}
 
+	OnMiniGameJudgement.Broadcast(Result);
+	ReceiveJudgement(Result);
+
 	if (RuleSet && ScoreCalculator && RuleSet->ShouldFailForMissCount(GameContext.SessionRequest.Difficulty, ScoreCalculator->MissCount))
 	{
 		FinishMiniGame(EPTBRoundEndReason::Failed);
@@ -975,6 +987,22 @@ void APTBBaseMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 		Result.InputTimeMs,
 		Result.DeltaMs,
 		Result.ScoreDelta);
+}
+
+void APTBBaseMiniGame::ReceiveChartNote_Implementation(FPTBNoteEvent Note)
+{
+}
+
+void APTBBaseMiniGame::ReceiveNoteArmed_Implementation(FPTBNoteEvent Note)
+{
+}
+
+void APTBBaseMiniGame::ReceiveNoteCue_Implementation(FPTBNoteEvent Note)
+{
+}
+
+void APTBBaseMiniGame::ReceiveJudgement_Implementation(FPTBJudgementResult Result)
+{
 }
 
 FPTBMiniGameResultPayload APTBBaseMiniGame::BuildResultPayload() const

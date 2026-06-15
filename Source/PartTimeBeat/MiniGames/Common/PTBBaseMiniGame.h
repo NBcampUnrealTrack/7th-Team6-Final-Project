@@ -19,6 +19,8 @@ class UAkComponent;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FPTBOnMiniGameFinished, FPTBRoundResult, Result);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FPTBOnMiniGameReadyToStart);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FPTBOnMiniGameStarted);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FPTBMiniGameNoteDelegate, FPTBNoteEvent, Note);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FPTBMiniGameJudgementDelegate, FPTBJudgementResult, Result);
 
 struct FPTBActiveHoldState
 {
@@ -85,6 +87,22 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "PTB|MiniGame")
 	FPTBOnMiniGameStarted OnMiniGameStarted;
 
+	/** 채보 노트가 실제 이벤트 타이밍에 도달했을 때 발생 */
+	UPROPERTY(BlueprintAssignable, Category = "PTB|MiniGame|Events")
+	FPTBMiniGameNoteDelegate OnMiniGameChartNote;
+
+	/** 노트가 판정 대기열에 등록됐을 때 발생 */
+	UPROPERTY(BlueprintAssignable, Category = "PTB|MiniGame|Events")
+	FPTBMiniGameNoteDelegate OnMiniGameNoteArmed;
+
+	/** 노트 선행 비주얼 큐 타이밍에 발생 */
+	UPROPERTY(BlueprintAssignable, Category = "PTB|MiniGame|Events")
+	FPTBMiniGameNoteDelegate OnMiniGameNoteCue;
+
+	/** 공통 점수/SFX 처리가 반영된 판정 결과 */
+	UPROPERTY(BlueprintAssignable, Category = "PTB|MiniGame|Events")
+	FPTBMiniGameJudgementDelegate OnMiniGameJudgement;
+
 	/** 컨텍스트 주입 */
 	virtual void InitializeMiniGame(const FPTBMiniGameContext& Context);
 
@@ -123,6 +141,26 @@ public:
 	/** 현재 입력 판정 기준 시간(ms) */
 	UFUNCTION(BlueprintPure, Category = "PTB|MiniGame|Time")
 	float GetCurrentInputJudgeTimeMs() const;
+
+	/** BP 미니게임에서 채보 노트 타이밍 연출을 확장합니다. */
+	UFUNCTION(BlueprintNativeEvent, Category = "PTB|MiniGame|Events")
+	void ReceiveChartNote(FPTBNoteEvent Note);
+	virtual void ReceiveChartNote_Implementation(FPTBNoteEvent Note);
+
+	/** BP 미니게임에서 판정 대기열 등록 타이밍 연출을 확장합니다. */
+	UFUNCTION(BlueprintNativeEvent, Category = "PTB|MiniGame|Events")
+	void ReceiveNoteArmed(FPTBNoteEvent Note);
+	virtual void ReceiveNoteArmed_Implementation(FPTBNoteEvent Note);
+
+	/** BP 미니게임에서 선행 큐 연출을 확장합니다. */
+	UFUNCTION(BlueprintNativeEvent, Category = "PTB|MiniGame|Events")
+	void ReceiveNoteCue(FPTBNoteEvent Note);
+	virtual void ReceiveNoteCue_Implementation(FPTBNoteEvent Note);
+
+	/** BP 미니게임에서 판정 결과 연출을 확장합니다. */
+	UFUNCTION(BlueprintNativeEvent, Category = "PTB|MiniGame|Events")
+	void ReceiveJudgement(FPTBJudgementResult Result);
+	virtual void ReceiveJudgement_Implementation(FPTBJudgementResult Result);
 
 protected:
 	virtual void BeginPlay() override;
