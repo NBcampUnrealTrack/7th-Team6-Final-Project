@@ -5,9 +5,12 @@
 #include "Components/SkeletalMeshComponent.h"
 #include "Animation/AnimInstance.h"
 #include "Engine/SkeletalMesh.h"
+#include "Camera/CameraActor.h"
+#include "GameFramework/PlayerController.h"
 #include "AkAudioEvent.h"
 #include "AkGameplayStatics.h"
 #include "Debug/PTBTeamLog.h"
+#include "Kismet/GameplayStatics.h"
 
 APTBBBPlayerActor::APTBBBPlayerActor()
 {
@@ -42,6 +45,14 @@ void APTBBBPlayerActor::BindToMiniGame(APTBBBMiniGame* InMiniGame)
 	BBMiniGame = InMiniGame;
 	InMiniGame->OnBBParrySuccess.AddUniqueDynamic(this, &APTBBBPlayerActor::HandleBBParrySuccess);
 	InMiniGame->OnBBParryFail.AddUniqueDynamic(this, &APTBBBPlayerActor::HandleBBParryFail);
+
+	if (bUseAsViewTarget)
+	{
+		if (APlayerController* PlayerController = GetWorld() ? GetWorld()->GetFirstPlayerController() : nullptr)
+		{
+			PlayerController->SetViewTargetWithBlend(ResolvePreferredViewTarget(), ViewTargetBlendTime);
+		}
+	}
 
 	// 활성 프로필에서 캐릭터 메시 자동 적용
 	if (UGameInstance* GI = GetGameInstance())
@@ -210,6 +221,37 @@ UAnimInstance* APTBBBPlayerActor::GetPlayerAnimInstance() const
 }
 
 // ── 델리게이트 핸들러 ────────────────────────────────────────────
+
+AActor* APTBBBPlayerActor::ResolvePreferredViewTarget() const
+{
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return const_cast<APTBBBPlayerActor*>(this);
+	}
+
+	TArray<AActor*> TaggedActors;
+	UGameplayStatics::GetAllActorsWithTag(World, TEXT("BBViewTarget"), TaggedActors);
+	if (!TaggedActors.IsEmpty())
+	{
+		return TaggedActors[0];
+	}
+
+	UGameplayStatics::GetAllActorsWithTag(World, TEXT("PTB_BB_Camera"), TaggedActors);
+	if (!TaggedActors.IsEmpty())
+	{
+		return TaggedActors[0];
+	}
+
+	TArray<AActor*> CameraActors;
+	UGameplayStatics::GetAllActorsOfClass(World, ACameraActor::StaticClass(), CameraActors);
+	if (!CameraActors.IsEmpty())
+	{
+		return CameraActors[0];
+	}
+
+	return const_cast<APTBBBPlayerActor*>(this);
+}
 
 void APTBBBPlayerActor::HandleBBParrySuccess(FPTBJudgementResult Result, float BossHPPercent)
 {

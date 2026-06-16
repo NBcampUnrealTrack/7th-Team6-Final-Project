@@ -80,6 +80,12 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PTB|BB|Player")
 	TObjectPtr<USkeletalMeshComponent> PlayerMesh;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|BB|Player|Camera")
+	bool bUseAsViewTarget = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|BB|Player|Camera", meta = (ClampMin = "0.0"))
+	float ViewTargetBlendTime = 0.0f;
+
 	// ── 에디터 설정 : 애니메이션 ─────────────────────────────────
 
 	/**
@@ -141,6 +147,7 @@ private:
 	// ── 내부 헬퍼 ────────────────────────────────────────────────
 
 	/** AnimInstance를 안전하게 가져온다. 없으면 nullptr과 함께 경고 출력. */
+	AActor* ResolvePreferredViewTarget() const;
 	UAnimInstance* GetPlayerAnimInstance() const;
 
 	// ── 델리게이트 핸들러 ────────────────────────────────────────
