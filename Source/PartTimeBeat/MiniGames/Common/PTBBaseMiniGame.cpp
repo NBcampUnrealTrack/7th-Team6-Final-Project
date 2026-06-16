@@ -186,7 +186,8 @@ void APTBBaseMiniGame::Tick(float DeltaTime)
 		return;
 	}
 
-	if (bAllNotesDispatched
+	if (ActiveBGMPlayingId == 0
+		&& bAllNotesDispatched
 		&& !bHasPendingNotes
 		&& !bHasActiveHolds
 		&& GetCurrentChartTimeMs() >= GetRoundEndChartTimeMs())

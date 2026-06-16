@@ -48,7 +48,7 @@ public:
 	/** 판정 가능 시간을 넘긴 노트 Miss 처리 */
 	TArray<FPTBJudgementResult> ForceMissExpiredNotes(float CurrentTimeMs);
 	
-	/** 대기 노트와 보정값 초기화 */
+	/** 대기 노트와 보정값 같은 런타임 상태 초기화 */
 	void Reset();
 
 	/** High Perfect 판정 허용 범위(ms) */
@@ -66,7 +66,7 @@ public:
 	/** 노트 판정 범위에서 다른 Action 입력 시 해당 노트를 Miss 처리 */
 	bool bMissNoteOnWrongInput = false;
 
-	/** 같은 타이밍의 여러 Action 노트 동시 입력 지원 */
+	/** 오입력 Miss 처리 시 같은 타이밍의 다른 Action 노트를 소비할지 여부 */
 	bool bSupportsSimultaneousInputs = true;
 
 	/** 동시노트로 간주할 시간 차(ms) */

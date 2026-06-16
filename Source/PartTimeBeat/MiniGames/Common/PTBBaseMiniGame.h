@@ -85,7 +85,7 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "PTB|MiniGame")
 	FPTBOnMiniGameReadyToStart OnMiniGameReadyToStart;
 
-	/** 미니게임 실제 시작 */
+	/** 인트로를 포함한 미니게임 시작 시퀀스 시작 */
 	UPROPERTY(BlueprintAssignable, Category = "PTB|MiniGame")
 	FPTBOnMiniGameStarted OnMiniGameStarted;
 

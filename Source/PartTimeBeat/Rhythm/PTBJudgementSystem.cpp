@@ -387,7 +387,4 @@ void UPTBJudgementSystem::Reset()
 {
 	PendingNotes.Reset();
 	JudgementOffsetMs = 0.0f;
-	bMissNoteOnWrongInput = false;
-	bSupportsSimultaneousInputs = true;
-	SimultaneousNoteToleranceMs = 1.0f;
 }

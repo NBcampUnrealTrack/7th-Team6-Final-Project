@@ -109,7 +109,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Judgement")
 	bool bMissNoteOnWrongInput = false;
 
-	/** 같은 타이밍의 여러 Action 노트 동시 입력 지원. false면 오입력 Miss가 동시노트 그룹을 임의 소비하지 않음 */
+	/** 오입력 Miss 처리 시 같은 타이밍의 다른 Action 노트를 소비할지 여부. false면 동시노트 그룹을 임의 소비하지 않음 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Judgement")
 	bool bSupportsSimultaneousInputs = true;
 
