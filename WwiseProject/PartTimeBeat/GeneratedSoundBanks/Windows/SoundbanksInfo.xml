@@ -163,7 +163,7 @@
 				</AcousticTexture>
 			</AcousticTextures>
 		</SoundBank>
-		<SoundBank Id="1568083734" Type="User" GUID="{DDAE794D-61D4-451C-A316-2444772C90B7}" Language="SFX" Hash="{F47B4F59-E5CE-61AD-8E78-390E04E9404D}">
+		<SoundBank Id="1568083734" Type="User" GUID="{DDAE794D-61D4-451C-A316-2444772C90B7}" Language="SFX" Hash="{9AC6107F-53D1-34F7-1D3A-757D15CA6669}">
 			<ObjectPath>\SoundBanks\Default Work Unit\TG</ObjectPath>
 			<ShortName>TG</ShortName>
 			<Path>TG.bnk</Path>
@@ -182,5 +182,5 @@
 			</Events>
 		</SoundBank>
 	</SoundBanks>
-	<FileHash>{95B221B9-82AC-8C9E-AAFB-7DB0B395A6A7}</FileHash>
+	<FileHash>{19E41462-4E96-CFAF-4CFF-A253A77931D8}</FileHash>
 </SoundBanksInfo>

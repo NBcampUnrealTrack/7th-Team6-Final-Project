@@ -582,7 +582,7 @@
     "Type": "User",
     "GUID": "{DDAE794D-61D4-451C-A316-2444772C90B7}",
     "Language": "SFX",
-    "Hash": "{F47B4F59-E5CE-61AD-8E78-390E04E9404D}",
+    "Hash": "{9AC6107F-53D1-34F7-1D3A-757D15CA6669}",
     "ObjectPath": "\\SoundBanks\\Default Work Unit\\TG",
     "ShortName": "TG",
     "Path": "TG.bnk",
@@ -614,6 +614,6 @@
     ]
    }
   ],
-  "FileHash": "{262796D4-1199-4171-6310-11D39291611B}"
+  "FileHash": "{1F04F40F-C104-C9A6-F3DB-DA7F82FD97D7}"
  }
 }
