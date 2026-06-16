@@ -90,7 +90,6 @@ void APTBFSMiniGame::BuildRuntimeState()
 	GI->CachedSettings.RhythmKeys.ActionC = EKeys::E;
 	GI->CachedSettings.RhythmKeys.ActionD = EKeys::R;
 	GI->CachedSettings.RhythmKeys.ActionE = EKeys::F;
-	OnFishDistanceChanged.AddDynamic(Character, &APTBFSCharacter::UpdateFishingLineLength);
 }
 
 void APTBFSMiniGame::HandleNoteCue(FPTBNoteEvent Note)
@@ -101,14 +100,42 @@ void APTBFSMiniGame::HandleNoteCue(FPTBNoteEvent Note)
 	MovingCount++;
 }
 
+
 void APTBFSMiniGame::HandleNoteArm(FPTBNoteEvent Note)
 {
 	Super::HandleNoteArm(Note);
+	if (!FishActor) return;
+	
+	FishLateralOffset = FVector::ZeroVector;
+	FVector BaseLoc = FMath::Lerp(CharacterLocation, FishStartLocation, FishDistance);
+	FishActor->SetTargetLocation(BaseLoc);
+
+
+	FVector Offset = FVector::ZeroVector;
+	switch (Note.ActionType)
+	{
+	case EPTBActionType::ActionA:
+	case EPTBActionType::ActionB:
+		Offset = FVector(0, 200, 0);
+		break;
+	case EPTBActionType::ActionC:
+	case EPTBActionType::ActionD:
+		Offset = FVector(0, -200, 0);
+		break;
+	case EPTBActionType::ActionE:
+		Offset = FVector(0, 0, 100);
+		break;
+	default:
+		break;
+	}
+	
+	FishLateralOffset = Offset;	
+	FishActor->SetTargetLocation(BaseLoc + FishLateralOffset);
 }
 
 void APTBFSMiniGame::HandleChartEvent(FPTBNoteEvent Note)
 {
-	Super::HandleChartEvent(Note);
+	Super::HandleChartEvent(Note); 
 	OnFishingPromptShown.Broadcast(Note.ActionType,Note.bIsLongNote);
 }
 
@@ -120,6 +147,7 @@ void APTBFSMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 		PTB_WARNING(LogPTBMiniGames,TEXT("캐릭터 유효하지 않음"));
 		return;
 	}
+	if (!FishActor)
 	if (Result.Reason == EPTBJudgementReason::EmptyInput) return;
 	if (Result.Reason == EPTBJudgementReason::EarlyRelease)
 	{
@@ -131,6 +159,7 @@ void APTBFSMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 	switch (Result.JudgementType)
 	{
 	case EPTBJudgementType::HighPerfect:
+		FishLateralOffset = FVector::ZeroVector;
 		ApplyDistanceDelta(-StepDistance * 1.0f);
 		OnFishingPromptReleased.Broadcast(Result.ActionType);
 		OnFishPulled.Broadcast(2.0f);
@@ -138,6 +167,7 @@ void APTBFSMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 		CorrectCount++;
 		break;
 	case EPTBJudgementType::Perfect:
+		FishLateralOffset = FVector::ZeroVector;
 		ApplyDistanceDelta(-StepDistance * 1.0f);
 		OnFishingPromptReleased.Broadcast(Result.ActionType);
 		OnFishPulled.Broadcast(2.0f);
@@ -145,6 +175,7 @@ void APTBFSMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 		CorrectCount++;
 		break;
 	case EPTBJudgementType::Good:
+		FishLateralOffset = FVector::ZeroVector;
 		ApplyDistanceDelta(-StepDistance * 1.0f);
 		OnFishingPromptReleased.Broadcast(Result.ActionType);
 		OnFishPulled.Broadcast(2.0f);
@@ -152,14 +183,19 @@ void APTBFSMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 		CorrectCount++;
 		break;
 	case EPTBJudgementType::Miss:
+		if (Result.Reason == EPTBJudgementReason::ExpiredNote)
+		{
+			
 		PTB_WARNING(LogPTBMiniGames, TEXT("[Fishing] Miss NoteId: %d ActionType: %d Reason: %d DeltaMs: %f"), 
 		  Result.NoteId, 
 		  static_cast<int32>(Result.ActionType),
 		  static_cast<int32>(Result.Reason),
 		  Result.DeltaMs);	
 		PTB_WARNING(LogPTBMiniGames, TEXT("[Fishing] OnFishSlipped 브로드캐스트"));
+		FishLateralOffset = FVector::ZeroVector;
 		ApplyDistanceDelta(StepDistance * 1.0f); 
 		OnFishSlipped.Broadcast(1.0f);
+		}
 		break;
 	}
 }
@@ -210,7 +246,7 @@ void APTBFSMiniGame::ApplyDistanceDelta(float Delta)
 	{
 		FVector TargetLoc = FMath::Lerp(CharacterLocation, FishStartLocation, FishDistance);
 		PTB_WARNING(LogPTBMiniGames, TEXT("[Fishing] FishActor TargetLoc: %s FishDistance: %f"), *TargetLoc.ToString(), FishDistance);
-		FishActor->SetTargetLocation(FMath::Lerp(CharacterLocation, FishStartLocation, FishDistance));
+		FishActor->SetTargetLocation(FMath::Lerp(CharacterLocation, FishStartLocation, FishDistance)+FishLateralOffset);
 	}
 }
 

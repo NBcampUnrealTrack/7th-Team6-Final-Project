@@ -7,7 +7,7 @@
 #include "PTBFSCharacter.generated.h"
 
 class UCableComponent;
-
+class APTBFSMiniGame;
 UCLASS()
 class PARTTIMEBEAT_API APTBFSCharacter : public APTBRhythmCharacterBase
 {
@@ -18,14 +18,14 @@ public:
 	
 	void OnPlayCastAnimMontage();
 	void OnPlayRealAnimMontage();
-
-	UFUNCTION()
-	void UpdateFishingLineLength(float FishDistance);
-
+	
 	UFUNCTION()
 	void SetFishLineTarget(AActor* InFishActor);
 	
 	void AttachFishingLine();
+	
+	UFUNCTION()
+	void OnFishingLineStateChanged(EFishingLineState NewState);
 	
 	UPROPERTY(EditAnywhere, Category = "Fishing")
 	FName FishSocketName = FName("TestSocket");
@@ -45,6 +45,4 @@ private:
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|FSAnim",meta=(AllowPrivateAccess=true))
 	TObjectPtr<UAnimMontage> CastAnimMontage = nullptr;
-
-	
 };

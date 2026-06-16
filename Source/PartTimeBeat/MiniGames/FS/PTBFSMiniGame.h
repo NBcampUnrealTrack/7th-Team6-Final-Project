@@ -184,4 +184,5 @@ private:
 	
 	EFishingLineState CalculateLineState(float Distance)const;
 	
+	FVector FishLateralOffset = FVector::ZeroVector;
 };
