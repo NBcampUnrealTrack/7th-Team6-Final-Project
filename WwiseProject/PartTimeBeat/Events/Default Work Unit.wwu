@@ -14,6 +14,17 @@
 						</Action>
 					</ChildrenList>
 				</Event>
+				<Event Name="Play_PTB_FS_Easy_260616" ID="{4F646AA5-8AB5-4194-92D3-6E15C0DC74D5}">
+					<ChildrenList>
+						<Action Name="" ID="{58C15B0F-28EB-40E3-AC79-CA7DB214736E}" ShortID="610949829">
+							<ReferenceList>
+								<Reference Name="Target">
+									<ObjectRef Name="PTB_FS_Easy_260616" ID="{9BD39A85-D3D8-4939-A651-5581A9F0FDC9}" WorkUnitID="{80922B44-8199-48E9-AD42-42425C050CEB}"/>
+								</Reference>
+							</ReferenceList>
+						</Action>
+					</ChildrenList>
+				</Event>
 			</ChildrenList>
 		</WorkUnit>
 	</Events>

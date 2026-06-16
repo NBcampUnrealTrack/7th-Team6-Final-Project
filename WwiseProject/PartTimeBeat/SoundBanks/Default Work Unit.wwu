@@ -10,6 +10,13 @@
 					<ObjectExclusionList/>
 					<GameSyncExclusionList/>
 				</SoundBank>
+				<SoundBank Name="FS" ID="{8FA513FD-6B9B-4819-8471-194EF5DEBB12}">
+					<ObjectInclusionList>
+						<ObjectRef Name="Play_PTB_FS_Easy_260616" ID="{4F646AA5-8AB5-4194-92D3-6E15C0DC74D5}" WorkUnitID="{57C27AFF-72CF-40EC-ADB0-4148A3A0D350}" Origin="Manual" Filter="7"/>
+					</ObjectInclusionList>
+					<ObjectExclusionList/>
+					<GameSyncExclusionList/>
+				</SoundBank>
 			</ChildrenList>
 		</WorkUnit>
 	</SoundBanks>
