@@ -181,6 +181,24 @@
 				</Event>
 			</Events>
 		</SoundBank>
+		<SoundBank Id="1802970376" Type="User" GUID="{8FA513FD-6B9B-4819-8471-194EF5DEBB12}" Language="SFX" Hash="{FF1A69AD-0000-B14B-3564-C5A71AF18637}">
+			<ObjectPath>\SoundBanks\Default Work Unit\FS</ObjectPath>
+			<ShortName>FS</ShortName>
+			<Path>FS.bnk</Path>
+			<Media>
+				<File Id="756648171" Language="SFX" Streaming="false" Location="Memory">
+					<ShortName>PTB_FS_Easy_260616.wav</ShortName>
+					<CachePath>SFX/PTB_FS_Easy_260616_818F3B66.wem</CachePath>
+				</File>
+			</Media>
+			<Events>
+				<Event Id="2232388889" Name="Play_PTB_FS_Easy_260616" ObjectPath="\Events\Default Work Unit\Play_PTB_FS_Easy_260616" GUID="{4F646AA5-8AB5-4194-92D3-6E15C0DC74D5}" DurationType="OneShot" DurationMin="127.39998" DurationMax="127.39998">
+					<MediaRefs>
+						<MediaRef Id="756648171"/>
+					</MediaRefs>
+				</Event>
+			</Events>
+		</SoundBank>
 	</SoundBanks>
-	<FileHash>{19E41462-4E96-CFAF-4CFF-A253A77931D8}</FileHash>
+	<FileHash>{C005250A-0149-F5D6-3E61-7403D8A719C0}</FileHash>
 </SoundBanksInfo>
