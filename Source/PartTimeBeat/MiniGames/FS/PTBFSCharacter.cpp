@@ -30,7 +30,7 @@ void APTBFSCharacter::OnPlayCastAnimMontage()
 {
 	if (CastAnimMontage)
 	{
-		PlayAnimMontage(CastAnimMontage);
+		PlayAnimMontage(CastAnimMontage,2);
 	}
 }
 

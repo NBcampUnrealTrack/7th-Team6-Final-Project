@@ -11,11 +11,11 @@
 #include "Rhythm/PTBRhythmConductorComponent.h"
 
 
-
 APTBFSMiniGame::APTBFSMiniGame()
 {
 	PrimaryActorTick.bCanEverTick = false;
 }
+
 void APTBFSMiniGame::BeginPlay()
 {
 	Super::BeginPlay();
@@ -58,10 +58,10 @@ void APTBFSMiniGame::BuildRuntimeState()
 		PTB_WARNING(LogPTBMiniGames, TEXT("차트에셋 유효하지 않음"));
 		return;
 	}
-	
+
 	if (!GI)
 	{
-		PTB_WARNING(LogPTBMiniGames,TEXT("게임인스턴스 유효하지 않음"));
+		PTB_WARNING(LogPTBMiniGames, TEXT("게임인스턴스 유효하지 않음"));
 		return;
 	}
 	FishStartLocation = FishActor->GetActorLocation();
@@ -69,8 +69,8 @@ void APTBFSMiniGame::BuildRuntimeState()
 	int32 TotalNoteCount = ChartAsset->NoteEvents.Num();
 	if (TotalNoteCount <= 0)return;
 
-	StepDistance =  1.0f / TotalNoteCount;
-	
+	StepDistance = 1.0f / TotalNoteCount;
+
 	if (JudgementSystem)
 	{
 		JudgementSystem->HitWindowMissMs = 500.0f;
@@ -78,24 +78,23 @@ void APTBFSMiniGame::BuildRuntimeState()
 		JudgementSystem->HitWindowPerfectMs = 200.0f;
 		JudgementSystem->HitWindowHighPerfectMs = 80.0f;
 	}
-	
-	PTB_WARNING(LogPTBMiniGames, TEXT("[Fishing] StepDistance: %f,TotalNoteCount: %d"), 
-	StepDistance,TotalNoteCount);
-	
+
+	PTB_WARNING(LogPTBMiniGames, TEXT("[Fishing] StepDistance: %f,TotalNoteCount: %d"),
+	            StepDistance, TotalNoteCount);
+
 	Character->SetFishLineTarget(FishActor);
 	Character->OnPlayCastAnimMontage();
-	
-	GI->CachedSettings.RhythmKeys.ActionA = EKeys::Q;
-	GI->CachedSettings.RhythmKeys.ActionB = EKeys::W;
-	GI->CachedSettings.RhythmKeys.ActionC = EKeys::E;
-	GI->CachedSettings.RhythmKeys.ActionD = EKeys::R;
-	GI->CachedSettings.RhythmKeys.ActionE = EKeys::F;
+
+	GI->CachedSettings.RhythmKeys.ActionA = EKeys::Left;
+	GI->CachedSettings.RhythmKeys.ActionB = EKeys::Right;
+	GI->CachedSettings.RhythmKeys.ActionC = EKeys::Up;
 }
 
 void APTBFSMiniGame::HandleNoteCue(FPTBNoteEvent Note)
 {
 	Super::HandleNoteCue(Note);
-	PTB_WARNING(LogPTBMiniGames, TEXT("[Fishing] HandleNoteCue 호출됨 MovingCount: %d FishDistance: %f"), MovingCount, FishDistance);
+	PTB_WARNING(LogPTBMiniGames, TEXT("[Fishing] HandleNoteCue 호출됨 MovingCount: %d FishDistance: %f"), MovingCount,
+	            FishDistance);
 	if (!FishRuleSet)return;
 	MovingCount++;
 }
@@ -105,7 +104,9 @@ void APTBFSMiniGame::HandleNoteArm(FPTBNoteEvent Note)
 {
 	Super::HandleNoteArm(Note);
 	if (!FishActor) return;
-	
+
+	OnFishingPromptReleased.Broadcast(Note.ActionType);
+	OnFishingPromptShown.Broadcast(Note.ActionType, Note.bIsLongNote);
 	FishLateralOffset = FVector::ZeroVector;
 	FVector BaseLoc = FMath::Lerp(CharacterLocation, FishStartLocation, FishDistance);
 	FishActor->SetTargetLocation(BaseLoc);
@@ -115,28 +116,25 @@ void APTBFSMiniGame::HandleNoteArm(FPTBNoteEvent Note)
 	switch (Note.ActionType)
 	{
 	case EPTBActionType::ActionA:
+		Offset = FVector(0, -200, 0);
+		break;
 	case EPTBActionType::ActionB:
 		Offset = FVector(0, 200, 0);
 		break;
 	case EPTBActionType::ActionC:
-	case EPTBActionType::ActionD:
-		Offset = FVector(0, -200, 0);
-		break;
-	case EPTBActionType::ActionE:
-		Offset = FVector(0, 0, 100);
+		Offset = FVector(0, 0, 150);
 		break;
 	default:
 		break;
 	}
-	
-	FishLateralOffset = Offset;	
+
+	FishLateralOffset = Offset;
 	FishActor->SetTargetLocation(BaseLoc + FishLateralOffset);
 }
 
 void APTBFSMiniGame::HandleChartEvent(FPTBNoteEvent Note)
 {
-	Super::HandleChartEvent(Note); 
-	OnFishingPromptShown.Broadcast(Note.ActionType,Note.bIsLongNote);
+	Super::HandleChartEvent(Note);
 }
 
 void APTBFSMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
@@ -144,14 +142,15 @@ void APTBFSMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 	Super::HandleJudgementResult(Result);
 	if (!Character)
 	{
-		PTB_WARNING(LogPTBMiniGames,TEXT("캐릭터 유효하지 않음"));
+		PTB_WARNING(LogPTBMiniGames, TEXT("캐릭터 유효하지 않음"));
 		return;
 	}
-	if (!FishActor)
+	if (!FishActor)return;
 	if (Result.Reason == EPTBJudgementReason::EmptyInput) return;
 	if (Result.Reason == EPTBJudgementReason::EarlyRelease)
 	{
-		PTB_WARNING(LogPTBMiniGames, TEXT("[Fishing] EarlyRelease NoteId: %d ActionType: %d"), Result.NoteId, static_cast<int32>(Result.ActionType));
+		PTB_WARNING(LogPTBMiniGames, TEXT("[Fishing] EarlyRelease NoteId: %d ActionType: %d"), Result.NoteId,
+		            static_cast<int32>(Result.ActionType));
 		OnFishSlipped.Broadcast(1.0f);
 		OnFishingPromptReleased.Broadcast(Result.ActionType);
 		return;
@@ -183,18 +182,19 @@ void APTBFSMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 		CorrectCount++;
 		break;
 	case EPTBJudgementType::Miss:
+		FishLateralOffset = FVector::ZeroVector;
+		FishActor->SetTargetLocation(FMath::Lerp(CharacterLocation, FishStartLocation, FishDistance));
+		OnFishingPromptReleased.Broadcast(Result.ActionType);
 		if (Result.Reason == EPTBJudgementReason::ExpiredNote)
 		{
-			
-		PTB_WARNING(LogPTBMiniGames, TEXT("[Fishing] Miss NoteId: %d ActionType: %d Reason: %d DeltaMs: %f"), 
-		  Result.NoteId, 
-		  static_cast<int32>(Result.ActionType),
-		  static_cast<int32>(Result.Reason),
-		  Result.DeltaMs);	
-		PTB_WARNING(LogPTBMiniGames, TEXT("[Fishing] OnFishSlipped 브로드캐스트"));
-		FishLateralOffset = FVector::ZeroVector;
-		ApplyDistanceDelta(StepDistance * 1.0f); 
-		OnFishSlipped.Broadcast(1.0f);
+			PTB_WARNING(LogPTBMiniGames, TEXT("[Fishing] Miss NoteId: %d ActionType: %d Reason: %d DeltaMs: %f"),
+			            Result.NoteId,
+			            static_cast<int32>(Result.ActionType),
+			            static_cast<int32>(Result.Reason),
+			            Result.DeltaMs);
+			PTB_WARNING(LogPTBMiniGames, TEXT("[Fishing] OnFishSlipped 브로드캐스트"));
+			ApplyDistanceDelta(StepDistance * 1.0f);
+			OnFishSlipped.Broadcast(1.0f);
 		}
 		break;
 	}
@@ -245,13 +245,15 @@ void APTBFSMiniGame::ApplyDistanceDelta(float Delta)
 	if (FishActor)
 	{
 		FVector TargetLoc = FMath::Lerp(CharacterLocation, FishStartLocation, FishDistance);
-		PTB_WARNING(LogPTBMiniGames, TEXT("[Fishing] FishActor TargetLoc: %s FishDistance: %f"), *TargetLoc.ToString(), FishDistance);
-		FishActor->SetTargetLocation(FMath::Lerp(CharacterLocation, FishStartLocation, FishDistance)+FishLateralOffset);
+		PTB_WARNING(LogPTBMiniGames, TEXT("[Fishing] FishActor TargetLoc: %s FishDistance: %f"), *TargetLoc.ToString(),
+		            FishDistance);
+		FishActor->SetTargetLocation(
+			FMath::Lerp(CharacterLocation, FishStartLocation, FishDistance) + FishLateralOffset);
 	}
 }
 
 EFishingLineState APTBFSMiniGame::CalculateLineState(float Distance) const
-{	
+{
 	if (Distance <= 0.4f)
 	{
 		return EFishingLineState::Maximum;
