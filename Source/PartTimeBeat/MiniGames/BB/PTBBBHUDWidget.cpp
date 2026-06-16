@@ -36,6 +36,20 @@ void UPTBBBHUDWidget::BindToMiniGame(APTBBBMiniGame* InMiniGame)
 	InMiniGame->OnBBBossHPChanged.AddUniqueDynamic(this, &UPTBBBHUDWidget::HandleBBBossHPChanged);
 	InMiniGame->OnBBPlayerHPChanged.AddUniqueDynamic(this, &UPTBBBHUDWidget::HandleBBPlayerHPChanged);
 	InMiniGame->OnBBBossDefeated.AddUniqueDynamic(this, &UPTBBBHUDWidget::HandleBBBossDefeated);
+
+	// 바인딩 시점의 HP로 메인 바 및 고스트 바 초기 동기화
+	const float InitBossPercent = InMiniGame->GetBossHPPercent();
+	const float InitPlayerPercent = InMiniGame->GetPlayerHPPercent();
+
+	if (BossHPBar) { BossHPBar->SetPercent(InitBossPercent); }
+	if (BossHPGhostBar) { BossHPGhostBar->SetPercent(InitBossPercent); }
+	BossGhostPercent = InitBossPercent;
+	BossTargetPercent = InitBossPercent;
+
+	if (PlayerHPBar) { PlayerHPBar->SetPercent(InitPlayerPercent); }
+	if (PlayerHPGhostBar) { PlayerHPGhostBar->SetPercent(InitPlayerPercent); }
+	PlayerGhostPercent = InitPlayerPercent;
+	PlayerTargetPercent = InitPlayerPercent;
 }
 
 void UPTBBBHUDWidget::NativeDestruct()
@@ -105,20 +119,91 @@ void UPTBBBHUDWidget::HandleBBParryFail(FPTBJudgementResult Result, float Player
 
 void UPTBBBHUDWidget::HandleBBBossHPChanged(float NewHP, float MaxHP)
 {
-	if (BossHPBar && MaxHP > 0.f)
+	const float NewPercent = (MaxHP > 0.f) ? FMath::Clamp(NewHP / MaxHP, 0.f, 1.f) : 0.f;
+
+	if (BossHPBar)
 	{
-		BossHPBar->SetPercent(NewHP / MaxHP);
+		BossHPBar->SetPercent(NewPercent);
 	}
+
+	if (NewPercent < BossGhostPercent)
+	{
+		// HP 감소: 고스트 바를 현 위치에 유지하고 딜레이 타이머 리셋
+		BossGhostDecayTimer = GhostBarDecayDelay;
+	}
+	else
+	{
+		// HP 증가 또는 초기화: 고스트 바 즉시 동기화
+		BossGhostPercent = NewPercent;
+		if (BossHPGhostBar)
+		{
+			BossHPGhostBar->SetPercent(BossGhostPercent);
+		}
+	}
+	BossTargetPercent = NewPercent;
+
 	OnBossHPUpdated(NewHP, MaxHP);
 }
 
 void UPTBBBHUDWidget::HandleBBPlayerHPChanged(float NewHP, float MaxHP)
 {
-	if (PlayerHPBar && MaxHP > 0.f)
+	const float NewPercent = (MaxHP > 0.f) ? FMath::Clamp(NewHP / MaxHP, 0.f, 1.f) : 0.f;
+
+	if (PlayerHPBar)
 	{
-		PlayerHPBar->SetPercent(NewHP / MaxHP);
+		PlayerHPBar->SetPercent(NewPercent);
 	}
+
+	if (NewPercent < PlayerGhostPercent)
+	{
+		// HP 감소: 고스트 바를 현 위치에 유지하고 딜레이 타이머 리셋
+		PlayerGhostDecayTimer = GhostBarDecayDelay;
+	}
+	else
+	{
+		// HP 증가 또는 초기화: 고스트 바 즉시 동기화
+		PlayerGhostPercent = NewPercent;
+		if (PlayerHPGhostBar)
+		{
+			PlayerHPGhostBar->SetPercent(PlayerGhostPercent);
+		}
+	}
+	PlayerTargetPercent = NewPercent;
+
 	OnPlayerHPUpdated(NewHP, MaxHP);
+}
+
+void UPTBBBHUDWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
+{
+	Super::NativeTick(MyGeometry, InDeltaTime);
+
+	// 보스 고스트 바 감소
+	if (BossHPGhostBar && BossGhostPercent > BossTargetPercent)
+	{
+		if (BossGhostDecayTimer > 0.f)
+		{
+			BossGhostDecayTimer -= InDeltaTime;
+		}
+		else
+		{
+			BossGhostPercent = FMath::Max(BossTargetPercent, BossGhostPercent - GhostBarDecaySpeed * InDeltaTime);
+			BossHPGhostBar->SetPercent(BossGhostPercent);
+		}
+	}
+
+	// 플레이어 고스트 바 감소
+	if (PlayerHPGhostBar && PlayerGhostPercent > PlayerTargetPercent)
+	{
+		if (PlayerGhostDecayTimer > 0.f)
+		{
+			PlayerGhostDecayTimer -= InDeltaTime;
+		}
+		else
+		{
+			PlayerGhostPercent = FMath::Max(PlayerTargetPercent, PlayerGhostPercent - GhostBarDecaySpeed * InDeltaTime);
+			PlayerHPGhostBar->SetPercent(PlayerGhostPercent);
+		}
+	}
 }
 
 void UPTBBBHUDWidget::HandleBBBossDefeated()
