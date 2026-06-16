@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "Core/PTBStructEnums.h"
+#include "TimerManager.h"
 #include "PTBBaseMiniGame.generated.h"
 
 class UPTBMiniGameRuleSet;
@@ -19,6 +20,9 @@ class UAkComponent;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FPTBOnMiniGameFinished, FPTBRoundResult, Result);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FPTBOnMiniGameReadyToStart);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FPTBOnMiniGameStarted);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FPTBMiniGameNoteDelegate, FPTBNoteEvent, Note);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FPTBMiniGameJudgementDelegate, FPTBJudgementResult, Result);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FPTBMiniGameOutroDelegate, FPTBRoundResult, Result, EPTBRoundEndReason, EndReason);
 
 struct FPTBActiveHoldState
 {
@@ -81,9 +85,37 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "PTB|MiniGame")
 	FPTBOnMiniGameReadyToStart OnMiniGameReadyToStart;
 
-	/** 미니게임 실제 시작 */
+	/** 인트로를 포함한 미니게임 시작 시퀀스 시작 */
 	UPROPERTY(BlueprintAssignable, Category = "PTB|MiniGame")
 	FPTBOnMiniGameStarted OnMiniGameStarted;
+
+	/** Audio와 Chart가 실제로 시작될 때 발생 */
+	UPROPERTY(BlueprintAssignable, Category = "PTB|MiniGame|Flow")
+	FPTBOnMiniGameStarted OnMiniGameGameplayStarted;
+
+	/** 결과 전달 전 종료 연출이 시작될 때 발생. EndReason으로 성공/실패 연출을 구분합니다. */
+	UPROPERTY(BlueprintAssignable, Category = "PTB|MiniGame|Flow")
+	FPTBMiniGameOutroDelegate OnMiniGameOutroStarted;
+
+	/** 종료 연출 시간이 끝나고 결과 전달 직전에 발생 */
+	UPROPERTY(BlueprintAssignable, Category = "PTB|MiniGame|Flow")
+	FPTBMiniGameOutroDelegate OnMiniGameOutroFinished;
+
+	/** 채보 노트가 실제 이벤트 타이밍에 도달했을 때 발생 */
+	UPROPERTY(BlueprintAssignable, Category = "PTB|MiniGame|Events")
+	FPTBMiniGameNoteDelegate OnMiniGameChartNote;
+
+	/** 노트가 판정 대기열에 등록됐을 때 발생 */
+	UPROPERTY(BlueprintAssignable, Category = "PTB|MiniGame|Events")
+	FPTBMiniGameNoteDelegate OnMiniGameNoteArmed;
+
+	/** 노트 선행 비주얼 큐 타이밍에 발생 */
+	UPROPERTY(BlueprintAssignable, Category = "PTB|MiniGame|Events")
+	FPTBMiniGameNoteDelegate OnMiniGameNoteCue;
+
+	/** 공통 점수/SFX 처리가 반영된 판정 결과 */
+	UPROPERTY(BlueprintAssignable, Category = "PTB|MiniGame|Events")
+	FPTBMiniGameJudgementDelegate OnMiniGameJudgement;
 
 	/** 컨텍스트 주입 */
 	virtual void InitializeMiniGame(const FPTBMiniGameContext& Context);
@@ -123,6 +155,46 @@ public:
 	/** 현재 입력 판정 기준 시간(ms) */
 	UFUNCTION(BlueprintPure, Category = "PTB|MiniGame|Time")
 	float GetCurrentInputJudgeTimeMs() const;
+
+	/** BP 미니게임에서 채보 노트 타이밍 연출을 확장합니다. */
+	UFUNCTION(BlueprintNativeEvent, Category = "PTB|MiniGame|Events")
+	void ReceiveChartNote(FPTBNoteEvent Note);
+	virtual void ReceiveChartNote_Implementation(FPTBNoteEvent Note);
+
+	/** BP 미니게임에서 판정 대기열 등록 타이밍 연출을 확장합니다. */
+	UFUNCTION(BlueprintNativeEvent, Category = "PTB|MiniGame|Events")
+	void ReceiveNoteArmed(FPTBNoteEvent Note);
+	virtual void ReceiveNoteArmed_Implementation(FPTBNoteEvent Note);
+
+	/** BP 미니게임에서 선행 큐 연출을 확장합니다. */
+	UFUNCTION(BlueprintNativeEvent, Category = "PTB|MiniGame|Events")
+	void ReceiveNoteCue(FPTBNoteEvent Note);
+	virtual void ReceiveNoteCue_Implementation(FPTBNoteEvent Note);
+
+	/** BP 미니게임에서 판정 결과 연출을 확장합니다. */
+	UFUNCTION(BlueprintNativeEvent, Category = "PTB|MiniGame|Events")
+	void ReceiveJudgement(FPTBJudgementResult Result);
+	virtual void ReceiveJudgement_Implementation(FPTBJudgementResult Result);
+
+	/** BP 미니게임에서 시작 연출 시점을 확장합니다. */
+	UFUNCTION(BlueprintNativeEvent, Category = "PTB|MiniGame|Flow")
+	void ReceiveIntroStarted();
+	virtual void ReceiveIntroStarted_Implementation();
+
+	/** BP 미니게임에서 Audio/Chart 실제 시작 시점 연출을 확장합니다. */
+	UFUNCTION(BlueprintNativeEvent, Category = "PTB|MiniGame|Flow")
+	void ReceiveGameplayStarted();
+	virtual void ReceiveGameplayStarted_Implementation();
+
+	/** BP 미니게임에서 결과 전달 전 종료 연출을 확장합니다. */
+	UFUNCTION(BlueprintNativeEvent, Category = "PTB|MiniGame|Flow")
+	void ReceiveOutroStarted(FPTBRoundResult Result, EPTBRoundEndReason EndReason);
+	virtual void ReceiveOutroStarted_Implementation(FPTBRoundResult Result, EPTBRoundEndReason EndReason);
+
+	/** BP 미니게임에서 종료 연출 완료 시점을 확장합니다. */
+	UFUNCTION(BlueprintNativeEvent, Category = "PTB|MiniGame|Flow")
+	void ReceiveOutroFinished(FPTBRoundResult Result, EPTBRoundEndReason EndReason);
+	virtual void ReceiveOutroFinished_Implementation(FPTBRoundResult Result, EPTBRoundEndReason EndReason);
 
 protected:
 	virtual void BeginPlay() override;
@@ -192,6 +264,14 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PTB|MiniGame")
 	bool bIsRoundActive = false;
 
+	/** 시작 연출 또는 게임플레이 시작 대기 중 */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PTB|MiniGame")
+	bool bStartSequenceActive = false;
+
+	/** 종료 처리 또는 종료 연출 진행 중 */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PTB|MiniGame")
+	bool bFinishSequenceActive = false;
+
 	/** 입력 잠금 */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PTB|MiniGame", AdvancedDisplay)
 	bool bInputLocked = true;
@@ -214,6 +294,15 @@ protected:
 
 	/** 유지 중인 Hold 노트 */
 	TArray<FPTBActiveHoldState> ActiveHoldStates;
+
+	/** 인트로 후 Audio/Chart 시작 타이머 */
+	FTimerHandle IntroTimerHandle;
+
+	/** 아웃트로 후 결과 전달 타이머 */
+	FTimerHandle OutroTimerHandle;
+
+	/** 결과 전달 대기 중인 종료 사유 */
+	EPTBRoundEndReason PendingEndReason = EPTBRoundEndReason::Completed;
 
 	/** 라운드 시작 전 에셋 준비(하위 override 권장) */
 	virtual void PreloadAssets();
@@ -244,6 +333,15 @@ protected:
 
 	/** 로딩/일시정지/결과 UI에서 사용할 GameAndUI 입력 모드 적용 */
 	virtual void ApplyGameAndUIInputMode();
+
+	/** Audio와 Chart를 실제로 시작 */
+	virtual void BeginGameplaySequence();
+
+	/** 결과 전달 전 종료 연출을 시작하거나 즉시 완료 */
+	virtual void BeginOutroSequence(EPTBRoundEndReason Reason);
+
+	/** 결과 델리게이트를 전달하고 GameMode 플로우로 넘김 */
+	virtual void CompleteFinishSequence();
 
 	/** 채보 이벤트 처리(하위 override) */
 	UFUNCTION()

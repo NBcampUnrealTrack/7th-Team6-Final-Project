@@ -9,7 +9,6 @@
 
 APTBLCMiniGame::APTBLCMiniGame()
 {
-	PrimaryActorTick.bCanEverTick = false;
 	CollisionBox = CreateDefaultSubobject<UBoxComponent>(TEXT("CollisionBox"));
 	CollisionBox->SetupAttachment(RootComponent);
 }
@@ -108,7 +107,7 @@ void APTBLCMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 		return;
 	}
 	
-	if (Result.Reason == EPTBJudgementReason::Note)
+	if (Result.Reason == EPTBJudgementReason::Note || Result.Reason == EPTBJudgementReason::WrongInput)
 	{
 		FPTBNoteEvent Note;
 		OnJudgement.Broadcast(Result, Note);

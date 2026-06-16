@@ -116,6 +116,30 @@ namespace PTBJudgementSystemInternal
 
 		return Low;
 	}
+
+	bool IsSimultaneousDifferentActionNote(const FPTBNoteEvent& Left, const FPTBNoteEvent& Right, float ToleranceMs)
+	{
+		return Left.ActionType != Right.ActionType
+			&& FMath::Abs(Left.TimeMs - Right.TimeMs) <= ToleranceMs;
+	}
+
+	bool HasSimultaneousDifferentActionNote(const TArray<FPTBNoteEvent>& Notes, const FPTBNoteEvent& TargetNote, float ToleranceMs)
+	{
+		for (const FPTBNoteEvent& Note : Notes)
+		{
+			if (IsSameNote(Note, TargetNote))
+			{
+				continue;
+			}
+
+			if (IsSimultaneousDifferentActionNote(Note, TargetNote, ToleranceMs))
+			{
+				return true;
+			}
+		}
+
+		return false;
+	}
 }
 
 UPTBJudgementSystem::UPTBJudgementSystem()
@@ -202,6 +226,58 @@ FPTBJudgementResult UPTBJudgementSystem::EvaluateInput(EPTBActionType Action, fl
 
 	if (BestNoteIndex == INDEX_NONE)
 	{
+		if (bMissNoteOnWrongInput)
+		{
+			int32 WrongInputNoteIndex = INDEX_NONE;
+			float WrongInputBestAbsDeltaMs = HitWindowMissMs;
+			float WrongInputBestSignedDeltaMs = 0.0f;
+
+			for (int32 Index = 0; Index < PendingNotes.Num(); ++Index)
+			{
+				const FPTBNoteEvent& Note = PendingNotes[Index];
+				if (Note.ActionType == Action)
+				{
+					continue;
+				}
+
+				const float SignedDeltaMs = CorrectedInputTimeMs - Note.TimeMs;
+				const float AbsDeltaMs = FMath::Abs(SignedDeltaMs);
+				if (AbsDeltaMs <= HitWindowMissMs && (WrongInputNoteIndex == INDEX_NONE || AbsDeltaMs < WrongInputBestAbsDeltaMs))
+				{
+					WrongInputNoteIndex = Index;
+					WrongInputBestAbsDeltaMs = AbsDeltaMs;
+					WrongInputBestSignedDeltaMs = SignedDeltaMs;
+				}
+			}
+
+			if (WrongInputNoteIndex != INDEX_NONE)
+			{
+				const FPTBNoteEvent WrongInputNote = PendingNotes[WrongInputNoteIndex];
+				const bool bHasSimultaneousNote = PTBJudgementSystemInternal::HasSimultaneousDifferentActionNote(
+					PendingNotes,
+					WrongInputNote,
+					FMath::Max(0.0f, SimultaneousNoteToleranceMs));
+
+				if (bSupportsSimultaneousInputs || !bHasSimultaneousNote)
+				{
+					PendingNotes.RemoveAt(WrongInputNoteIndex);
+
+					const FPTBJudgementResult Result = PTBJudgementSystemInternal::MakeMissResult(
+						WrongInputNote.ActionType,
+						EPTBJudgementReason::WrongInput,
+						WrongInputNote.NoteId,
+						WrongInputBestSignedDeltaMs,
+						WrongInputNote.TimeMs,
+						CorrectedInputTimeMs);
+					if (bBroadcastResult)
+					{
+						OnJudgementResult.Broadcast(Result);
+					}
+					return Result;
+				}
+			}
+		}
+
 		const FPTBJudgementResult Result = PTBJudgementSystemInternal::MakeMissResult(
 			Action,
 			EPTBJudgementReason::EmptyInput,

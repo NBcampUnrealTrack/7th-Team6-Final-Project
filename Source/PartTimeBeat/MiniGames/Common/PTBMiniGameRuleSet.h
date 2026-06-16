@@ -49,6 +49,22 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Audio")
 	TObjectPtr<UPTBWwiseEventMapAsset> AudioEventSet;
 
+	/** 시작 연출 시간을 사용할지 여부 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Intro/Outro")
+	bool bUseIntroTime = false;
+
+	/** 시작 연출 시간(ms). 이 시간이 지난 뒤 Audio와 Chart가 시작됩니다. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Intro/Outro", meta = (EditCondition = "bUseIntroTime", EditConditionHides, ClampMin = "0", UIMin = "0"))
+	float IntroTimeMs = 0.0f;
+
+	/** 종료 연출 시간을 사용할지 여부 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Intro/Outro")
+	bool bUseOutroTime = false;
+
+	/** 종료 연출 시간(ms). 이 시간이 지난 뒤 결과 전달과 맵 전환이 시작됩니다. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Intro/Outro", meta = (EditCondition = "bUseOutroTime", EditConditionHides, ClampMin = "0", UIMin = "0"))
+	float OutroTimeMs = 0.0f;
+
 	/** 비주얼 큐 선행 시간 기준 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Timing")
 	EPTBCueLeadTimeMode CueLeadTimeMode = EPTBCueLeadTimeMode::Beat;
@@ -88,6 +104,18 @@ public:
 	/** Miss 입력 소비 허용 범위(ms) */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Judgement", meta = (EditCondition = "bUseJudgementWindowOverride", EditConditionHides, ClampMin = "0", UIMin = "0"))
 	float HitWindowMissMsOverride = 250.0f;
+
+	/** 노트 판정 범위에서 다른 Action 입력 시 해당 노트를 Miss 처리 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Judgement")
+	bool bMissNoteOnWrongInput = false;
+
+	/** 오입력 Miss 처리 시 같은 타이밍의 다른 Action 노트를 소비할지 여부. false면 동시노트 그룹을 임의 소비하지 않음 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Judgement")
+	bool bSupportsSimultaneousInputs = true;
+
+	/** 동시노트로 간주할 시간 차(ms) */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Judgement", meta = (ClampMin = "0", UIMin = "0"))
+	float SimultaneousNoteToleranceMs = 1.0f;
 
 	/** 초보모드에서 미스 제한으로 실패 처리 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Failure", meta = (DisplayName = "초보모드 미스 제한 실패"))

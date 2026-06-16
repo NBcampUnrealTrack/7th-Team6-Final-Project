@@ -14,6 +14,7 @@
 #include "Rhythm/PTBScoreCalculator.h"
 #include "GameFramework/PlayerController.h"
 #include "InputCoreTypes.h"
+#include "TimerManager.h"
 
 namespace PTBBaseMiniGameInternal
 {
@@ -94,10 +95,13 @@ APTBBaseMiniGame::APTBBaseMiniGame()
 	bIsInitialized = false;
 	bIsReadyToStart = false;
 	bIsRoundActive = false;
+	bStartSequenceActive = false;
+	bFinishSequenceActive = false;
 	bInputLocked = true;
 	bPendingRoundFinish = false;
 	bAllNotesDispatched = false;
 	ActiveBGMPlayingId = 0;
+	PendingEndReason = EPTBRoundEndReason::Completed;
 }
 
 void APTBBaseMiniGame::BeginPlay()
@@ -207,7 +211,12 @@ void APTBBaseMiniGame::InitializeMiniGame(const FPTBMiniGameContext& Context)
 	bIsInitialized = false;
 	bIsReadyToStart = false;
 	bIsRoundActive = false;
+	bStartSequenceActive = false;
+	bFinishSequenceActive = false;
 	bInputLocked = true;
+	PendingEndReason = EPTBRoundEndReason::Completed;
+	GetWorldTimerManager().ClearTimer(IntroTimerHandle);
+	GetWorldTimerManager().ClearTimer(OutroTimerHandle);
 
 	HandleLoadingStarted();
 
@@ -290,6 +299,13 @@ void APTBBaseMiniGame::InitializeMiniGame(const FPTBMiniGameContext& Context)
 		JudgementSystem->HitWindowPerfectMs = RuleSet->HitWindowPerfectMsOverride;
 		JudgementSystem->HitWindowGoodMs = RuleSet->HitWindowGoodMsOverride;
 		JudgementSystem->HitWindowMissMs = RuleSet->HitWindowMissMsOverride;
+	}
+
+	if (JudgementSystem && RuleSet)
+	{
+		JudgementSystem->bMissNoteOnWrongInput = RuleSet->bMissNoteOnWrongInput;
+		JudgementSystem->bSupportsSimultaneousInputs = RuleSet->bSupportsSimultaneousInputs;
+		JudgementSystem->SimultaneousNoteToleranceMs = RuleSet->SimultaneousNoteToleranceMs;
 	}
 
 	if (RhythmConductor && JudgementSystem)
@@ -492,7 +508,7 @@ void APTBBaseMiniGame::ApplyGameAndUIInputMode()
 
 void APTBBaseMiniGame::StartMiniGame()
 {
-	if (bIsRoundActive)
+	if (bStartSequenceActive || bIsRoundActive || bFinishSequenceActive)
 	{
 		return;
 	}
@@ -510,6 +526,30 @@ void APTBBaseMiniGame::StartMiniGame()
 	HideLoadingWidget();
 	DisableInput(GetWorld() ? GetWorld()->GetFirstPlayerController() : nullptr);
 	ApplyGameOnlyInputMode();
+	bStartSequenceActive = true;
+	bInputLocked = true;
+	OnMiniGameStarted.Broadcast();
+	ReceiveIntroStarted();
+
+	const float IntroDelaySeconds = RuleSet && RuleSet->bUseIntroTime
+		? FMath::Max(0.0f, RuleSet->IntroTimeMs) / 1000.0f
+		: 0.0f;
+	if (IntroDelaySeconds > 0.0f)
+	{
+		GetWorldTimerManager().SetTimer(IntroTimerHandle, this, &APTBBaseMiniGame::BeginGameplaySequence, IntroDelaySeconds, false);
+		return;
+	}
+
+	BeginGameplaySequence();
+}
+
+void APTBBaseMiniGame::BeginGameplaySequence()
+{
+	GetWorldTimerManager().ClearTimer(IntroTimerHandle);
+	if (!bStartSequenceActive || bIsRoundActive || bFinishSequenceActive)
+	{
+		return;
+	}
 
 	if (AudioManager)
 	{
@@ -546,8 +586,10 @@ void APTBBaseMiniGame::StartMiniGame()
 	}
 
 	bIsRoundActive = true;
+	bStartSequenceActive = false;
 	bInputLocked = false;
-	OnMiniGameStarted.Broadcast();
+	OnMiniGameGameplayStarted.Broadcast();
+	ReceiveGameplayStarted();
 
 	UE_LOG(LogRhythm, Log, TEXT("[%s] MiniGame started. Notes=%d BPM=%.2f OffsetMs=%.2f"), *GetNameSafe(this), ChartAsset->NoteEvents.Num(), GameContext.ChartData.BPM, GameContext.ChartData.OffsetMs);
 }
@@ -570,33 +612,44 @@ void APTBBaseMiniGame::HandleStartInput()
 
 FPTBRoundResult APTBBaseMiniGame::FinishMiniGame(EPTBRoundEndReason Reason)
 {
-	if (!bIsRoundActive && RoundResult.MiniGameId == MiniGameId)
+	if (bFinishSequenceActive || (!bIsRoundActive && !bStartSequenceActive && RoundResult.MiniGameId == MiniGameId))
 	{
 		return RoundResult;
 	}
 
+	bFinishSequenceActive = true;
+	PendingEndReason = Reason;
 	bIsRoundActive = false;
+	bStartSequenceActive = false;
 	bIsReadyToStart = false;
 	bInputLocked = true;
 	bPendingRoundFinish = false;
+	GetWorldTimerManager().ClearTimer(IntroTimerHandle);
 	ApplyGameAndUIInputMode();
 
-	if (JudgementSystem)
+	if (Reason != EPTBRoundEndReason::Aborted && JudgementSystem)
 	{
 		JudgementSystem->ForceMissExpiredNotes(GetRoundEndChartTimeMs());
 	}
 
-	const float CurrentInputTimeMs = GetCurrentInputJudgeTimeMs();
-	for (int32 Index = ActiveHoldStates.Num() - 1; Index >= 0; --Index)
+	if (Reason != EPTBRoundEndReason::Aborted)
 	{
-		if (CurrentInputTimeMs >= ActiveHoldStates[Index].RequiredHoldUntilTimeMs)
+		const float CurrentInputTimeMs = GetCurrentInputJudgeTimeMs();
+		for (int32 Index = ActiveHoldStates.Num() - 1; Index >= 0; --Index)
 		{
-			ConfirmActiveHold(Index);
+			if (CurrentInputTimeMs >= ActiveHoldStates[Index].RequiredHoldUntilTimeMs)
+			{
+				ConfirmActiveHold(Index);
+			}
+			else
+			{
+				FailActiveHoldEarlyRelease(Index, CurrentInputTimeMs);
+			}
 		}
-		else
-		{
-			FailActiveHoldEarlyRelease(Index, CurrentInputTimeMs);
-		}
+	}
+	else
+	{
+		ActiveHoldStates.Reset();
 	}
 
 	if (RhythmConductor)
@@ -628,20 +681,59 @@ FPTBRoundResult APTBBaseMiniGame::FinishMiniGame(EPTBRoundEndReason Reason)
 		RoundResult.GoodCount,
 		RoundResult.MissCount);
 
-	OnMiniGameFinished.Broadcast(RoundResult);
+	BeginOutroSequence(Reason);
 
 	return RoundResult;
 }
 
+void APTBBaseMiniGame::BeginOutroSequence(EPTBRoundEndReason Reason)
+{
+	if (Reason == EPTBRoundEndReason::Aborted)
+	{
+		CompleteFinishSequence();
+		return;
+	}
+
+	OnMiniGameOutroStarted.Broadcast(RoundResult, Reason);
+	ReceiveOutroStarted(RoundResult, Reason);
+
+	const float OutroDelaySeconds = RuleSet && RuleSet->bUseOutroTime
+		? FMath::Max(0.0f, RuleSet->OutroTimeMs) / 1000.0f
+		: 0.0f;
+	if (OutroDelaySeconds > 0.0f)
+	{
+		GetWorldTimerManager().SetTimer(OutroTimerHandle, this, &APTBBaseMiniGame::CompleteFinishSequence, OutroDelaySeconds, false);
+		return;
+	}
+
+	CompleteFinishSequence();
+}
+
+void APTBBaseMiniGame::CompleteFinishSequence()
+{
+	GetWorldTimerManager().ClearTimer(OutroTimerHandle);
+
+	if (PendingEndReason != EPTBRoundEndReason::Aborted)
+	{
+		OnMiniGameOutroFinished.Broadcast(RoundResult, PendingEndReason);
+		ReceiveOutroFinished(RoundResult, PendingEndReason);
+	}
+
+	bFinishSequenceActive = false;
+	OnMiniGameFinished.Broadcast(RoundResult);
+}
+
 void APTBBaseMiniGame::PauseMiniGame()
 {
-	if (!bIsRoundActive)
+	if (!bIsRoundActive && !bStartSequenceActive && !bFinishSequenceActive)
 	{
 		return;
 	}
 
 	bInputLocked = true;
 	ApplyGameAndUIInputMode();
+	GetWorldTimerManager().PauseTimer(IntroTimerHandle);
+	GetWorldTimerManager().PauseTimer(OutroTimerHandle);
 	if (RhythmConductor)
 	{
 		RhythmConductor->PauseConductor();
@@ -655,11 +747,13 @@ void APTBBaseMiniGame::PauseMiniGame()
 
 void APTBBaseMiniGame::ResumeMiniGame()
 {
-	if (!bIsRoundActive)
+	if (!bIsRoundActive && !bStartSequenceActive && !bFinishSequenceActive)
 	{
 		return;
 	}
 
+	GetWorldTimerManager().UnPauseTimer(IntroTimerHandle);
+	GetWorldTimerManager().UnPauseTimer(OutroTimerHandle);
 	if (RhythmConductor)
 	{
 		RhythmConductor->ResumeConductor();
@@ -670,7 +764,7 @@ void APTBBaseMiniGame::ResumeMiniGame()
 		AudioManager->ResumeBGM();
 	}
 
-	bInputLocked = false;
+	bInputLocked = !bIsRoundActive;
 	ApplyGameOnlyInputMode();
 }
 
@@ -682,6 +776,9 @@ void APTBBaseMiniGame::HandleChartEvent(FPTBNoteEvent Note)
 		static_cast<int32>(Note.ActionType),
 		Note.TimeMs,
 		Note.BeatTime);
+
+	OnMiniGameChartNote.Broadcast(Note);
+	ReceiveChartNote(Note);
 }
 
 void APTBBaseMiniGame::HandleNoteArm(FPTBNoteEvent Note)
@@ -699,6 +796,9 @@ void APTBBaseMiniGame::HandleNoteArm(FPTBNoteEvent Note)
 		static_cast<int32>(Note.ActionType),
 		RhythmConductor ? RhythmConductor->ArmLeadTimeMs : 0.0f,
 		Note.TimeMs);
+
+	OnMiniGameNoteArmed.Broadcast(Note);
+	ReceiveNoteArmed(Note);
 }
 
 void APTBBaseMiniGame::HandleNoteCue(FPTBNoteEvent Note)
@@ -709,6 +809,9 @@ void APTBBaseMiniGame::HandleNoteCue(FPTBNoteEvent Note)
 		static_cast<int32>(Note.ActionType),
 		Note.BeatTime,
 		Note.TimeMs);
+
+	OnMiniGameNoteCue.Broadcast(Note);
+	ReceiveNoteCue(Note);
 }
 
 void APTBBaseMiniGame::HandleRhythmInput(EPTBActionType Action, float TimeMs)
@@ -954,6 +1057,9 @@ void APTBBaseMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 		}
 	}
 
+	OnMiniGameJudgement.Broadcast(Result);
+	ReceiveJudgement(Result);
+
 	if (RuleSet && ScoreCalculator && RuleSet->ShouldFailForMissCount(GameContext.SessionRequest.Difficulty, ScoreCalculator->MissCount))
 	{
 		FinishMiniGame(EPTBRoundEndReason::Failed);
@@ -968,6 +1074,38 @@ void APTBBaseMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 		Result.InputTimeMs,
 		Result.DeltaMs,
 		Result.ScoreDelta);
+}
+
+void APTBBaseMiniGame::ReceiveChartNote_Implementation(FPTBNoteEvent Note)
+{
+}
+
+void APTBBaseMiniGame::ReceiveNoteArmed_Implementation(FPTBNoteEvent Note)
+{
+}
+
+void APTBBaseMiniGame::ReceiveNoteCue_Implementation(FPTBNoteEvent Note)
+{
+}
+
+void APTBBaseMiniGame::ReceiveJudgement_Implementation(FPTBJudgementResult Result)
+{
+}
+
+void APTBBaseMiniGame::ReceiveIntroStarted_Implementation()
+{
+}
+
+void APTBBaseMiniGame::ReceiveGameplayStarted_Implementation()
+{
+}
+
+void APTBBaseMiniGame::ReceiveOutroStarted_Implementation(FPTBRoundResult Result, EPTBRoundEndReason EndReason)
+{
+}
+
+void APTBBaseMiniGame::ReceiveOutroFinished_Implementation(FPTBRoundResult Result, EPTBRoundEndReason EndReason)
+{
 }
 
 FPTBMiniGameResultPayload APTBBaseMiniGame::BuildResultPayload() const
