@@ -9,7 +9,6 @@
 
 APTBLCMiniGame::APTBLCMiniGame()
 {
-	PrimaryActorTick.bCanEverTick = false;
 	CollisionBox = CreateDefaultSubobject<UBoxComponent>(TEXT("CollisionBox"));
 	CollisionBox->SetupAttachment(RootComponent);
 }
