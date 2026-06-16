@@ -612,44 +612,8 @@
       ]
      }
     ]
-   },
-   {
-    "Id": "1802970376",
-    "Type": "User",
-    "GUID": "{8FA513FD-6B9B-4819-8471-194EF5DEBB12}",
-    "Language": "SFX",
-    "Hash": "{FF1A69AD-0000-B14B-3564-C5A71AF18637}",
-    "ObjectPath": "\\SoundBanks\\Default Work Unit\\FS",
-    "ShortName": "FS",
-    "Path": "FS.bnk",
-    "Media": [
-     {
-      "Id": "756648171",
-      "Language": "SFX",
-      "Streaming": "false",
-      "Location": "Memory",
-      "ShortName": "PTB_FS_Easy_260616.wav",
-      "CachePath": "SFX/PTB_FS_Easy_260616_818F3B66.wem"
-     }
-    ],
-    "Events": [
-     {
-      "Id": "2232388889",
-      "Name": "Play_PTB_FS_Easy_260616",
-      "ObjectPath": "\\Events\\Default Work Unit\\Play_PTB_FS_Easy_260616",
-      "GUID": "{4F646AA5-8AB5-4194-92D3-6E15C0DC74D5}",
-      "DurationType": "OneShot",
-      "DurationMin": "127.39998",
-      "DurationMax": "127.39998",
-      "MediaRefs": [
-       {
-        "Id": "756648171"
-       }
-      ]
-     }
-    ]
    }
   ],
-  "FileHash": "{7235D3E8-AF72-54DF-3398-2103D33CE62E}"
+  "FileHash": "{1F04F40F-C104-C9A6-F3DB-DA7F82FD97D7}"
  }
 }
