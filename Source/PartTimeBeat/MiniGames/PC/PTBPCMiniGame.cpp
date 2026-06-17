@@ -2,6 +2,7 @@
 #include "Audio/PTBWwiseAudioManager.h"
 #include "Engine/Engine.h"
 #include "Kismet/GameplayStatics.h"
+#include "Engine/Engine.h"
 #include "MiniGames/PC/PTBPCMiniGameRuleSet.h"
 #include "Rhythm/PTBJudgementSystem.h"
 #include "Rhythm/PTBRhythmChartAsset.h"
@@ -74,7 +75,7 @@ void APTBPCMiniGame::HandleChartEvent(FPTBNoteEvent Note)
         MoveDelayHandle,
         RailCharacter,
         &APCRailCharacter::MoveOneStep,
-        0.5f,  // 딜레이 초
+        0.25f,  // 딜레이 초
         false
     );
 }
@@ -83,6 +84,35 @@ void APTBPCMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 {
     Super::HandleJudgementResult(Result);
 
+    FString Message;
+    FColor Color;
+
+    switch (Result.JudgementType)
+    {
+    case EPTBJudgementType::HighPerfect:
+        Message = TEXT("HIGHPERFECT");
+        Color = FColor::Cyan;
+        break;
+    case EPTBJudgementType::Perfect:
+        Message = TEXT("PERFECT");
+        Color = FColor::Green;
+        break;
+    case EPTBJudgementType::Good:
+        Message = TEXT("GOOD");
+        Color = FColor::Yellow;
+        break;
+    case EPTBJudgementType::Miss:
+        Message = TEXT("MISS");
+        Color = FColor::Red;
+        break;
+    default:
+        Message = TEXT("?");
+        Color = FColor::White;
+        break;
+    }
+
+    // 화면에 출력 (5.f = 표시 시간(초))
+    GEngine->AddOnScreenDebugMessage(-1, 2.f, Color, Message);
 
 }
 
