@@ -105,9 +105,8 @@ public:
 	TObjectPtr<UProgressBar> PlayerHPGhostBar;
 
 	/** 피해 발생 후 고스트 바 감소 시작까지의 지연 시간(초) */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|BB|HUD|GhostBar")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|BB|HUD|GhostBar", meta = (ClampMin = "0.0", UIMin = "0.0"))
 	float GhostBarDecayDelay = 0.5f;
-
 	/** 고스트 바 감소 속도 (초당 비율, 1.0 = 1초에 전체 감소) */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|BB|HUD|GhostBar")
 	float GhostBarDecaySpeed = 1.5f;
