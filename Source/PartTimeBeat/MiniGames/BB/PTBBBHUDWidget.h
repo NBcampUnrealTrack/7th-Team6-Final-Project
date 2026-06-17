@@ -146,6 +146,9 @@ protected:
 	void OnPlayerHPUpdated(float NewHP, float MaxHP);
 
 private:
+	/** 현재 미니게임 HP 기준으로 메인 바·고스트 바 상태를 동기화. NativeConstruct/BindToMiniGame 양쪽에서 호출 */
+	void SyncBarsToMiniGame();
+
 	// ── 고스트 바 런타임 상태 ────────────────────────────────────
 
 	float BossGhostPercent = 1.0f;

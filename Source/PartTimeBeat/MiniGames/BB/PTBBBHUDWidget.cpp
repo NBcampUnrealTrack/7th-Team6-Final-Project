@@ -38,18 +38,7 @@ void UPTBBBHUDWidget::BindToMiniGame(APTBBBMiniGame* InMiniGame)
 	InMiniGame->OnBBBossDefeated.AddUniqueDynamic(this, &UPTBBBHUDWidget::HandleBBBossDefeated);
 
 	// 바인딩 시점의 HP로 메인 바 및 고스트 바 초기 동기화
-	const float InitBossPercent = InMiniGame->GetBossHPPercent();
-	const float InitPlayerPercent = InMiniGame->GetPlayerHPPercent();
-
-	if (BossHPBar) { BossHPBar->SetPercent(InitBossPercent); }
-	if (BossHPGhostBar) { BossHPGhostBar->SetPercent(InitBossPercent); }
-	BossGhostPercent = InitBossPercent;
-	BossTargetPercent = InitBossPercent;
-
-	if (PlayerHPBar) { PlayerHPBar->SetPercent(InitPlayerPercent); }
-	if (PlayerHPGhostBar) { PlayerHPGhostBar->SetPercent(InitPlayerPercent); }
-	PlayerGhostPercent = InitPlayerPercent;
-	PlayerTargetPercent = InitPlayerPercent;
+	SyncBarsToMiniGame();
 }
 
 void UPTBBBHUDWidget::NativeConstruct()
@@ -60,23 +49,10 @@ void UPTBBBHUDWidget::NativeConstruct()
 	bHasScriptImplementedTick = true;
 
 	// BindToMiniGame이 AddToViewport 이전에 호출된 경우를 대비한 초기 동기화
-	if (!IsValid(BBMiniGame))
+	if (IsValid(BBMiniGame))
 	{
-		return;
+		SyncBarsToMiniGame();
 	}
-
-	const float BossPercent = BBMiniGame->GetBossHPPercent();
-	const float PlayerPercent = BBMiniGame->GetPlayerHPPercent();
-
-	if (BossHPBar) { BossHPBar->SetPercent(BossPercent); }
-	if (BossHPGhostBar) { BossHPGhostBar->SetPercent(BossPercent); }
-	BossGhostPercent = BossPercent;
-	BossTargetPercent = BossPercent;
-
-	if (PlayerHPBar) { PlayerHPBar->SetPercent(PlayerPercent); }
-	if (PlayerHPGhostBar) { PlayerHPGhostBar->SetPercent(PlayerPercent); }
-	PlayerGhostPercent = PlayerPercent;
-	PlayerTargetPercent = PlayerPercent;
 }
 
 void UPTBBBHUDWidget::NativeDestruct()
@@ -211,7 +187,7 @@ void UPTBBBHUDWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 	{
 		if (BossGhostDecayTimer > 0.f)
 		{
-			BossGhostDecayTimer -= InDeltaTime;
+			BossGhostDecayTimer = FMath::Max(0.f, BossGhostDecayTimer - InDeltaTime);
 		}
 		else
 		{
@@ -225,7 +201,7 @@ void UPTBBBHUDWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 	{
 		if (PlayerGhostDecayTimer > 0.f)
 		{
-			PlayerGhostDecayTimer -= InDeltaTime;
+			PlayerGhostDecayTimer = FMath::Max(0.f, PlayerGhostDecayTimer - InDeltaTime);
 		}
 		else
 		{
@@ -241,6 +217,24 @@ void UPTBBBHUDWidget::HandleBBBossDefeated()
 }
 
 // ── 내부 헬퍼 ────────────────────────────────────────────────────
+
+void UPTBBBHUDWidget::SyncBarsToMiniGame()
+{
+	const float BossPercent = BBMiniGame->GetBossHPPercent();
+	const float PlayerPercent = BBMiniGame->GetPlayerHPPercent();
+
+	if (BossHPBar) { BossHPBar->SetPercent(BossPercent); }
+	if (BossHPGhostBar) { BossHPGhostBar->SetPercent(BossPercent); }
+	BossGhostPercent = BossPercent;
+	BossTargetPercent = BossPercent;
+	BossGhostDecayTimer = 0.f;
+
+	if (PlayerHPBar) { PlayerHPBar->SetPercent(PlayerPercent); }
+	if (PlayerHPGhostBar) { PlayerHPGhostBar->SetPercent(PlayerPercent); }
+	PlayerGhostPercent = PlayerPercent;
+	PlayerTargetPercent = PlayerPercent;
+	PlayerGhostDecayTimer = 0.f;
+}
 
 UPTBBBCueWidgetBase* UPTBBBHUDWidget::SpawnAndPlaceCue(
 	TSubclassOf<UPTBBBCueWidgetBase> CueClass,

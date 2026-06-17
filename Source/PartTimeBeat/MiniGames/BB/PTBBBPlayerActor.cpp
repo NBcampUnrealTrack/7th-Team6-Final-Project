@@ -187,7 +187,7 @@ void APTBBBPlayerActor::ApplyProfileCharacter_Implementation(const FPTBProfileDa
 	// Gender에 맞는 AnimBP 클래스 적용
 	if (const TSubclassOf<UAnimInstance>* FoundAnimBP = AnimBlueprintByGender.Find(Profile.Gender))
 	{
-		if (*FoundAnimBP)
+		if (*FoundAnimBP && PlayerMesh->GetAnimClass() != *FoundAnimBP)
 		{
 			PlayerMesh->SetAnimInstanceClass(*FoundAnimBP);
 		}
@@ -232,20 +232,20 @@ AActor* APTBBBPlayerActor::ResolvePreferredViewTarget() const
 
 	TArray<AActor*> TaggedActors;
 	UGameplayStatics::GetAllActorsWithTag(World, TEXT("BBViewTarget"), TaggedActors);
-	if (!TaggedActors.IsEmpty())
+	if (!TaggedActors.IsEmpty() && IsValid(TaggedActors[0]))
 	{
 		return TaggedActors[0];
 	}
 
 	UGameplayStatics::GetAllActorsWithTag(World, TEXT("PTB_BB_Camera"), TaggedActors);
-	if (!TaggedActors.IsEmpty())
+	if (!TaggedActors.IsEmpty() && IsValid(TaggedActors[0]))
 	{
 		return TaggedActors[0];
 	}
 
 	TArray<AActor*> CameraActors;
 	UGameplayStatics::GetAllActorsOfClass(World, ACameraActor::StaticClass(), CameraActors);
-	if (!CameraActors.IsEmpty())
+	if (!CameraActors.IsEmpty() && IsValid(CameraActors[0]))
 	{
 		return CameraActors[0];
 	}
