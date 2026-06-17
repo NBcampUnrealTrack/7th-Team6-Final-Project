@@ -52,6 +52,30 @@ void UPTBBBHUDWidget::BindToMiniGame(APTBBBMiniGame* InMiniGame)
 	PlayerTargetPercent = InitPlayerPercent;
 }
 
+void UPTBBBHUDWidget::NativeConstruct()
+{
+	Super::NativeConstruct();
+
+	// BindToMiniGame이 AddToViewport 이전에 호출된 경우를 대비한 초기 동기화
+	if (!IsValid(BBMiniGame))
+	{
+		return;
+	}
+
+	const float BossPercent = BBMiniGame->GetBossHPPercent();
+	const float PlayerPercent = BBMiniGame->GetPlayerHPPercent();
+
+	if (BossHPBar) { BossHPBar->SetPercent(BossPercent); }
+	if (BossHPGhostBar) { BossHPGhostBar->SetPercent(BossPercent); }
+	BossGhostPercent = BossPercent;
+	BossTargetPercent = BossPercent;
+
+	if (PlayerHPBar) { PlayerHPBar->SetPercent(PlayerPercent); }
+	if (PlayerHPGhostBar) { PlayerHPGhostBar->SetPercent(PlayerPercent); }
+	PlayerGhostPercent = PlayerPercent;
+	PlayerTargetPercent = PlayerPercent;
+}
+
 void UPTBBBHUDWidget::NativeDestruct()
 {
 	Super::NativeDestruct();
@@ -126,20 +150,21 @@ void UPTBBBHUDWidget::HandleBBBossHPChanged(float NewHP, float MaxHP)
 		BossHPBar->SetPercent(NewPercent);
 	}
 
-	if (NewPercent < BossGhostPercent)
+	if (NewPercent < BossTargetPercent)
 	{
 		// HP 감소: 고스트 바를 현 위치에 유지하고 딜레이 타이머 리셋
 		BossGhostDecayTimer = GhostBarDecayDelay;
 	}
-	else
+	else if (NewPercent > BossTargetPercent)
 	{
-		// HP 증가 또는 초기화: 고스트 바 즉시 동기화
+		// HP 증가: 고스트 바를 새 값으로 즉시 동기화 (메인 바보다 낮아지면 안됨)
 		BossGhostPercent = NewPercent;
 		if (BossHPGhostBar)
 		{
 			BossHPGhostBar->SetPercent(BossGhostPercent);
 		}
 	}
+	// HP 동일(재방송): 고스트 바 상태 유지 (감소 중이면 계속 감소)
 	BossTargetPercent = NewPercent;
 
 	OnBossHPUpdated(NewHP, MaxHP);
@@ -154,20 +179,21 @@ void UPTBBBHUDWidget::HandleBBPlayerHPChanged(float NewHP, float MaxHP)
 		PlayerHPBar->SetPercent(NewPercent);
 	}
 
-	if (NewPercent < PlayerGhostPercent)
+	if (NewPercent < PlayerTargetPercent)
 	{
 		// HP 감소: 고스트 바를 현 위치에 유지하고 딜레이 타이머 리셋
 		PlayerGhostDecayTimer = GhostBarDecayDelay;
 	}
-	else
+	else if (NewPercent > PlayerTargetPercent)
 	{
-		// HP 증가 또는 초기화: 고스트 바 즉시 동기화
+		// HP 증가: 고스트 바를 새 값으로 즉시 동기화 (메인 바보다 낮아지면 안됨)
 		PlayerGhostPercent = NewPercent;
 		if (PlayerHPGhostBar)
 		{
 			PlayerHPGhostBar->SetPercent(PlayerGhostPercent);
 		}
 	}
+	// HP 동일(재방송): 고스트 바 상태 유지 (감소 중이면 계속 감소)
 	PlayerTargetPercent = NewPercent;
 
 	OnPlayerHPUpdated(NewHP, MaxHP);

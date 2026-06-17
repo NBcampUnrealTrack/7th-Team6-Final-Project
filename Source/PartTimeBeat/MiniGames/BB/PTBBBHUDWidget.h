@@ -117,6 +117,7 @@ public:
 	TObjectPtr<APTBBBMiniGame> BBMiniGame;
 
 protected:
+	virtual void NativeConstruct() override;
 	virtual void NativeDestruct() override;
 	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
 
