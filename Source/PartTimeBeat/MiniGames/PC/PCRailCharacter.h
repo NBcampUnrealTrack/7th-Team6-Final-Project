@@ -16,6 +16,18 @@ class PARTTIMEBEAT_API APCRailCharacter : public APawn
 public:
 	// Sets default values for this pawn's properties
 	APCRailCharacter();
+
+    // 카메라
+    UPROPERTY(VisibleAnywhere)
+    class UCameraComponent* Camera;
+
+    // 손 메시 붙일 컴포넌트
+    UPROPERTY(VisibleAnywhere)
+    class USkeletalMeshComponent* HandsMesh;
+
+    UPROPERTY(VisibleAnywhere)
+    class UStaticMeshComponent* JudgementZone;
+
     // 레일 참조 (에디터에서 연결)
     UPROPERTY(EditAnywhere, BlueprintReadOnly)
     APCRailPath* PCRailPath;
@@ -33,6 +45,8 @@ public:
     UPROPERTY(EditAnywhere)
     APCTileSpawner* TileSpawner;
 
+    FTimerHandle MoveDelayHandle;
+
     virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
 
 protected:
@@ -40,14 +54,7 @@ protected:
 
 private:
 
-    // 카메라
-    UPROPERTY(VisibleAnywhere)
-    class UCameraComponent* Camera;
-
-    // 손 메시 붙일 컴포넌트
-    UPROPERTY(VisibleAnywhere)
-    class USkeletalMeshComponent* HandsMesh;
-
     // 현재 레일 위 거리값
+    UPROPERTY(EditAnywhere)
     float CurrentSplineDistance = 0.f;
 };

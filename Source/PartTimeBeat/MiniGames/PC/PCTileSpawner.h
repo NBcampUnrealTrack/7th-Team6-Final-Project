@@ -26,6 +26,10 @@ public:
     // 캐릭터 정면으로부터 스폰 거리
     UPROPERTY(EditAnywhere)
     float SpawnDistance = 2000.f;
+ 
+   // 스폰 높이 오프셋
+    UPROPERTY(EditAnywhere)
+    float SpawnHeightOffset = 1000.f;
 
     // 박자 타이밍에 호출
     APCTileActor* SpawnTile();

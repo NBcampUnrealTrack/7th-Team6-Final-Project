@@ -23,6 +23,17 @@ void APTBPCMiniGame::BuildRuntimeState()
         UGameplayStatics::GetActorOfClass(GetWorld(), APCTileSpawner::StaticClass()));
 }
 
+
+void APTBPCMiniGame::HandleActionAInput()
+{
+    HandleRhythmInput(EPTBActionType::ActionA);
+}
+
+void APTBPCMiniGame::HandleActionAInputReleased()
+{
+    HandleRhythmInputReleased(EPTBActionType::ActionA);
+}
+
 void APTBPCMiniGame::PreloadAudioAssets()
 {
     Super::PreloadAudioAssets();
@@ -56,11 +67,16 @@ void APTBPCMiniGame::HandleNoteArm(FPTBNoteEvent Note)
 void APTBPCMiniGame::HandleChartEvent(FPTBNoteEvent Note)
 {
     Super::HandleChartEvent(Note);
+    if (!RailCharacter) return;
 
-    if (RailCharacter)
-    {
-        RailCharacter->MoveOneStep();
-    }
+    FTimerHandle MoveDelayHandle;
+    GetWorldTimerManager().SetTimer(
+        MoveDelayHandle,
+        RailCharacter,
+        &APCRailCharacter::MoveOneStep,
+        0.5f,  // 딜레이 초
+        false
+    );
 }
 
 void APTBPCMiniGame::HandleJudgementResult(FPTBJudgementResult Result)

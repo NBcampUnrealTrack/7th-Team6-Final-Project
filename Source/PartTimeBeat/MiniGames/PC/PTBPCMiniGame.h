@@ -25,6 +25,13 @@ public:
     UPROPERTY(EditAnywhere)
     APCTileSpawner* TileSpawner;
 
+
+    UFUNCTION(BlueprintCallable, Category = "Input")
+   void HandleActionAInput();
+
+    UFUNCTION(BlueprintCallable, Category = "Input")
+    void HandleActionAInputReleased();
+
 protected:
 
     virtual void BuildRuntimeState() override;
