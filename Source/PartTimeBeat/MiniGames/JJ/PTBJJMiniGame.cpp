@@ -132,10 +132,27 @@ void APTBJJMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 
 	++LandingCount;
 
+	// 캐릭터 인덱스를 먼저 구함(모든 판정 케이스 공통)
+	const int32 CharacterIndex = bHasJudgedNote
+		? ResolveCharacterIndex(JudgedNote.ActionType)
+		: ResolveCharacterIndex(Result.ActionType);
+
+	// ── 판정 색 플래시 (진단 로그 포함) ──────────────────────────────
+	if (JumpActors.IsValidIndex(CharacterIndex) && JumpActors[CharacterIndex])
+	{
+		UE_LOG(LogPTBMiniGames, Warning, TEXT("[JJ FLASH] CharIdx=%d Type=%d 호출"),
+			CharacterIndex, static_cast<int32>(Result.JudgementType));
+		JumpActors[CharacterIndex]->FlashJudgementColor(Result.JudgementType);
+	}
+	else
+	{
+		UE_LOG(LogPTBMiniGames, Warning, TEXT("[JJ FLASH] 실패 CharIdx=%d ActorsNum=%d"),
+			CharacterIndex, JumpActors.Num());
+	}
+	// ─────────────────────────────────────────────────────────────────
+
 	if (bHasJudgedNote)
 	{
-		const int32 CharacterIndex = ResolveCharacterIndex(JudgedNote.ActionType);
-
 		RemoveTrackedNote(CuedNotes, Result.NoteId);
 		RemoveTrackedNote(ArmedNotes, Result.NoteId);
 		RemoveTrackedNote(ReachedNotes, Result.NoteId);
@@ -145,7 +162,6 @@ void APTBJJMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 	}
 	else if (Result.Reason == EPTBJudgementReason::EmptyInput)
 	{
-		const int32 CharacterIndex = ResolveCharacterIndex(Result.ActionType);
 		FPTBNoteEvent EmptyInputNote;
 		OnJJLanding.Broadcast(CharacterIndex, Result, EmptyInputNote);
 	}
