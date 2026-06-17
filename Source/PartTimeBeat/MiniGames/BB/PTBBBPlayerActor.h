@@ -146,8 +146,10 @@ protected:
 private:
 	// ── 내부 헬퍼 ────────────────────────────────────────────────
 
-	/** AnimInstance를 안전하게 가져온다. 없으면 nullptr과 함께 경고 출력. */
+	/** 카메라 시점으로 사용할 액터를 찾는다(태그 우선). 없으면 자기 자신 반환. */
 	AActor* ResolvePreferredViewTarget() const;
+
+	/** AnimInstance를 안전하게 가져온다. 없으면 nullptr과 함께 경고 출력. */
 	UAnimInstance* GetPlayerAnimInstance() const;
 
 	// ── 델리게이트 핸들러 ────────────────────────────────────────
