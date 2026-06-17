@@ -5,6 +5,7 @@
 #include "PTBFSMiniGameRuleSet.h"
 #include "Core/PTBGameInstance.h"
 #include "Debug/PTBTeamLog.h"
+#include "Flow/PTBGameFlowSubsystem.h"
 #include "Kismet/GameplayStatics.h"
 #include "Rhythm/PTBJudgementSystem.h"
 #include "Rhythm/PTBRhythmChartAsset.h"
@@ -271,8 +272,18 @@ EFishingLineState APTBFSMiniGame::CalculateLineState(float Distance) const
 void APTBFSMiniGame::OnStartFishingGame()
 {
 	FPTBMiniGameContext Context;
+	UPTBGameFlowSubsystem* FlowSys = GetGameInstance()->GetSubsystem<UPTBGameFlowSubsystem>();
+    
+	EPTBDifficulty Difficulty = EPTBDifficulty::Easy;
+	if (FlowSys && !FlowSys->PendingSessionRequest.MiniGameId.IsNone())
+	{
+		Difficulty = FlowSys->PendingSessionRequest.Difficulty;
+	}
+    
+	PTB_WARNING(LogPTBMiniGames, TEXT("[Fishing] Difficulty: %d"), static_cast<int32>(Difficulty));
+    
+	Context.SessionRequest.Difficulty = Difficulty;
 	Context.SessionRequest.MiniGameId = FName("FishMiniGame");
-	Context.SessionRequest.Difficulty = EPTBDifficulty::Standard;
 	InitializeMiniGame(Context);
 	StartMiniGame();
 }
