@@ -1,4 +1,4 @@
-#include "Actor/PTBJJJumpActor.h"
+#include "MiniGames/JJ/PTBJJJumpActor.h"
 
 #include "Components/StaticMeshComponent.h"
 #include "Materials/MaterialInstanceDynamic.h"
@@ -7,12 +7,17 @@ APTBJJJumpActor::APTBJJJumpActor()
 {
 	PrimaryActorTick.bCanEverTick = true;
 
-	JumpRoot = CreateDefaultSubobject<USceneComponent>(TEXT("JumpRoot"));
-	RootComponent = JumpRoot;
+	// 고정 루트(안 움직임). JumpRoot/JudgePlane을 형제로 둔다.
+	SceneRoot = CreateDefaultSubobject<USceneComponent>(TEXT("SceneRoot"));
+	RootComponent = SceneRoot;
 
-	// 판정 색 Plane: 루트 직속(점프와 분리) → 캐릭터가 떠도 바닥에 고정
+	// 점프용 루트: 이 컴포넌트의 Z만 움직여 점프 연출 → 캐릭터 메시는 여기 자식으로
+	JumpRoot = CreateDefaultSubobject<USceneComponent>(TEXT("JumpRoot"));
+	JumpRoot->SetupAttachment(SceneRoot);
+
+	// 판정 색 Plane: SceneRoot 직속(점프와 분리) → 캐릭터가 떠도 바닥에 고정
 	JudgePlane = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("JudgePlane"));
-	JudgePlane->SetupAttachment(RootComponent);
+	JudgePlane->SetupAttachment(SceneRoot);
 	JudgePlane->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 }
 
@@ -63,7 +68,9 @@ void APTBJJJumpActor::FlashJudgementColor(EPTBJudgementType JudgementType)
 	case EPTBJudgementType::Miss:        FlashColor = FLinearColor(0.9f, 0.1f, 0.1f); break;  // 빨강
 	default:                             FlashColor = DefaultPlaneColor;                break;
 	}
-
+	UE_LOG(LogTemp, Warning, TEXT("FLASH called. PlaneMaterial=%s Color=%s"),
+		PlaneMaterial ? TEXT("OK") : TEXT("NULL"),
+		*FlashColor.ToString());
 	FlashElapsed = 0.0f;
 	bFlashing = true;
 
@@ -78,9 +85,11 @@ void APTBJJJumpActor::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	// ── 점프 처리 ──
+	// ── 점프 처리: JumpRoot의 Z만 움직임 (JudgePlane은 SceneRoot 자식이라 영향 없음) ──
 	if (bIsJumping)
 	{
+		//UE_LOG(LogTemp, Warning, TEXT("JUMP TICK Elapsed=%.2f Z=%.1f"), Elapsed, JumpRoot->GetRelativeLocation().Z);
+
 		Elapsed += DeltaTime;
 
 		const float Alpha = FMath::Clamp(Elapsed / Duration, 0.0f, 1.0f);

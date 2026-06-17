@@ -57,6 +57,10 @@ protected:
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaTime) override;
 
+	/** 고정 루트(안 움직임). JumpRoot와 JudgePlane의 공통 부모 */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PTB|JumpJump")
+	TObjectPtr<USceneComponent> SceneRoot;
+
 	/** 점프 시각적 루트(이 컴포넌트의 Z를 움직여 점프 연출) */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PTB|JumpJump")
 	TObjectPtr<USceneComponent> JumpRoot;
