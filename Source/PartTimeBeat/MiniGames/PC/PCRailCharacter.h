@@ -36,6 +36,11 @@ public:
     UPROPERTY(EditAnywhere)
     float StepDistance = 100.f;
 
+    virtual void Tick(float DeltaTime) override;
+
+    UPROPERTY(EditAnywhere)
+    float MoveInterpSpeed = 20.f;
+
     // 박자 타이밍에 호출 - 레일 위 다음 지점으로 이동
     void MoveOneStep();
 
@@ -53,6 +58,10 @@ protected:
     virtual void BeginPlay() override;
 
 private:
+
+    FVector TargetLocation;
+    FRotator TargetRotation;
+    bool bIsMoving = false;
 
     // 현재 레일 위 거리값
     UPROPERTY(EditAnywhere)

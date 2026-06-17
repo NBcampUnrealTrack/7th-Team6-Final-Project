@@ -6,6 +6,8 @@
 
 APCRailCharacter::APCRailCharacter()
 {
+    PrimaryActorTick.bCanEverTick = true;
+
     Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
     RootComponent = Camera;
 
@@ -35,6 +37,28 @@ void APCRailCharacter::BeginPlay()
     }
 }
 
+void APCRailCharacter::Tick(float DeltaTime)
+{
+    Super::Tick(DeltaTime);
+
+    if (!bIsMoving) return;
+
+    FVector CurrentLocation = GetActorLocation();
+    FRotator CurrentRotation = GetActorRotation();
+
+    FVector NewLocation = FMath::VInterpTo(CurrentLocation, TargetLocation, DeltaTime, MoveInterpSpeed);
+    FRotator NewRotation = FMath::RInterpTo(CurrentRotation, TargetRotation, DeltaTime, MoveInterpSpeed);
+
+    SetActorLocationAndRotation(NewLocation, NewRotation);
+
+ 
+    if (FVector::Dist(NewLocation, TargetLocation) < 1.f)
+    {
+        SetActorLocationAndRotation(TargetLocation, TargetRotation);
+        bIsMoving = false;
+    }
+}
+
 void APCRailCharacter::MoveOneStep()
 {
     if (!PCRailPath) return;
@@ -44,15 +68,13 @@ void APCRailCharacter::MoveOneStep()
     float MaxDist = PCRailPath->Spline->GetSplineLength();
     CurrentSplineDistance = FMath::Clamp(CurrentSplineDistance, 0.f, MaxDist);
 
-    FVector NewLocation = PCRailPath->Spline->GetLocationAtDistanceAlongSpline(
-        CurrentSplineDistance, ESplineCoordinateSpace::World);
 
-    FRotator NewRotation = PCRailPath->Spline->GetRotationAtDistanceAlongSpline(
-        CurrentSplineDistance, ESplineCoordinateSpace::World);
-    NewRotation.Pitch = -10.f;
-    NewRotation.Roll = 0.f;
+    TargetLocation = PCRailPath->Spline->GetLocationAtDistanceAlongSpline(CurrentSplineDistance, ESplineCoordinateSpace::World);
+    TargetRotation = PCRailPath->Spline->GetRotationAtDistanceAlongSpline(CurrentSplineDistance, ESplineCoordinateSpace::World);
+    TargetRotation.Pitch = -10.f;
+    TargetRotation.Roll = 0.f;
 
-    SetActorLocationAndRotation(NewLocation, NewRotation);
+    bIsMoving = true;
 }
 
 void APCRailCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
