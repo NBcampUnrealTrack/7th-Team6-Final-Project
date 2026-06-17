@@ -62,6 +62,7 @@ namespace PTBBaseMiniGameInternal
 		FPTBJudgementResult Result;
 		Result.NoteId = Note.NoteId;
 		Result.ActionType = Note.ActionType;
+		Result.InputActionType = Note.ActionType;
 		Result.JudgementType = EPTBJudgementType::Miss;
 		Result.Reason = EPTBJudgementReason::EarlyRelease;
 		Result.ChartTimeMs = RequiredHoldUntilTimeMs;
