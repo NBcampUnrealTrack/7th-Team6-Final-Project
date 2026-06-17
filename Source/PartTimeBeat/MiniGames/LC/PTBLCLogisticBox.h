@@ -3,19 +3,18 @@
 #include "CoreMinimal.h"
 #include "Core/PTBStructEnums.h"
 #include "GameFramework/Actor.h"
+#include "Materials/MaterialInterface.h"
 #include "PTBLCLogisticBox.generated.h"
 
 
-/** 박스의 현재 상태를 나타내는 Enum */
+/** LC 박스 색 상태 */
 UENUM(BlueprintType)
-enum class EPTBLCLogisticBoxState : uint8
+enum class EPTBLCColorState : uint8
 {
-	UnpackagedRed = 0 UMETA(DisplayName = "Unpackaged Red"),
-	UnpackagedBlue = 1 UMETA(DisplayName = "Unpackaged Blue"),
-	UnpackagedYellow = 2 UMETA(DisplayName = "Unpackaged Yellow"),
-	RedBox = 3 UMETA(DisplayName = "RedBox"),
-	BlueBox = 4 UMETA(DisplayName = "BlueBox"),
-	YellowBox = 5 UMETA(DisplayName = "YellowBox"),
+	Red = 0 UMETA(DisplayName = "Red"),
+	Yellow = 1 UMETA(DisplayName = "Yellow"),
+	Blue = 2 UMETA(DisplayName = "Blue"),
+	None = 3 UMETA(DisplayName = "None"),
 };
 
 /**
@@ -32,9 +31,13 @@ public:
 	
 	virtual void Tick(float DeltaTime) override;
 	
-	EPTBLCLogisticBoxState GetLogisticBoxState() const;
+	int32 GetNoteId() const;
 	
-	void SetLogisticBoxState(EPTBLCLogisticBoxState NewState);
+	float GetNoteTimeMs() const;
+	
+	EPTBLCColorState GetContentColorState() const;
+	
+	EPTBLCColorState GetBoxColorState() const;
 	
 	UStaticMeshComponent* GetStaticMeshComponent() const;
 	
@@ -44,9 +47,9 @@ public:
 	
 	UMaterialInstance* GetYellowMaterialInstance() const;
 
-	void SetBoxMaterlalInstanceByActionType(EPTBActionType ActionType);
+	void InitializeFromNote(const FPTBNoteEvent& Note);
 	
-	void SetBoxStateByActionType(EPTBActionType ActionType);
+	void PackageWithActionType(EPTBActionType ActionType);
 	
 	bool GetIsPackaged() const;
 	
@@ -55,7 +58,14 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "PTB|LC|Mesh")
 	void StopMovingAndEnablePhysics();
 	
+	UFUNCTION(BlueprintCallable, Category = "PTB|LC|Movement")
+	void SetMovementRotation(FRotator NewRotation);
+	
 	void ChangeMeshToBox();
+	
+	void ApplyPackagedMaterial();
+	
+	void StartPackagingSpin();
 	
 protected:
 	virtual void BeginPlay() override;
@@ -78,8 +88,35 @@ protected:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "PTB|LC|Mesh")
 	TObjectPtr<UMaterialInstance> YellowBoxMaterialInstance;
 	
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "PTB|LC|State")
-	EPTBLCLogisticBoxState BoxState;
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "PTB|LC|Material")
+	TObjectPtr<UMaterialInterface> PackagedBoxMaterial;
+	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "PTB|LC|Material")
+	FLinearColor RedColor = FLinearColor::Red;
+	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "PTB|LC|Material")
+	FLinearColor YellowColor = FLinearColor::Yellow;
+	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "PTB|LC|Material")
+	FLinearColor BlueColor = FLinearColor::Blue;
+	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "PTB|LC|Material")
+	FName BoxColorParameterName = TEXT("BoxColor");
+	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "PTB|LC|Material")
+	FName MarkColorParameterName = TEXT("MarkColor");
+	
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "PTB|LC|State")
+	int32 NoteId = 0;
+	
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "PTB|LC|State")
+	float NoteTimeMs = 0.0f;
+	
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "PTB|LC|State")
+	EPTBLCColorState ContentColorState = EPTBLCColorState::None;
+	
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "PTB|LC|State")
+	EPTBLCColorState BoxColorState = EPTBLCColorState::None;
 private:
 	
 	UPROPERTY(EditAnywhere, Category = "PTB|LC|Param")
@@ -88,4 +125,12 @@ private:
 	bool bIsMoving = true;
 	
 	bool bIsPackaged = false;
+	
+	bool bIsPackagingSpinActive = false;
+	
+	float PackagingSpinElapsedSeconds = 0.0f;
+	
+	FRotator PackagingSpinStartRotation = FRotator::ZeroRotator;
+	
+	FVector MovementDirection = FVector::RightVector;
 };

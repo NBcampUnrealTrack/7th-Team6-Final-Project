@@ -70,7 +70,7 @@ void APTBLCMiniGame::HandleNoteCue(FPTBNoteEvent Note)
 	
 		if (SpawnedActor)
 		{
-			SpawnedActor->SetBoxMaterlalInstanceByActionType(Note.ActionType);
+			SpawnedActor->InitializeFromNote(Note);
 			PTB_RECORD(LogPTBMiniGames, TEXT("[LC] Logistic box spawned. NoteId=%d Action=%d Location=(%.2f, %.2f, %.2f) Class=%s"),
 				Note.NoteId,
 				static_cast<int32>(Note.ActionType),
@@ -120,20 +120,29 @@ void APTBLCMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 			{
 				return;
 			}
+			
+			APTBLCLogisticBox* TargetLogisticBox = nullptr;
 			for (AActor* OverlappingActor : OverlappingActors)
 			{
-				if (OverlappingActor && OverlappingActor->IsA<APTBLCLogisticBox>())
+				APTBLCLogisticBox* LogisticBox = Cast<APTBLCLogisticBox>(OverlappingActor);
+				if (LogisticBox && !LogisticBox->GetIsPackaged() && LogisticBox->GetNoteId() == Result.NoteId)
 				{
-					if (Result.JudgementType == EPTBJudgementType::Good || Result.JudgementType == EPTBJudgementType::Perfect || Result.JudgementType == EPTBJudgementType::HighPerfect)
-					{
-						APTBLCLogisticBox* LogisticBox = Cast<APTBLCLogisticBox>(OverlappingActor);
-						if (LogisticBox && !LogisticBox->GetIsPackaged())
-						{
-							LogisticBox->ChangeMeshToBox();
-							LogisticBox->SetBoxStateByActionType(Result.ActionType);
-						}
-					}
+					TargetLogisticBox = LogisticBox;
+					break;
 				}
+			}
+			
+			const bool bShouldPackage =
+				Result.Reason == EPTBJudgementReason::WrongInput ||
+				Result.JudgementType == EPTBJudgementType::Good ||
+				Result.JudgementType == EPTBJudgementType::Perfect ||
+				Result.JudgementType == EPTBJudgementType::HighPerfect;
+			if (TargetLogisticBox && bShouldPackage)
+			{
+				const EPTBActionType PackageActionType = Result.Reason == EPTBJudgementReason::WrongInput
+					? Result.InputActionType
+					: Result.ActionType;
+				TargetLogisticBox->PackageWithActionType(PackageActionType);
 			}
 		}
 	}
