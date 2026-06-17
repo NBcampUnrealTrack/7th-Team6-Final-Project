@@ -27,6 +27,18 @@ public:
     // 박자 타이밍에 호출 - 레일 위 다음 지점으로 이동
     void MoveOneStep();
 
+    // 카메라
+    UPROPERTY(VisibleAnywhere)
+    class UCameraComponent* Camera;
+
+    // 손 메시 붙일 컴포넌트
+    UPROPERTY(VisibleAnywhere)
+    class USkeletalMeshComponent* HandsMesh;
+
+    // 판정존 컴포넌트 (메시 또는 이미지)
+    UPROPERTY(VisibleAnywhere)
+    UStaticMeshComponent* JudgementZone;
+
     void TestSpawnTile();
 
     // 스포너 참조
@@ -40,14 +52,8 @@ protected:
 
 private:
 
-    // 카메라
-    UPROPERTY(VisibleAnywhere)
-    class UCameraComponent* Camera;
-
-    // 손 메시 붙일 컴포넌트
-    UPROPERTY(VisibleAnywhere)
-    class USkeletalMeshComponent* HandsMesh;
 
     // 현재 레일 위 거리값
+    UPROPERTY(EditAnywhere)
     float CurrentSplineDistance = 0.f;
 };
