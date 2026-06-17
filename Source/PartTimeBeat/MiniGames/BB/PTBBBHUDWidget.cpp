@@ -56,6 +56,9 @@ void UPTBBBHUDWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
 
+	// Blueprint에 Event Tick 노드가 없어도 NativeTick이 호출되도록 강제 활성화
+	bHasScriptImplementedTick = true;
+
 	// BindToMiniGame이 AddToViewport 이전에 호출된 경우를 대비한 초기 동기화
 	if (!IsValid(BBMiniGame))
 	{
