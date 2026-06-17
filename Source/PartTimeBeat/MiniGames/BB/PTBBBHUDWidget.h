@@ -15,21 +15,24 @@ struct FPTBJudgementResult;
 /**
  * BB 미니게임 HUD 위젯 베이스.
  *
- * TG HUD(WBP_TG_HUD)의 큐 관리 로직을 C++로 구현한 버전.
  *  - 노트 예고(OnBBNoteCue) → 큐 위젯 스폰 → CanvasPanel에 배치
  *  - 판정(OnBBParrySuccess/Fail) → 큐에 판정 피드백 전달 → TMap에서 제거
  *  - HP 변경(OnBBBossHPChanged/PlayerHPChanged) → ProgressBar 자동 업데이트
+ *  - 고스트 바(BossHPGhostBar/PlayerHPGhostBar): 피해 직후 잔상이 남고 GhostBarDecayDelay 후 선형 감소
  *
  * 에디터에서 설정해야 하는 항목:
  *  - TapCueClass / HoldCueClass    : 스폰할 큐 위젯 클래스
  *  - AnchorPositions               : ActionType별 캔버스 좌표 (Z→ActionA … B→ActionE)
  *  - BossSpawnCanvasPosition       : 노트 스폰 시작점 (보스 이미지 중심 좌표)
+ *  - GhostBarDecayDelay            : 피해 후 고스트 바 감소 시작까지의 지연(초)
+ *  - GhostBarDecaySpeed            : 고스트 바 감소 속도(초당 비율)
  *
  * Designer 탭에서 반드시 만들어야 하는 위젯:
  *  - CueLayer (CanvasPanel, BindWidget)
  *
  * Designer 탭에서 선택적으로 만들 수 있는 위젯:
- *  - BossHPBar, PlayerHPBar (ProgressBar, BindWidgetOptional)
+ *  - BossHPBar, PlayerHPBar (ProgressBar, BindWidgetOptional) — 메인 HP 바
+ *  - BossHPGhostBar, PlayerHPGhostBar (ProgressBar, BindWidgetOptional) — 메인 바 뒤에 배치하는 잔상 바
  */
 UCLASS(Abstract)
 class PARTTIMEBEAT_API UPTBBBHUDWidget : public UUserWidget
@@ -89,16 +92,32 @@ public:
 	UPROPERTY(BlueprintReadOnly, meta = (BindWidgetOptional))
 	TObjectPtr<UProgressBar> BossHPBar;
 
+	/** 보스 HP 고스트 바 (피해 잔상). BossHPBar 뒤(ZOrder 낮게)에 배치. Designer 탭에 없어도 된다. */
+	UPROPERTY(BlueprintReadOnly, meta = (BindWidgetOptional))
+	TObjectPtr<UProgressBar> BossHPGhostBar;
+
 	/** 플레이어 HP 바. Designer 탭에 없어도 된다. */
 	UPROPERTY(BlueprintReadOnly, meta = (BindWidgetOptional))
 	TObjectPtr<UProgressBar> PlayerHPBar;
 
+	/** 플레이어 HP 고스트 바 (피해 잔상). PlayerHPBar 뒤(ZOrder 낮게)에 배치. Designer 탭에 없어도 된다. */
+	UPROPERTY(BlueprintReadOnly, meta = (BindWidgetOptional))
+	TObjectPtr<UProgressBar> PlayerHPGhostBar;
+
+	/** 피해 발생 후 고스트 바 감소 시작까지의 지연 시간(초) */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|BB|HUD|GhostBar", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	float GhostBarDecayDelay = 0.5f;
+	/** 고스트 바 감소 속도 (초당 비율, 1.0 = 1초에 전체 감소) */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|BB|HUD|GhostBar", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	float GhostBarDecaySpeed = 1.5f;
 	/** 현재 바인딩된 미니게임 */
 	UPROPERTY(BlueprintReadOnly, Category = "PTB|BB|HUD")
 	TObjectPtr<APTBBBMiniGame> BBMiniGame;
 
 protected:
+	virtual void NativeConstruct() override;
 	virtual void NativeDestruct() override;
+	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
 
 	// ── BP 구현 이벤트 ───────────────────────────────────────────
 
@@ -127,6 +146,19 @@ protected:
 	void OnPlayerHPUpdated(float NewHP, float MaxHP);
 
 private:
+	/** 현재 미니게임 HP 기준으로 메인 바·고스트 바 상태를 동기화. NativeConstruct/BindToMiniGame 양쪽에서 호출 */
+	void SyncBarsToMiniGame();
+
+	// ── 고스트 바 런타임 상태 ────────────────────────────────────
+
+	float BossGhostPercent = 1.0f;
+	float BossTargetPercent = 1.0f;
+	float BossGhostDecayTimer = 0.0f;
+
+	float PlayerGhostPercent = 1.0f;
+	float PlayerTargetPercent = 1.0f;
+	float PlayerGhostDecayTimer = 0.0f;
+
 	// ── 큐 추적 맵 ───────────────────────────────────────────────
 
 	UPROPERTY()

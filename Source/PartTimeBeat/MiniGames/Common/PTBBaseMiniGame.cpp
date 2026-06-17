@@ -670,6 +670,12 @@ FPTBRoundResult APTBBaseMiniGame::FinishMiniGame(EPTBRoundEndReason Reason)
 		: FPTBRoundResult();
 	RoundResult.PlayMode = GameContext.SessionRequest.PlayMode;
 
+	// 강제 종료(HP 소진 등)의 경우 점수 기반 Grade를 무시하고 Fail로 덮어씀
+	if (Reason == EPTBRoundEndReason::Failed)
+	{
+		RoundResult.Grade = EPTBGradeType::Fail;
+	}
+
 	ActiveBGMPlayingId = 0;
 
 	UE_LOG(LogRhythm, Log, TEXT("[%s] MiniGame finished. Reason=%d Score=%d HP=%d P=%d G=%d M=%d"),
