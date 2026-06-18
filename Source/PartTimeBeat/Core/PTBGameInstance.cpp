@@ -1,5 +1,6 @@
 #include "Core/PTBGameInstance.h"
 #include "Core/PTBSaveGame.h"
+#include "GameFramework/GameUserSettings.h"
 #include "Kismet/GameplayStatics.h"
 #include "UI/PTBMainTitleWidget.h"
 #include "Debug/PTBTeamLog.h"
@@ -62,34 +63,36 @@ void UPTBGameInstance::ApplyUserSettings(const FPTBUserSettings& InSettings)
 {
 	CachedSettings = InSettings;
 
-	// Wwise 볼륨 반영
-	// if (AudioManager)
-	// {
-	//     AudioManager->SetMasterVolume(InSettings.MasterVolume);
-	//     AudioManager->SetBGMVolume(InSettings.BGMVolume);
-	//     AudioManager->SetSFXVolume(InSettings.SFXVolume);
-	// }
+	// TODO: Wwise RTPC 연결 후 활성화
+	// if (AudioManager) { AudioManager->ApplySettings(InSettings); }
 
-	// 판정/입력 오프셋은 RhythmConductor에서 읽어가므로 캐시만 갱신
-	// (미니게임 시작 시 GameContext.UserSettings로 전달됨)
-
-	// 화면 모드
-	if (InSettings.bFullscreen)
+	// 창 모드·해상도·그래픽 품질 반영
+	if (UGameUserSettings* GUS = UGameUserSettings::GetGameUserSettings())
 	{
-		// UGameUserSettings 등으로 전체화면 전환
-	}
+		// 창 모드
+		EWindowMode::Type WinMode;
+		switch (InSettings.WindowMode)
+		{
+		case EPTBWindowMode::Fullscreen:         WinMode = EWindowMode::Fullscreen;         break;
+		case EPTBWindowMode::WindowedFullscreen: WinMode = EWindowMode::WindowedFullscreen; break;
+		default:                                  WinMode = EWindowMode::Windowed;           break;
+		}
+		GUS->SetFullscreenMode(WinMode);
 
-	// SaveGame에도 반영
-	// if (CurrentSaveGame)
-	// {
-	//     CurrentSaveGame->Settings = InSettings;
-	// }
+		// 해상도 (PTBResolution 네임스페이스 공유 유틸리티 사용)
+		GUS->SetScreenResolution(PTBResolution::GetPreset(InSettings.ResolutionPresetIndex));
+
+		// 그래픽 품질 (0=낮음, 1=중간, 2=높음, 3=최고)
+		GUS->SetOverallScalabilityLevel(InSettings.GraphicsQuality);
+
+		GUS->ApplySettings(false);
+	}
 
 	SaveGame();
 
-	PTB_RECORD(LogPTBCore, TEXT("UserSettings applied — Master:%.2f BGM:%.2f SFX:%.2f Offset:%.1fms"),
-		InSettings.MasterVolume, InSettings.BGMVolume,
-		InSettings.SFXVolume, InSettings.JudgementOffsetMs);
+	PTB_RECORD(LogPTBCore, TEXT("UserSettings applied — Master:%.2f BGM:%.2f SFX:%.2f Offset:%.1fms / WinMode:%d / Resolution:%d / Graphics:%d"),
+		InSettings.MasterVolume, InSettings.BGMVolume, InSettings.SFXVolume, InSettings.JudgementOffsetMs,
+		static_cast<int32>(InSettings.WindowMode), InSettings.ResolutionPresetIndex, InSettings.GraphicsQuality);
 }
 
 void UPTBGameInstance::SaveGame()
