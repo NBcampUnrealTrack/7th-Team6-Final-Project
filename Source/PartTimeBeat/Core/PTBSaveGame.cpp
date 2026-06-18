@@ -15,7 +15,7 @@ void UPTBSaveGame::InitializeDefaultSave()
 	Settings.SFXVolume = 0.8f;
 	Settings.JudgementOffsetMs = 0.0f;
 	Settings.InputLatencyMs = 0.0f;
-	Settings.bFullscreen = true;
+	Settings.WindowMode = EPTBWindowMode::Windowed;
 	Settings.bVibrationEnabled = true;
 }
 
