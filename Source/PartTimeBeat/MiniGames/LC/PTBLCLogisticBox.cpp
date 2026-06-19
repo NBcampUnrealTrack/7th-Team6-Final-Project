@@ -137,26 +137,35 @@ UMaterialInstance* APTBLCLogisticBox::GetYellowMaterialInstance() const
 
 void APTBLCLogisticBox::InitializeFromNote(const FPTBNoteEvent& Note)
 {
-	if (!BaseMeshComponent || !RedBoxMaterialInstance || !BlueBoxMaterialInstance || !YellowBoxMaterialInstance)
-	{
-		return;
-	}
-
 	NoteId = Note.NoteId;
 	NoteTimeMs = Note.TimeMs;
 	ContentColorState = ActionTypeToLCColorState(Note.ActionType);
 	BoxColorState = EPTBLCColorState::None;
 
+	if (!BaseMeshComponent)
+	{
+		return;
+	}
+
 	switch (ContentColorState)
 	{
 	case EPTBLCColorState::Red:
-		BaseMeshComponent->SetMaterial(0, RedBoxMaterialInstance);
+		if (RedBoxMaterialInstance)
+		{
+			BaseMeshComponent->SetMaterial(0, RedBoxMaterialInstance);
+		}
 		break;
 	case EPTBLCColorState::Yellow:
-		BaseMeshComponent->SetMaterial(0, YellowBoxMaterialInstance);
+		if (YellowBoxMaterialInstance)
+		{
+			BaseMeshComponent->SetMaterial(0, YellowBoxMaterialInstance);
+		}
 		break;
 	case EPTBLCColorState::Blue:
-		BaseMeshComponent->SetMaterial(0, BlueBoxMaterialInstance);
+		if (BlueBoxMaterialInstance)
+		{
+			BaseMeshComponent->SetMaterial(0, BlueBoxMaterialInstance);
+		}
 		break;
 	default:
 		break;
