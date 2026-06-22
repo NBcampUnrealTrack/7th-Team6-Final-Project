@@ -83,7 +83,8 @@ void UPTBGameInstance::ApplyUserSettings(const FPTBUserSettings& InSettings)
 		GUS->SetScreenResolution(PTBResolution::GetPreset(InSettings.ResolutionPresetIndex));
 
 		// 그래픽 품질 (0=낮음, 1=중간, 2=높음, 3=최고)
-		GUS->SetOverallScalabilityLevel(InSettings.GraphicsQuality);
+		const int32 ClampedGraphicsQuality = FMath::Clamp(InSettings.GraphicsQuality, 0, 3);
+		GUS->SetOverallScalabilityLevel(ClampedGraphicsQuality);
 
 		GUS->ApplySettings(false);
 	}
