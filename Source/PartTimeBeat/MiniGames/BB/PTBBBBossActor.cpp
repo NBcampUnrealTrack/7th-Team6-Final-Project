@@ -35,11 +35,14 @@ void APTBBBBossActor::BindToMiniGame(APTBBBMiniGame* InMiniGame)
 	{
 		BBMiniGame->OnBBNoteCue.RemoveDynamic(this, &APTBBBBossActor::HandleBBNoteCue);
 		BBMiniGame->OnBBParrySuccess.RemoveDynamic(this, &APTBBBBossActor::HandleBBParrySuccess);
+		BBMiniGame->OnBBBossDefeated.RemoveDynamic(this, &APTBBBBossActor::HandleBBBossDefeated);
 	}
 
 	BBMiniGame = InMiniGame;
+	bDeathMontagePlayed = false;
 	InMiniGame->OnBBNoteCue.AddUniqueDynamic(this, &APTBBBBossActor::HandleBBNoteCue);
 	InMiniGame->OnBBParrySuccess.AddUniqueDynamic(this, &APTBBBBossActor::HandleBBParrySuccess);
+	InMiniGame->OnBBBossDefeated.AddUniqueDynamic(this, &APTBBBBossActor::HandleBBBossDefeated);
 }
 
 void APTBBBBossActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -48,6 +51,7 @@ void APTBBBBossActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	{
 		BBMiniGame->OnBBNoteCue.RemoveDynamic(this, &APTBBBBossActor::HandleBBNoteCue);
 		BBMiniGame->OnBBParrySuccess.RemoveDynamic(this, &APTBBBBossActor::HandleBBParrySuccess);
+		BBMiniGame->OnBBBossDefeated.RemoveDynamic(this, &APTBBBBossActor::HandleBBBossDefeated);
 	}
 	Super::EndPlay(EndPlayReason);
 }
@@ -140,6 +144,35 @@ void APTBBBBossActor::PlayHitReactMontage_Implementation(const FPTBJudgementResu
 
 // ── 델리게이트 핸들러 ────────────────────────────────────────────
 
+void APTBBBBossActor::PlayDeathMontage_Implementation()
+{
+	if (bDeathMontagePlayed)
+	{
+		return;
+	}
+
+	bDeathMontagePlayed = true;
+
+	if (DeathMontage)
+	{
+		if (BossMesh)
+		{
+			if (UAnimInstance* AnimInst = BossMesh->GetAnimInstance())
+			{
+				AnimInst->Montage_Play(DeathMontage);
+			}
+			else
+			{
+				PTB_WARNING(LogPTBMiniGames, TEXT("[BBBossActor] PlayDeathMontage: BossMesh에 AnimInstance가 없습니다. AnimBP가 설정되어 있는지 확인하세요."));
+			}
+		}
+	}
+	else
+	{
+		PTB_VERBOSE(LogPTBMiniGames, TEXT("[BBBossActor] PlayDeathMontage: DeathMontage가 설정되지 않았습니다."));
+	}
+}
+
 void APTBBBBossActor::HandleBBNoteCue(FPTBNoteEvent Note)
 {
 	PlayAttackMontage(Note);
@@ -147,5 +180,16 @@ void APTBBBBossActor::HandleBBNoteCue(FPTBNoteEvent Note)
 
 void APTBBBBossActor::HandleBBParrySuccess(FPTBJudgementResult Result, float BossHPPercent)
 {
+	if (BossHPPercent <= 0.0f)
+	{
+		PlayDeathMontage();
+		return;
+	}
+
 	PlayHitReactMontage(Result);
+}
+
+void APTBBBBossActor::HandleBBBossDefeated()
+{
+	PlayDeathMontage();
 }

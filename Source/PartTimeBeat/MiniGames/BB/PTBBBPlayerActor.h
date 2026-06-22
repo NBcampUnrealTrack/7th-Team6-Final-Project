@@ -66,6 +66,14 @@ public:
 	virtual void PlayDamageMontage_Implementation(const FPTBJudgementResult& Result);
 
 	/**
+	 * 플레이어 HP가 0에 처음 도달했을 때 호출된다.
+	 * 기본 구현: DeathMontage를 한 번만 재생.
+	 */
+	UFUNCTION(BlueprintNativeEvent, Category = "PTB|BB|Player")
+	void PlayDeathMontage(const FPTBJudgementResult& Result);
+	virtual void PlayDeathMontage_Implementation(const FPTBJudgementResult& Result);
+
+	/**
 	 * 프로필 데이터를 기반으로 캐릭터 메시와 AnimBP를 적용한다.
 	 * 기본 구현: Profile.Gender로 CharacterMeshByGender / AnimBlueprintByGender를 조회.
 	 * BP에서 재정의해 커스텀 로직 구현 가능.
@@ -103,6 +111,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|BB|Player|Animation")
 	TObjectPtr<UAnimMontage> DamageMontage;
 
+	/** 플레이어 HP가 0이 되었을 때 재생할 쓰러짐 애니메이션 몽타주 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|BB|Player|Animation")
+	TObjectPtr<UAnimMontage> DeathMontage;
+
 	// ── 에디터 설정 : 효과음 ─────────────────────────────────────
 
 	/**
@@ -139,6 +151,9 @@ public:
 	/** 현재 바인딩된 미니게임 */
 	UPROPERTY(BlueprintReadOnly, Category = "PTB|BB|Player")
 	TObjectPtr<APTBBBMiniGame> BBMiniGame;
+
+	/** 쓰러짐 애니메이션 중복 재생 방지 */
+	bool bDeathMontagePlayed = false;
 
 protected:
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
