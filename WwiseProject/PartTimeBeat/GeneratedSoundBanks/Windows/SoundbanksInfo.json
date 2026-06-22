@@ -612,8 +612,44 @@
       ]
      }
     ]
+   },
+   {
+    "Id": "1702304874",
+    "Type": "User",
+    "GUID": "{DEA8B77D-3752-4C4A-B731-9215A76BD582}",
+    "Language": "SFX",
+    "Hash": "{291C2493-411A-49A6-C514-620405580A84}",
+    "ObjectPath": "\\SoundBanks\\Default Work Unit\\LC",
+    "ShortName": "LC",
+    "Path": "LC.bnk",
+    "Media": [
+     {
+      "Id": "902210420",
+      "Language": "SFX",
+      "Streaming": "false",
+      "Location": "Memory",
+      "ShortName": "Music\\LC\\Logistic Center.wav",
+      "CachePath": "SFX/Music/LC/Logistic Center_818F3B66.wem"
+     }
+    ],
+    "Events": [
+     {
+      "Id": "2620029126",
+      "Name": "Play_LC_BGM",
+      "ObjectPath": "\\Events\\Default Work Unit\\Play_LC_BGM",
+      "GUID": "{B1E379D2-EBB5-46C0-9E4E-00C563521812}",
+      "DurationType": "OneShot",
+      "DurationMin": "127.536",
+      "DurationMax": "127.536",
+      "MediaRefs": [
+       {
+        "Id": "902210420"
+       }
+      ]
+     }
+    ]
    }
   ],
-  "FileHash": "{262796D4-1199-4171-6310-11D39291611B}"
+  "FileHash": "{A0B43797-3C36-A90B-5D47-12A7589A7086}"
  }
 }

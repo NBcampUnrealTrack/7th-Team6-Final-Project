@@ -10,6 +10,13 @@
 					<ObjectExclusionList/>
 					<GameSyncExclusionList/>
 				</SoundBank>
+				<SoundBank Name="LC" ID="{DEA8B77D-3752-4C4A-B731-9215A76BD582}">
+					<ObjectInclusionList>
+						<ObjectRef Name="Play_LC_BGM" ID="{B1E379D2-EBB5-46C0-9E4E-00C563521812}" WorkUnitID="{57C27AFF-72CF-40EC-ADB0-4148A3A0D350}" Origin="Manual" Filter="7"/>
+					</ObjectInclusionList>
+					<ObjectExclusionList/>
+					<GameSyncExclusionList/>
+				</SoundBank>
 			</ChildrenList>
 		</WorkUnit>
 	</SoundBanks>

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<SoundBanksInfo Platform="Windows" BasePlatform="Windows" SchemaVersion="16" SoundBankVersion="150">
+	<SoundBanks>
+		<SoundBank Id="1702304874" Type="User" GUID="{DEA8B77D-3752-4C4A-B731-9215A76BD582}" Language="SFX" Hash="{291C2493-411A-49A6-C514-620405580A84}">
+			<ObjectPath>\SoundBanks\Default Work Unit\LC</ObjectPath>
+			<ShortName>LC</ShortName>
+			<Path>LC.bnk</Path>
+			<Media>
+				<File Id="902210420" Language="SFX" Streaming="false" Location="Memory">
+					<ShortName>Music\LC\Logistic Center.wav</ShortName>
+					<CachePath>SFX/Music/LC/Logistic Center_818F3B66.wem</CachePath>
+				</File>
+			</Media>
+			<Events>
+				<Event Id="2620029126" Name="Play_LC_BGM" ObjectPath="\Events\Default Work Unit\Play_LC_BGM" GUID="{B1E379D2-EBB5-46C0-9E4E-00C563521812}" DurationType="OneShot" DurationMin="127.536" DurationMax="127.536">
+					<MediaRefs>
+						<MediaRef Id="902210420"/>
+					</MediaRefs>
+				</Event>
+			</Events>
+		</SoundBank>
+	</SoundBanks>
+	<FileHash>{0579AB34-0C0F-158A-90F6-F0B629E59999}</FileHash>
+</SoundBanksInfo>
