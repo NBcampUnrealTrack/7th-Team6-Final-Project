@@ -159,11 +159,23 @@ void UPTBSettingsWidget::RefreshAllWidgets()
 	}
 
 	if (ComboBoxWindowMode)
-		ComboBoxWindowMode->SetSelectedIndex(static_cast<int32>(PendingSettings.WindowMode));
+	{
+		const int32 ModeIndex = FMath::Clamp(static_cast<int32>(PendingSettings.WindowMode), 0, 2);
+		PendingSettings.WindowMode = static_cast<EPTBWindowMode>(ModeIndex);
+		ComboBoxWindowMode->SetSelectedIndex(ModeIndex);
+	}
 	if (ComboBoxResolution)
-		ComboBoxResolution->SetSelectedIndex(PendingSettings.ResolutionPresetIndex);
+	{
+		const int32 ResIndex = FMath::Clamp(PendingSettings.ResolutionPresetIndex, 0, PTBResolution::PresetCount - 1);
+		PendingSettings.ResolutionPresetIndex = ResIndex;
+		ComboBoxResolution->SetSelectedIndex(ResIndex);
+	}
 	if (ComboBoxGraphics)
-		ComboBoxGraphics->SetSelectedIndex(FMath::Clamp(PendingSettings.GraphicsQuality, 0, 3));
+	{
+		const int32 GraphicsIndex = FMath::Clamp(PendingSettings.GraphicsQuality, 0, 3);
+		PendingSettings.GraphicsQuality = GraphicsIndex;
+		ComboBoxGraphics->SetSelectedIndex(GraphicsIndex);
+	}
 
 	for (EPTBActionType Action : {
 		EPTBActionType::ActionA, EPTBActionType::ActionB, EPTBActionType::ActionC,
