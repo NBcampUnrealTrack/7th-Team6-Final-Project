@@ -3,9 +3,11 @@
 #include "Components/CanvasPanel.h"
 #include "Components/CanvasPanelSlot.h"
 #include "Components/ProgressBar.h"
+#include "Components/TextBlock.h"
 #include "MiniGames/BB/PTBBBMiniGame.h"
 #include "MiniGames/BB/PTBBBCueWidgetBase.h"
 #include "Debug/PTBTeamLog.h"
+#include "TimerManager.h"
 
 // ── 연결 / 해제 ──────────────────────────────────────────────────
 
@@ -26,6 +28,10 @@ void UPTBBBHUDWidget::BindToMiniGame(APTBBBMiniGame* InMiniGame)
 		BBMiniGame->OnBBBossHPChanged.RemoveDynamic(this, &UPTBBBHUDWidget::HandleBBBossHPChanged);
 		BBMiniGame->OnBBPlayerHPChanged.RemoveDynamic(this, &UPTBBBHUDWidget::HandleBBPlayerHPChanged);
 		BBMiniGame->OnBBBossDefeated.RemoveDynamic(this, &UPTBBBHUDWidget::HandleBBBossDefeated);
+		BBMiniGame->OnMiniGameStarted.RemoveDynamic(this, &UPTBBBHUDWidget::HandleBBIntroStarted);
+		BBMiniGame->OnMiniGameGameplayStarted.RemoveDynamic(this, &UPTBBBHUDWidget::HandleBBGameplayStarted);
+		BBMiniGame->OnMiniGameOutroStarted.RemoveDynamic(this, &UPTBBBHUDWidget::HandleBBOutroStarted);
+		BBMiniGame->OnMiniGameOutroFinished.RemoveDynamic(this, &UPTBBBHUDWidget::HandleBBOutroFinished);
 	}
 
 	BBMiniGame = InMiniGame;
@@ -36,6 +42,10 @@ void UPTBBBHUDWidget::BindToMiniGame(APTBBBMiniGame* InMiniGame)
 	InMiniGame->OnBBBossHPChanged.AddUniqueDynamic(this, &UPTBBBHUDWidget::HandleBBBossHPChanged);
 	InMiniGame->OnBBPlayerHPChanged.AddUniqueDynamic(this, &UPTBBBHUDWidget::HandleBBPlayerHPChanged);
 	InMiniGame->OnBBBossDefeated.AddUniqueDynamic(this, &UPTBBBHUDWidget::HandleBBBossDefeated);
+	InMiniGame->OnMiniGameStarted.AddUniqueDynamic(this, &UPTBBBHUDWidget::HandleBBIntroStarted);
+	InMiniGame->OnMiniGameGameplayStarted.AddUniqueDynamic(this, &UPTBBBHUDWidget::HandleBBGameplayStarted);
+	InMiniGame->OnMiniGameOutroStarted.AddUniqueDynamic(this, &UPTBBBHUDWidget::HandleBBOutroStarted);
+	InMiniGame->OnMiniGameOutroFinished.AddUniqueDynamic(this, &UPTBBBHUDWidget::HandleBBOutroFinished);
 
 	// 바인딩 시점의 HP로 메인 바 및 고스트 바 초기 동기화
 	SyncBarsToMiniGame();
@@ -67,7 +77,49 @@ void UPTBBBHUDWidget::NativeDestruct()
 		BBMiniGame->OnBBBossHPChanged.RemoveDynamic(this, &UPTBBBHUDWidget::HandleBBBossHPChanged);
 		BBMiniGame->OnBBPlayerHPChanged.RemoveDynamic(this, &UPTBBBHUDWidget::HandleBBPlayerHPChanged);
 		BBMiniGame->OnBBBossDefeated.RemoveDynamic(this, &UPTBBBHUDWidget::HandleBBBossDefeated);
+		BBMiniGame->OnMiniGameStarted.RemoveDynamic(this, &UPTBBBHUDWidget::HandleBBIntroStarted);
+		BBMiniGame->OnMiniGameGameplayStarted.RemoveDynamic(this, &UPTBBBHUDWidget::HandleBBGameplayStarted);
+		BBMiniGame->OnMiniGameOutroStarted.RemoveDynamic(this, &UPTBBBHUDWidget::HandleBBOutroStarted);
+		BBMiniGame->OnMiniGameOutroFinished.RemoveDynamic(this, &UPTBBBHUDWidget::HandleBBOutroFinished);
 	}
+
+	ClearCenterMessageTimers();
+}
+
+void UPTBBBHUDWidget::ShowCenterMessage(const FText& Message)
+{
+	OnCenterMessageShown(Message);
+	ApplyCenterMessageText(Message);
+}
+
+void UPTBBBHUDWidget::ApplyCenterMessageText(const FText& Message)
+{
+	if (CenterMessageText)
+	{
+		if (CenterMessageText->TextDelegate.IsBound())
+		{
+			CenterMessageText->TextDelegate.Unbind();
+		}
+
+		CenterMessageText->SetText(Message);
+		CenterMessageText->SetRenderOpacity(1.0f);
+		CenterMessageText->SetRenderScale(FVector2D(1.0f, 1.0f));
+		CenterMessageText->SetVisibility(ESlateVisibility::HitTestInvisible);
+	}
+}
+
+void UPTBBBHUDWidget::HideCenterMessage()
+{
+	bCenterMessageHoldActive = false;
+	CenterMessageHoldRemainingSeconds = 0.0f;
+	CenterMessageHoldText = FText::GetEmpty();
+
+	if (CenterMessageText)
+	{
+		CenterMessageText->SetVisibility(ESlateVisibility::Collapsed);
+	}
+
+	OnCenterMessageHidden();
 }
 
 // ── 앵커 좌표 ────────────────────────────────────────────────────
@@ -107,6 +159,7 @@ void UPTBBBHUDWidget::HandleBBParrySuccess(FPTBJudgementResult Result, float Bos
 	if (UPTBBBCueWidgetBase* Cue = FindAndRemoveCue(Result.NoteId))
 	{
 		Cue->OnJudgement(Result.JudgementType);
+		Cue->OnJudgementResult(Result);
 	}
 	OnParrySuccessEffect(Result, BossHPPercent);
 }
@@ -116,6 +169,7 @@ void UPTBBBHUDWidget::HandleBBParryFail(FPTBJudgementResult Result, float Player
 	if (UPTBBBCueWidgetBase* Cue = FindAndRemoveCue(Result.NoteId))
 	{
 		Cue->OnJudgement(EPTBJudgementType::Miss);
+		Cue->OnJudgementResult(Result);
 	}
 	OnParryFailEffect(Result, PlayerHPPercent);
 }
@@ -183,6 +237,20 @@ void UPTBBBHUDWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 	Super::NativeTick(MyGeometry, InDeltaTime);
 
 	// 보스 고스트 바 감소
+	if (bCenterMessageHoldActive)
+	{
+		CenterMessageHoldRemainingSeconds = FMath::Max(0.0f, CenterMessageHoldRemainingSeconds - InDeltaTime);
+		if (CenterMessageText)
+		{
+			ApplyCenterMessageText(CenterMessageHoldText);
+		}
+
+		if (CenterMessageHoldRemainingSeconds <= 0.0f)
+		{
+			bCenterMessageHoldActive = false;
+		}
+	}
+
 	if (BossHPGhostBar && BossGhostPercent > BossTargetPercent)
 	{
 		if (BossGhostDecayTimer > 0.f)
@@ -214,6 +282,32 @@ void UPTBBBHUDWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 void UPTBBBHUDWidget::HandleBBBossDefeated()
 {
 	OnBossDefeatedEffect();
+}
+
+void UPTBBBHUDWidget::HandleBBIntroStarted()
+{
+	ClearCenterMessageTimers();
+	ShowCenterMessageForDuration(FText::FromString(TEXT("3")), 0.95f);
+	QueueCenterMessage(1.0f, FText::FromString(TEXT("2")));
+	QueueCenterMessage(2.0f, FText::FromString(TEXT("1")));
+	QueueCenterMessage(2.75f, FText::FromString(TEXT("Start!")));
+}
+
+void UPTBBBHUDWidget::HandleBBGameplayStarted()
+{
+	ClearCenterMessageTimers();
+	HideCenterMessage();
+}
+
+void UPTBBBHUDWidget::HandleBBOutroStarted(FPTBRoundResult Result, EPTBRoundEndReason EndReason)
+{
+	ClearCenterMessageTimers();
+	ShowCenterMessage(FText::FromString(TEXT("Finish!")));
+}
+
+void UPTBBBHUDWidget::HandleBBOutroFinished(FPTBRoundResult Result, EPTBRoundEndReason EndReason)
+{
+	ClearCenterMessageTimers();
 }
 
 // ── 내부 헬퍼 ────────────────────────────────────────────────────
@@ -293,4 +387,43 @@ UPTBBBCueWidgetBase* UPTBBBHUDWidget::FindAndRemoveCue(int32 NoteId)
 		return Cue;
 	}
 	return nullptr;
+}
+
+void UPTBBBHUDWidget::ClearCenterMessageTimers()
+{
+	if (UWorld* World = GetWorld())
+	{
+		for (FTimerHandle& TimerHandle : CenterMessageTimerHandles)
+		{
+			World->GetTimerManager().ClearTimer(TimerHandle);
+		}
+	}
+
+	CenterMessageTimerHandles.Reset();
+}
+
+void UPTBBBHUDWidget::ShowCenterMessageForDuration(const FText& Message, float DurationSeconds)
+{
+	ShowCenterMessage(Message);
+	bCenterMessageHoldActive = DurationSeconds > 0.0f;
+	CenterMessageHoldRemainingSeconds = FMath::Max(0.0f, DurationSeconds);
+	CenterMessageHoldText = Message;
+}
+
+void UPTBBBHUDWidget::QueueCenterMessage(float DelaySeconds, const FText& Message)
+{
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return;
+	}
+
+	FTimerHandle TimerHandle;
+	FTimerDelegate TimerDelegate;
+	TimerDelegate.BindWeakLambda(this, [this, Message]()
+	{
+		ShowCenterMessageForDuration(Message, 0.95f);
+	});
+	World->GetTimerManager().SetTimer(TimerHandle, TimerDelegate, FMath::Max(0.0f, DelaySeconds), false);
+	CenterMessageTimerHandles.Add(TimerHandle);
 }

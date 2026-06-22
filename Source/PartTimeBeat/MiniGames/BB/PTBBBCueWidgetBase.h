@@ -51,6 +51,13 @@ public:
 	void OnJudgement(EPTBJudgementType JudgementType);
 
 	/**
+	 * BP 피드백용 전체 판정 결과
+	 * Result.Reason으로 WrongInput, ExpiredNote, EarlyRelease 등을 구분
+	 */
+	UFUNCTION(BlueprintCallable, BlueprintImplementableEvent, Category = "PTB|BB|Cue")
+	void OnJudgementResult(const FPTBJudgementResult& Result);
+
+	/**
 	 * Translation 이동을 즉시 멈추고 히트존(X=0)에 스냅한다.
 	 * Blueprint의 OnJudgement 시작 시점에 호출한다.
 	 */

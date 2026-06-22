@@ -3,12 +3,14 @@
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
 #include "Core/PTBStructEnums.h"
+#include "TimerManager.h"
 #include "PTBBBHUDWidget.generated.h"
 
 class APTBBBMiniGame;
 class UPTBBBCueWidgetBase;
 class UCanvasPanel;
 class UProgressBar;
+class UTextBlock;
 struct FPTBNoteEvent;
 struct FPTBJudgementResult;
 
@@ -46,6 +48,12 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category = "PTB|BB|HUD")
 	void BindToMiniGame(APTBBBMiniGame* InMiniGame);
+
+	UFUNCTION(BlueprintCallable, Category = "PTB|BB|HUD|Flow")
+	void ShowCenterMessage(const FText& Message);
+
+	UFUNCTION(BlueprintCallable, Category = "PTB|BB|HUD|Flow")
+	void HideCenterMessage();
 
 	/**
 	 * ActionType에 대응하는 큐 배치 좌표 반환.
@@ -104,6 +112,10 @@ public:
 	UPROPERTY(BlueprintReadOnly, meta = (BindWidgetOptional))
 	TObjectPtr<UProgressBar> PlayerHPGhostBar;
 
+	/** 3, 2, 1, Start!, Finish! 표시용 중앙 텍스트. Designer 탭에 없어도 된다. */
+	UPROPERTY(BlueprintReadOnly, meta = (BindWidgetOptional))
+	TObjectPtr<UTextBlock> CenterMessageText;
+
 	/** 피해 발생 후 고스트 바 감소 시작까지의 지연 시간(초) */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|BB|HUD|GhostBar", meta = (ClampMin = "0.0", UIMin = "0.0"))
 	float GhostBarDecayDelay = 0.5f;
@@ -144,6 +156,12 @@ protected:
 	/** 플레이어 HP 변경 시 호출 (ProgressBar 자동 갱신 후). BP에서 추가 연출 가능. */
 	UFUNCTION(BlueprintImplementableEvent, Category = "PTB|BB|HUD")
 	void OnPlayerHPUpdated(float NewHP, float MaxHP);
+
+	UFUNCTION(BlueprintImplementableEvent, Category = "PTB|BB|HUD|Flow")
+	void OnCenterMessageShown(const FText& Message);
+
+	UFUNCTION(BlueprintImplementableEvent, Category = "PTB|BB|HUD|Flow")
+	void OnCenterMessageHidden();
 
 private:
 	/** 현재 미니게임 HP 기준으로 메인 바·고스트 바 상태를 동기화. NativeConstruct/BindToMiniGame 양쪽에서 호출 */
@@ -187,6 +205,18 @@ private:
 	UFUNCTION()
 	void HandleBBBossDefeated();
 
+	UFUNCTION()
+	void HandleBBIntroStarted();
+
+	UFUNCTION()
+	void HandleBBGameplayStarted();
+
+	UFUNCTION()
+	void HandleBBOutroStarted(FPTBRoundResult Result, EPTBRoundEndReason EndReason);
+
+	UFUNCTION()
+	void HandleBBOutroFinished(FPTBRoundResult Result, EPTBRoundEndReason EndReason);
+
 	// ── 내부 헬퍼 ────────────────────────────────────────────────
 
 	/** 큐 위젯을 스폰·배치하고 InitCue 호출 후 반환. 실패 시 nullptr. */
@@ -196,4 +226,14 @@ private:
 
 	/** NoteId로 두 맵 중 해당 큐를 찾아 맵에서 제거하고 반환. 없으면 nullptr. */
 	UPTBBBCueWidgetBase* FindAndRemoveCue(int32 NoteId);
+
+	void ClearCenterMessageTimers();
+	void QueueCenterMessage(float DelaySeconds, const FText& Message);
+	void ShowCenterMessageForDuration(const FText& Message, float DurationSeconds);
+	void ApplyCenterMessageText(const FText& Message);
+
+	TArray<FTimerHandle> CenterMessageTimerHandles;
+	bool bCenterMessageHoldActive = false;
+	float CenterMessageHoldRemainingSeconds = 0.0f;
+	FText CenterMessageHoldText;
 };
