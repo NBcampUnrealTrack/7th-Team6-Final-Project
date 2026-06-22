@@ -612,8 +612,44 @@
       ]
      }
     ]
+   },
+   {
+    "Id": "1584861558",
+    "Type": "User",
+    "GUID": "{80B6EE31-13DF-480C-AE97-6EFCBB68045C}",
+    "Language": "SFX",
+    "Hash": "{26F594D7-86E5-B605-E303-68D327D5195F}",
+    "ObjectPath": "\\SoundBanks\\Default Work Unit\\SR",
+    "ShortName": "SR",
+    "Path": "SR.bnk",
+    "Media": [
+     {
+      "Id": "148205123",
+      "Language": "SFX",
+      "Streaming": "false",
+      "Location": "Memory",
+      "ShortName": "SR_BGM.wav",
+      "CachePath": "SFX/SR_BGM_818F3B66.wem"
+     }
+    ],
+    "Events": [
+     {
+      "Id": "3396216486",
+      "Name": "Play_SR_BGM",
+      "ObjectPath": "\\Events\\Default Work Unit\\Play_SR_BGM",
+      "GUID": "{E108A001-DF7D-45CB-9CD7-2BE8C9FF1697}",
+      "DurationType": "OneShot",
+      "DurationMin": "56.1039",
+      "DurationMax": "56.1039",
+      "MediaRefs": [
+       {
+        "Id": "148205123"
+       }
+      ]
+     }
+    ]
    }
   ],
-  "FileHash": "{262796D4-1199-4171-6310-11D39291611B}"
+  "FileHash": "{CD605392-8A24-CE3F-4F58-571A36FFFD7C}"
  }
 }

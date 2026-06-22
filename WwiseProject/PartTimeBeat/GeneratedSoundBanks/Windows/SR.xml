@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<SoundBanksInfo Platform="Windows" BasePlatform="Windows" SchemaVersion="16" SoundBankVersion="150">
+	<SoundBanks>
+		<SoundBank Id="1584861558" Type="User" GUID="{80B6EE31-13DF-480C-AE97-6EFCBB68045C}" Language="SFX" Hash="{26F594D7-86E5-B605-E303-68D327D5195F}">
+			<ObjectPath>\SoundBanks\Default Work Unit\SR</ObjectPath>
+			<ShortName>SR</ShortName>
+			<Path>SR.bnk</Path>
+			<Media>
+				<File Id="148205123" Language="SFX" Streaming="false" Location="Memory">
+					<ShortName>SR_BGM.wav</ShortName>
+					<CachePath>SFX/SR_BGM_818F3B66.wem</CachePath>
+				</File>
+			</Media>
+			<Events>
+				<Event Id="3396216486" Name="Play_SR_BGM" ObjectPath="\Events\Default Work Unit\Play_SR_BGM" GUID="{E108A001-DF7D-45CB-9CD7-2BE8C9FF1697}" DurationType="OneShot" DurationMin="56.1039" DurationMax="56.1039">
+					<MediaRefs>
+						<MediaRef Id="148205123"/>
+					</MediaRefs>
+				</Event>
+			</Events>
+		</SoundBank>
+	</SoundBanks>
+	<FileHash>{CCC23211-53E7-BE2D-1EE2-77A62E81F8F0}</FileHash>
+</SoundBanksInfo>

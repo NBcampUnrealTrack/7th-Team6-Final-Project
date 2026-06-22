@@ -10,6 +10,13 @@
 					<ObjectExclusionList/>
 					<GameSyncExclusionList/>
 				</SoundBank>
+				<SoundBank Name="SR" ID="{80B6EE31-13DF-480C-AE97-6EFCBB68045C}">
+					<ObjectInclusionList>
+						<ObjectRef Name="Play_SR_BGM" ID="{E108A001-DF7D-45CB-9CD7-2BE8C9FF1697}" WorkUnitID="{57C27AFF-72CF-40EC-ADB0-4148A3A0D350}" Origin="Manual" Filter="7"/>
+					</ObjectInclusionList>
+					<ObjectExclusionList/>
+					<GameSyncExclusionList/>
+				</SoundBank>
 			</ChildrenList>
 		</WorkUnit>
 	</SoundBanks>
