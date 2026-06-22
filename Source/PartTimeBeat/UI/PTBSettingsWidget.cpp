@@ -216,22 +216,22 @@ void UPTBSettingsWidget::RefreshVolumeText(UTextBlock* TextWidget, float Value)
 
 void UPTBSettingsWidget::BindWidgetCallbacks()
 {
-	if (ButtonApply)   ButtonApply->OnClicked.AddDynamic(this,   &UPTBSettingsWidget::OnApplyClicked);
-	if (ButtonReset)   ButtonReset->OnClicked.AddDynamic(this,   &UPTBSettingsWidget::OnResetClicked);
-	if (ButtonRebindA) ButtonRebindA->OnClicked.AddDynamic(this, &UPTBSettingsWidget::OnRebindAClicked);
-	if (ButtonRebindB) ButtonRebindB->OnClicked.AddDynamic(this, &UPTBSettingsWidget::OnRebindBClicked);
-	if (ButtonRebindC) ButtonRebindC->OnClicked.AddDynamic(this, &UPTBSettingsWidget::OnRebindCClicked);
-	if (ButtonRebindD) ButtonRebindD->OnClicked.AddDynamic(this, &UPTBSettingsWidget::OnRebindDClicked);
-	if (ButtonRebindE) ButtonRebindE->OnClicked.AddDynamic(this, &UPTBSettingsWidget::OnRebindEClicked);
+	if (ButtonApply)   ButtonApply->OnClicked.AddUniqueDynamic(this,   &UPTBSettingsWidget::OnApplyClicked);
+	if (ButtonReset)   ButtonReset->OnClicked.AddUniqueDynamic(this,   &UPTBSettingsWidget::OnResetClicked);
+	if (ButtonRebindA) ButtonRebindA->OnClicked.AddUniqueDynamic(this, &UPTBSettingsWidget::OnRebindAClicked);
+	if (ButtonRebindB) ButtonRebindB->OnClicked.AddUniqueDynamic(this, &UPTBSettingsWidget::OnRebindBClicked);
+	if (ButtonRebindC) ButtonRebindC->OnClicked.AddUniqueDynamic(this, &UPTBSettingsWidget::OnRebindCClicked);
+	if (ButtonRebindD) ButtonRebindD->OnClicked.AddUniqueDynamic(this, &UPTBSettingsWidget::OnRebindDClicked);
+	if (ButtonRebindE) ButtonRebindE->OnClicked.AddUniqueDynamic(this, &UPTBSettingsWidget::OnRebindEClicked);
 
-	if (SliderMaster)     SliderMaster->OnValueChanged.AddDynamic(this,     &UPTBSettingsWidget::OnMasterSliderChanged);
-	if (SliderBgm)        SliderBgm->OnValueChanged.AddDynamic(this,        &UPTBSettingsWidget::OnBgmSliderChanged);
-	if (SliderSfx)        SliderSfx->OnValueChanged.AddDynamic(this,        &UPTBSettingsWidget::OnSfxSliderChanged);
-	if (SliderSyncOffset) SliderSyncOffset->OnValueChanged.AddDynamic(this, &UPTBSettingsWidget::OnSyncOffsetSliderChanged);
+	if (SliderMaster)     SliderMaster->OnValueChanged.AddUniqueDynamic(this,     &UPTBSettingsWidget::OnMasterSliderChanged);
+	if (SliderBgm)        SliderBgm->OnValueChanged.AddUniqueDynamic(this,        &UPTBSettingsWidget::OnBgmSliderChanged);
+	if (SliderSfx)        SliderSfx->OnValueChanged.AddUniqueDynamic(this,        &UPTBSettingsWidget::OnSfxSliderChanged);
+	if (SliderSyncOffset) SliderSyncOffset->OnValueChanged.AddUniqueDynamic(this, &UPTBSettingsWidget::OnSyncOffsetSliderChanged);
 
-	if (ComboBoxWindowMode) ComboBoxWindowMode->OnSelectionChanged.AddDynamic(this, &UPTBSettingsWidget::OnWindowModeSelectionChanged);
-	if (ComboBoxResolution) ComboBoxResolution->OnSelectionChanged.AddDynamic(this, &UPTBSettingsWidget::OnResolutionSelectionChanged);
-	if (ComboBoxGraphics)   ComboBoxGraphics->OnSelectionChanged.AddDynamic(this,   &UPTBSettingsWidget::OnGraphicsSelectionChanged);
+	if (ComboBoxWindowMode) ComboBoxWindowMode->OnSelectionChanged.AddUniqueDynamic(this, &UPTBSettingsWidget::OnWindowModeSelectionChanged);
+	if (ComboBoxResolution) ComboBoxResolution->OnSelectionChanged.AddUniqueDynamic(this, &UPTBSettingsWidget::OnResolutionSelectionChanged);
+	if (ComboBoxGraphics)   ComboBoxGraphics->OnSelectionChanged.AddUniqueDynamic(this,   &UPTBSettingsWidget::OnGraphicsSelectionChanged);
 }
 
 void UPTBSettingsWidget::OnApplyClicked() { ApplySettings(); }
