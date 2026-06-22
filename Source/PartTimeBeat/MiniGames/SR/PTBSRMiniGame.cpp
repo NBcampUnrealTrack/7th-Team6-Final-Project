@@ -19,8 +19,8 @@ void APTBSRMiniGame::BeginPlay()
 {
 	Super::BeginPlay();
 	FPTBMiniGameContext Context;
-	Context.SessionRequest.MiniGameId = FName("SushiMiniGame");
-	Context.SessionRequest.Difficulty = EPTBDifficulty::Standard;
+	Context.SessionRequest.MiniGameId = FName("SR");
+	Context.SessionRequest.Difficulty = EPTBDifficulty::Easy;
 	InitializeMiniGame(Context);
 	StartMiniGame();
 }
@@ -45,21 +45,21 @@ FPTBRoundResult APTBSRMiniGame::FinishMiniGame(EPTBRoundEndReason Reason)
 	FPTBRoundResult FinalResult = Super::FinishMiniGame(Reason);
 
 	FinalResult.MiniGameId = FName("SR");
-	FinalResult.Difficulty = GameContext.SessionRequest.Difficulty; 
+	FinalResult.Difficulty = GameContext.SessionRequest.Difficulty;
 	FinalResult.PlayMode = GameContext.SessionRequest.PlayMode;
 
 	int32 TotalSuccessSushi = SuccessSushiCount;
 
-	// 초밥 1개당 1,000점 / 초밥 1개당 1,900원 계산
+	// 초밥 1개당 1,000점 / 초밥 1개당 1,900원 계산 / 26개
 	FinalResult.Score = TotalSuccessSushi * 1000;
 
 	FPTBRewardSummary RewardSummary;
 	RewardSummary.EarnedMoney = TotalSuccessSushi * 1900;
 
-	if (FinalResult.Score >= 30000)       FinalResult.Grade = EPTBGradeType::S;
+	if (FinalResult.Score >= 26000)       FinalResult.Grade = EPTBGradeType::S;
 	else if (FinalResult.Score >= 20000)  FinalResult.Grade = EPTBGradeType::A;
-	else if (FinalResult.Score >= 3000)  FinalResult.Grade = EPTBGradeType::B;
-	else if (FinalResult.Score >= 1000)   FinalResult.Grade = EPTBGradeType::C;
+	else if (FinalResult.Score >= 13000)  FinalResult.Grade = EPTBGradeType::B;
+	else if (FinalResult.Score >= 5000)   FinalResult.Grade = EPTBGradeType::C;
 	else                                  FinalResult.Grade = EPTBGradeType::Fail;
 
 	RoundResult = FinalResult;
