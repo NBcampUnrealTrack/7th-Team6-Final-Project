@@ -5,12 +5,28 @@
 #include "Components/BoxComponent.h"
 #include "Debug/PTBTeamLog.h"
 #include "PTBLCLogisticBox.h"
+#include "Rhythm/PTBRhythmConductorComponent.h"
 
 
 APTBLCMiniGame::APTBLCMiniGame()
 {
 	CollisionBox = CreateDefaultSubobject<UBoxComponent>(TEXT("CollisionBox"));
 	CollisionBox->SetupAttachment(RootComponent);
+}
+
+void APTBLCMiniGame::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+
+	if (!bEnableBeatPulse || !RhythmConductor)
+	{
+		ApplyBeatPulseToBoxes(1.0f);
+		return;
+	}
+
+	const float CurrentBeat = RhythmConductor->GetCurrentBeat();
+	const float BeatPhase = CurrentBeat - FMath::FloorToFloat(CurrentBeat);
+	ApplyBeatPulseToBoxes(CalculateBeatPulseScale(BeatPhase));
 }
 
 void APTBLCMiniGame::BuildRuntimeState()
@@ -71,6 +87,8 @@ void APTBLCMiniGame::HandleNoteCue(FPTBNoteEvent Note)
 		if (SpawnedActor)
 		{
 			SpawnedActor->InitializeFromNote(Note);
+			ActiveLogisticBoxes.Add(SpawnedActor);
+			SpawnedActor->OnDestroyed.AddDynamic(this, &APTBLCMiniGame::HandleLogisticBoxDestroyed);
 			PTB_RECORD(LogPTBMiniGames, TEXT("[LC] Logistic box spawned. NoteId=%d Action=%d Location=(%.2f, %.2f, %.2f) Class=%s"),
 				Note.NoteId,
 				static_cast<int32>(Note.ActionType),
@@ -144,6 +162,61 @@ void APTBLCMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 					: Result.ActionType;
 				TargetLogisticBox->PackageWithActionType(PackageActionType);
 			}
+		}
+	}
+}
+
+float APTBLCMiniGame::CalculateBeatPulseScale(float BeatPhase) const
+{
+	const float SafeShrinkRatio = FMath::Max(0.01f, BeatPulseShrinkBeatRatio);
+	const float SafeRecoverRatio = FMath::Max(0.01f, BeatPulseRecoverBeatRatio);
+	const float SafeMinScale = FMath::Clamp(BeatPulseMinScale, 0.0f, 1.0f);
+
+	if (BeatPhase < SafeShrinkRatio)
+	{
+		const float Alpha = FMath::Clamp(BeatPhase / SafeShrinkRatio, 0.0f, 1.0f);
+		const float EasedAlpha = FMath::InterpEaseIn(0.0f, 1.0f, Alpha, BeatPulseShrinkEaseExponent);
+		return FMath::Lerp(1.0f, SafeMinScale, EasedAlpha);
+	}
+
+	if (BeatPhase < SafeShrinkRatio + SafeRecoverRatio)
+	{
+		const float Alpha = FMath::Clamp((BeatPhase - SafeShrinkRatio) / SafeRecoverRatio, 0.0f, 1.0f);
+		const float EasedAlpha = FMath::InterpEaseOut(0.0f, 1.0f, Alpha, BeatPulseRecoverEaseExponent);
+		return FMath::Lerp(SafeMinScale, 1.0f, EasedAlpha);
+	}
+
+	return 1.0f;
+}
+
+void APTBLCMiniGame::ApplyBeatPulseToBoxes(float PulseScale)
+{
+	for (int32 Index = ActiveLogisticBoxes.Num() - 1; Index >= 0; --Index)
+	{
+		APTBLCLogisticBox* LogisticBox = ActiveLogisticBoxes[Index].Get();
+		if (!LogisticBox)
+		{
+			ActiveLogisticBoxes.RemoveAt(Index);
+			continue;
+		}
+
+		LogisticBox->SetBeatPulseScale(PulseScale);
+	}
+}
+
+void APTBLCMiniGame::HandleLogisticBoxDestroyed(AActor* DestroyedActor)
+{
+	APTBLCLogisticBox* DestroyedLogisticBox = Cast<APTBLCLogisticBox>(DestroyedActor);
+	if (!DestroyedLogisticBox)
+	{
+		return;
+	}
+
+	for (int32 Index = ActiveLogisticBoxes.Num() - 1; Index >= 0; --Index)
+	{
+		if (!ActiveLogisticBoxes[Index].IsValid() || ActiveLogisticBoxes[Index].Get() == DestroyedLogisticBox)
+		{
+			ActiveLogisticBoxes.RemoveAt(Index);
 		}
 	}
 }
