@@ -65,6 +65,9 @@ public:
 	/** 포장 완료 여부 */
 	bool GetIsPackaged() const;
 
+	/** 현재 박스 이동 속도 */
+	float GetMovingSpeed() const;
+
 	/** Beat 기준 둠칫 스케일 적용. 미포장 내용물 또는 올바른 박스에만 반영됩니다. */
 	void SetBeatPulseScale(float NewScale);
 

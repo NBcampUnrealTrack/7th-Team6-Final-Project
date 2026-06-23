@@ -4,6 +4,8 @@
 
 #include "Components/BoxComponent.h"
 #include "Debug/PTBTeamLog.h"
+#include "Audio/PTBWwiseRhythmSyncComponent.h"
+#include "MiniGames/Common/PTBMiniGameRuleSet.h"
 #include "PTBLCLogisticBox.h"
 #include "Rhythm/PTBRhythmConductorComponent.h"
 
@@ -87,6 +89,7 @@ void APTBLCMiniGame::HandleNoteCue(FPTBNoteEvent Note)
 		if (SpawnedActor)
 		{
 			SpawnedActor->InitializeFromNote(Note);
+			ApplyCueSpawnDelayCompensation(SpawnedActor, Note);
 			ActiveLogisticBoxes.Add(SpawnedActor);
 			SpawnedActor->OnDestroyed.AddDynamic(this, &APTBLCMiniGame::HandleLogisticBoxDestroyed);
 			PTB_RECORD(LogPTBMiniGames, TEXT("[LC] Logistic box spawned. NoteId=%d Action=%d Location=(%.2f, %.2f, %.2f) Class=%s"),
@@ -164,6 +167,45 @@ void APTBLCMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 			}
 		}
 	}
+}
+
+float APTBLCMiniGame::CalculateScheduledCueTimeMs(const FPTBNoteEvent& Note) const
+{
+	if (!RuleSet)
+	{
+		return Note.TimeMs;
+	}
+
+	if (RuleSet->CueLeadTimeMode == EPTBCueLeadTimeMode::MS)
+	{
+		return Note.TimeMs - FMath::Max(0.0f, RuleSet->CueLeadTimeMs);
+	}
+
+	const float BeatMs = GameContext.ChartData.BPM > 0.0f
+		? 60000.0f / GameContext.ChartData.BPM
+		: 0.0f;
+	return Note.TimeMs - FMath::Max(0.0f, RuleSet->LookAheadBeats) * BeatMs;
+}
+
+void APTBLCMiniGame::ApplyCueSpawnDelayCompensation(APTBLCLogisticBox* LogisticBox, const FPTBNoteEvent& Note) const
+{
+	if (!bUseCueSpawnDelayCompensation || !LogisticBox)
+	{
+		return;
+	}
+
+	const float CurrentCueTimeMs = RhythmSyncComponent
+		? RhythmSyncComponent->GetVisualChartTimeMs()
+		: GetCurrentChartTimeMs();
+	const float ScheduledCueTimeMs = CalculateScheduledCueTimeMs(Note);
+	const float DelayMs = FMath::Clamp(CurrentCueTimeMs - ScheduledCueTimeMs, 0.0f, MaxCueSpawnCompensationMs);
+	if (DelayMs <= 0.0f)
+	{
+		return;
+	}
+
+	const float CompensationDistance = LogisticBox->GetMovingSpeed() * (DelayMs / 1000.0f);
+	LogisticBox->AddActorWorldOffset(LogisticBox->GetActorRightVector() * CompensationDistance);
 }
 
 float APTBLCMiniGame::CalculateBeatPulseScale(float BeatPhase) const

@@ -49,6 +49,14 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|LC|Spawn")
 	TSubclassOf<APTBLCLogisticBox> LogisticBoxClass;
 	
+	/** 지연 발행된 Cue의 스폰 위치 보정 사용 여부 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|LC|Spawn")
+	bool bUseCueSpawnDelayCompensation = true;
+	
+	/** 한 박스당 최대 스폰 지연 보정 시간(ms) */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|LC|Spawn", meta = (ClampMin = "0", UIMin = "0"))
+	float MaxCueSpawnCompensationMs = 250.0f;
+	
 	/** Beat 기준 둠칫 효과 사용 여부 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|LC|Beat Pulse")
 	bool bEnableBeatPulse = true;
@@ -74,6 +82,10 @@ protected:
 	float BeatPulseRecoverEaseExponent = 3.0f;
 
 private:
+	float CalculateScheduledCueTimeMs(const FPTBNoteEvent& Note) const;
+	
+	void ApplyCueSpawnDelayCompensation(APTBLCLogisticBox* LogisticBox, const FPTBNoteEvent& Note) const;
+	
 	float CalculateBeatPulseScale(float BeatPhase) const;
 	
 	void ApplyBeatPulseToBoxes(float PulseScale);

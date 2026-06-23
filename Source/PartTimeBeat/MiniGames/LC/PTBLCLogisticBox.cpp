@@ -186,6 +186,11 @@ bool APTBLCLogisticBox::GetIsPackaged() const
 	return bIsPackaged;
 }
 
+float APTBLCLogisticBox::GetMovingSpeed() const
+{
+	return MovingSpeed;
+}
+
 void APTBLCLogisticBox::SetBeatPulseScale(float NewScale)
 {
 	if (!BaseMeshComponent)
