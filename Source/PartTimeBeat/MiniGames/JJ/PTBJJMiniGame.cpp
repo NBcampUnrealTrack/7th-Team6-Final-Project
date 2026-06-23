@@ -6,6 +6,18 @@
 #include "Rhythm/PTBRhythmChartAsset.h"
 #include "Rhythm/PTBScoreCalculator.h"
 #include "Debug/PTBTeamLog.h"
+#include "MiniGames/JJ/PTBJJJumpActor.h"
+#include "TimerManager.h"
+#include "Engine/World.h"
+
+APTBJJMiniGame::APTBJJMiniGame()
+{
+	// 좌(-) / 중(0) / 우(+) — Y축으로 벌려놓은 임의값. 화면 구도 보고 조절.
+	JumpSpawnTransforms.Reset();
+	JumpSpawnTransforms.Add(FTransform(FVector(0.0f, -200.0f, 0.0f))); // 0: 좌
+	JumpSpawnTransforms.Add(FTransform(FVector(0.0f, 0.0f, 0.0f))); // 1: 중
+	JumpSpawnTransforms.Add(FTransform(FVector(0.0f, 200.0f, 0.0f))); // 2: 우
+}
 
 void APTBJJMiniGame::BuildRuntimeState()
 {
@@ -23,6 +35,12 @@ void APTBJJMiniGame::BuildRuntimeState()
 		JumpSpeeds.Init(1.0f, 3);
 	}
 
+	// 점프 캐릭터 스폰 + 등록
+	SpawnJumpActors();
+
+	// 채보 스캔 → 노트별 체공시간 산출
+	PrecomputeAirtimes();
+
 	UE_LOG(LogPTBMiniGames, Log, TEXT("[%s] JJ BuildRuntimeState RuleSet=%s Chart=%s"),
 		*GetNameSafe(this),
 		*GetNameSafe(RuleSet.Get()),
@@ -38,6 +56,45 @@ void APTBJJMiniGame::HandleNoteCue(FPTBNoteEvent Note)
 
 	const int32 CharacterIndex = ResolveCharacterIndex(Note.ActionType);
 	OnJJJumpCue.Broadcast(CharacterIndex, Note);
+
+	const float SpeedScale = JumpSpeeds.IsValidIndex(CharacterIndex) ? JumpSpeeds[CharacterIndex] : 1.0f;
+	const float NowMs = GetCurrentChartTimeMs();
+	const float TargetMs = Note.TimeMs;
+	const float TimeToReach = TargetMs - NowMs;   // 지금부터 착지까지 실제 남은 시간
+
+	// 1) 채보 간격 기반 희망 체공시간
+	const float DesiredAirtime = GetAirtimeMsForNote(Note.NoteId);
+
+	// 2) 실제 쓸 수 있는 시간으로 상한 (Cue 선행이 짧으면 그만큼만)
+	float AirtimeMs = FMath::Min(DesiredAirtime, TimeToReach);
+
+	// 3) 하한 적용 (너무 짧은 점프 방지)
+	AirtimeMs = FMath::Max(AirtimeMs, MinAirtimeMs);
+
+	const float DelayMs = TimeToReach - AirtimeMs;
+
+	const bool bHasActor = JumpActors.IsValidIndex(CharacterIndex) && JumpActors[CharacterIndex] != nullptr;
+
+	UE_LOG(LogPTBMiniGames, Warning,
+		TEXT("CUE NoteId=%d CharIdx=%d Desired=%.0f Airtime=%.0f Now=%.0f Target=%.0f TimeToReach=%.0f Delay=%.0f HasActor=%d Actors=%d"),
+		Note.NoteId, CharacterIndex, DesiredAirtime, AirtimeMs, NowMs, TargetMs, TimeToReach, DelayMs,
+		bHasActor ? 1 : 0, JumpActors.Num());
+
+	if (UWorld* World = GetWorld())
+	{
+		if (DelayMs <= 0.0f)
+		{
+			StartScheduledJump(CharacterIndex, AirtimeMs, SpeedScale);
+		}
+		else
+		{
+			FTimerHandle Handle;
+			FTimerDelegate Del = FTimerDelegate::CreateUObject(
+				this, &APTBJJMiniGame::StartScheduledJump, CharacterIndex, AirtimeMs, SpeedScale);
+			World->GetTimerManager().SetTimer(Handle, Del, DelayMs / 1000.0f, false);
+			PendingJumpTimers.Add(Handle);
+		}
+	}
 
 	LogNoteDebug(TEXT("JumpCue"), Note);
 }
@@ -55,14 +112,11 @@ void APTBJJMiniGame::HandleChartEvent(FPTBNoteEvent Note)
 {
 	Super::HandleChartEvent(Note);
 
-	// 정시점 도달 = 캐릭터 점프 발동
+	// 정시점 도달 = 이 시점에 캐릭터가 바닥에 착지(점프는 Cue 때 이미 시작됨)
 	++JumpCount;
 	TrackNote(ReachedNotes, Note);
 
 	const int32 CharacterIndex = ResolveCharacterIndex(Note.ActionType);
-	const float SpeedScale = JumpSpeeds.IsValidIndex(CharacterIndex) ? JumpSpeeds[CharacterIndex] : 1.0f;
-
-	TriggerCharacterJump(CharacterIndex, SpeedScale);
 	OnJJJumpTriggered.Broadcast(CharacterIndex, Note);
 
 	LogNoteDebug(TEXT("JumpTriggered"), Note);
@@ -78,10 +132,27 @@ void APTBJJMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 
 	++LandingCount;
 
+	// 캐릭터 인덱스를 먼저 구함(모든 판정 케이스 공통)
+	const int32 CharacterIndex = bHasJudgedNote
+		? ResolveCharacterIndex(JudgedNote.ActionType)
+		: ResolveCharacterIndex(Result.ActionType);
+
+	// ── 판정 색 플래시 (진단 로그 포함) ──────────────────────────────
+	if (JumpActors.IsValidIndex(CharacterIndex) && JumpActors[CharacterIndex])
+	{
+		UE_LOG(LogPTBMiniGames, Warning, TEXT("[JJ FLASH] CharIdx=%d Type=%d 호출"),
+			CharacterIndex, static_cast<int32>(Result.JudgementType));
+		JumpActors[CharacterIndex]->FlashJudgementColor(Result.JudgementType);
+	}
+	else
+	{
+		UE_LOG(LogPTBMiniGames, Warning, TEXT("[JJ FLASH] 실패 CharIdx=%d ActorsNum=%d"),
+			CharacterIndex, JumpActors.Num());
+	}
+	// ─────────────────────────────────────────────────────────────────
+
 	if (bHasJudgedNote)
 	{
-		const int32 CharacterIndex = ResolveCharacterIndex(JudgedNote.ActionType);
-
 		RemoveTrackedNote(CuedNotes, Result.NoteId);
 		RemoveTrackedNote(ArmedNotes, Result.NoteId);
 		RemoveTrackedNote(ReachedNotes, Result.NoteId);
@@ -91,7 +162,6 @@ void APTBJJMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 	}
 	else if (Result.Reason == EPTBJudgementReason::EmptyInput)
 	{
-		const int32 CharacterIndex = ResolveCharacterIndex(Result.ActionType);
 		FPTBNoteEvent EmptyInputNote;
 		OnJJLanding.Broadcast(CharacterIndex, Result, EmptyInputNote);
 	}
@@ -269,4 +339,130 @@ void APTBJJMiniGame::LogNoteDebug(const TCHAR* EventName, const FPTBNoteEvent& N
 		Note.BeatTime,
 		Note.TimeMs,
 		Note.bIsLongNote ? 1 : 0);
+}
+
+void APTBJJMiniGame::PrecomputeAirtimes()
+{
+	NoteAirtimeMs.Reset();
+
+	if (!ChartAsset)
+	{
+		return;
+	}
+
+	const TArray<FPTBNoteEvent>& Notes = ChartAsset->NoteEvents;
+
+	// 액션별로 "바로 다음에 같은 액션이 등장하는 노트의 TimeMs"를 알아내기 위해
+	// 뒤에서 앞으로 스캔하며 각 액션의 직후 등장 시각을 추적한다.
+	TMap<EPTBActionType, float> NextSameActionTimeMs;
+
+	for (int32 Index = Notes.Num() - 1; Index >= 0; --Index)
+	{
+		const FPTBNoteEvent& Note = Notes[Index];
+
+		// 이 노트 기준, 같은 액션의 "다음" 노트 시각
+		float Airtime = MaxAirtimeMs;
+		if (const float* NextTime = NextSameActionTimeMs.Find(Note.ActionType))
+		{
+			const float Gap = *NextTime - Note.TimeMs;   // 같은 액션끼리의 간격
+			if (Gap > 0.0f)
+			{
+				Airtime = FMath::Min(MaxAirtimeMs, Gap);
+			}
+		}
+
+		// 하한 클램프(너무 짧은 점프 방지)
+		Airtime = FMath::Max(Airtime, MinAirtimeMs);
+
+		NoteAirtimeMs.Add(Note.NoteId, Airtime);
+
+		// 다음(앞쪽) 노트 스캔을 위해 이 액션의 등장 시각 갱신
+		NextSameActionTimeMs.Add(Note.ActionType, Note.TimeMs);
+	}
+}
+
+float APTBJJMiniGame::GetAirtimeMsForNote(int32 NoteId) const
+{
+	if (const float* Found = NoteAirtimeMs.Find(NoteId))
+	{
+		return *Found;
+	}
+	return MaxAirtimeMs;
+}
+
+void APTBJJMiniGame::StartScheduledJump(int32 CharacterIndex, float AirtimeMs, float HeightScale)
+{
+	const bool bHasActor = JumpActors.IsValidIndex(CharacterIndex) && JumpActors[CharacterIndex] != nullptr;
+	UE_LOG(LogPTBMiniGames, Warning,
+		TEXT(">>> StartScheduledJump CharIdx=%d Airtime=%.0f HasActor=%d Now=%.0f"),
+		CharacterIndex, AirtimeMs, bHasActor ? 1 : 0, GetCurrentChartTimeMs());
+
+	if (bHasActor)
+	{
+		JumpActors[CharacterIndex]->StartJump(AirtimeMs, HeightScale);
+	}
+
+	TriggerCharacterJump(CharacterIndex, HeightScale);
+}
+
+void APTBJJMiniGame::SpawnJumpActors()
+{
+	UE_LOG(LogPTBMiniGames, Warning, TEXT("=== SpawnJumpActors ENTER === Class=%s SpawnPoints=%d"),
+		*GetNameSafe(JumpActorClass), JumpSpawnTransforms.Num());
+
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		UE_LOG(LogPTBMiniGames, Error, TEXT("SpawnJumpActors: World is null"));
+		return;
+	}
+
+	if (!JumpActorClass)
+	{
+		UE_LOG(LogPTBMiniGames, Error, TEXT("SpawnJumpActors: JumpActorClass NOT SET — 디테일 패널에서 BP 지정 필요"));
+		return;
+	}
+
+	for (TObjectPtr<APTBJJJumpActor>& Existing : JumpActors)
+	{
+		if (Existing) { Existing->Destroy(); }
+	}
+	JumpActors.Reset();
+
+	for (int32 Index = 0; Index < JumpSpawnTransforms.Num(); ++Index)
+	{
+		FActorSpawnParameters Params;
+		Params.Owner = this;
+		Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+		APTBJJJumpActor* Spawned =
+			World->SpawnActor<APTBJJJumpActor>(JumpActorClass, JumpSpawnTransforms[Index], Params);
+
+		if (Spawned)
+		{
+			SetJumpActor(Index, Spawned);
+			UE_LOG(LogPTBMiniGames, Warning, TEXT("SpawnJumpActors: spawned idx=%d at %s"),
+				Index, *Spawned->GetActorLocation().ToString());
+		}
+		else
+		{
+			UE_LOG(LogPTBMiniGames, Error, TEXT("SpawnJumpActors: FAILED idx=%d"), Index);
+		}
+	}
+
+	UE_LOG(LogPTBMiniGames, Warning, TEXT("=== SpawnJumpActors DONE === total=%d"), JumpActors.Num());
+}
+
+void APTBJJMiniGame::SetJumpActor(int32 CharacterIndex, APTBJJJumpActor* JumpActor)
+{
+	if (CharacterIndex < 0)
+	{
+		return;
+	}
+
+	if (!JumpActors.IsValidIndex(CharacterIndex))
+	{
+		JumpActors.SetNum(CharacterIndex + 1);
+	}
+	JumpActors[CharacterIndex] = JumpActor;
 }
