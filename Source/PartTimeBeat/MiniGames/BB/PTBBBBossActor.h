@@ -60,6 +60,11 @@ public:
 	void PlayHitReactMontage(const FPTBJudgementResult& Result);
 	virtual void PlayHitReactMontage_Implementation(const FPTBJudgementResult& Result);
 
+	/** OnBBBossDefeated 수신 시 호출. 기본 구현: DeathMontage를 한 번만 재생. */
+	UFUNCTION(BlueprintNativeEvent, Category = "PTB|BB|Boss")
+	void PlayDeathMontage();
+	virtual void PlayDeathMontage_Implementation();
+
 	// ── 컴포넌트 ─────────────────────────────────────────────────
 
 	/** 보스 스켈레탈 메시. BP에서 메시·애니메이션 BP를 지정한다. */
@@ -83,6 +88,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|BB|Boss|Animation")
 	TObjectPtr<UAnimMontage> HitReactMontage;
 
+	/** 보스 HP가 0이 되었을 때 재생할 쓰러짐 애니메이션 몽타주 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|BB|Boss|Animation")
+	TObjectPtr<UAnimMontage> DeathMontage;
+
 	/**
 	 * ActionType별 공격 효과음 Wwise 이벤트.
 	 * 키: ActionA(Z) ~ ActionE(B). 해당 키가 없으면 DefaultAttackSFX를 사용한다.
@@ -102,6 +111,9 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "PTB|BB|Boss")
 	TObjectPtr<APTBBBMiniGame> BBMiniGame;
 
+	/** 쓰러짐 애니메이션 중복 재생 방지 */
+	bool bDeathMontagePlayed = false;
+
 protected:
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
@@ -113,4 +125,7 @@ private:
 
 	UFUNCTION()
 	void HandleBBParrySuccess(FPTBJudgementResult Result, float BossHPPercent);
+
+	UFUNCTION()
+	void HandleBBBossDefeated();
 };

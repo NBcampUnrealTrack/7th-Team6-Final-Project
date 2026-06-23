@@ -20,6 +20,17 @@
 							<ReferenceList>
 								<Reference Name="Target">
 									<ObjectRef Name="Logistic Center" ID="{0DBE828E-D2ED-4CB7-BDCA-199729745D07}" WorkUnitID="{0228961A-2A51-4477-AEFB-CB85DDF26F43}"/>
+                </Reference>
+							</ReferenceList>
+						</Action>
+					</ChildrenList>
+				</Event>
+				<Event Name="Play_SR_BGM" ID="{E108A001-DF7D-45CB-9CD7-2BE8C9FF1697}">
+					<ChildrenList>
+						<Action Name="" ID="{AE41BBBA-2A4C-422A-9630-F8D616866E88}" ShortID="919207144">
+							<ReferenceList>
+								<Reference Name="Target">
+									<ObjectRef Name="SR_BGM" ID="{338F3EF3-9F3E-4604-A547-B5E3AE6DE9E8}" WorkUnitID="{5011BE70-32B3-4459-ABC4-8BE1BBE471EC}"/>
 								</Reference>
 							</ReferenceList>
 						</Action>
