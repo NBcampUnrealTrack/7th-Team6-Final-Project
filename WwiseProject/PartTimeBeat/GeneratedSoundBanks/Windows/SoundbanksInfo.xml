@@ -181,7 +181,7 @@
 				</Event>
 			</Events>
 		</SoundBank>
-		<SoundBank Id="1802970376" Type="User" GUID="{8FA513FD-6B9B-4819-8471-194EF5DEBB12}" Language="SFX" Hash="{FF1A69AD-0000-B14B-3564-C5A71AF18637}">
+		<SoundBank Id="1802970376" Type="User" GUID="{8FA513FD-6B9B-4819-8471-194EF5DEBB12}" Language="SFX" Hash="{EF3D575C-DA29-9170-CBDF-ACADBD7AFA60}">
 			<ObjectPath>\SoundBanks\Default Work Unit\FS</ObjectPath>
 			<ShortName>FS</ShortName>
 			<Path>FS.bnk</Path>
@@ -200,5 +200,5 @@
 			</Events>
 		</SoundBank>
 	</SoundBanks>
-	<FileHash>{C005250A-0149-F5D6-3E61-7403D8A719C0}</FileHash>
+	<FileHash>{846480DB-48EA-B163-6090-CDD3C928D22B}</FileHash>
 </SoundBanksInfo>
