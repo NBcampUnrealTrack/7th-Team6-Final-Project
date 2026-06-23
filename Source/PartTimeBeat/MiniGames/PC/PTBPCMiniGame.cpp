@@ -177,11 +177,6 @@ void APTBPCMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 
     if (Result.JudgementType == EPTBJudgementType::Miss) return;
 
-    UE_LOG(LogTemp, Warning, TEXT("TileImageClass: %s"), TileImageClass ? TEXT("있음") : TEXT("없음"));
-    UE_LOG(LogTemp, Warning, TEXT("RailCharacter: %s"), RailCharacter ? TEXT("있음") : TEXT("없음"));
-    UE_LOG(LogTemp, Warning, TEXT("NoteId: %d, 텍스처: %s"), Result.NoteId,
-        TileTextures.IsValidIndex(Result.NoteId - 1) && TileTextures[Result.NoteId - 1] ? TEXT("있음") : TEXT("없음"));
-
     if (!RailCharacter || !RailCharacter->PCRailPath) return;
 
     int32 PointIndex = Result.NoteId;
@@ -189,14 +184,10 @@ void APTBPCMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
     if (!TileTextures.IsValidIndex(PointIndex - 1)) return;
 
     FVector SpawnLocation = RailCharacter->PCRailPath->GetPointLocation(PointIndex);
-    SpawnLocation.Z += 1.f;
-
-    UE_LOG(LogTemp, Warning, TEXT("SpawnLocation: %s"), *SpawnLocation.ToString());
+    SpawnLocation.Z += -75.f;
 
     APCTileImageActor* ImageActor = GetWorld()->SpawnActor<APCTileImageActor>(
         TileImageClass, SpawnLocation, FRotator(0.f, 0.f, 0.f));
-
-    UE_LOG(LogTemp, Warning, TEXT("ImageActor: %s"), ImageActor ? TEXT("스폰성공") : TEXT("스폰실패"));
 
     if (ImageActor)
     {

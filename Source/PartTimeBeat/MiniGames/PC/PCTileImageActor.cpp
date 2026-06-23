@@ -9,9 +9,9 @@ APCTileImageActor::APCTileImageActor()
     RootComponent = PlaneMesh;
 
     // 기본 플레인 메시 설정
-    static ConstructorHelpers::FObjectFinder<UStaticMesh> Plane(TEXT("/Engine/BasicShapes/Plane"));
-    if (Plane.Succeeded())
-        PlaneMesh->SetStaticMesh(Plane.Object);
+    static ConstructorHelpers::FObjectFinder<UStaticMesh> Cube(TEXT("/Engine/BasicShapes/Cube"));
+    if (Cube.Succeeded())
+        PlaneMesh->SetStaticMesh(Cube.Object);
 }
 
 void APCTileImageActor::SetTexture(UTexture2D* Texture)
