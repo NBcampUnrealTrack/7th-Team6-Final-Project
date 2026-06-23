@@ -4,6 +4,9 @@
 		<WorkUnit Name="TG" ID="{78E022C3-5C03-4A9F-B583-39A433161F35}" PersistMode="Standalone">
 			<ChildrenList>
 				<Sound Name="PTB_JJ_Easy_260527" ID="{63CD2746-16C5-42F0-948C-BACF87D4B585}" ShortID="492245899">
+					<PropertyList>
+						<Property Name="ListenerRelativeRouting" Type="bool" Value="False"/>
+					</PropertyList>
 					<ReferenceList>
 						<Reference Name="Conversion">
 							<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{01EA0F64-0215-4D91-8B1B-BBF638BBC5DC}"/>
@@ -21,6 +24,9 @@
 							</MediaIDList>
 						</AudioFileSource>
 					</ChildrenList>
+					<PositioningInfo>
+						<Panner Name="" ID="{DD46721E-98A2-432F-9E9C-FDC0B73FD324}"/>
+					</PositioningInfo>
 					<ActiveSourceList>
 						<ActiveSource Name="PTB_JJ_Easy_260527" ID="{222CD3D0-3FF2-4F45-B380-71D983D9E571}" Platform="Linked"/>
 					</ActiveSourceList>

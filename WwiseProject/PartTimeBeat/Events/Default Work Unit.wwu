@@ -14,6 +14,17 @@
 						</Action>
 					</ChildrenList>
 				</Event>
+				<Event Name="Play_PC_BGM" ID="{2E11A0D5-37EE-40A6-B4AF-B0FE6877551B}">
+					<ChildrenList>
+						<Action Name="" ID="{C2D1F278-2547-4737-86E9-7AD640B3A3EF}" ShortID="441404631">
+							<ReferenceList>
+								<Reference Name="Target">
+									<ObjectRef Name="PC_BGM" ID="{D3C2EF92-D0F7-42AE-A2AC-73D7CE04511F}" WorkUnitID="{37A2DAE3-B823-4F10-8CC0-50AA0CBEE5D0}"/>
+								</Reference>
+							</ReferenceList>
+						</Action>
+					</ChildrenList>
+				</Event>
 			</ChildrenList>
 		</WorkUnit>
 	</Events>
