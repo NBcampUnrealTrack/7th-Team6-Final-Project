@@ -76,10 +76,3 @@ void APCRailCharacter::MoveOneStep()
 
     bIsMoving = true;
 }
-
-
-void APCRailCharacter::TestSpawnTile()
-{
-    if (TileSpawner)
-        TileSpawner->SpawnTile();
-}

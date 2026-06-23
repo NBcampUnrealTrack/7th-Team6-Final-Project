@@ -44,8 +44,6 @@ public:
     // 박자 타이밍에 호출 - 레일 위 다음 지점으로 이동
     void MoveOneStep();
 
-    void TestSpawnTile();
-
     // 스포너 참조
     UPROPERTY(EditAnywhere)
     APCTileSpawner* TileSpawner;
