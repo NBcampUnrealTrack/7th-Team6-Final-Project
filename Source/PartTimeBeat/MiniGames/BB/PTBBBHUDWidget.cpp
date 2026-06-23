@@ -94,6 +94,9 @@ void UPTBBBHUDWidget::NativeConstruct()
 
 void UPTBBBHUDWidget::NativeDestruct()
 {
+	// GC 전 타이머 발화 방어. GetWorld()가 null이어도 람다·멤버 타이머 콜백이 실행되지 않도록 먼저 세팅.
+	bIsDestructed = true;
+
 	Super::NativeDestruct();
 
 	if (IsValid(BBMiniGame))
@@ -127,6 +130,7 @@ void UPTBBBHUDWidget::ShowCenterMessage(const FText& Message)
 
 void UPTBBBHUDWidget::HideCenterMessage()
 {
+	if (bIsDestructed) return;
 	if (UWorld* World = GetWorld())
 	{
 		World->GetTimerManager().ClearTimer(CenterMessageHoldTimerHandle);
@@ -425,6 +429,7 @@ void UPTBBBHUDWidget::QueueCenterMessage(float DelaySeconds, const FText& Messag
 	FTimerDelegate TimerDelegate;
 	TimerDelegate.BindWeakLambda(this, [this, Message]()
 	{
+		if (bIsDestructed) return;
 		ShowCenterMessageForDuration(Message, 0.95f);
 	});
 	World->GetTimerManager().SetTimer(TimerHandle, TimerDelegate, FMath::Max(0.0f, DelaySeconds), false);

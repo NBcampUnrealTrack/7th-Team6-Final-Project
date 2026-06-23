@@ -220,4 +220,7 @@ private:
 
 	TArray<FTimerHandle> CenterMessageTimerHandles;
 	FTimerHandle CenterMessageHoldTimerHandle;
+
+	// NativeDestruct 이후 GC 전 구간에서 타이머가 발화되지 않도록 막는 플래그
+	bool bIsDestructed = false;
 };
