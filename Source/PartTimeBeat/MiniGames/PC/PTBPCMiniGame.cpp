@@ -75,7 +75,7 @@ void APTBPCMiniGame::HandleChartEvent(FPTBNoteEvent Note)
         MoveDelayHandle,
         RailCharacter,
         &APCRailCharacter::MoveOneStep,
-        0.25f,  // 딜레이 초
+        0.1f,  // 딜레이 초
         false
     );
 }
