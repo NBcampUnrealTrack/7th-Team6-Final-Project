@@ -181,24 +181,24 @@
 				</Event>
 			</Events>
 		</SoundBank>
-		<SoundBank Id="1584861558" Type="User" GUID="{80B6EE31-13DF-480C-AE97-6EFCBB68045C}" Language="SFX" Hash="{26F594D7-86E5-B605-E303-68D327D5195F}">
-			<ObjectPath>\SoundBanks\Default Work Unit\SR</ObjectPath>
-			<ShortName>SR</ShortName>
-			<Path>SR.bnk</Path>
+		<SoundBank Id="1702304874" Type="User" GUID="{DEA8B77D-3752-4C4A-B731-9215A76BD582}" Language="SFX" Hash="{291C2493-411A-49A6-C514-620405580A84}">
+			<ObjectPath>\SoundBanks\Default Work Unit\LC</ObjectPath>
+			<ShortName>LC</ShortName>
+			<Path>LC.bnk</Path>
 			<Media>
-				<File Id="148205123" Language="SFX" Streaming="false" Location="Memory">
-					<ShortName>SR_BGM.wav</ShortName>
-					<CachePath>SFX/SR_BGM_818F3B66.wem</CachePath>
+				<File Id="902210420" Language="SFX" Streaming="false" Location="Memory">
+					<ShortName>Music\LC\Logistic Center.wav</ShortName>
+					<CachePath>SFX/Music/LC/Logistic Center_818F3B66.wem</CachePath>
 				</File>
 			</Media>
 			<Events>
-				<Event Id="3396216486" Name="Play_SR_BGM" ObjectPath="\Events\Default Work Unit\Play_SR_BGM" GUID="{E108A001-DF7D-45CB-9CD7-2BE8C9FF1697}" DurationType="OneShot" DurationMin="56.1039" DurationMax="56.1039">
+				<Event Id="2620029126" Name="Play_LC_BGM" ObjectPath="\Events\Default Work Unit\Play_LC_BGM" GUID="{B1E379D2-EBB5-46C0-9E4E-00C563521812}" DurationType="OneShot" DurationMin="127.536" DurationMax="127.536">
 					<MediaRefs>
-						<MediaRef Id="148205123"/>
+						<MediaRef Id="902210420"/>
 					</MediaRefs>
 				</Event>
 			</Events>
 		</SoundBank>
 	</SoundBanks>
-	<FileHash>{EB81C6CC-D6A4-4831-D478-2E51D913E948}</FileHash>
+	<FileHash>{3168F446-1A7D-E994-07F1-B8A1C09DD555}</FileHash>
 </SoundBanksInfo>

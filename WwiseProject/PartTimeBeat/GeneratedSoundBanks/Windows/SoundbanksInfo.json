@@ -614,42 +614,42 @@
     ]
    },
    {
-    "Id": "1584861558",
+    "Id": "1702304874",
     "Type": "User",
-    "GUID": "{80B6EE31-13DF-480C-AE97-6EFCBB68045C}",
+    "GUID": "{DEA8B77D-3752-4C4A-B731-9215A76BD582}",
     "Language": "SFX",
-    "Hash": "{26F594D7-86E5-B605-E303-68D327D5195F}",
-    "ObjectPath": "\\SoundBanks\\Default Work Unit\\SR",
-    "ShortName": "SR",
-    "Path": "SR.bnk",
+    "Hash": "{291C2493-411A-49A6-C514-620405580A84}",
+    "ObjectPath": "\\SoundBanks\\Default Work Unit\\LC",
+    "ShortName": "LC",
+    "Path": "LC.bnk",
     "Media": [
      {
-      "Id": "148205123",
+      "Id": "902210420",
       "Language": "SFX",
       "Streaming": "false",
       "Location": "Memory",
-      "ShortName": "SR_BGM.wav",
-      "CachePath": "SFX/SR_BGM_818F3B66.wem"
+      "ShortName": "Music\\LC\\Logistic Center.wav",
+      "CachePath": "SFX/Music/LC/Logistic Center_818F3B66.wem"
      }
     ],
     "Events": [
      {
-      "Id": "3396216486",
-      "Name": "Play_SR_BGM",
-      "ObjectPath": "\\Events\\Default Work Unit\\Play_SR_BGM",
-      "GUID": "{E108A001-DF7D-45CB-9CD7-2BE8C9FF1697}",
+      "Id": "2620029126",
+      "Name": "Play_LC_BGM",
+      "ObjectPath": "\\Events\\Default Work Unit\\Play_LC_BGM",
+      "GUID": "{B1E379D2-EBB5-46C0-9E4E-00C563521812}",
       "DurationType": "OneShot",
-      "DurationMin": "56.1039",
-      "DurationMax": "56.1039",
+      "DurationMin": "127.536",
+      "DurationMax": "127.536",
       "MediaRefs": [
        {
-        "Id": "148205123"
+        "Id": "902210420"
        }
       ]
      }
     ]
    }
   ],
-  "FileHash": "{CD605392-8A24-CE3F-4F58-571A36FFFD7C}"
+  "FileHash": "{A0B43797-3C36-A90B-5D47-12A7589A7086}"
  }
 }

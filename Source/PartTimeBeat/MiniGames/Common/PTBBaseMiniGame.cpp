@@ -1038,6 +1038,8 @@ void APTBBaseMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 		if (!RuleSet || !RuleSet->ShouldTreatEmptyInputAsMiss())
 		{
 			UE_LOG(LogRhythm, Verbose, TEXT("[%s] Empty input ignored. Action=%d"), *GetNameSafe(this), static_cast<int32>(Result.ActionType));
+			OnMiniGameJudgement.Broadcast(Result);
+			ReceiveJudgement(Result);
 			return;
 		}
 

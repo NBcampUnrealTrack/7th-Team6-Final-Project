@@ -47,6 +47,7 @@ void APTBLCLogisticBox::BeginPlay()
 	}
 	
 	MovementDirection = GetActorRightVector();
+	BaseMeshRelativeScale = BaseMeshComponent->GetRelativeScale3D();
 
 	if (!bIsPackaged)
 	{
@@ -185,6 +186,22 @@ bool APTBLCLogisticBox::GetIsPackaged() const
 	return bIsPackaged;
 }
 
+float APTBLCLogisticBox::GetMovingSpeed() const
+{
+	return MovingSpeed;
+}
+
+void APTBLCLogisticBox::SetBeatPulseScale(float NewScale)
+{
+	if (!BaseMeshComponent)
+	{
+		return;
+	}
+
+	const float AppliedScale = ShouldApplyBeatPulse() ? FMath::Max(0.0f, NewScale) : 1.0f;
+	BaseMeshComponent->SetRelativeScale3D(BaseMeshRelativeScale * AppliedScale);
+}
+
 void APTBLCLogisticBox::StopMovingAndEnablePhysics()
 {
 	if (!BaseMeshComponent)
@@ -267,4 +284,14 @@ void APTBLCLogisticBox::StartPackagingSpin()
 	bIsPackagingSpinActive = true;
 	PackagingSpinElapsedSeconds = 0.0f;
 	PackagingSpinStartRotation = GetActorRotation();
+}
+
+bool APTBLCLogisticBox::ShouldApplyBeatPulse() const
+{
+	if (!bIsPackaged)
+	{
+		return ContentColorState != EPTBLCColorState::None;
+	}
+
+	return ContentColorState != EPTBLCColorState::None && ContentColorState == BoxColorState;
 }

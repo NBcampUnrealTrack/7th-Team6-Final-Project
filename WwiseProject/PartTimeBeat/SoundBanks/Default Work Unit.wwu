@@ -10,9 +10,9 @@
 					<ObjectExclusionList/>
 					<GameSyncExclusionList/>
 				</SoundBank>
-				<SoundBank Name="SR" ID="{80B6EE31-13DF-480C-AE97-6EFCBB68045C}">
+				<SoundBank Name="LC" ID="{DEA8B77D-3752-4C4A-B731-9215A76BD582}">
 					<ObjectInclusionList>
-						<ObjectRef Name="Play_SR_BGM" ID="{E108A001-DF7D-45CB-9CD7-2BE8C9FF1697}" WorkUnitID="{57C27AFF-72CF-40EC-ADB0-4148A3A0D350}" Origin="Manual" Filter="7"/>
+						<ObjectRef Name="Play_LC_BGM" ID="{B1E379D2-EBB5-46C0-9E4E-00C563521812}" WorkUnitID="{57C27AFF-72CF-40EC-ADB0-4148A3A0D350}" Origin="Manual" Filter="7"/>
 					</ObjectInclusionList>
 					<ObjectExclusionList/>
 					<GameSyncExclusionList/>
