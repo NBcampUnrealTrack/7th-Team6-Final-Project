@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<WwiseDocument Type="WorkUnit" ID="{37A2DAE3-B823-4F10-8CC0-50AA0CBEE5D0}" SchemaVersion="119">
+	<AudioObjects>
+		<WorkUnit Name="PC" ID="{37A2DAE3-B823-4F10-8CC0-50AA0CBEE5D0}" PersistMode="Standalone">
+			<ChildrenList>
+				<Sound Name="PC_BGM" ID="{D3C2EF92-D0F7-42AE-A2AC-73D7CE04511F}" ShortID="109346279">
+					<PropertyList>
+						<Property Name="ListenerRelativeRouting" Type="bool" Value="False"/>
+					</PropertyList>
+					<ReferenceList>
+						<Reference Name="Conversion">
+							<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{01EA0F64-0215-4D91-8B1B-BBF638BBC5DC}"/>
+						</Reference>
+						<Reference Name="OutputBus">
+							<ObjectRef Name="Master Audio Bus" ID="{1514A4D8-1DA6-412A-A17E-75CA0C2149F3}" WorkUnitID="{95FF6337-5249-4E55-B0BA-291C12594EA3}"/>
+						</Reference>
+					</ReferenceList>
+					<ChildrenList>
+						<AudioFileSource Name="Play_PC_BGM" ID="{ABD36327-0405-4D26-BA0D-0B74EC9C7E91}">
+							<Language>SFX</Language>
+							<AudioFile>Play_PC_BGM.wav</AudioFile>
+							<MediaIDList>
+								<MediaID ID="17910444"/>
+							</MediaIDList>
+						</AudioFileSource>
+					</ChildrenList>
+					<ActiveSourceList>
+						<ActiveSource Name="Play_PC_BGM" ID="{ABD36327-0405-4D26-BA0D-0B74EC9C7E91}" Platform="Linked"/>
+					</ActiveSourceList>
+				</Sound>
+			</ChildrenList>
+		</WorkUnit>
+	</AudioObjects>
+</WwiseDocument>
