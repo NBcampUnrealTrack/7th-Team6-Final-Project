@@ -8,6 +8,7 @@
 #include "MiniGames/BB/PTBBBCueWidgetBase.h"
 #include "Debug/PTBTeamLog.h"
 #include "TimerManager.h"
+#include "Kismet/GameplayStatics.h"
 
 // ── 연결 / 해제 ──────────────────────────────────────────────────
 
@@ -49,6 +50,19 @@ void UPTBBBHUDWidget::BindToMiniGame(APTBBBMiniGame* InMiniGame)
 
 	// 바인딩 시점의 HP로 메인 바 및 고스트 바 초기 동기화
 	SyncBarsToMiniGame();
+
+	if (InMiniGame->IsBBIntroSequenceActive())
+	{
+		HandleBBIntroStarted();
+	}
+	else if (InMiniGame->IsBBGameplayActive())
+	{
+		HideCenterMessage();
+	}
+	else if (InMiniGame->IsBBOutroSequenceActive())
+	{
+		ShowCenterMessage(FText::FromString(TEXT("Finish!")));
+	}
 }
 
 void UPTBBBHUDWidget::NativeConstruct()
@@ -59,7 +73,20 @@ void UPTBBBHUDWidget::NativeConstruct()
 	bHasScriptImplementedTick = true;
 
 	// BindToMiniGame이 AddToViewport 이전에 호출된 경우를 대비한 초기 동기화
-	if (IsValid(BBMiniGame))
+	if (!IsValid(BBMiniGame))
+	{
+		TArray<AActor*> MiniGameActors;
+		UGameplayStatics::GetAllActorsOfClass(this, APTBBBMiniGame::StaticClass(), MiniGameActors);
+		for (AActor* Actor : MiniGameActors)
+		{
+			if (APTBBBMiniGame* FoundMiniGame = Cast<APTBBBMiniGame>(Actor))
+			{
+				BindToMiniGame(FoundMiniGame);
+				break;
+			}
+		}
+	}
+	else
 	{
 		SyncBarsToMiniGame();
 	}
