@@ -6,6 +6,7 @@
 #include "Rhythm/PTBRhythmChartAsset.h"
 #include "Rhythm/PTBScoreCalculator.h"
 #include "Blueprint/UserWidget.h"
+#include "Components/PrimitiveComponent.h"
 
 void APTBCHMiniGame::BuildRuntimeState()
 {
@@ -25,33 +26,40 @@ void APTBCHMiniGame::BuildRuntimeState()
     PlacedIngredients.Reset();
     CustomerOrders.Reset();
 
-    // 손님 8명 랜덤 주문 생성
-    const int32 CustomerCount = 8;
-    for (int32 i = 0; i < CustomerCount; ++i)
+    // 손님 주문 고정 (채보에 맞춤)
+// 1: 빵→패티→빵
+    { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Patty, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
+    { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
+    { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Patty, EPTBCHIngredientType::Tomato, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
+    { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::Patty, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
+    { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Tomato, EPTBCHIngredientType::Patty, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
+    { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::Tomato, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
+    { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Patty, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
+    { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
+
+    NoteIdToIngredientAction.Reset();
+    SlideGroups.Reset();
+    DroppingIngredients.Reset();
+
+    // 첫 번째 접시 스폰
+    if (PlateActorClass && GetWorld())
     {
-        FPTBCHCustomerOrder Order;
-        Order.Ingredients.Add(EPTBCHIngredientType::Bread);
-
-        const int32 FillingCount = FMath::RandRange(2, 4);
-        TArray<EPTBCHIngredientType> Fillings = {
-            EPTBCHIngredientType::Sauce,
-            EPTBCHIngredientType::Tomato,
-            EPTBCHIngredientType::Lettuce,
-            EPTBCHIngredientType::Patty,
-            EPTBCHIngredientType::Egg,
-            EPTBCHIngredientType::Bacon,
-            EPTBCHIngredientType::Cheese
-        };
-
-        for (int32 j = 0; j < FillingCount; ++j)
+        FActorSpawnParameters SpawnParams;
+        SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+        AActor* FirstPlate = GetWorld()->SpawnActor<AActor>(PlateActorClass, FVector(1240.0f, 0.0f, 5.0f), FRotator::ZeroRotator, SpawnParams);
+        if (FirstPlate)
         {
-            const int32 RandIdx = FMath::RandRange(0, Fillings.Num() - 1);
-            Order.Ingredients.Add(Fillings[RandIdx]);
-            Fillings.RemoveAt(RandIdx);
-        }
+            FCHSlideGroup Group;
+            Group.Plate = FirstPlate;
+            Group.TargetX = 840.0f;
+            SlideGroups.Add(Group);
+            CompletedPlates.Add(FirstPlate);
 
-        Order.Ingredients.Add(EPTBCHIngredientType::Bread);
-        CustomerOrders.Add(Order);
+            // StackHeight: 접시 윗면 기준
+            FVector PlateOrigin, PlateExtent;
+            FirstPlate->GetActorBounds(true, PlateOrigin, PlateExtent);
+            StackHeight = PlateOrigin.Z + PlateExtent.Z;
+        }
     }
 
     CreateAndAddHUD();
@@ -68,7 +76,17 @@ void APTBCHMiniGame::HandleChartEvent(FPTBNoteEvent Note)
 
     ++NoteEventCount;
     TrackNote(ReachedNotes, Note);
-    OnCHNoteReached.Broadcast(Note);
+
+    if (const EPTBActionType* Mapped = NoteIdToIngredientAction.Find(Note.NoteId))
+    {
+        FPTBNoteEvent RemappedNote = Note;
+        RemappedNote.ActionType = *Mapped;
+        OnCHNoteReached.Broadcast(RemappedNote);
+    }
+    else
+    {
+        OnCHNoteReached.Broadcast(Note);
+    }
 
     const UPTBCHMiniGameRuleSet* CHRuleSet = GetCHRuleSet();
     if (!CHRuleSet || CHRuleSet->bLogNoteEvent)
@@ -83,7 +101,17 @@ void APTBCHMiniGame::HandleNoteArm(FPTBNoteEvent Note)
 
     ++ArmCount;
     TrackNote(ArmedNotes, Note);
-    OnCHNoteArm.Broadcast(Note);
+
+    if (const EPTBActionType* Mapped = NoteIdToIngredientAction.Find(Note.NoteId))
+    {
+        FPTBNoteEvent RemappedNote = Note;
+        RemappedNote.ActionType = *Mapped;
+        OnCHNoteArm.Broadcast(RemappedNote);
+    }
+    else
+    {
+        OnCHNoteArm.Broadcast(Note);
+    }
 
     const UPTBCHMiniGameRuleSet* CHRuleSet = GetCHRuleSet();
     if (!CHRuleSet || CHRuleSet->bLogNoteArm)
@@ -104,25 +132,28 @@ void APTBCHMiniGame::HandleNoteCue(FPTBNoteEvent Note)
 
     TrackNote(CuedNotes, Note);
 
-    // 현재 차례 재료에 맞는 ActionType으로 바꿔서 브로드캐스트
-    if (CustomerOrders.IsValidIndex(CurrentCustomerIndex))
+    // 현재 손님 주문 순서에 맞는 ActionType으로 변환해서 브로드캐스트
+    // NoteId 기반으로 현재 몇 번째 노트인지 계산 (0부터 시작)
+    const FPTBCHCustomerOrder& Order = CustomerOrders[CurrentCustomerIndex % CustomerOrders.Num()];
+    const int32 IngredientIndex = CurrentIngredientIndex;
+
+    if (CustomerOrders.IsValidIndex(CurrentCustomerIndex) &&
+        Order.Ingredients.IsValidIndex(IngredientIndex))
     {
-        const FPTBCHCustomerOrder& Order = CustomerOrders[CurrentCustomerIndex];
-        if (Order.Ingredients.IsValidIndex(CurrentIngredientIndex))
+        EPTBCHIngredientType NextIngredient = Order.Ingredients[IngredientIndex];
+        FPTBNoteEvent ModifiedNote = Note;
+        switch (NextIngredient)
         {
-            EPTBCHIngredientType NextIngredient = Order.Ingredients[CurrentIngredientIndex];
-            FPTBNoteEvent ModifiedNote = Note;
-            switch (NextIngredient)
-            {
-            case EPTBCHIngredientType::Bread:   ModifiedNote.ActionType = EPTBActionType::ActionA; break;
-            case EPTBCHIngredientType::Lettuce: ModifiedNote.ActionType = EPTBActionType::ActionB; break;
-            case EPTBCHIngredientType::Patty:   ModifiedNote.ActionType = EPTBActionType::ActionC; break;
-            case EPTBCHIngredientType::Cheese:  ModifiedNote.ActionType = EPTBActionType::ActionD; break;
-            case EPTBCHIngredientType::Tomato:  ModifiedNote.ActionType = EPTBActionType::ActionE; break;
-            default: break;
-            }
-            OnCHNoteCue.Broadcast(ModifiedNote);
+        case EPTBCHIngredientType::BreadBottom: ModifiedNote.ActionType = EPTBActionType::ActionA; break;
+        case EPTBCHIngredientType::BreadTop:    ModifiedNote.ActionType = EPTBActionType::ActionA; break;
+        case EPTBCHIngredientType::Lettuce:     ModifiedNote.ActionType = EPTBActionType::ActionB; break;
+        case EPTBCHIngredientType::Patty:       ModifiedNote.ActionType = EPTBActionType::ActionC; break;
+        case EPTBCHIngredientType::Cheese:      ModifiedNote.ActionType = EPTBActionType::ActionD; break;
+        case EPTBCHIngredientType::Tomato:      ModifiedNote.ActionType = EPTBActionType::ActionE; break;
+        default: break;
         }
+        NoteIdToIngredientAction.Add(Note.NoteId, ModifiedNote.ActionType);
+        OnCHNoteCue.Broadcast(ModifiedNote);
     }
 
     const UPTBCHMiniGameRuleSet* CHRuleSet = GetCHRuleSet();
@@ -136,51 +167,91 @@ void APTBCHMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 {
     FPTBNoteEvent JudgedNote;
     const bool bHasJudgedNote = FindTrackedNote(Result.NoteId, JudgedNote);
-
     UE_LOG(LogPTBMiniGames, Log, TEXT("[CH] HandleJudgementResult: NoteId=%d bHasJudgedNote=%d Reason=%d"),
         Result.NoteId, bHasJudgedNote ? 1 : 0, static_cast<int32>(Result.Reason));
     Super::HandleJudgementResult(Result);
-
     UE_LOG(LogPTBMiniGames, Log, TEXT("[CH] Result.ActionType=%d, NoteId=%d"),
         static_cast<int32>(Result.ActionType), Result.NoteId);
-    //햄버거 스폰
-    if (Result.NoteId != 0 && Result.Reason == EPTBJudgementReason::Note && LastPressedAction != EPTBActionType::None)
-    {
-        EPTBCHIngredientType IngredientType = EPTBCHIngredientType::None;
-        switch (LastPressedAction)
-        {
-        case EPTBActionType::ActionA: IngredientType = EPTBCHIngredientType::Bread; break;
-        case EPTBActionType::ActionB: IngredientType = EPTBCHIngredientType::Lettuce; break;
-        case EPTBActionType::ActionC: IngredientType = EPTBCHIngredientType::Patty; break;
-        case EPTBActionType::ActionD: IngredientType = EPTBCHIngredientType::Cheese; break;
-        case EPTBActionType::ActionE: IngredientType = EPTBCHIngredientType::Tomato; break;
-        default: break;
-        }
 
-        UE_LOG(LogPTBMiniGames, Log, TEXT("[CH] SpawnCheck: bHasJudged=%d NoteId=%d Reason=%d IngredientType=%d LastPressedAction=%d"),
+    //햄버거 스폰
+    if (Result.NoteId != 0)
+    {
+        const bool bCorrectKey = (Result.Reason != EPTBJudgementReason::EmptyInput
+            && LastPressedAction != EPTBActionType::None
+            && Result.ActionType == LastPressedAction);
+
+        UE_LOG(LogPTBMiniGames, Log, TEXT("[CH] SpawnCheck: bHasJudged=%d NoteId=%d Reason=%d LastPressedAction=%d bCorrectKey=%d"),
             bHasJudgedNote ? 1 : 0,
             Result.NoteId,
             static_cast<int32>(Result.Reason),
-            static_cast<int32>(IngredientType),
-            static_cast<int32>(LastPressedAction));
+            static_cast<int32>(LastPressedAction),
+            bCorrectKey ? 1 : 0);
 
-        if (IngredientType != EPTBCHIngredientType::None)
+        if (bCorrectKey)
         {
-            bool bIsLastBread = (CurrentIngredientIndex >= CustomerOrders[CurrentCustomerIndex].Ingredients.Num() - 1);
-            SpawnIngredient(IngredientType, bIsLastBread);
-            CurrentIngredientIndex++;
-            if (bIsLastBread)
+            EPTBCHIngredientType IngredientType = EPTBCHIngredientType::None;
+            if (CustomerOrders.IsValidIndex(CurrentCustomerIndex) &&
+                CustomerOrders[CurrentCustomerIndex].Ingredients.IsValidIndex(CurrentIngredientIndex))
             {
-                for (AActor* Actor : SpawnedIngredients)
-                {
-                    if (Actor) Actor->Destroy();
-                }
-                SpawnedIngredients.Reset();
-                StackHeight = 30.0f;
-                CurrentIngredientIndex = 0;
-                CurrentCustomerIndex++;
+                IngredientType = CustomerOrders[CurrentCustomerIndex].Ingredients[CurrentIngredientIndex];
+            }
+            if (IngredientType != EPTBCHIngredientType::None)
+            {
+                bool bIsLastBread = (CurrentIngredientIndex >= CustomerOrders[CurrentCustomerIndex].Ingredients.Num() - 1);
+                SpawnIngredient(IngredientType, bIsLastBread);
             }
         }
+
+        // 맞든 틀리든 노트가 지나가면 다음 재료로 진행
+        if (Result.Reason != EPTBJudgementReason::EmptyInput)
+        {
+            CurrentIngredientIndex++;
+            if (CustomerOrders.IsValidIndex(CurrentCustomerIndex) &&
+                CurrentIngredientIndex >= CustomerOrders[CurrentCustomerIndex].Ingredients.Num())
+            {
+                // 모든 그룹을 왼쪽으로 400 슬라이드
+                // 방금 완성된 접시(윗빵이 막 올라간 것)는 0.5초 딜레이 후 출발
+                AActor* JustCompletedPlate = CompletedPlates.Num() > 0 ? CompletedPlates.Last().Get() : nullptr;
+                for (FCHSlideGroup& Group : SlideGroups)
+                {
+                    if (!Group.Plate) continue;
+                    Group.TargetX -= 400.0f;
+                    Group.Delay = (Group.Plate == JustCompletedPlate) ? 0.5f : 0.0f;
+                }
+
+                // 새 접시 스폰
+                if (PlateActorClass && GetWorld())
+                {
+                    FActorSpawnParameters SpawnParams;
+                    SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+                    AActor* NewPlate = GetWorld()->SpawnActor<AActor>(PlateActorClass, FVector(1240.0f, 0.0f, 5.0f), FRotator::ZeroRotator, SpawnParams);
+                    if (NewPlate)
+                    {
+                        FCHSlideGroup NewGroup;
+                        NewGroup.Plate = NewPlate;
+                        NewGroup.TargetX = 840.0f;
+                        NewGroup.Delay = 0.5f;
+                        SlideGroups.Add(NewGroup);
+                        CompletedPlates.Add(NewPlate);
+                    }
+                }
+
+                CompletedHamburgers.Add(SpawnedIngredients);
+                SpawnedIngredients.Reset();
+                CurrentIngredientIndex = 0;
+                CurrentCustomerIndex++;
+
+                // StackHeight: 새 접시 윗면 기준으로 리셋
+                if (CompletedPlates.Num() > 0 && CompletedPlates.Last())
+                {
+                    FVector PlateOrigin, PlateExtent;
+                    CompletedPlates.Last()->GetActorBounds(true, PlateOrigin, PlateExtent);
+                    StackHeight = PlateOrigin.Z + PlateExtent.Z;
+                }
+            }
+        }
+
+        LastPressedAction = EPTBActionType::None;
     }
 
     ++JudgementCount;
@@ -189,7 +260,7 @@ void APTBCHMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
         RemoveTrackedNote(CuedNotes, Result.NoteId);
         RemoveTrackedNote(ArmedNotes, Result.NoteId);
         RemoveTrackedNote(ReachedNotes, Result.NoteId);
-
+        NoteIdToIngredientAction.Remove(Result.NoteId);
         OnCHJudgement.Broadcast(Result, JudgedNote);
         OnCHNoteCleared.Broadcast(Result.NoteId, Result.JudgementType);
     }
@@ -198,7 +269,6 @@ void APTBCHMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
         FPTBNoteEvent EmptyInputNote;
         OnCHJudgement.Broadcast(Result, EmptyInputNote);
     }
-
     const UPTBCHMiniGameRuleSet* CHRuleSet = GetCHRuleSet();
     if (!CHRuleSet || CHRuleSet->bLogJudgement)
     {
@@ -391,7 +461,6 @@ void APTBCHMiniGame::HandleReadyToStart()
     {
         if (UFunction* InitFunc = HUDWidget->FindFunction(TEXT("Init")))
         {
-            UE_LOG(LogPTBMiniGames, Log, TEXT("[%s] CH Init function found. Calling..."), *GetNameSafe(this));
             struct { APTBCHMiniGame* InMiniGame; } Params{ this };
             HUDWidget->ProcessEvent(InitFunc, &Params);
         }
@@ -456,11 +525,120 @@ void APTBCHMiniGame::HandleRhythmInput(EPTBActionType Action, float TimeMs)
     if (bFound)
     {
         LastPressedAction = Action;
-        Super::HandleRhythmInput(BestNote.ActionType, TimeMs);
+        Super::HandleRhythmInput(Action, TimeMs);
     }
     else
     {
         Super::HandleRhythmInput(Action, TimeMs);
+    }
+}
+
+void APTBCHMiniGame::Tick(float DeltaTime)
+{
+    Super::Tick(DeltaTime);
+
+    // 드롭 애니메이션 (스프링 물리: 가속 → 착지 → 미세 바운스 → 안정화)
+    for (FCHDropAnim& Anim : DroppingIngredients)
+    {
+        if (Anim.bDone || !Anim.Ingredient) continue;
+
+        TArray<USceneComponent*> DropSC;
+        Anim.Ingredient->GetComponents<USceneComponent>(DropSC);
+        if (DropSC.Num() == 0) continue;
+
+        const float CurrentZ = DropSC[0]->GetComponentLocation().Z;
+
+        // 중력으로 가속
+        Anim.Velocity -= DropGravity * DeltaTime;
+        float NewZ = CurrentZ + Anim.Velocity * DeltaTime;
+
+        // 착지면(TargetZ) 도달 시 아래로 통과하지 않고 위로 튕김
+        if (NewZ <= Anim.TargetZ)
+        {
+            NewZ = Anim.TargetZ;
+            if (Anim.Velocity < 0.0f)
+            {
+                Anim.Velocity = -Anim.Velocity * DropRestitution;
+            }
+        }
+
+        const float DeltaZ = NewZ - CurrentZ;
+        for (USceneComponent* SC : DropSC)
+        {
+            if (SC)
+            {
+                FVector Loc = SC->GetComponentLocation();
+                SC->SetWorldLocation(FVector(Loc.X, Loc.Y, Loc.Z + DeltaZ), false, nullptr, ETeleportType::TeleportPhysics);
+            }
+        }
+
+        // 착지 후 속도가 충분히 작으면 완료
+        if (NewZ <= Anim.TargetZ + 0.5f && FMath::Abs(Anim.Velocity) < 8.0f)
+        {
+            const float SnapDeltaZ = Anim.TargetZ - NewZ;
+            for (USceneComponent* SC : DropSC)
+            {
+                if (SC)
+                {
+                    FVector Loc = SC->GetComponentLocation();
+                    SC->SetWorldLocation(FVector(Loc.X, Loc.Y, Loc.Z + SnapDeltaZ), false, nullptr, ETeleportType::TeleportPhysics);
+                }
+            }
+            Anim.bDone = true;
+        }
+    }
+    DroppingIngredients.RemoveAll([](const FCHDropAnim& A) { return A.bDone; });
+
+    for (FCHSlideGroup& Group : SlideGroups)
+    {
+        if (!Group.Plate) continue;
+
+        if (Group.Delay > 0.0f)
+        {
+            Group.Delay -= DeltaTime;
+            continue;
+        }
+
+        const FVector PlateLoc = Group.Plate->GetActorLocation();
+        if (FMath::IsNearlyEqual(PlateLoc.X, Group.TargetX, 1.0f)) continue;
+
+        const float NewX = FMath::FInterpConstantTo(PlateLoc.X, Group.TargetX, DeltaTime, SlideSpeed);
+        const float DeltaX = NewX - PlateLoc.X;
+
+        Group.Plate->SetActorLocation(FVector(NewX, PlateLoc.Y, PlateLoc.Z), false, nullptr, ETeleportType::TeleportPhysics);
+        for (AActor* Ingredient : Group.Ingredients)
+        {
+            if (!Ingredient) continue;
+            TArray<USceneComponent*> IngSC;
+            Ingredient->GetComponents<USceneComponent>(IngSC);
+            for (USceneComponent* SC : IngSC)
+            {
+                if (SC)
+                {
+                    FVector Loc = SC->GetComponentLocation();
+                    SC->SetWorldLocation(FVector(Loc.X + DeltaX, Loc.Y, Loc.Z), false, nullptr, ETeleportType::TeleportPhysics);
+                }
+            }
+        }
+
+        if (FMath::IsNearlyEqual(NewX, Group.TargetX, 1.0f))
+        {
+            Group.Plate->SetActorLocation(FVector(Group.TargetX, PlateLoc.Y, PlateLoc.Z), false, nullptr, ETeleportType::TeleportPhysics);
+            for (AActor* Ingredient : Group.Ingredients)
+            {
+                if (!Ingredient) continue;
+                TArray<USceneComponent*> IngSC;
+                Ingredient->GetComponents<USceneComponent>(IngSC);
+                for (USceneComponent* SC : IngSC)
+                {
+                    if (SC)
+                    {
+                        FVector Loc = SC->GetComponentLocation();
+                        SC->SetWorldLocation(FVector(Group.TargetX, Loc.Y, Loc.Z), false, nullptr, ETeleportType::TeleportPhysics);
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -470,8 +648,11 @@ void APTBCHMiniGame::SpawnIngredient(EPTBCHIngredientType IngredientType, bool b
 
     switch (IngredientType)
     {
-    case EPTBCHIngredientType::Bread:
-        ClassToSpawn = IngredientClass_Bread;
+    case EPTBCHIngredientType::BreadBottom:
+        ClassToSpawn = IngredientClass_BreadBottom;
+        break;
+    case EPTBCHIngredientType::BreadTop:
+        ClassToSpawn = IngredientClass_BreadTop;
         break;
     case EPTBCHIngredientType::Lettuce:
         ClassToSpawn = IngredientClass_Lettuce;
@@ -504,7 +685,47 @@ void APTBCHMiniGame::SpawnIngredient(EPTBCHIngredientType IngredientType, bool b
     AActor* SpawnedActor = GetWorld()->SpawnActor<AActor>(ClassToSpawn, SpawnLocation, SpawnRotation, SpawnParams);
     if (SpawnedActor)
     {
+        // 스폰 즉시 모든 컴포넌트 절대 위치 모드 + 물리 비활성화
+        // → Tick에서 SetWorldLocation으로 직접 이동 제어 (BP 설정 무관)
+        TArray<USceneComponent*> SpawnSC;
+        SpawnedActor->GetComponents<USceneComponent>(SpawnSC);
+        for (USceneComponent* SC : SpawnSC)
+        {
+            if (!SC) continue;
+            SC->SetAbsolute(true, false, false);
+            if (UPrimitiveComponent* PC = Cast<UPrimitiveComponent>(SC))
+            {
+                PC->SetSimulatePhysics(false);
+            }
+        }
+
         SpawnedIngredients.Add(SpawnedActor);
-        StackHeight += 15.0f;
+        if (SlideGroups.Num() > 0)
+        {
+            SlideGroups.Last().Ingredients.Add(SpawnedActor);
+        }
+
+        // TargetZ = 접시 윗면(StackHeight) + 재료 반높이 → 재료 바닥이 접시 위에 딱 닿도록
+        FVector Origin, BoxExtent;
+        SpawnedActor->GetActorBounds(true, Origin, BoxExtent);
+        const float TargetZ = StackHeight + BoxExtent.Z;
+        StackHeight += BoxExtent.Z * 2.0f;
+
+        // 드롭 시작 위치(TargetZ + 오프셋)로 배치 후 애니메이션 등록
+        TArray<USceneComponent*> DropSC;
+        SpawnedActor->GetComponents<USceneComponent>(DropSC);
+        for (USceneComponent* SC : DropSC)
+        {
+            if (SC)
+            {
+                FVector Loc = SC->GetComponentLocation();
+                SC->SetWorldLocation(FVector(Loc.X, Loc.Y, TargetZ + DropStartOffset), false, nullptr, ETeleportType::TeleportPhysics);
+            }
+        }
+        FCHDropAnim Anim;
+        Anim.Ingredient = SpawnedActor;
+        Anim.TargetZ = TargetZ;
+        Anim.Velocity = 0.0f;
+        DroppingIngredients.Add(Anim);
     }
 }

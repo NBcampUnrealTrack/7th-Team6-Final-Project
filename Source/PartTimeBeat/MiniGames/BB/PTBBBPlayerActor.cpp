@@ -43,6 +43,7 @@ void APTBBBPlayerActor::BindToMiniGame(APTBBBMiniGame* InMiniGame)
 	}
 
 	BBMiniGame = InMiniGame;
+	bDeathMontagePlayed = false;
 	InMiniGame->OnBBParrySuccess.AddUniqueDynamic(this, &APTBBBPlayerActor::HandleBBParrySuccess);
 	InMiniGame->OnBBParryFail.AddUniqueDynamic(this, &APTBBBPlayerActor::HandleBBParryFail);
 
@@ -159,6 +160,19 @@ void APTBBBPlayerActor::PlayDamageMontage_Implementation(const FPTBJudgementResu
 	}
 }
 
+void APTBBBPlayerActor::PlayDeathMontage_Implementation(const FPTBJudgementResult& Result)
+{
+	if (bDeathMontagePlayed) return;
+	bDeathMontagePlayed = true;
+
+	if (!DeathMontage) { PTB_VERBOSE(LogPTBMiniGames, TEXT("[BBPlayerActor] DeathMontage 미설정")); return; }
+
+	if (UAnimInstance* AnimInst = GetPlayerAnimInstance())
+	{
+		AnimInst->Montage_Play(DeathMontage);
+	}
+}
+
 void APTBBBPlayerActor::ApplyProfileCharacter_Implementation(const FPTBProfileData& Profile)
 {
 	if (!PlayerMesh)
@@ -260,5 +274,11 @@ void APTBBBPlayerActor::HandleBBParrySuccess(FPTBJudgementResult Result, float B
 
 void APTBBBPlayerActor::HandleBBParryFail(FPTBJudgementResult Result, float PlayerHPPercent)
 {
+	if (PlayerHPPercent <= 0.0f)
+	{
+		PlayDeathMontage(Result);
+		return;
+	}
+
 	PlayDamageMontage(Result);
 }
