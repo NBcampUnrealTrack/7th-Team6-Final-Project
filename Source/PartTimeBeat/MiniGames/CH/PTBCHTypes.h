@@ -10,7 +10,8 @@ UENUM(BlueprintType)
 enum class EPTBCHIngredientType : uint8
 {
     None        UMETA(DisplayName = "없음"),
-    Bread       UMETA(DisplayName = "빵"),
+    BreadBottom UMETA(DisplayName = "아랫빵"),
+    BreadTop    UMETA(DisplayName = "윗빵"),
     Sauce       UMETA(DisplayName = "소스"),
     Tomato      UMETA(DisplayName = "토마토"),
     Lettuce     UMETA(DisplayName = "상추"),
