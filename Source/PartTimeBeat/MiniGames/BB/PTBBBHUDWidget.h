@@ -9,6 +9,7 @@ class APTBBBMiniGame;
 class UPTBBBCueWidgetBase;
 class UCanvasPanel;
 class UProgressBar;
+class UTextBlock;
 struct FPTBNoteEvent;
 struct FPTBJudgementResult;
 
@@ -47,10 +48,13 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "PTB|BB|HUD")
 	void BindToMiniGame(APTBBBMiniGame* InMiniGame);
 
-	/**
-	 * ActionType에 대응하는 큐 배치 좌표 반환.
-	 * 기본 구현은 AnchorPositions 맵을 읽으며, BP에서 재정의해 커스텀 로직을 구현할 수 있다.
-	 */
+	UFUNCTION(BlueprintCallable, Category = "PTB|BB|HUD|Flow")
+	void ShowCenterMessage(const FText& Message);
+
+	UFUNCTION(BlueprintCallable, Category = "PTB|BB|HUD|Flow")
+	void HideCenterMessage();
+
+	/** ActionType에 대응하는 큐 배치 좌표 반환. 기본 구현은 AnchorPositions 맵을 읽으며 BP에서 재정의 가능. */
 	UFUNCTION(BlueprintNativeEvent, Category = "PTB|BB|HUD")
 	FVector2D GetAnchorCanvasPosition(EPTBActionType ActionType) const;
 	virtual FVector2D GetAnchorCanvasPosition_Implementation(EPTBActionType ActionType) const;
@@ -65,20 +69,11 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|BB|HUD|Cue")
 	TSubclassOf<UPTBBBCueWidgetBase> HoldCueClass;
 
-	/**
-	 * ActionType별 캔버스 배치 좌표.
-	 * GetAnchorCanvasPosition의 기본 구현이 이 값을 읽는다.
-	 * 에디터 Details 패널에서 각 키(ActionA~E)마다 화면 좌표를 직접 입력한다.
-	 */
+	/** ActionType별 캔버스 배치 좌표. 에디터 Details 패널에서 각 키(ActionA~E)마다 입력한다. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|BB|HUD|Cue")
 	TMap<EPTBActionType, FVector2D> AnchorPositions;
 
-	/**
-	 * 노트 스폰 시작 위치 (보스/적의 캔버스 좌표).
-	 * 큐는 이 X 좌표에서 시작해 AnchorPositions의 X 좌표까지 이동한다.
-	 * Y 좌표는 각 ActionType의 AnchorPositions.Y를 그대로 사용한다.
-	 * 에디터에서 보스 이미지 중심에 맞춰 설정한다.
-	 */
+	/** 노트 스폰 시작 X 좌표 (보스 이미지 중심). 큐는 이 X에서 AnchorPositions.X 방향으로 이동한다. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|BB|HUD|Cue")
 	FVector2D BossSpawnCanvasPosition = FVector2D(1200.f, 360.f);
 
@@ -103,6 +98,10 @@ public:
 	/** 플레이어 HP 고스트 바 (피해 잔상). PlayerHPBar 뒤(ZOrder 낮게)에 배치. Designer 탭에 없어도 된다. */
 	UPROPERTY(BlueprintReadOnly, meta = (BindWidgetOptional))
 	TObjectPtr<UProgressBar> PlayerHPGhostBar;
+
+	/** 3, 2, 1, Start!, Finish! 표시용 중앙 텍스트. Designer 탭에 없어도 된다. */
+	UPROPERTY(BlueprintReadOnly, meta = (BindWidgetOptional))
+	TObjectPtr<UTextBlock> CenterMessageText;
 
 	/** 피해 발생 후 고스트 바 감소 시작까지의 지연 시간(초) */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|BB|HUD|GhostBar", meta = (ClampMin = "0.0", UIMin = "0.0"))
@@ -144,6 +143,12 @@ protected:
 	/** 플레이어 HP 변경 시 호출 (ProgressBar 자동 갱신 후). BP에서 추가 연출 가능. */
 	UFUNCTION(BlueprintImplementableEvent, Category = "PTB|BB|HUD")
 	void OnPlayerHPUpdated(float NewHP, float MaxHP);
+
+	UFUNCTION(BlueprintImplementableEvent, Category = "PTB|BB|HUD|Flow")
+	void OnCenterMessageShown(const FText& Message);
+
+	UFUNCTION(BlueprintImplementableEvent, Category = "PTB|BB|HUD|Flow")
+	void OnCenterMessageHidden();
 
 private:
 	/** 현재 미니게임 HP 기준으로 메인 바·고스트 바 상태를 동기화. NativeConstruct/BindToMiniGame 양쪽에서 호출 */
@@ -187,6 +192,18 @@ private:
 	UFUNCTION()
 	void HandleBBBossDefeated();
 
+	UFUNCTION()
+	void HandleBBIntroStarted();
+
+	UFUNCTION()
+	void HandleBBGameplayStarted();
+
+	UFUNCTION()
+	void HandleBBOutroStarted(FPTBRoundResult Result, EPTBRoundEndReason EndReason);
+
+	UFUNCTION()
+	void HandleBBOutroFinished(FPTBRoundResult Result, EPTBRoundEndReason EndReason);
+
 	// ── 내부 헬퍼 ────────────────────────────────────────────────
 
 	/** 큐 위젯을 스폰·배치하고 InitCue 호출 후 반환. 실패 시 nullptr. */
@@ -196,4 +213,14 @@ private:
 
 	/** NoteId로 두 맵 중 해당 큐를 찾아 맵에서 제거하고 반환. 없으면 nullptr. */
 	UPTBBBCueWidgetBase* FindAndRemoveCue(int32 NoteId);
+
+	void ClearCenterMessageTimers();
+	void QueueCenterMessage(float DelaySeconds, const FText& Message);
+	void ShowCenterMessageForDuration(const FText& Message, float DurationSeconds);
+
+	TArray<FTimerHandle> CenterMessageTimerHandles;
+	FTimerHandle CenterMessageHoldTimerHandle;
+
+	// NativeDestruct 이후 GC 전 구간에서 타이머가 발화되지 않도록 막는 플래그
+	bool bIsDestructed = false;
 };

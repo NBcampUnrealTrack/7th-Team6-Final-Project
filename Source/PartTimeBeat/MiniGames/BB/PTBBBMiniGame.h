@@ -105,6 +105,15 @@ public:
 	UFUNCTION(BlueprintPure, Category = "PTB|BB")
 	int32 GetTargetScore() const { return CachedTargetScore; }
 
+	UFUNCTION(BlueprintPure, Category = "PTB|BB|Flow")
+	bool IsBBIntroSequenceActive() const { return bStartSequenceActive; }
+
+	UFUNCTION(BlueprintPure, Category = "PTB|BB|Flow")
+	bool IsBBGameplayActive() const { return bIsRoundActive; }
+
+	UFUNCTION(BlueprintPure, Category = "PTB|BB|Flow")
+	bool IsBBOutroSequenceActive() const { return bFinishSequenceActive; }
+
 	// ── 입력 편의 함수 (z/x/c/v/b 키) ───────────────────────────
 
 	UFUNCTION(BlueprintCallable, Category = "PTB|BB|Input")
