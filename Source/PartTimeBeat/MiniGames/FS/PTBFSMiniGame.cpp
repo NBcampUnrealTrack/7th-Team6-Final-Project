@@ -1,8 +1,11 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 #include "PTBFSMiniGame.h"
+
+#include "EngineUtils.h"
 #include "FishActor.h"
 #include "PTBFSCharacter.h"
 #include "PTBFSMiniGameRuleSet.h"
+#include "Audio/PTBWwiseRhythmSyncComponent.h"
 #include "Core/PTBGameInstance.h"
 #include "Debug/PTBTeamLog.h"
 #include "Flow/PTBGameFlowSubsystem.h"
@@ -10,11 +13,11 @@
 #include "Rhythm/PTBJudgementSystem.h"
 #include "Rhythm/PTBRhythmChartAsset.h"
 #include "Rhythm/PTBRhythmConductorComponent.h"
-
+#include "Camera/CameraActor.h"
 
 APTBFSMiniGame::APTBFSMiniGame()
 {
-	PrimaryActorTick.bCanEverTick = false;
+	PrimaryActorTick.bCanEverTick = true;
 }
 
 void APTBFSMiniGame::BeginPlay()
@@ -31,6 +34,37 @@ void APTBFSMiniGame::BeginPlay()
 	{
 		PTB_WARNING(LogPTBMiniGames, TEXT("[Fishing] RhythmConductor 없음"));
 	}
+}
+
+void APTBFSMiniGame::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+	if (bMovingCamera1 && SuccessCamera1)
+	{
+		CameraElapsedTime += DeltaTime;
+		float Alpha = FMath::Clamp(CameraElapsedTime / 3.0f, 0.0f, 1.0f);
+		FVector NewLoc = FMath::Lerp(Camera1StartLocation, Camera1EndLocation, Alpha);
+		SuccessCamera1->SetActorLocation(NewLoc);
+
+		if (Alpha >= 1.0f)
+		{
+			bMovingCamera1 = false;
+		}
+	}
+
+	if (bMovingCamera2 && SuccessCamera2)
+	{
+		CameraElapsedTime += DeltaTime;
+		float Alpha = FMath::Clamp(CameraElapsedTime / 3.0f, 0.0f, 1.0f);
+		FVector NewLoc = FMath::Lerp(Camera2StartLocation, Camera2EndLocation, Alpha);
+		SuccessCamera2->SetActorLocation(NewLoc);
+
+		if (Alpha >= 1.0f)
+		{
+			bMovingCamera2 = false;
+		}
+	}
+
 }
 
 void APTBFSMiniGame::BuildRuntimeState()
@@ -85,7 +119,14 @@ void APTBFSMiniGame::BuildRuntimeState()
 
 	Character->SetFishLineTarget(FishActor);
 	Character->OnPlayCastAnimMontage();
-
+	for (TActorIterator<ACameraActor> It(GetWorld()); It; ++It)
+	{
+		PTB_WARNING(LogPTBMiniGames, TEXT("[Fishing] Camera found: %s"), *It->GetName());
+		if (It->ActorHasTag(FName("SuccessCamera1")))
+			SuccessCamera1 = *It;
+		else if ((It->ActorHasTag(FName("SuccessCamera2"))))
+			SuccessCamera2 = *It;
+	}	
 	GI->CachedSettings.RhythmKeys.ActionA = EKeys::Left;
 	GI->CachedSettings.RhythmKeys.ActionB = EKeys::Right;
 	GI->CachedSettings.RhythmKeys.ActionC = EKeys::Up;
@@ -96,9 +137,15 @@ void APTBFSMiniGame::HandleNoteCue(FPTBNoteEvent Note)
 	Super::HandleNoteCue(Note);
 	PTB_WARNING(LogPTBMiniGames, TEXT("[Fishing] HandleNoteCue 호출됨 MovingCount: %d FishDistance: %f"), MovingCount,
 	            FishDistance);
-	if (!FishRuleSet)return;
+	if (!FishRuleSet)return;	
+	float ActualLeadTime = 0.0f;
+	if (RhythmConductor)
+	{
+		 ActualLeadTime = RhythmConductor->CueLeadTimeMs; // 또는 프로젝트에서 정의한 리드타임 변수명
+	}
+	OnFishingPromptCue.Broadcast(Note.ActionType, Note.bIsLongNote,Note.TimeMs,ActualLeadTime);
 	MovingCount++;
-}
+}	
 
 
 void APTBFSMiniGame::HandleNoteArm(FPTBNoteEvent Note)
@@ -128,7 +175,7 @@ void APTBFSMiniGame::HandleNoteArm(FPTBNoteEvent Note)
 	default:
 		break;
 	}
-
+	
 	FishLateralOffset = Offset;
 	FishActor->SetTargetLocation(BaseLoc + FishLateralOffset);
 }
@@ -164,7 +211,10 @@ void APTBFSMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 		OnFishingPromptReleased.Broadcast(Result.ActionType);
 		OnFishPulled.Broadcast(2.0f);
 		Character->OnPlayRealAnimMontage();
+		OnFishingJudgement.Broadcast(Result.JudgementType);
+		CurrentComboCount++;
 		CorrectCount++;
+		OnFishingComboChanged.Broadcast(CurrentComboCount);
 		break;
 	case EPTBJudgementType::Perfect:
 		FishLateralOffset = FVector::ZeroVector;
@@ -172,7 +222,10 @@ void APTBFSMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 		OnFishingPromptReleased.Broadcast(Result.ActionType);
 		OnFishPulled.Broadcast(2.0f);
 		Character->OnPlayRealAnimMontage();
+		OnFishingJudgement.Broadcast(Result.JudgementType);
+		CurrentComboCount++;
 		CorrectCount++;
+		OnFishingComboChanged.Broadcast(CurrentComboCount);
 		break;
 	case EPTBJudgementType::Good:
 		FishLateralOffset = FVector::ZeroVector;
@@ -180,7 +233,10 @@ void APTBFSMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 		OnFishingPromptReleased.Broadcast(Result.ActionType);
 		OnFishPulled.Broadcast(2.0f);
 		Character->OnPlayRealAnimMontage();
+		OnFishingJudgement.Broadcast(Result.JudgementType);
+		CurrentComboCount++;
 		CorrectCount++;
+		OnFishingComboChanged.Broadcast(CurrentComboCount);
 		break;
 	case EPTBJudgementType::Miss:
 		FishLateralOffset = FVector::ZeroVector;
@@ -197,6 +253,9 @@ void APTBFSMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 			ApplyDistanceDelta(StepDistance * 1.0f);
 			OnFishSlipped.Broadcast(1.0f);
 		}
+		CurrentComboCount =0;
+		OnFishingComboChanged.Broadcast(CurrentComboCount);	
+		OnFishingJudgement.Broadcast(Result.JudgementType);
 		break;
 	}
 }
@@ -211,24 +270,56 @@ void APTBFSMiniGame::InitializeMiniGame(const FPTBMiniGameContext& Context)
 	Super::InitializeMiniGame(Context);
 }
 
+void APTBFSMiniGame::PlaySuccessCameraSequence()
+{
+	APlayerController* PC = GetWorld()->GetFirstPlayerController();
+	if (!PC) return;
+
+	if (SuccessCamera1)
+	{
+		Camera1StartLocation = SuccessCamera1->GetActorLocation();
+		Camera1EndLocation = Camera1StartLocation + FVector(0, 0, 100);
+		CameraElapsedTime = 0.0f;
+		bMovingCamera1 = true;
+		PC->SetViewTargetWithBlend(SuccessCamera1, 0.5f);
+	}
+
+	GetWorldTimerManager().SetTimer(
+		CameraTimer,
+		[WeakThis = TWeakObjectPtr<APTBFSMiniGame>(this)]()
+		{
+			if (!WeakThis.IsValid()) return;
+        
+			APlayerController* PC = WeakThis->GetWorld()->GetFirstPlayerController();
+			if (!PC) return;
+
+			if (WeakThis->SuccessCamera2)
+			{
+				WeakThis->Camera2StartLocation = WeakThis->SuccessCamera2->GetActorLocation();
+				WeakThis->Camera2EndLocation = WeakThis->Camera2StartLocation + FVector(0, 0, -100);
+				WeakThis->CameraElapsedTime = 0.0f;
+				WeakThis->bMovingCamera2 = true;
+				PC->SetViewTargetWithBlend(WeakThis->SuccessCamera2, 0.5f);
+			}
+		},
+		5.0f,
+		false
+	);
+}
+
 void APTBFSMiniGame::OnAllNotesPassedFishing()
 {
 	OnFishRevealed.Broadcast(FishActor);
 	// 원래는 캐릭터를 가져와서 해야함 Character->PlayAnim SuccessAnim;
-	PTB_WARNING(LogPTBMiniGames, TEXT("성공애니메이션 재생"));
-	TWeakObjectPtr<APTBFSMiniGame> WeakThis(this);
-	GetWorldTimerManager().SetTimer(
-		FishTimer,
-		[WeakThis]()
-		{
-			if (WeakThis.IsValid())
-			{
-				WeakThis->FinishMiniGame(EPTBRoundEndReason::Completed);
-			}
-		},
-		2.0f,
-		false
-	);
+	if (FishDistance <= 0.3f) // 성공 조건
+	{
+		PlaySuccessCameraSequence();
+		PTB_WARNING(LogPTBMiniGames, TEXT("성공!"));
+	}
+	else
+	{
+		PTB_WARNING(LogPTBMiniGames, TEXT("실패!"));
+	}
 }
 
 void APTBFSMiniGame::ApplyDistanceDelta(float Delta)
@@ -267,6 +358,15 @@ EFishingLineState APTBFSMiniGame::CalculateLineState(float Distance) const
 	{
 		return EFishingLineState::Loose;
 	}
+}
+
+void APTBFSMiniGame::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	if (UPTBGameInstance* GI = Cast<UPTBGameInstance>(GetGameInstance()))
+	{
+		GI->CachedSettings.RhythmKeys = OriginalKeyBindings;
+	}
+	Super::EndPlay(EndPlayReason);
 }
 
 void APTBFSMiniGame::OnStartFishingGame()

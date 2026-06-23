@@ -5,6 +5,7 @@
 #include "CableComponent.h"
 #include "PTBFSMiniGame.h"
 #include "Components/StaticMeshComponent.h"
+#include "Debug/PTBTeamLog.h"
 
 
 // Sets default values
@@ -49,6 +50,7 @@ void APTBFSCharacter::SetFishLineTarget(AActor* InFishActor)
 
 void APTBFSCharacter::AttachFishingLine()
 {
+	PTB_WARNING(LogPTBMiniGames, TEXT("[Fishing] AttachFishingLine 호출됨 FishLineTarget=%s"), *GetNameSafe(FishLineTarget));
 	if (FishingCable && FishLineTarget)
 	{
 		UMeshComponent* FishMesh = FishLineTarget->FindComponentByClass<UMeshComponent>();

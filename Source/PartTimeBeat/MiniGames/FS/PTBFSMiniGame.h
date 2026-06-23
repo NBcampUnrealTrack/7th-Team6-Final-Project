@@ -11,6 +11,7 @@ class AFishActor;
 class UPTBFSMiniGameRuleSet;
 class APTBRhythmCharacterBase;
 class APTBFSCharacter;
+class ACameraActor;
 
 UENUM(BlueprintType)
 enum class EFishingLineState : uint8
@@ -30,7 +31,13 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnFishingLineStateChanged, EFishing
 /** Cue 시점 발행 — BP에서 어떤 키를 눌러야 하는지 HUD 표시 */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnFishingPromptShown, EPTBActionType, RequiredAction, bool, bIsLongNote);
  
-/**
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnFishingJudgement, EPTBJudgementType, JudgementType);
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnFishingComboChanged, int32, NewCombo);
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_FourParams(FOnFishingPromptCue, EPTBActionType, RequiredAction, bool, bIsLongNote, float, TargetTimeMs,float, CueLeadTimeMs);
+
+/*
  * 성공 입력 시 발행
  * PullStrength로 물튀김 이펙트 강도, 컨트롤러 진동 강도 조절
  * HighPerfect=1.0 / Perfect=1.0 / Good=1.0
@@ -84,6 +91,15 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Fishing|Events")
 	FOnFishRevealed OnFishRevealed;
 	
+	UPROPERTY(BlueprintAssignable, Category = "Fishing|Events")
+	FOnFishingJudgement OnFishingJudgement;
+	
+	UPROPERTY(BlueprintAssignable, Category = "Fishing|Events")
+	FOnFishingComboChanged OnFishingComboChanged;
+	
+	UPROPERTY(BlueprintAssignable, Category = "Fishing|Events")
+	FOnFishingPromptCue OnFishingPromptCue;
+	
 	UFUNCTION(BlueprintPure, Category = "Fishing")
 	float GetFishDistance() const { return FishDistance; }
 
@@ -131,7 +147,14 @@ public:
 	void SetFishActor(AFishActor* InFishActor) { FishActor = InFishActor; }
 
 	void OnStartFishingGame();
+	
+	TObjectPtr<UPTBWwiseRhythmSyncComponent> GetUPTBWwiseRhythmSyncComponent()
+	{
+		return RhythmSyncComponent;
+	};
 protected:
+	virtual void Tick(float DeltaTime) override;
+	
 	virtual void BuildRuntimeState()override;
 	
 	virtual void HandleNoteCue(FPTBNoteEvent Note) override;
@@ -147,6 +170,9 @@ protected:
 	UFUNCTION(BlueprintCallable, Category = "PTB|MiniGame")
 	virtual void InitializeMiniGame(const FPTBMiniGameContext& Context)override;
 
+	void PlaySuccessCameraSequence();
+	
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 private:
 	UFUNCTION()
 	void OnAllNotesPassedFishing();
@@ -165,8 +191,6 @@ private:
 	
 	FVector CharacterLocation = FVector::ZeroVector;
 	
-	FTimerHandle FishTimer;
-	
 	UPROPERTY()
 	TObjectPtr<AFishActor> FishActor=nullptr;
 	
@@ -178,11 +202,42 @@ private:
 	
 	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category = "Fishing",meta = (AllowPrivateAccess = "true"))
 	float AutoDriftMultiplier = 0.3f;
-	
+		
 	/**물고기 거리조정함수*/
 	void ApplyDistanceDelta(float Delta);
 	
 	EFishingLineState CalculateLineState(float Distance)const;
 	
 	FVector FishLateralOffset = FVector::ZeroVector;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera",meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<ACameraActor> SuccessCamera1;
+	
+	FVector Camera1StartLocation;
+	
+	FVector Camera1EndLocation;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera",meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<ACameraActor> SuccessCamera2;
+	
+	FVector Camera2StartLocation;
+	
+	FVector Camera2EndLocation;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera",meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<ACameraActor>  DefaultCamera;
+	
+	FTimerHandle CameraTimer;
+	
+	UPROPERTY()
+	bool bMovingCamera1 = false;
+
+	UPROPERTY()
+	bool bMovingCamera2 = false;
+
+	float CameraElapsedTime = 0.0f;
+	
+	FPTBRhythmKeyBindings OriginalKeyBindings;
+	
+	int32 CurrentComboCount = 0;
 };
