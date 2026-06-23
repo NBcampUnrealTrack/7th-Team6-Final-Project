@@ -582,10 +582,46 @@
     "Type": "User",
     "GUID": "{DDAE794D-61D4-451C-A316-2444772C90B7}",
     "Language": "SFX",
-    "Hash": "{27F50A8F-94AE-8416-6F80-66B1AB1CDB6F}",
+    "Hash": "{9AC6107F-53D1-34F7-1D3A-757D15CA6669}",
     "ObjectPath": "\\SoundBanks\\Default Work Unit\\TG",
     "ShortName": "TG",
     "Path": "TG.bnk",
+    "Media": [
+     {
+      "Id": "467031385",
+      "Language": "SFX",
+      "Streaming": "false",
+      "Location": "Memory",
+      "ShortName": "PTB_JJ_Easy_260527.wav",
+      "CachePath": "SFX/PTB_JJ_Easy_260527_818F3B66.wem"
+     }
+    ],
+    "Events": [
+     {
+      "Id": "3508531682",
+      "Name": "Play_TG_BGM",
+      "ObjectPath": "\\Events\\Default Work Unit\\Play_TG_BGM",
+      "GUID": "{459599A4-86D7-476F-8F53-2F5881A6B8BA}",
+      "DurationType": "OneShot",
+      "DurationMin": "59.99327",
+      "DurationMax": "59.99327",
+      "MediaRefs": [
+       {
+        "Id": "467031385"
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "Id": "1635194334",
+    "Type": "User",
+    "GUID": "{DA71F8A2-7CC1-428F-BA16-9C260853630D}",
+    "Language": "SFX",
+    "Hash": "{0FA963FD-5E4A-2508-187D-6549EB8358AC}",
+    "ObjectPath": "\\SoundBanks\\Default Work Unit\\PC",
+    "ShortName": "PC",
+    "Path": "PC.bnk",
     "Media": [
      {
       "Id": "17910444",
@@ -594,14 +630,6 @@
       "Location": "Memory",
       "ShortName": "Play_PC_BGM.wav",
       "CachePath": "SFX/Play_PC_BGM_818F3B66.wem"
-     },
-     {
-      "Id": "467031385",
-      "Language": "SFX",
-      "Streaming": "false",
-      "Location": "Memory",
-      "ShortName": "PTB_JJ_Easy_260527.wav",
-      "CachePath": "SFX/PTB_JJ_Easy_260527_818F3B66.wem"
      }
     ],
     "Events": [
@@ -618,24 +646,10 @@
         "Id": "17910444"
        }
       ]
-     },
-     {
-      "Id": "3508531682",
-      "Name": "Play_TG_BGM",
-      "ObjectPath": "\\Events\\Default Work Unit\\Play_TG_BGM",
-      "GUID": "{459599A4-86D7-476F-8F53-2F5881A6B8BA}",
-      "DurationType": "OneShot",
-      "DurationMin": "59.99327",
-      "DurationMax": "59.99327",
-      "MediaRefs": [
-       {
-        "Id": "467031385"
-       }
-      ]
      }
     ]
    }
   ],
-  "FileHash": "{EA1C105A-39ED-4017-9A5D-0E7E3E1276E7}"
+  "FileHash": "{C096E895-E426-0270-1588-54E0B02166F6}"
  }
 }

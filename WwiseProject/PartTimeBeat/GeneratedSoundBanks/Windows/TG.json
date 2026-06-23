@@ -10,19 +10,11 @@
     "Type": "User",
     "GUID": "{DDAE794D-61D4-451C-A316-2444772C90B7}",
     "Language": "SFX",
-    "Hash": "{27F50A8F-94AE-8416-6F80-66B1AB1CDB6F}",
+    "Hash": "{9AC6107F-53D1-34F7-1D3A-757D15CA6669}",
     "ObjectPath": "\\SoundBanks\\Default Work Unit\\TG",
     "ShortName": "TG",
     "Path": "TG.bnk",
     "Media": [
-     {
-      "Id": "17910444",
-      "Language": "SFX",
-      "Streaming": "false",
-      "Location": "Memory",
-      "ShortName": "Play_PC_BGM.wav",
-      "CachePath": "SFX/Play_PC_BGM_818F3B66.wem"
-     },
      {
       "Id": "467031385",
       "Language": "SFX",
@@ -33,20 +25,6 @@
      }
     ],
     "Events": [
-     {
-      "Id": "3036750162",
-      "Name": "Play_PC_BGM",
-      "ObjectPath": "\\Events\\Default Work Unit\\Play_PC_BGM",
-      "GUID": "{2E11A0D5-37EE-40A6-B4AF-B0FE6877551B}",
-      "DurationType": "OneShot",
-      "DurationMin": "115.54877",
-      "DurationMax": "115.54877",
-      "MediaRefs": [
-       {
-        "Id": "17910444"
-       }
-      ]
-     },
      {
       "Id": "3508531682",
       "Name": "Play_TG_BGM",
@@ -64,6 +42,6 @@
     ]
    }
   ],
-  "FileHash": "{2A5F96C0-D412-8858-EE6F-950B496B37A2}"
+  "FileHash": "{60766F0C-932C-7AC0-72E7-2C25D31706D1}"
  }
 }

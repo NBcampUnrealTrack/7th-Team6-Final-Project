@@ -5,9 +5,14 @@
 			<ChildrenList>
 				<SoundBank Name="TG" ID="{DDAE794D-61D4-451C-A316-2444772C90B7}">
 					<ObjectInclusionList>
-						<ObjectRef Name="Play_PC_BGM" ID="{2E11A0D5-37EE-40A6-B4AF-B0FE6877551B}" WorkUnitID="{57C27AFF-72CF-40EC-ADB0-4148A3A0D350}" Origin="Manual" Filter="7"/>
 						<ObjectRef Name="Play_TG_BGM" ID="{459599A4-86D7-476F-8F53-2F5881A6B8BA}" WorkUnitID="{57C27AFF-72CF-40EC-ADB0-4148A3A0D350}" Origin="Manual" Filter="7"/>
-						<ObjectRef Name="Play_PC_BGM" ID="{4D0F555D-68ED-4A0C-AB2C-23DC1221C63C}" WorkUnitID="{57C27AFF-72CF-40EC-ADB0-4148A3A0D350}" Origin="Manual" Filter="7"/>
+					</ObjectInclusionList>
+					<ObjectExclusionList/>
+					<GameSyncExclusionList/>
+				</SoundBank>
+				<SoundBank Name="PC" ID="{DA71F8A2-7CC1-428F-BA16-9C260853630D}">
+					<ObjectInclusionList>
+						<ObjectRef Name="Play_PC_BGM" ID="{2E11A0D5-37EE-40A6-B4AF-B0FE6877551B}" WorkUnitID="{57C27AFF-72CF-40EC-ADB0-4148A3A0D350}" Origin="Manual" Filter="7"/>
 					</ObjectInclusionList>
 					<ObjectExclusionList/>
 					<GameSyncExclusionList/>
