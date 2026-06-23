@@ -77,13 +77,6 @@ void APCRailCharacter::MoveOneStep()
     bIsMoving = true;
 }
 
-void APCRailCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
-{
-    Super::SetupPlayerInputComponent(PlayerInputComponent);
-    
-    PlayerInputComponent->BindKey(EKeys::SpaceBar, IE_Pressed, this, &APCRailCharacter::MoveOneStep);
-    PlayerInputComponent->BindKey(EKeys::F, IE_Pressed, this, &APCRailCharacter::TestSpawnTile);
-}
 
 void APCRailCharacter::TestSpawnTile()
 {

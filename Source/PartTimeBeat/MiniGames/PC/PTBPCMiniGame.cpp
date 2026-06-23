@@ -9,14 +9,75 @@
 #include "Rhythm/PTBScoreCalculator.h"
 
 APTBPCMiniGame::APTBPCMiniGame()
-{}
+{
+    static ConstructorHelpers::FClassFinder<APCTileImageActor> ImageActorClass(
+        TEXT("/Game/PTB/MiniGames/PC/Blueprints/BP_PCTileImageActor"));
+    if (ImageActorClass.Succeeded())
+        TileImageClass = ImageActorClass.Class;
+}
 
 void APTBPCMiniGame::BuildRuntimeState()
 {
     Super::BuildRuntimeState();
     ActiveTiles.Empty();
+    TileTextures.Empty();
 
-    // 레벨에서 자동으로 찾기
+    FString TilePrefix;
+    FString TextureFolderPath;
+
+  /*  switch (Difficulty)
+    {
+    case EPTBDifficulty::Easy:
+        TilePrefix = TEXT("EasyTile");
+        TextureFolderPath = TEXT("/Game/FreeAssets/PC/PC_EasyTiles");
+        break;
+    case EPTBDifficulty::Insane:
+        TilePrefix = TEXT("InsaneTile");
+        TextureFolderPath = TEXT("/Game/FreeAssets/PC/PC_InsaneTiles");
+        break;
+    default:
+        TilePrefix = TEXT("StandardTile");
+        TextureFolderPath = TEXT("/Game/FreeAssets/PC/PC_StandardTiles");
+        break;
+    }*/
+
+    //for (int32 i = 1; i <= 108; i++)
+    //{
+    //    FString AssetName = FString::Printf(TEXT("%s__%d_"), *TilePrefix, i);
+    //    FString Path = FString::Printf(TEXT("%s/%s.%s"), *TextureFolderPath, *AssetName, *AssetName);
+
+    //    UTexture2D* Texture = LoadObject<UTexture2D>(nullptr, *Path);
+    //    TileTextures.Add(Texture);
+
+    //    if (!Texture)
+    //    {
+    //        UE_LOG(LogTemp, Warning, TEXT("텍스처 로드 실패: %s"), *Path);
+    //    }
+    //}
+
+        // 108개 텍스처 자동 로드
+    for (int32 i = 1; i <= 108; i++)
+    {
+        FString Path = FString::Printf(
+            TEXT("/Game/FreeAssets/PC/PC_StandardTiles/StandardTile__%d_.StandardTile__%d_"), i, i);
+
+        UTexture2D* Texture = LoadObject<UTexture2D>(nullptr, *Path);
+
+        if (Texture)
+        {
+            TileTextures.Add(Texture);
+        }
+        else
+        {
+            // 로드 실패 시 빈 자리 유지
+            TileTextures.Add(nullptr);
+            UE_LOG(LogTemp, Warning, TEXT("텍스처 로드 실패: %s"), *Path);
+        }
+    }
+
+    UE_LOG(LogTemp, Warning, TEXT("로드된 텍스처 수: %d"), TileTextures.Num());
+
+   
     RailCharacter = Cast<APCRailCharacter>(
         UGameplayStatics::GetActorOfClass(GetWorld(), APCRailCharacter::StaticClass()));
 
@@ -111,8 +172,36 @@ void APTBPCMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
         break;
     }
 
-    // 화면에 출력 (5.f = 표시 시간(초))
     GEngine->AddOnScreenDebugMessage(-1, 2.f, Color, Message);
+
+
+    if (Result.JudgementType == EPTBJudgementType::Miss) return;
+
+    UE_LOG(LogTemp, Warning, TEXT("TileImageClass: %s"), TileImageClass ? TEXT("있음") : TEXT("없음"));
+    UE_LOG(LogTemp, Warning, TEXT("RailCharacter: %s"), RailCharacter ? TEXT("있음") : TEXT("없음"));
+    UE_LOG(LogTemp, Warning, TEXT("NoteId: %d, 텍스처: %s"), Result.NoteId,
+        TileTextures.IsValidIndex(Result.NoteId - 1) && TileTextures[Result.NoteId - 1] ? TEXT("있음") : TEXT("없음"));
+
+    if (!RailCharacter || !RailCharacter->PCRailPath) return;
+
+    int32 PointIndex = Result.NoteId;
+
+    if (!TileTextures.IsValidIndex(PointIndex - 1)) return;
+
+    FVector SpawnLocation = RailCharacter->PCRailPath->GetPointLocation(PointIndex);
+    SpawnLocation.Z += 1.f;
+
+    UE_LOG(LogTemp, Warning, TEXT("SpawnLocation: %s"), *SpawnLocation.ToString());
+
+    APCTileImageActor* ImageActor = GetWorld()->SpawnActor<APCTileImageActor>(
+        TileImageClass, SpawnLocation, FRotator(0.f, 0.f, 0.f));
+
+    UE_LOG(LogTemp, Warning, TEXT("ImageActor: %s"), ImageActor ? TEXT("스폰성공") : TEXT("스폰실패"));
+
+    if (ImageActor)
+    {
+        ImageActor->SetTexture(TileTextures[PointIndex - 1]);
+    }
 
 }
 

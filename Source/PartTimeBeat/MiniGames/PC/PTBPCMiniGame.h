@@ -4,6 +4,7 @@
 #include "MiniGames/Common/PTBBaseMiniGame.h"
 #include "MiniGames/PC/PCRailCharacter.h"
 #include "MiniGames/PC/PCTileSpawner.h"
+#include "MiniGames/PC/PCTileImageActor.h"
 #include "PTBPCMiniGame.generated.h"
 
 class UPTBPCMiniGameRuleSet;
@@ -31,6 +32,17 @@ public:
 
     UFUNCTION(BlueprintCallable, Category = "Input")
     void HandleActionAInputReleased();
+
+    // 에디터에서 108개 텍스처 배열로 연결
+    UPROPERTY(EditAnywhere)
+    TArray<UTexture2D*> TileTextures;
+
+    // 이미지 액터 스폰용 클래스
+    UPROPERTY(EditAnywhere)
+    TSubclassOf<APCTileImageActor> TileImageClass;
+
+    UPROPERTY(EditAnywhere)
+    EPTBDifficulty Difficulty;
 
 protected:
 

@@ -52,7 +52,6 @@ public:
 
     FTimerHandle MoveDelayHandle;
 
-    virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
 
 protected:
     virtual void BeginPlay() override;
