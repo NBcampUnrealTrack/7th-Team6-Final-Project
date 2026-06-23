@@ -14,23 +14,12 @@
 						</Action>
 					</ChildrenList>
 				</Event>
-				<Event Name="Play_LC_BGM" ID="{B1E379D2-EBB5-46C0-9E4E-00C563521812}">
+				<Event Name="Play_PTB_FS_Easy_260616" ID="{4F646AA5-8AB5-4194-92D3-6E15C0DC74D5}">
 					<ChildrenList>
-						<Action Name="" ID="{92BADE62-376B-4929-A045-93F23DBC3896}" ShortID="614089325">
+						<Action Name="" ID="{58C15B0F-28EB-40E3-AC79-CA7DB214736E}" ShortID="610949829">
 							<ReferenceList>
 								<Reference Name="Target">
-									<ObjectRef Name="Logistic Center" ID="{0DBE828E-D2ED-4CB7-BDCA-199729745D07}" WorkUnitID="{0228961A-2A51-4477-AEFB-CB85DDF26F43}"/>
-                </Reference>
-							</ReferenceList>
-						</Action>
-					</ChildrenList>
-				</Event>
-				<Event Name="Play_SR_BGM" ID="{E108A001-DF7D-45CB-9CD7-2BE8C9FF1697}">
-					<ChildrenList>
-						<Action Name="" ID="{AE41BBBA-2A4C-422A-9630-F8D616866E88}" ShortID="919207144">
-							<ReferenceList>
-								<Reference Name="Target">
-									<ObjectRef Name="SR_BGM" ID="{338F3EF3-9F3E-4604-A547-B5E3AE6DE9E8}" WorkUnitID="{5011BE70-32B3-4459-ABC4-8BE1BBE471EC}"/>
+									<ObjectRef Name="PTB_FS_Easy_260616" ID="{9BD39A85-D3D8-4939-A651-5581A9F0FDC9}" WorkUnitID="{80922B44-8199-48E9-AD42-42425C050CEB}"/>
 								</Reference>
 							</ReferenceList>
 						</Action>

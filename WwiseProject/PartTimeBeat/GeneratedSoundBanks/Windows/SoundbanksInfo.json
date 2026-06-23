@@ -582,7 +582,7 @@
     "Type": "User",
     "GUID": "{DDAE794D-61D4-451C-A316-2444772C90B7}",
     "Language": "SFX",
-    "Hash": "{F47B4F59-E5CE-61AD-8E78-390E04E9404D}",
+    "Hash": "{9AC6107F-53D1-34F7-1D3A-757D15CA6669}",
     "ObjectPath": "\\SoundBanks\\Default Work Unit\\TG",
     "ShortName": "TG",
     "Path": "TG.bnk",
@@ -614,42 +614,42 @@
     ]
    },
    {
-    "Id": "1702304874",
+    "Id": "1802970376",
     "Type": "User",
-    "GUID": "{DEA8B77D-3752-4C4A-B731-9215A76BD582}",
+    "GUID": "{8FA513FD-6B9B-4819-8471-194EF5DEBB12}",
     "Language": "SFX",
-    "Hash": "{291C2493-411A-49A6-C514-620405580A84}",
-    "ObjectPath": "\\SoundBanks\\Default Work Unit\\LC",
-    "ShortName": "LC",
-    "Path": "LC.bnk",
+    "Hash": "{EF3D575C-DA29-9170-CBDF-ACADBD7AFA60}",
+    "ObjectPath": "\\SoundBanks\\Default Work Unit\\FS",
+    "ShortName": "FS",
+    "Path": "FS.bnk",
     "Media": [
      {
-      "Id": "902210420",
+      "Id": "756648171",
       "Language": "SFX",
       "Streaming": "false",
       "Location": "Memory",
-      "ShortName": "Music\\LC\\Logistic Center.wav",
-      "CachePath": "SFX/Music/LC/Logistic Center_818F3B66.wem"
+      "ShortName": "PTB_FS_Easy_260616.wav",
+      "CachePath": "SFX/PTB_FS_Easy_260616_818F3B66.wem"
      }
     ],
     "Events": [
      {
-      "Id": "2620029126",
-      "Name": "Play_LC_BGM",
-      "ObjectPath": "\\Events\\Default Work Unit\\Play_LC_BGM",
-      "GUID": "{B1E379D2-EBB5-46C0-9E4E-00C563521812}",
+      "Id": "2232388889",
+      "Name": "Play_PTB_FS_Easy_260616",
+      "ObjectPath": "\\Events\\Default Work Unit\\Play_PTB_FS_Easy_260616",
+      "GUID": "{4F646AA5-8AB5-4194-92D3-6E15C0DC74D5}",
       "DurationType": "OneShot",
-      "DurationMin": "127.536",
-      "DurationMax": "127.536",
+      "DurationMin": "127.39998",
+      "DurationMax": "127.39998",
       "MediaRefs": [
        {
-        "Id": "902210420"
+        "Id": "756648171"
        }
       ]
      }
     ]
    }
   ],
-  "FileHash": "{A0B43797-3C36-A90B-5D47-12A7589A7086}"
+  "FileHash": "{95BDCCA2-0B45-6B86-857A-B1AA5885D38D}"
  }
 }

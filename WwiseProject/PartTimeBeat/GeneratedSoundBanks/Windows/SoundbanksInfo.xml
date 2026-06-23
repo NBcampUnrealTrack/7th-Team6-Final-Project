@@ -163,7 +163,7 @@
 				</AcousticTexture>
 			</AcousticTextures>
 		</SoundBank>
-		<SoundBank Id="1568083734" Type="User" GUID="{DDAE794D-61D4-451C-A316-2444772C90B7}" Language="SFX" Hash="{F47B4F59-E5CE-61AD-8E78-390E04E9404D}">
+		<SoundBank Id="1568083734" Type="User" GUID="{DDAE794D-61D4-451C-A316-2444772C90B7}" Language="SFX" Hash="{9AC6107F-53D1-34F7-1D3A-757D15CA6669}">
 			<ObjectPath>\SoundBanks\Default Work Unit\TG</ObjectPath>
 			<ShortName>TG</ShortName>
 			<Path>TG.bnk</Path>
@@ -181,24 +181,24 @@
 				</Event>
 			</Events>
 		</SoundBank>
-		<SoundBank Id="1702304874" Type="User" GUID="{DEA8B77D-3752-4C4A-B731-9215A76BD582}" Language="SFX" Hash="{291C2493-411A-49A6-C514-620405580A84}">
-			<ObjectPath>\SoundBanks\Default Work Unit\LC</ObjectPath>
-			<ShortName>LC</ShortName>
-			<Path>LC.bnk</Path>
+		<SoundBank Id="1802970376" Type="User" GUID="{8FA513FD-6B9B-4819-8471-194EF5DEBB12}" Language="SFX" Hash="{EF3D575C-DA29-9170-CBDF-ACADBD7AFA60}">
+			<ObjectPath>\SoundBanks\Default Work Unit\FS</ObjectPath>
+			<ShortName>FS</ShortName>
+			<Path>FS.bnk</Path>
 			<Media>
-				<File Id="902210420" Language="SFX" Streaming="false" Location="Memory">
-					<ShortName>Music\LC\Logistic Center.wav</ShortName>
-					<CachePath>SFX/Music/LC/Logistic Center_818F3B66.wem</CachePath>
+				<File Id="756648171" Language="SFX" Streaming="false" Location="Memory">
+					<ShortName>PTB_FS_Easy_260616.wav</ShortName>
+					<CachePath>SFX/PTB_FS_Easy_260616_818F3B66.wem</CachePath>
 				</File>
 			</Media>
 			<Events>
-				<Event Id="2620029126" Name="Play_LC_BGM" ObjectPath="\Events\Default Work Unit\Play_LC_BGM" GUID="{B1E379D2-EBB5-46C0-9E4E-00C563521812}" DurationType="OneShot" DurationMin="127.536" DurationMax="127.536">
+				<Event Id="2232388889" Name="Play_PTB_FS_Easy_260616" ObjectPath="\Events\Default Work Unit\Play_PTB_FS_Easy_260616" GUID="{4F646AA5-8AB5-4194-92D3-6E15C0DC74D5}" DurationType="OneShot" DurationMin="127.39998" DurationMax="127.39998">
 					<MediaRefs>
-						<MediaRef Id="902210420"/>
+						<MediaRef Id="756648171"/>
 					</MediaRefs>
 				</Event>
 			</Events>
 		</SoundBank>
 	</SoundBanks>
-	<FileHash>{3168F446-1A7D-E994-07F1-B8A1C09DD555}</FileHash>
+	<FileHash>{846480DB-48EA-B163-6090-CDD3C928D22B}</FileHash>
 </SoundBanksInfo>
