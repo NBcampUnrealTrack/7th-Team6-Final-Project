@@ -7,7 +7,7 @@
 
 class UPTBCHMiniGameRuleSet;
 class UWrapperWidget;
-class UPTBCHHUDWidget;
+class UUserWidget;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FPTBCHNoteEvent, FPTBNoteEvent, Note);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FPTBCHJudgementEvent, FPTBJudgementResult, Result, FPTBNoteEvent, Note);
@@ -169,6 +169,9 @@ protected:
     /** Cue 상태 노트 */
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PTB|CH")
     TArray<FPTBNoteEvent> CuedNotes;
+
+    /** NoteId → 재료 매핑된 ActionType (Arm/Reached 이벤트에 일관성 있게 전달하기 위함) */
+    TMap<int32, EPTBActionType> NoteIdToIngredientAction;
 
     /** Arm 상태 노트 */
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PTB|CH")

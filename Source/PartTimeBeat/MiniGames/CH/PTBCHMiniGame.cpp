@@ -37,6 +37,7 @@ void APTBCHMiniGame::BuildRuntimeState()
     { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Patty, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
     { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
 
+    NoteIdToIngredientAction.Reset();
     SlideGroups.Reset();
     DroppingIngredients.Reset();
 
@@ -75,7 +76,17 @@ void APTBCHMiniGame::HandleChartEvent(FPTBNoteEvent Note)
 
     ++NoteEventCount;
     TrackNote(ReachedNotes, Note);
-    OnCHNoteReached.Broadcast(Note);
+
+    if (const EPTBActionType* Mapped = NoteIdToIngredientAction.Find(Note.NoteId))
+    {
+        FPTBNoteEvent RemappedNote = Note;
+        RemappedNote.ActionType = *Mapped;
+        OnCHNoteReached.Broadcast(RemappedNote);
+    }
+    else
+    {
+        OnCHNoteReached.Broadcast(Note);
+    }
 
     const UPTBCHMiniGameRuleSet* CHRuleSet = GetCHRuleSet();
     if (!CHRuleSet || CHRuleSet->bLogNoteEvent)
@@ -90,7 +101,17 @@ void APTBCHMiniGame::HandleNoteArm(FPTBNoteEvent Note)
 
     ++ArmCount;
     TrackNote(ArmedNotes, Note);
-    OnCHNoteArm.Broadcast(Note);
+
+    if (const EPTBActionType* Mapped = NoteIdToIngredientAction.Find(Note.NoteId))
+    {
+        FPTBNoteEvent RemappedNote = Note;
+        RemappedNote.ActionType = *Mapped;
+        OnCHNoteArm.Broadcast(RemappedNote);
+    }
+    else
+    {
+        OnCHNoteArm.Broadcast(Note);
+    }
 
     const UPTBCHMiniGameRuleSet* CHRuleSet = GetCHRuleSet();
     if (!CHRuleSet || CHRuleSet->bLogNoteArm)
@@ -131,6 +152,7 @@ void APTBCHMiniGame::HandleNoteCue(FPTBNoteEvent Note)
         case EPTBCHIngredientType::Tomato:      ModifiedNote.ActionType = EPTBActionType::ActionE; break;
         default: break;
         }
+        NoteIdToIngredientAction.Add(Note.NoteId, ModifiedNote.ActionType);
         OnCHNoteCue.Broadcast(ModifiedNote);
     }
 
@@ -238,6 +260,7 @@ void APTBCHMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
         RemoveTrackedNote(CuedNotes, Result.NoteId);
         RemoveTrackedNote(ArmedNotes, Result.NoteId);
         RemoveTrackedNote(ReachedNotes, Result.NoteId);
+        NoteIdToIngredientAction.Remove(Result.NoteId);
         OnCHJudgement.Broadcast(Result, JudgedNote);
         OnCHNoteCleared.Broadcast(Result.NoteId, Result.JudgementType);
     }
@@ -438,7 +461,6 @@ void APTBCHMiniGame::HandleReadyToStart()
     {
         if (UFunction* InitFunc = HUDWidget->FindFunction(TEXT("Init")))
         {
-            UE_LOG(LogPTBMiniGames, Log, TEXT("[%s] CH Init function found. Calling..."), *GetNameSafe(this));
             struct { APTBCHMiniGame* InMiniGame; } Params{ this };
             HUDWidget->ProcessEvent(InitFunc, &Params);
         }
