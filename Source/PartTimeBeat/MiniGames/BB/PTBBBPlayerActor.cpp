@@ -162,23 +162,14 @@ void APTBBBPlayerActor::PlayDamageMontage_Implementation(const FPTBJudgementResu
 
 void APTBBBPlayerActor::PlayDeathMontage_Implementation(const FPTBJudgementResult& Result)
 {
-	if (bDeathMontagePlayed)
-	{
-		return;
-	}
-
+	if (bDeathMontagePlayed) return;
 	bDeathMontagePlayed = true;
 
-	if (DeathMontage)
+	if (!DeathMontage) { PTB_VERBOSE(LogPTBMiniGames, TEXT("[BBPlayerActor] DeathMontage 미설정")); return; }
+
+	if (UAnimInstance* AnimInst = GetPlayerAnimInstance())
 	{
-		if (UAnimInstance* AnimInst = GetPlayerAnimInstance())
-		{
-			AnimInst->Montage_Play(DeathMontage);
-		}
-	}
-	else
-	{
-		PTB_VERBOSE(LogPTBMiniGames, TEXT("[BBPlayerActor] PlayDeathMontage: DeathMontage가 설정되지 않았습니다."));
+		AnimInst->Montage_Play(DeathMontage);
 	}
 }
 

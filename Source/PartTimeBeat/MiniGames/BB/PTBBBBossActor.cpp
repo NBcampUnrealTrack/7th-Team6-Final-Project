@@ -146,31 +146,15 @@ void APTBBBBossActor::PlayHitReactMontage_Implementation(const FPTBJudgementResu
 
 void APTBBBBossActor::PlayDeathMontage_Implementation()
 {
-	if (bDeathMontagePlayed)
-	{
-		return;
-	}
-
+	if (bDeathMontagePlayed) return;
 	bDeathMontagePlayed = true;
 
-	if (DeathMontage)
-	{
-		if (BossMesh)
-		{
-			if (UAnimInstance* AnimInst = BossMesh->GetAnimInstance())
-			{
-				AnimInst->Montage_Play(DeathMontage);
-			}
-			else
-			{
-				PTB_WARNING(LogPTBMiniGames, TEXT("[BBBossActor] PlayDeathMontage: BossMesh에 AnimInstance가 없습니다. AnimBP가 설정되어 있는지 확인하세요."));
-			}
-		}
-	}
-	else
-	{
-		PTB_VERBOSE(LogPTBMiniGames, TEXT("[BBBossActor] PlayDeathMontage: DeathMontage가 설정되지 않았습니다."));
-	}
+	if (!DeathMontage) { PTB_VERBOSE(LogPTBMiniGames, TEXT("[BBBossActor] DeathMontage 미설정")); return; }
+	if (!BossMesh) return;
+
+	UAnimInstance* AnimInst = BossMesh->GetAnimInstance();
+	if (!AnimInst) { PTB_WARNING(LogPTBMiniGames, TEXT("[BBBossActor] PlayDeathMontage: AnimInstance 없음. AnimBP 확인 필요.")); return; }
+	AnimInst->Montage_Play(DeathMontage);
 }
 
 void APTBBBBossActor::HandleBBNoteCue(FPTBNoteEvent Note)
@@ -180,12 +164,6 @@ void APTBBBBossActor::HandleBBNoteCue(FPTBNoteEvent Note)
 
 void APTBBBBossActor::HandleBBParrySuccess(FPTBJudgementResult Result, float BossHPPercent)
 {
-	if (BossHPPercent <= 0.0f)
-	{
-		PlayDeathMontage();
-		return;
-	}
-
 	PlayHitReactMontage(Result);
 }
 

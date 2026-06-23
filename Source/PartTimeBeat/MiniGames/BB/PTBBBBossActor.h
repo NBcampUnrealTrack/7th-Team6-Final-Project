@@ -60,10 +60,7 @@ public:
 	void PlayHitReactMontage(const FPTBJudgementResult& Result);
 	virtual void PlayHitReactMontage_Implementation(const FPTBJudgementResult& Result);
 
-	/**
-	 * 보스 HP가 0에 처음 도달했을 때 호출된다.
-	 * 기본 구현: DeathMontage를 한 번만 재생.
-	 */
+	/** OnBBBossDefeated 수신 시 호출. 기본 구현: DeathMontage를 한 번만 재생. */
 	UFUNCTION(BlueprintNativeEvent, Category = "PTB|BB|Boss")
 	void PlayDeathMontage();
 	virtual void PlayDeathMontage_Implementation();

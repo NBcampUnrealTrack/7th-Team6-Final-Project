@@ -3,7 +3,6 @@
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
 #include "Core/PTBStructEnums.h"
-#include "TimerManager.h"
 #include "PTBBBHUDWidget.generated.h"
 
 class APTBBBMiniGame;
@@ -55,10 +54,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "PTB|BB|HUD|Flow")
 	void HideCenterMessage();
 
-	/**
-	 * ActionType에 대응하는 큐 배치 좌표 반환.
-	 * 기본 구현은 AnchorPositions 맵을 읽으며, BP에서 재정의해 커스텀 로직을 구현할 수 있다.
-	 */
+	/** ActionType에 대응하는 큐 배치 좌표 반환. 기본 구현은 AnchorPositions 맵을 읽으며 BP에서 재정의 가능. */
 	UFUNCTION(BlueprintNativeEvent, Category = "PTB|BB|HUD")
 	FVector2D GetAnchorCanvasPosition(EPTBActionType ActionType) const;
 	virtual FVector2D GetAnchorCanvasPosition_Implementation(EPTBActionType ActionType) const;
@@ -73,20 +69,11 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|BB|HUD|Cue")
 	TSubclassOf<UPTBBBCueWidgetBase> HoldCueClass;
 
-	/**
-	 * ActionType별 캔버스 배치 좌표.
-	 * GetAnchorCanvasPosition의 기본 구현이 이 값을 읽는다.
-	 * 에디터 Details 패널에서 각 키(ActionA~E)마다 화면 좌표를 직접 입력한다.
-	 */
+	/** ActionType별 캔버스 배치 좌표. 에디터 Details 패널에서 각 키(ActionA~E)마다 입력한다. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|BB|HUD|Cue")
 	TMap<EPTBActionType, FVector2D> AnchorPositions;
 
-	/**
-	 * 노트 스폰 시작 위치 (보스/적의 캔버스 좌표).
-	 * 큐는 이 X 좌표에서 시작해 AnchorPositions의 X 좌표까지 이동한다.
-	 * Y 좌표는 각 ActionType의 AnchorPositions.Y를 그대로 사용한다.
-	 * 에디터에서 보스 이미지 중심에 맞춰 설정한다.
-	 */
+	/** 노트 스폰 시작 X 좌표 (보스 이미지 중심). 큐는 이 X에서 AnchorPositions.X 방향으로 이동한다. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|BB|HUD|Cue")
 	FVector2D BossSpawnCanvasPosition = FVector2D(1200.f, 360.f);
 
@@ -230,10 +217,7 @@ private:
 	void ClearCenterMessageTimers();
 	void QueueCenterMessage(float DelaySeconds, const FText& Message);
 	void ShowCenterMessageForDuration(const FText& Message, float DurationSeconds);
-	void ApplyCenterMessageText(const FText& Message);
 
 	TArray<FTimerHandle> CenterMessageTimerHandles;
-	bool bCenterMessageHoldActive = false;
-	float CenterMessageHoldRemainingSeconds = 0.0f;
-	FText CenterMessageHoldText;
+	FTimerHandle CenterMessageHoldTimerHandle;
 };

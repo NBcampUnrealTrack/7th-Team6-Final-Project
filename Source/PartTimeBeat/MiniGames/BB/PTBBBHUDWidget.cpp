@@ -116,36 +116,25 @@ void UPTBBBHUDWidget::NativeDestruct()
 void UPTBBBHUDWidget::ShowCenterMessage(const FText& Message)
 {
 	OnCenterMessageShown(Message);
-	ApplyCenterMessageText(Message);
-}
-
-void UPTBBBHUDWidget::ApplyCenterMessageText(const FText& Message)
-{
 	if (CenterMessageText)
 	{
-		if (CenterMessageText->TextDelegate.IsBound())
-		{
-			CenterMessageText->TextDelegate.Unbind();
-		}
-
 		CenterMessageText->SetText(Message);
 		CenterMessageText->SetRenderOpacity(1.0f);
-		CenterMessageText->SetRenderScale(FVector2D(1.0f, 1.0f));
+		CenterMessageText->SetRenderScale(FVector2D::UnitVector);
 		CenterMessageText->SetVisibility(ESlateVisibility::HitTestInvisible);
 	}
 }
 
 void UPTBBBHUDWidget::HideCenterMessage()
 {
-	bCenterMessageHoldActive = false;
-	CenterMessageHoldRemainingSeconds = 0.0f;
-	CenterMessageHoldText = FText::GetEmpty();
-
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(CenterMessageHoldTimerHandle);
+	}
 	if (CenterMessageText)
 	{
 		CenterMessageText->SetVisibility(ESlateVisibility::Collapsed);
 	}
-
 	OnCenterMessageHidden();
 }
 
@@ -185,7 +174,6 @@ void UPTBBBHUDWidget::HandleBBParrySuccess(FPTBJudgementResult Result, float Bos
 {
 	if (UPTBBBCueWidgetBase* Cue = FindAndRemoveCue(Result.NoteId))
 	{
-		Cue->OnJudgement(Result.JudgementType);
 		Cue->OnJudgementResult(Result);
 	}
 	OnParrySuccessEffect(Result, BossHPPercent);
@@ -195,7 +183,6 @@ void UPTBBBHUDWidget::HandleBBParryFail(FPTBJudgementResult Result, float Player
 {
 	if (UPTBBBCueWidgetBase* Cue = FindAndRemoveCue(Result.NoteId))
 	{
-		Cue->OnJudgement(EPTBJudgementType::Miss);
 		Cue->OnJudgementResult(Result);
 	}
 	OnParryFailEffect(Result, PlayerHPPercent);
@@ -264,20 +251,6 @@ void UPTBBBHUDWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 	Super::NativeTick(MyGeometry, InDeltaTime);
 
 	// 보스 고스트 바 감소
-	if (bCenterMessageHoldActive)
-	{
-		CenterMessageHoldRemainingSeconds = FMath::Max(0.0f, CenterMessageHoldRemainingSeconds - InDeltaTime);
-		if (CenterMessageText)
-		{
-			ApplyCenterMessageText(CenterMessageHoldText);
-		}
-
-		if (CenterMessageHoldRemainingSeconds <= 0.0f)
-		{
-			bCenterMessageHoldActive = false;
-		}
-	}
-
 	if (BossHPGhostBar && BossGhostPercent > BossTargetPercent)
 	{
 		if (BossGhostDecayTimer > 0.f)
@@ -381,8 +354,7 @@ UPTBBBCueWidgetBase* UPTBBBHUDWidget::SpawnAndPlaceCue(
 		CueSlot->SetPosition(AnchorPos);
 	}
 
-	// 보스 X → 앵커 X 방향으로 이동할 초기 Translation 오프셋 전달
-	// Blueprint OnCueStarted에서 SetRenderTranslation + Timeline으로 보간한다
+	// 보스 X → 앵커 X 이동 오프셋. NativeTick에서 선형 보간.
 	Cue->ApproachStartTranslationX = BossSpawnCanvasPosition.X - AnchorPos.X;
 
 	// 큐 초기화 (NoteId, ActionType 설정 + OnCueStarted 발행)
@@ -420,21 +392,25 @@ void UPTBBBHUDWidget::ClearCenterMessageTimers()
 {
 	if (UWorld* World = GetWorld())
 	{
+		World->GetTimerManager().ClearTimer(CenterMessageHoldTimerHandle);
 		for (FTimerHandle& TimerHandle : CenterMessageTimerHandles)
 		{
 			World->GetTimerManager().ClearTimer(TimerHandle);
 		}
 	}
-
 	CenterMessageTimerHandles.Reset();
 }
 
 void UPTBBBHUDWidget::ShowCenterMessageForDuration(const FText& Message, float DurationSeconds)
 {
 	ShowCenterMessage(Message);
-	bCenterMessageHoldActive = DurationSeconds > 0.0f;
-	CenterMessageHoldRemainingSeconds = FMath::Max(0.0f, DurationSeconds);
-	CenterMessageHoldText = Message;
+	if (UWorld* World = GetWorld(); DurationSeconds > 0.0f && World)
+	{
+		World->GetTimerManager().SetTimer(
+			CenterMessageHoldTimerHandle,
+			this, &UPTBBBHUDWidget::HideCenterMessage,
+			DurationSeconds, false);
+	}
 }
 
 void UPTBBBHUDWidget::QueueCenterMessage(float DelaySeconds, const FText& Message)

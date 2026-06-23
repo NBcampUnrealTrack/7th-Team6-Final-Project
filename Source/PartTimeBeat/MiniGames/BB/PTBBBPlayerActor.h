@@ -65,10 +65,7 @@ public:
 	void PlayDamageMontage(const FPTBJudgementResult& Result);
 	virtual void PlayDamageMontage_Implementation(const FPTBJudgementResult& Result);
 
-	/**
-	 * 플레이어 HP가 0에 처음 도달했을 때 호출된다.
-	 * 기본 구현: DeathMontage를 한 번만 재생.
-	 */
+	/** OnBBParryFail에서 HP=0 도달 시 호출. 기본 구현: DeathMontage를 한 번만 재생. */
 	UFUNCTION(BlueprintNativeEvent, Category = "PTB|BB|Player")
 	void PlayDeathMontage(const FPTBJudgementResult& Result);
 	virtual void PlayDeathMontage_Implementation(const FPTBJudgementResult& Result);
