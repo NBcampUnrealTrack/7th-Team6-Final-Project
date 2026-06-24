@@ -23,7 +23,8 @@ public class PartTimeBeat : ModuleRules
 			"JsonUtilities",
 			"AkAudio",
 			"WwiseSoundEngine",
-			"CableComponent"
+			"CableComponent",
+			"Niagara"
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] { });
