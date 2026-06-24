@@ -14,12 +14,12 @@
 						</Action>
 					</ChildrenList>
 				</Event>
-				<Event Name="Play_PTB_FS_Easy_260616" ID="{4F646AA5-8AB5-4194-92D3-6E15C0DC74D5}">
+				<Event Name="Play_PC_BGM" ID="{2E11A0D5-37EE-40A6-B4AF-B0FE6877551B}">
 					<ChildrenList>
-						<Action Name="" ID="{58C15B0F-28EB-40E3-AC79-CA7DB214736E}" ShortID="610949829">
+						<Action Name="" ID="{C2D1F278-2547-4737-86E9-7AD640B3A3EF}" ShortID="441404631">
 							<ReferenceList>
 								<Reference Name="Target">
-									<ObjectRef Name="PTB_FS_Easy_260616" ID="{9BD39A85-D3D8-4939-A651-5581A9F0FDC9}" WorkUnitID="{80922B44-8199-48E9-AD42-42425C050CEB}"/>
+									<ObjectRef Name="PC_BGM" ID="{D3C2EF92-D0F7-42AE-A2AC-73D7CE04511F}" WorkUnitID="{37A2DAE3-B823-4F10-8CC0-50AA0CBEE5D0}"/>
 								</Reference>
 							</ReferenceList>
 						</Action>

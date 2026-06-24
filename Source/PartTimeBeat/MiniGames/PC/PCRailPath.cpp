@@ -8,3 +8,8 @@ APCRailPath::APCRailPath()
     Spline = CreateDefaultSubobject<USplineComponent>(TEXT("Spline"));
     RootComponent = Spline;
 }
+
+FVector APCRailPath::GetPointLocation(int32 Index)
+{
+    return Spline->GetLocationAtSplinePoint(Index, ESplineCoordinateSpace::World);
+}
