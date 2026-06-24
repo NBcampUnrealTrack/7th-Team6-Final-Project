@@ -12,6 +12,7 @@ class UPTBFSMiniGameRuleSet;
 class APTBRhythmCharacterBase;
 class APTBFSCharacter;
 class ACameraActor;
+class UFSWidget;
 
 UENUM(BlueprintType)
 enum class EFishingLineState : uint8
@@ -173,6 +174,13 @@ protected:
 	void PlaySuccessCameraSequence();
 	
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+	
+	UPROPERTY(EditDefaultsOnly, Category = "UI")
+	TSubclassOf<UFSWidget> WidgetClass;
+	
+	UPROPERTY()
+	UFSWidget* ActiveFSWidget;
+	
 private:
 	UFUNCTION()
 	void OnAllNotesPassedFishing();
@@ -240,4 +248,7 @@ private:
 	FPTBRhythmKeyBindings OriginalKeyBindings;
 	
 	int32 CurrentComboCount = 0;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera", meta = (AllowPrivateAccess = "true"))
+	TSubclassOf<UCameraShakeBase> MissCameraShakeClass;
 };

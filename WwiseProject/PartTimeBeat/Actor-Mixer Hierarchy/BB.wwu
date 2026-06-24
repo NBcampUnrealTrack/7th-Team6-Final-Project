@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<WwiseDocument Type="WorkUnit" ID="{4C2F493D-6FDD-4238-8DD4-FEAA7AD867A6}" SchemaVersion="119">
+<WwiseDocument Type="WorkUnit" ID="{3756954E-2AEA-4023-9F7F-FE58F7299F7A}" SchemaVersion="119">
 	<AudioObjects>
-		<WorkUnit Name="PC" ID="{4C2F493D-6FDD-4238-8DD4-FEAA7AD867A6}" PersistMode="Standalone">
+		<WorkUnit Name="BB" ID="{3756954E-2AEA-4023-9F7F-FE58F7299F7A}" PersistMode="Standalone">
 			<ChildrenList>
-				<Sound Name="Play_PC_BGM" ID="{6E1056C8-A2E9-45DB-8AE5-E7B324C2E951}" ShortID="945918019">
+				<Sound Name="PTB_BB" ID="{3A8D382E-F892-4B4A-BE61-58393897A433}" ShortID="675150921">
 					<PropertyList>
 						<Property Name="ListenerRelativeRouting" Type="bool" Value="False"/>
 					</PropertyList>
@@ -16,16 +16,16 @@
 						</Reference>
 					</ReferenceList>
 					<ChildrenList>
-						<AudioFileSource Name="Play_PC_BGM" ID="{91DDFDF5-940D-41B9-9AD6-2144414BD1EC}">
+						<AudioFileSource Name="PTB_BB" ID="{770D1D86-1E9A-40C6-9EA9-2A2977EC89D3}">
 							<Language>SFX</Language>
-							<AudioFile>Play_PC_BGM.wav</AudioFile>
+							<AudioFile>PTB_BB.wav</AudioFile>
 							<MediaIDList>
-								<MediaID ID="637371893"/>
+								<MediaID ID="744081046"/>
 							</MediaIDList>
 						</AudioFileSource>
 					</ChildrenList>
 					<ActiveSourceList>
-						<ActiveSource Name="Play_PC_BGM" ID="{91DDFDF5-940D-41B9-9AD6-2144414BD1EC}" Platform="Linked"/>
+						<ActiveSource Name="PTB_BB" ID="{770D1D86-1E9A-40C6-9EA9-2A2977EC89D3}" Platform="Linked"/>
 					</ActiveSourceList>
 				</Sound>
 			</ChildrenList>

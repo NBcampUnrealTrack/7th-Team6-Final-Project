@@ -1,11 +1,11 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 #include "PTBFSMiniGame.h"
-
+#include "Camera/CameraShakeBase.h"
 #include "EngineUtils.h"
 #include "FishActor.h"
+#include "FSWidget.h"
 #include "PTBFSCharacter.h"
 #include "PTBFSMiniGameRuleSet.h"
-#include "Audio/PTBWwiseRhythmSyncComponent.h"
 #include "Core/PTBGameInstance.h"
 #include "Debug/PTBTeamLog.h"
 #include "Flow/PTBGameFlowSubsystem.h"
@@ -30,9 +30,23 @@ void APTBFSMiniGame::BeginPlay()
 		);
 		PTB_WARNING(LogPTBMiniGames, TEXT("[Fishing] RhythmConductor 바인딩 완료"));
 	}
-	else
+	if (!WidgetClass)
 	{
-		PTB_WARNING(LogPTBMiniGames, TEXT("[Fishing] RhythmConductor 없음"));
+		PTB_ERROR(LogPTBMiniGames,TEXT("FS 위젯클래스 비엇따"));
+	}
+	if (WidgetClass)
+	{
+		ActiveFSWidget = CreateWidget<UFSWidget>(GetWorld(), WidgetClass);
+        
+		if (ActiveFSWidget)
+		{
+			ActiveFSWidget->AddToViewport();
+			
+			OnFishingPromptCue.AddDynamic(ActiveFSWidget, &UFSWidget::OnNoteEvent);
+			ActiveFSWidget->InitializeWidget(this);
+            
+			UE_LOG(LogTemp, Warning, TEXT("[FS] 멤버 변수에 저장 및 바인딩 완료!"));
+		}
 	}
 }
 
@@ -135,6 +149,7 @@ void APTBFSMiniGame::BuildRuntimeState()
 void APTBFSMiniGame::HandleNoteCue(FPTBNoteEvent Note)
 {
 	Super::HandleNoteCue(Note);
+
 	PTB_WARNING(LogPTBMiniGames, TEXT("[Fishing] HandleNoteCue 호출됨 MovingCount: %d FishDistance: %f"), MovingCount,
 	            FishDistance);
 	if (!FishRuleSet)return;	
@@ -256,7 +271,13 @@ void APTBFSMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 		CurrentComboCount =0;
 		OnFishingComboChanged.Broadcast(CurrentComboCount);	
 		OnFishingJudgement.Broadcast(Result.JudgementType);
-		break;
+		if (MissCameraShakeClass)
+		{
+			if (APlayerController* PC = GetWorld()->GetFirstPlayerController())
+			{
+				PC->ClientStartCameraShake(MissCameraShakeClass);
+			}
+		}
 	}
 }
 

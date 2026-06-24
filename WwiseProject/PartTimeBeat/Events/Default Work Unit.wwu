@@ -25,6 +25,50 @@
 						</Action>
 					</ChildrenList>
 				</Event>
+				<Event Name="Play_PTB_BB" ID="{3088C6FD-EB7C-4A3F-B026-3BE268479C9F}">
+					<ChildrenList>
+						<Action Name="" ID="{CA516240-55A1-46C3-A69D-ED3F4D607CD9}" ShortID="1015027953">
+							<ReferenceList>
+								<Reference Name="Target">
+									<ObjectRef Name="PTB_BB" ID="{3A8D382E-F892-4B4A-BE61-58393897A433}" WorkUnitID="{3756954E-2AEA-4023-9F7F-FE58F7299F7A}"/>
+								</Reference>
+							</ReferenceList>
+						</Action>
+					</ChildrenList>
+				</Event>
+				<Event Name="Play_DW_Cheery_Monday" ID="{87F5C698-8113-472E-A758-7D3D9541E911}">
+					<ChildrenList>
+						<Action Name="" ID="{5F2BF5C8-1238-4111-BF5B-43CD13B895E0}" ShortID="579161018">
+							<ReferenceList>
+								<Reference Name="Target">
+									<ObjectRef Name="DW_Cheery Monday" ID="{A37B51E3-327A-4AB9-AB44-8B8FFC21BCA1}" WorkUnitID="{AF87CFE4-158F-4FAA-9D45-8EA7897C62C8}"/>
+								</Reference>
+							</ReferenceList>
+						</Action>
+					</ChildrenList>
+				</Event>
+				<Event Name="Play_SR_BGM" ID="{EEEE5619-46CE-4444-ACE4-16CF74858FF0}">
+					<ChildrenList>
+						<Action Name="" ID="{F1F44C18-FC51-4BDC-952F-D542891E0556}" ShortID="718885491">
+							<ReferenceList>
+								<Reference Name="Target">
+									<ObjectRef Name="SR_BGM" ID="{6FB6796B-518D-4965-BD9A-D269A686EBAC}" WorkUnitID="{0E58517D-B72C-492D-B7CF-4F8B282A7699}"/>
+								</Reference>
+							</ReferenceList>
+						</Action>
+					</ChildrenList>
+				</Event>
+				<Event Name="Play_Play_PC_BGM" ID="{4F266B37-DD26-428D-9274-A538E999612B}">
+					<ChildrenList>
+						<Action Name="" ID="{BB8A3042-3242-43DE-99D2-40076C50505D}" ShortID="1069319573">
+							<ReferenceList>
+								<Reference Name="Target">
+									<ObjectRef Name="Play_PC_BGM" ID="{6E1056C8-A2E9-45DB-8AE5-E7B324C2E951}" WorkUnitID="{4C2F493D-6FDD-4238-8DD4-FEAA7AD867A6}"/>
+								</Reference>
+							</ReferenceList>
+						</Action>
+					</ChildrenList>
+				</Event>
 			</ChildrenList>
 		</WorkUnit>
 	</Events>

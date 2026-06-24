@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<WwiseDocument Type="WorkUnit" ID="{4C2F493D-6FDD-4238-8DD4-FEAA7AD867A6}" SchemaVersion="119">
+<WwiseDocument Type="WorkUnit" ID="{AF87CFE4-158F-4FAA-9D45-8EA7897C62C8}" SchemaVersion="119">
 	<AudioObjects>
-		<WorkUnit Name="PC" ID="{4C2F493D-6FDD-4238-8DD4-FEAA7AD867A6}" PersistMode="Standalone">
+		<WorkUnit Name="DW" ID="{AF87CFE4-158F-4FAA-9D45-8EA7897C62C8}" PersistMode="Standalone">
 			<ChildrenList>
-				<Sound Name="Play_PC_BGM" ID="{6E1056C8-A2E9-45DB-8AE5-E7B324C2E951}" ShortID="945918019">
+				<Sound Name="DW_Cheery Monday" ID="{A37B51E3-327A-4AB9-AB44-8B8FFC21BCA1}" ShortID="1072616206">
 					<PropertyList>
 						<Property Name="ListenerRelativeRouting" Type="bool" Value="False"/>
 					</PropertyList>
@@ -16,16 +16,16 @@
 						</Reference>
 					</ReferenceList>
 					<ChildrenList>
-						<AudioFileSource Name="Play_PC_BGM" ID="{91DDFDF5-940D-41B9-9AD6-2144414BD1EC}">
+						<AudioFileSource Name="DW_Cheery Monday" ID="{38C87091-D6F3-4687-BAA4-5C0B801EEAA9}">
 							<Language>SFX</Language>
-							<AudioFile>Play_PC_BGM.wav</AudioFile>
+							<AudioFile>DW_Cheery Monday.wav</AudioFile>
 							<MediaIDList>
-								<MediaID ID="637371893"/>
+								<MediaID ID="888168674"/>
 							</MediaIDList>
 						</AudioFileSource>
 					</ChildrenList>
 					<ActiveSourceList>
-						<ActiveSource Name="Play_PC_BGM" ID="{91DDFDF5-940D-41B9-9AD6-2144414BD1EC}" Platform="Linked"/>
+						<ActiveSource Name="DW_Cheery Monday" ID="{38C87091-D6F3-4687-BAA4-5C0B801EEAA9}" Platform="Linked"/>
 					</ActiveSourceList>
 				</Sound>
 			</ChildrenList>

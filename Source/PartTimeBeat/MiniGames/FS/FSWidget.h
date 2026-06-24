@@ -16,8 +16,7 @@ class PARTTIMEBEAT_API UFSWidget : public UUserWidget
 
 protected:
 	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
-
-	// 스크린샷의 Hierarchy 이름과 일치시킴
+	
 	UPROPERTY(meta = (BindWidget),BlueprintReadOnly)
 	UImage* ArrowLeft;
 

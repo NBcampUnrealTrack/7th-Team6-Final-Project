@@ -12,6 +12,7 @@ void UFSWidget::InitializeWidget(APTBFSMiniGame* InGame) { FSMiniGame = InGame; 
 
 void UFSWidget::OnNoteEvent(EPTBActionType Action, bool bLongNote, float InTargetTimeMs, float InCueLeadTimeMs)
 {
+	UE_LOG(LogTemp, Warning, TEXT("[FS] OnNoteEvent 진입 성공!"));
 	TargetTimeMs = InTargetTimeMs;
 	CueLeadTimeMs = InCueLeadTimeMs;
 	CurrentAction = Action;
@@ -22,34 +23,60 @@ void UFSWidget::OnNoteEvent(EPTBActionType Action, bool bLongNote, float InTarge
 	if (ArrowRight) ArrowRight->SetVisibility(ESlateVisibility::Hidden);
 	if (ArrowUp) ArrowUp->SetVisibility(ESlateVisibility::Hidden);
 
-	// 액션에 맞는 화살표 표시
-	UImage* TargetArrow = (Action == EPTBActionType::ActionA) ? ArrowLeft : 
-						  (Action == EPTBActionType::ActionB) ? ArrowRight : ArrowUp;
+	// 열거형 기반 매핑: A(Left), B(Right), C(Up)
+	UImage* TargetArrow = nullptr;
+	if (Action == EPTBActionType::ActionA) TargetArrow = ArrowLeft;
+	else if (Action == EPTBActionType::ActionB) TargetArrow = ArrowRight;
+	else if (Action == EPTBActionType::ActionC) TargetArrow = ArrowUp;
+
 	if (TargetArrow) TargetArrow->SetVisibility(ESlateVisibility::Visible);
 }
 
 void UFSWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 {
 	Super::NativeTick(MyGeometry, InDeltaTime);
-
-	if (!bIsActive) return;
-
-	UImage* ActiveArrow = (CurrentAction == EPTBActionType::ActionA) ? ArrowLeft : 
-						  (CurrentAction == EPTBActionType::ActionB) ? ArrowRight : ArrowUp;
-	if (!ActiveArrow) return;
-
-	float CurrentTime = FSMiniGame ? FSMiniGame->GetUPTBWwiseRhythmSyncComponent()->GetVisualChartTimeMs() : 0.0f;
-	float Alpha = FMath::Clamp((TargetTimeMs - CurrentTime) / CueLeadTimeMs, 0.0f, 1.0f);
-
-	// 좌표 계산
-	FVector2D StartPos = (CurrentAction == EPTBActionType::ActionA) ? FVector2D(100, 540) :
-						 (CurrentAction == EPTBActionType::ActionB) ? FVector2D(1820, 540) : FVector2D(960, 100);
-	FVector2D CenterPos = FVector2D(960, 540);
-
-	if (UCanvasPanelSlot* CanvasSlot = Cast<UCanvasPanelSlot>(ActiveArrow->Slot))
+	if (!bIsActive) 
 	{
-		CanvasSlot->SetPosition(FMath::Lerp(StartPos, CenterPos, Alpha));
+		UE_LOG(LogTemp, Error, TEXT("[FS] bIsActive가 false입니다!"));
+		return;
 	}
 
-	if (Alpha >= 1.0f) bIsActive = false;
+	UImage* ActiveArrow = nullptr;
+	FVector2D StartPos;
+	if (CurrentAction == EPTBActionType::ActionA) StartPos = FVector2D(100, 540); // 왼쪽 밖에서 시작
+	else if (CurrentAction == EPTBActionType::ActionB) StartPos = FVector2D(1820, 540); // 오른쪽 밖에서 시작
+	else if (CurrentAction == EPTBActionType::ActionC) StartPos = FVector2D(960, 100); // 위쪽 밖에서 시작
+	FVector2D EndPos = FVector2D(960, 540);
+
+	if (CurrentAction == EPTBActionType::ActionA) 
+	{
+		ActiveArrow = ArrowLeft;
+	}
+	else if (CurrentAction == EPTBActionType::ActionB)
+	{
+		ActiveArrow = ArrowRight;
+	}
+	else if (CurrentAction == EPTBActionType::ActionC) 
+	{
+		ActiveArrow = ArrowUp;
+	}
+
+		if (!ActiveArrow) 
+	{
+		UE_LOG(LogTemp, Error, TEXT("[FS] ActiveArrow가 NULL입니다! CurrentAction: %d"), (int32)CurrentAction);
+		return;
+	}
+	
+	float CurrentTime = FSMiniGame ? FSMiniGame->GetUPTBWwiseRhythmSyncComponent()->GetVisualChartTimeMs() : 0.0f;
+	float Alpha = FMath::Clamp((TargetTimeMs - CurrentTime) / CueLeadTimeMs, 0.0f, 1.0f);
+	
+	if (UCanvasPanelSlot* CanvasSlot = Cast<UCanvasPanelSlot>(ActiveArrow->Slot))
+	{
+		CanvasSlot->SetPosition(FMath::Lerp(EndPos, StartPos, Alpha));
+	}
+	
+	if (Alpha >= 1.0f) {
+		bIsActive = false;
+		ActiveArrow->SetVisibility(ESlateVisibility::Hidden);
+	}
 }
