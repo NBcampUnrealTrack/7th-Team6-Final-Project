@@ -248,4 +248,7 @@ private:
 	FPTBRhythmKeyBindings OriginalKeyBindings;
 	
 	int32 CurrentComboCount = 0;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera", meta = (AllowPrivateAccess = "true"))
+	TSubclassOf<UCameraShakeBase> MissCameraShakeClass;
 };

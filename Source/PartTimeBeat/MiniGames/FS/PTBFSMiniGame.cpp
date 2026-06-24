@@ -1,12 +1,11 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 #include "PTBFSMiniGame.h"
-
+#include "Camera/CameraShakeBase.h"
 #include "EngineUtils.h"
 #include "FishActor.h"
 #include "FSWidget.h"
 #include "PTBFSCharacter.h"
 #include "PTBFSMiniGameRuleSet.h"
-#include "Audio/PTBWwiseRhythmSyncComponent.h"
 #include "Core/PTBGameInstance.h"
 #include "Debug/PTBTeamLog.h"
 #include "Flow/PTBGameFlowSubsystem.h"
@@ -272,7 +271,13 @@ void APTBFSMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 		CurrentComboCount =0;
 		OnFishingComboChanged.Broadcast(CurrentComboCount);	
 		OnFishingJudgement.Broadcast(Result.JudgementType);
-		break;
+		if (MissCameraShakeClass)
+		{
+			if (APlayerController* PC = GetWorld()->GetFirstPlayerController())
+			{
+				PC->ClientStartCameraShake(MissCameraShakeClass);
+			}
+		}
 	}
 }
 
@@ -390,7 +395,7 @@ void APTBFSMiniGame::OnStartFishingGame()
 	FPTBMiniGameContext Context;
 	UPTBGameFlowSubsystem* FlowSys = GetGameInstance()->GetSubsystem<UPTBGameFlowSubsystem>();
     
-	EPTBDifficulty Difficulty = EPTBDifficulty::Standard;
+	EPTBDifficulty Difficulty = EPTBDifficulty::Easy;
 	if (FlowSys && !FlowSys->PendingSessionRequest.MiniGameId.IsNone())
 	{
 		Difficulty = FlowSys->PendingSessionRequest.Difficulty;
