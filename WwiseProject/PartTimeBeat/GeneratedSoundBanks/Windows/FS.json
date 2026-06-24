@@ -8,9 +8,9 @@
    {
     "Id": "1802970376",
     "Type": "User",
-    "GUID": "{8FA513FD-6B9B-4819-8471-194EF5DEBB12}",
+    "GUID": "{89F37B5D-ABCE-4EC8-89D4-4BF0B225ED9B}",
     "Language": "SFX",
-    "Hash": "{EF3D575C-DA29-9170-CBDF-ACADBD7AFA60}",
+    "Hash": "{A329CE8B-234D-5EDE-C11E-E87392FD9024}",
     "ObjectPath": "\\SoundBanks\\Default Work Unit\\FS",
     "ShortName": "FS",
     "Path": "FS.bnk",
@@ -26,10 +26,10 @@
     ],
     "Events": [
      {
-      "Id": "2232388889",
-      "Name": "Play_PTB_FS_Easy_260616",
-      "ObjectPath": "\\Events\\Default Work Unit\\Play_PTB_FS_Easy_260616",
-      "GUID": "{4F646AA5-8AB5-4194-92D3-6E15C0DC74D5}",
+      "Id": "3869860664",
+      "Name": "Play_FS_BGM",
+      "ObjectPath": "\\Events\\Default Work Unit\\Play_FS_BGM",
+      "GUID": "{AB532AAF-AF25-4491-B8C9-BF51C894F09A}",
       "DurationType": "OneShot",
       "DurationMin": "127.39998",
       "DurationMax": "127.39998",
@@ -42,6 +42,6 @@
     ]
    }
   ],
-  "FileHash": "{F2C66AFC-4100-066C-53D1-5AB92CE0FF38}"
+  "FileHash": "{BBE95284-2B27-43BB-D434-8D0ECC253AC5}"
  }
 }

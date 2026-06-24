@@ -1,0 +1,6 @@
+Event	ID	Name			Wwise Object Path	Notes
+	3026035594	Play_FOD_BGM			\Default Work Unit\Play_FOD_BGM	
+
+In Memory Audio	ID	Name	Audio source file		Wwise Object Path	Notes	Data Size
+	223210039	FOD	C:\UP\7th-Team6-Final-Project\WwiseProject\PartTimeBeat\.cache\Windows\SFX\Music\FOD\FOD_818F3B66.wem		\Actor-Mixer Hierarchy\FOD\FOD		18738720
+

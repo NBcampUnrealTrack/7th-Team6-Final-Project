@@ -9,6 +9,24 @@
 	</RootPaths>
 	<DialogueEvents/>
 	<SoundBanks>
+		<SoundBank Id="1083137560" Type="User" GUID="{C9EAC364-B816-484D-AF09-AFF3C8C71B0E}" Language="SFX" Hash="{039823B1-6E8E-45E2-E981-B0C43D64C06A}">
+			<ObjectPath>\SoundBanks\Default Work Unit\FOD</ObjectPath>
+			<ShortName>FOD</ShortName>
+			<Path>FOD.bnk</Path>
+			<Media>
+				<File Id="223210039" Language="SFX" Streaming="false" Location="Memory">
+					<ShortName>Music\FOD\FOD.wav</ShortName>
+					<CachePath>SFX/Music/FOD/FOD_818F3B66.wem</CachePath>
+				</File>
+			</Media>
+			<Events>
+				<Event Id="3026035594" Name="Play_FOD_BGM" ObjectPath="\Events\Default Work Unit\Play_FOD_BGM" GUID="{07A7D93E-C822-4EE4-B21B-3920E999B0A5}" DurationType="OneShot" DurationMin="106.22803" DurationMax="106.22803">
+					<MediaRefs>
+						<MediaRef Id="223210039"/>
+					</MediaRefs>
+				</Event>
+			</Events>
+		</SoundBank>
 		<SoundBank Id="1355168291" Type="User" GUID="{701ECBBD-9C7B-4030-8CDB-749EE5D1C7B9}" Language="SFX" Hash="{AB9F0343-CD85-AB9E-58D8-B63D74A50185}">
 			<ObjectPath>Init</ObjectPath>
 			<ShortName>Init</ShortName>
@@ -181,24 +199,114 @@
 				</Event>
 			</Events>
 		</SoundBank>
-		<SoundBank Id="1635194334" Type="User" GUID="{DA71F8A2-7CC1-428F-BA16-9C260853630D}" Language="SFX" Hash="{0FA963FD-5E4A-2508-187D-6549EB8358AC}">
+		<SoundBank Id="1584861558" Type="User" GUID="{B2938181-788B-4184-B2D3-331BB75588D1}" Language="SFX" Hash="{BE3B5109-D067-B92E-87F1-75FCD17B06B0}">
+			<ObjectPath>\SoundBanks\Default Work Unit\SR</ObjectPath>
+			<ShortName>SR</ShortName>
+			<Path>SR.bnk</Path>
+			<Media>
+				<File Id="537188782" Language="SFX" Streaming="false" Location="Memory">
+					<ShortName>SR_BGM.wav</ShortName>
+					<CachePath>SFX/SR_BGM_818F3B66.wem</CachePath>
+				</File>
+			</Media>
+			<Events>
+				<Event Id="3396216486" Name="Play_SR_BGM" ObjectPath="\Events\Default Work Unit\Play_SR_BGM" GUID="{EEEE5619-46CE-4444-ACE4-16CF74858FF0}" DurationType="OneShot" DurationMin="56.1039" DurationMax="56.1039">
+					<MediaRefs>
+						<MediaRef Id="537188782"/>
+					</MediaRefs>
+				</Event>
+			</Events>
+		</SoundBank>
+		<SoundBank Id="1635194334" Type="User" GUID="{007CA0E5-F67C-4DFA-B327-B8787A690CF7}" Language="SFX" Hash="{0E8276E6-A1CD-20B9-5DF6-1015991C267F}">
 			<ObjectPath>\SoundBanks\Default Work Unit\PC</ObjectPath>
 			<ShortName>PC</ShortName>
 			<Path>PC.bnk</Path>
 			<Media>
-				<File Id="17910444" Language="SFX" Streaming="false" Location="Memory">
+				<File Id="637371893" Language="SFX" Streaming="false" Location="Memory">
 					<ShortName>Play_PC_BGM.wav</ShortName>
 					<CachePath>SFX/Play_PC_BGM_818F3B66.wem</CachePath>
 				</File>
 			</Media>
 			<Events>
-				<Event Id="3036750162" Name="Play_PC_BGM" ObjectPath="\Events\Default Work Unit\Play_PC_BGM" GUID="{2E11A0D5-37EE-40A6-B4AF-B0FE6877551B}" DurationType="OneShot" DurationMin="115.54877" DurationMax="115.54877">
+				<Event Id="3036750162" Name="Play_PC_BGM" ObjectPath="\Events\Default Work Unit\Play_PC_BGM" GUID="{4F266B37-DD26-428D-9274-A538E999612B}" DurationType="OneShot" DurationMin="115.54877" DurationMax="115.54877">
 					<MediaRefs>
-						<MediaRef Id="17910444"/>
+						<MediaRef Id="637371893"/>
+					</MediaRefs>
+				</Event>
+			</Events>
+		</SoundBank>
+		<SoundBank Id="1702304874" Type="User" GUID="{D05055ED-04AC-4E2F-BBCA-98E5CA21DED5}" Language="SFX" Hash="{C501F980-582F-20D0-F44C-C6F0FC05B6A6}">
+			<ObjectPath>\SoundBanks\Default Work Unit\LC</ObjectPath>
+			<ShortName>LC</ShortName>
+			<Path>LC.bnk</Path>
+			<Media>
+				<File Id="902210420" Language="SFX" Streaming="false" Location="Memory">
+					<ShortName>Music\LC\Logistic Center.wav</ShortName>
+					<CachePath>SFX/Music/LC/Logistic Center_818F3B66.wem</CachePath>
+				</File>
+			</Media>
+			<Events>
+				<Event Id="2620029126" Name="Play_LC_BGM" ObjectPath="\Events\Default Work Unit\Play_LC_BGM" GUID="{17044A03-13EB-419B-A7B4-33819DC2E145}" DurationType="OneShot" DurationMin="127.536" DurationMax="127.536">
+					<MediaRefs>
+						<MediaRef Id="902210420"/>
+					</MediaRefs>
+				</Event>
+			</Events>
+		</SoundBank>
+		<SoundBank Id="1802970376" Type="User" GUID="{89F37B5D-ABCE-4EC8-89D4-4BF0B225ED9B}" Language="SFX" Hash="{A329CE8B-234D-5EDE-C11E-E87392FD9024}">
+			<ObjectPath>\SoundBanks\Default Work Unit\FS</ObjectPath>
+			<ShortName>FS</ShortName>
+			<Path>FS.bnk</Path>
+			<Media>
+				<File Id="756648171" Language="SFX" Streaming="false" Location="Memory">
+					<ShortName>PTB_FS_Easy_260616.wav</ShortName>
+					<CachePath>SFX/PTB_FS_Easy_260616_818F3B66.wem</CachePath>
+				</File>
+			</Media>
+			<Events>
+				<Event Id="3869860664" Name="Play_FS_BGM" ObjectPath="\Events\Default Work Unit\Play_FS_BGM" GUID="{AB532AAF-AF25-4491-B8C9-BF51C894F09A}" DurationType="OneShot" DurationMin="127.39998" DurationMax="127.39998">
+					<MediaRefs>
+						<MediaRef Id="756648171"/>
+					</MediaRefs>
+				</Event>
+			</Events>
+		</SoundBank>
+		<SoundBank Id="1836525782" Type="User" GUID="{46BDD5DB-EE49-43BF-97DD-BCCF5D8B954C}" Language="SFX" Hash="{C97C4693-B527-9448-A57F-0FA11B47BE79}">
+			<ObjectPath>\SoundBanks\Default Work Unit\DW</ObjectPath>
+			<ShortName>DW</ShortName>
+			<Path>DW.bnk</Path>
+			<Media>
+				<File Id="888168674" Language="SFX" Streaming="false" Location="Memory">
+					<ShortName>DW_Cheery Monday.wav</ShortName>
+					<CachePath>SFX/DW_Cheery Monday_818F3B66.wem</CachePath>
+				</File>
+			</Media>
+			<Events>
+				<Event Id="277636275" Name="Play_DW_Cheery_Monday" ObjectPath="\Events\Default Work Unit\Play_DW_Cheery_Monday" GUID="{87F5C698-8113-472E-A758-7D3D9541E911}" DurationType="OneShot" DurationMin="80.22204" DurationMax="80.22204">
+					<MediaRefs>
+						<MediaRef Id="888168674"/>
+					</MediaRefs>
+				</Event>
+			</Events>
+		</SoundBank>
+		<SoundBank Id="1870080933" Type="User" GUID="{02B8FCEF-1BD6-4305-BDDC-B8492AFD1A9E}" Language="SFX" Hash="{EAB63409-B560-880A-9AB1-CA2EE801D396}">
+			<ObjectPath>\SoundBanks\Default Work Unit\BB</ObjectPath>
+			<ShortName>BB</ShortName>
+			<Path>BB.bnk</Path>
+			<Media>
+				<File Id="744081046" Language="SFX" Streaming="false" Location="Memory">
+					<ShortName>PTB_BB.wav</ShortName>
+					<CachePath>SFX/PTB_BB_818F3B66.wem</CachePath>
+				</File>
+			</Media>
+			<Events>
+				<Event Id="3499671663" Name="Play_PTB_BB" ObjectPath="\Events\Default Work Unit\Play_PTB_BB" GUID="{3088C6FD-EB7C-4A3F-B026-3BE268479C9F}" DurationType="OneShot" DurationMin="156.87006" DurationMax="156.87006">
+					<MediaRefs>
+						<MediaRef Id="744081046"/>
 					</MediaRefs>
 				</Event>
 			</Events>
 		</SoundBank>
 	</SoundBanks>
-	<FileHash>{D22CD8A3-CE34-1390-4E74-B9CA27CA6135}</FileHash>
+	<FileHash>{2B478320-A9BF-FAF3-5127-46D242CDC990}</FileHash>
 </SoundBanksInfo>

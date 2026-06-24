@@ -10,13 +10,6 @@
 					<ObjectExclusionList/>
 					<GameSyncExclusionList/>
 				</SoundBank>
-				<SoundBank Name="PC" ID="{DA71F8A2-7CC1-428F-BA16-9C260853630D}">
-					<ObjectInclusionList>
-						<ObjectRef Name="Play_PC_BGM" ID="{2E11A0D5-37EE-40A6-B4AF-B0FE6877551B}" WorkUnitID="{57C27AFF-72CF-40EC-ADB0-4148A3A0D350}" Origin="Manual" Filter="7"/>
-					</ObjectInclusionList>
-					<ObjectExclusionList/>
-					<GameSyncExclusionList/>
-				</SoundBank>
 				<SoundBank Name="BB" ID="{02B8FCEF-1BD6-4305-BDDC-B8492AFD1A9E}">
 					<ObjectInclusionList>
 						<ObjectRef Name="Play_PTB_BB" ID="{3088C6FD-EB7C-4A3F-B026-3BE268479C9F}" WorkUnitID="{57C27AFF-72CF-40EC-ADB0-4148A3A0D350}" Origin="Manual" Filter="7"/>
@@ -40,7 +33,28 @@
 				</SoundBank>
 				<SoundBank Name="PC" ID="{007CA0E5-F67C-4DFA-B327-B8787A690CF7}">
 					<ObjectInclusionList>
-						<ObjectRef Name="Play_Play_PC_BGM" ID="{4F266B37-DD26-428D-9274-A538E999612B}" WorkUnitID="{57C27AFF-72CF-40EC-ADB0-4148A3A0D350}" Origin="Manual" Filter="7"/>
+						<ObjectRef Name="Play_PC_BGM" ID="{4F266B37-DD26-428D-9274-A538E999612B}" WorkUnitID="{57C27AFF-72CF-40EC-ADB0-4148A3A0D350}" Origin="Manual" Filter="7"/>
+					</ObjectInclusionList>
+					<ObjectExclusionList/>
+					<GameSyncExclusionList/>
+				</SoundBank>
+				<SoundBank Name="FOD" ID="{C9EAC364-B816-484D-AF09-AFF3C8C71B0E}">
+					<ObjectInclusionList>
+						<ObjectRef Name="Play_FOD_BGM" ID="{07A7D93E-C822-4EE4-B21B-3920E999B0A5}" WorkUnitID="{57C27AFF-72CF-40EC-ADB0-4148A3A0D350}" Origin="Manual" Filter="7"/>
+					</ObjectInclusionList>
+					<ObjectExclusionList/>
+					<GameSyncExclusionList/>
+				</SoundBank>
+				<SoundBank Name="FS" ID="{89F37B5D-ABCE-4EC8-89D4-4BF0B225ED9B}">
+					<ObjectInclusionList>
+						<ObjectRef Name="Play_FS_BGM" ID="{AB532AAF-AF25-4491-B8C9-BF51C894F09A}" WorkUnitID="{57C27AFF-72CF-40EC-ADB0-4148A3A0D350}" Origin="Manual" Filter="7"/>
+					</ObjectInclusionList>
+					<ObjectExclusionList/>
+					<GameSyncExclusionList/>
+				</SoundBank>
+				<SoundBank Name="LC" ID="{D05055ED-04AC-4E2F-BBCA-98E5CA21DED5}">
+					<ObjectInclusionList>
+						<ObjectRef Name="Play_LC_BGM" ID="{17044A03-13EB-419B-A7B4-33819DC2E145}" WorkUnitID="{57C27AFF-72CF-40EC-ADB0-4148A3A0D350}" Origin="Manual" Filter="7"/>
 					</ObjectInclusionList>
 					<ObjectExclusionList/>
 					<GameSyncExclusionList/>

@@ -14,17 +14,6 @@
 						</Action>
 					</ChildrenList>
 				</Event>
-				<Event Name="Play_PC_BGM" ID="{2E11A0D5-37EE-40A6-B4AF-B0FE6877551B}">
-					<ChildrenList>
-						<Action Name="" ID="{C2D1F278-2547-4737-86E9-7AD640B3A3EF}" ShortID="441404631">
-							<ReferenceList>
-								<Reference Name="Target">
-									<ObjectRef Name="PC_BGM" ID="{D3C2EF92-D0F7-42AE-A2AC-73D7CE04511F}" WorkUnitID="{37A2DAE3-B823-4F10-8CC0-50AA0CBEE5D0}"/>
-								</Reference>
-							</ReferenceList>
-						</Action>
-					</ChildrenList>
-				</Event>
 				<Event Name="Play_PTB_BB" ID="{3088C6FD-EB7C-4A3F-B026-3BE268479C9F}">
 					<ChildrenList>
 						<Action Name="" ID="{CA516240-55A1-46C3-A69D-ED3F4D607CD9}" ShortID="1015027953">
@@ -58,12 +47,45 @@
 						</Action>
 					</ChildrenList>
 				</Event>
-				<Event Name="Play_Play_PC_BGM" ID="{4F266B37-DD26-428D-9274-A538E999612B}">
+				<Event Name="Play_PC_BGM" ID="{4F266B37-DD26-428D-9274-A538E999612B}">
 					<ChildrenList>
 						<Action Name="" ID="{BB8A3042-3242-43DE-99D2-40076C50505D}" ShortID="1069319573">
 							<ReferenceList>
 								<Reference Name="Target">
 									<ObjectRef Name="Play_PC_BGM" ID="{6E1056C8-A2E9-45DB-8AE5-E7B324C2E951}" WorkUnitID="{4C2F493D-6FDD-4238-8DD4-FEAA7AD867A6}"/>
+								</Reference>
+							</ReferenceList>
+						</Action>
+					</ChildrenList>
+				</Event>
+				<Event Name="Play_LC_BGM" ID="{17044A03-13EB-419B-A7B4-33819DC2E145}">
+					<ChildrenList>
+						<Action Name="" ID="{4320A980-67CE-40ED-A2FE-A72D60F8A6D4}" ShortID="70273368">
+							<ReferenceList>
+								<Reference Name="Target">
+									<ObjectRef Name="Logistic Center" ID="{CCEB14D1-8ADB-4E47-BD70-87DA257FD62D}" WorkUnitID="{0A2A8B12-D1DA-4CCB-8ABA-9AFD53D3E6E8}"/>
+								</Reference>
+							</ReferenceList>
+						</Action>
+					</ChildrenList>
+				</Event>
+				<Event Name="Play_FOD_BGM" ID="{07A7D93E-C822-4EE4-B21B-3920E999B0A5}">
+					<ChildrenList>
+						<Action Name="" ID="{FB5DBB53-E7A8-4695-BA4E-CA4C22AE29A6}" ShortID="168685245">
+							<ReferenceList>
+								<Reference Name="Target">
+									<ObjectRef Name="FOD" ID="{8048EE12-5AC4-4D96-A7B8-A826124488EA}" WorkUnitID="{1E63043A-937B-4E5C-AD87-AA608A9FE5E1}"/>
+								</Reference>
+							</ReferenceList>
+						</Action>
+					</ChildrenList>
+				</Event>
+				<Event Name="Play_FS_BGM" ID="{AB532AAF-AF25-4491-B8C9-BF51C894F09A}">
+					<ChildrenList>
+						<Action Name="" ID="{145B46EF-312F-4353-896B-CC5279E72BE4}" ShortID="20092295">
+							<ReferenceList>
+								<Reference Name="Target">
+									<ObjectRef Name="PTB_FS_Easy_260616" ID="{9BD39A85-D3D8-4939-A651-5581A9F0FDC9}" WorkUnitID="{80922B44-8199-48E9-AD42-42425C050CEB}"/>
 								</Reference>
 							</ReferenceList>
 						</Action>

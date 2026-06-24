@@ -1,0 +1,6 @@
+Event	ID	Name			Wwise Object Path	Notes
+	3499671663	Play_PTB_BB			\Default Work Unit\Play_PTB_BB	
+
+In Memory Audio	ID	Name	Audio source file		Wwise Object Path	Notes	Data Size
+	744081046	PTB_BB	C:\UP\7th-Team6-Final-Project\WwiseProject\PartTimeBeat\.cache\Windows\SFX\PTB_BB_818F3B66.wem		\Actor-Mixer Hierarchy\BB\PTB_BB		10039780
+

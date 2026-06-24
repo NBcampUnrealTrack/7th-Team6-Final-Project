@@ -8,15 +8,15 @@
    {
     "Id": "1635194334",
     "Type": "User",
-    "GUID": "{DA71F8A2-7CC1-428F-BA16-9C260853630D}",
+    "GUID": "{007CA0E5-F67C-4DFA-B327-B8787A690CF7}",
     "Language": "SFX",
-    "Hash": "{0FA963FD-5E4A-2508-187D-6549EB8358AC}",
+    "Hash": "{0E8276E6-A1CD-20B9-5DF6-1015991C267F}",
     "ObjectPath": "\\SoundBanks\\Default Work Unit\\PC",
     "ShortName": "PC",
     "Path": "PC.bnk",
     "Media": [
      {
-      "Id": "17910444",
+      "Id": "637371893",
       "Language": "SFX",
       "Streaming": "false",
       "Location": "Memory",
@@ -29,19 +29,19 @@
       "Id": "3036750162",
       "Name": "Play_PC_BGM",
       "ObjectPath": "\\Events\\Default Work Unit\\Play_PC_BGM",
-      "GUID": "{2E11A0D5-37EE-40A6-B4AF-B0FE6877551B}",
+      "GUID": "{4F266B37-DD26-428D-9274-A538E999612B}",
       "DurationType": "OneShot",
       "DurationMin": "115.54877",
       "DurationMax": "115.54877",
       "MediaRefs": [
        {
-        "Id": "17910444"
+        "Id": "637371893"
        }
       ]
      }
     ]
    }
   ],
-  "FileHash": "{F8F8CDA3-C9BF-D35B-A50F-C7A3A1A8D55A}"
+  "FileHash": "{D94236BE-4FF4-4CD1-DA75-5385BC99BF92}"
  }
 }

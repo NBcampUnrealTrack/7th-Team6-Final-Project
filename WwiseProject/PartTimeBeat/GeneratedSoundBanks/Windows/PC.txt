@@ -2,5 +2,5 @@ Event	ID	Name			Wwise Object Path	Notes
 	3036750162	Play_PC_BGM			\Default Work Unit\Play_PC_BGM	
 
 In Memory Audio	ID	Name	Audio source file		Wwise Object Path	Notes	Data Size
-	17910444	PC_BGM	C:\PRTeamProject\7th-Team6-Final-Project\WwiseProject\PartTimeBeat\.cache\Windows\SFX\Play_PC_BGM_818F3B66.wem		\Actor-Mixer Hierarchy\PC\PC_BGM		22185460
+	637371893	Play_PC_BGM	C:\UP\7th-Team6-Final-Project\WwiseProject\PartTimeBeat\.cache\Windows\SFX\Play_PC_BGM_818F3B66.wem		\Actor-Mixer Hierarchy\PC\Play_PC_BGM		22185460
 

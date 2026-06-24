@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<SoundBanksInfo Platform="Windows" BasePlatform="Windows" SchemaVersion="16" SoundBankVersion="150">
+	<SoundBanks>
+		<SoundBank Id="1083137560" Type="User" GUID="{C9EAC364-B816-484D-AF09-AFF3C8C71B0E}" Language="SFX" Hash="{039823B1-6E8E-45E2-E981-B0C43D64C06A}">
+			<ObjectPath>\SoundBanks\Default Work Unit\FOD</ObjectPath>
+			<ShortName>FOD</ShortName>
+			<Path>FOD.bnk</Path>
+			<Media>
+				<File Id="223210039" Language="SFX" Streaming="false" Location="Memory">
+					<ShortName>Music\FOD\FOD.wav</ShortName>
+					<CachePath>SFX/Music/FOD/FOD_818F3B66.wem</CachePath>
+				</File>
+			</Media>
+			<Events>
+				<Event Id="3026035594" Name="Play_FOD_BGM" ObjectPath="\Events\Default Work Unit\Play_FOD_BGM" GUID="{07A7D93E-C822-4EE4-B21B-3920E999B0A5}" DurationType="OneShot" DurationMin="106.22803" DurationMax="106.22803">
+					<MediaRefs>
+						<MediaRef Id="223210039"/>
+					</MediaRefs>
+				</Event>
+			</Events>
+		</SoundBank>
+	</SoundBanks>
+	<FileHash>{102EE6A1-9E78-A5B8-9B7C-728883DD027D}</FileHash>
+</SoundBanksInfo>
