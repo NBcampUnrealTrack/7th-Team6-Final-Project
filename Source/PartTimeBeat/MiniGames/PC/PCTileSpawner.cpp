@@ -6,22 +6,22 @@ APCTileSpawner::APCTileSpawner()
     PrimaryActorTick.bCanEverTick = false;
 }
 
-void APCTileSpawner::SpawnTile()
+APCTileActor* APCTileSpawner::SpawnTile()
 {
-    if (!TileClass || !RailCharacter) return;
+    if (!TileClass || !RailCharacter) return nullptr;
 
-    // 스폰 위치: 캐릭터 정면 SpawnDistance 앞
-    FVector SpawnLocation = RailCharacter->GetActorLocation()
-        + RailCharacter->GetActorForwardVector() * SpawnDistance;
+    // 판정존 위치를 목표점으로
+    FVector TargetLocation = RailCharacter->JudgementZone->GetComponentLocation();
 
-    // 타일 스폰
-    APCTileActor* Tile = GetWorld()->SpawnActor<APCTileActor>(
-        TileClass, SpawnLocation, FRotator::ZeroRotator);
+    FVector SpawnLocation = TargetLocation + RailCharacter->GetActorForwardVector() * SpawnDistance + FVector(0.f, 0.f, SpawnHeightOffset);
+
+    APCTileActor* Tile = GetWorld()->SpawnActor<APCTileActor>(TileClass, SpawnLocation, FRotator::ZeroRotator);
 
     if (Tile)
     {
-        // 캐릭터 방향으로 날아오게
-        FVector Dir = RailCharacter->GetActorLocation() - SpawnLocation;
+        FVector Dir = TargetLocation - SpawnLocation; // 캐릭터 대신 판정존으로
         Tile->Launch(Dir);
     }
+
+    return Tile;
 }

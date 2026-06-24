@@ -56,11 +56,13 @@ namespace PTBJudgementSystemInternal
 		int32 NoteId = 0,
 		float DeltaMs = 0.0f,
 		float ChartTimeMs = 0.0f,
-		float InputTimeMs = 0.0f)
+		float InputTimeMs = 0.0f,
+		EPTBActionType InputAction = EPTBActionType::None)
 	{
 		FPTBJudgementResult Result;
 		Result.NoteId = NoteId;
 		Result.ActionType = Action;
+		Result.InputActionType = InputAction == EPTBActionType::None ? Action : InputAction;
 		Result.JudgementType = EPTBJudgementType::Miss;
 		Result.Reason = Reason;
 		Result.ChartTimeMs = ChartTimeMs;
@@ -76,6 +78,7 @@ namespace PTBJudgementSystemInternal
 		FPTBJudgementResult Result;
 		Result.NoteId = Note.NoteId;
 		Result.ActionType = Note.ActionType;
+		Result.InputActionType = Note.ActionType;
 		Result.JudgementType = JudgementType;
 		Result.Reason = EPTBJudgementReason::Note;
 		Result.ChartTimeMs = Note.TimeMs;
@@ -268,7 +271,8 @@ FPTBJudgementResult UPTBJudgementSystem::EvaluateInput(EPTBActionType Action, fl
 						WrongInputNote.NoteId,
 						WrongInputBestSignedDeltaMs,
 						WrongInputNote.TimeMs,
-						CorrectedInputTimeMs);
+						CorrectedInputTimeMs,
+						Action);
 					if (bBroadcastResult)
 					{
 						OnJudgementResult.Broadcast(Result);

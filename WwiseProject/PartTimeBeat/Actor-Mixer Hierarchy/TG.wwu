@@ -24,6 +24,9 @@
 							</MediaIDList>
 						</AudioFileSource>
 					</ChildrenList>
+					<PositioningInfo>
+						<Panner Name="" ID="{DD46721E-98A2-432F-9E9C-FDC0B73FD324}"/>
+					</PositioningInfo>
 					<ActiveSourceList>
 						<ActiveSource Name="PTB_JJ_Easy_260527" ID="{222CD3D0-3FF2-4F45-B380-71D983D9E571}" Platform="Linked"/>
 					</ActiveSourceList>

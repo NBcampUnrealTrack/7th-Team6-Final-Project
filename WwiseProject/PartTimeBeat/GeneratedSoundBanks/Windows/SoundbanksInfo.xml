@@ -181,24 +181,24 @@
 				</Event>
 			</Events>
 		</SoundBank>
-		<SoundBank Id="1802970376" Type="User" GUID="{8FA513FD-6B9B-4819-8471-194EF5DEBB12}" Language="SFX" Hash="{EF3D575C-DA29-9170-CBDF-ACADBD7AFA60}">
-			<ObjectPath>\SoundBanks\Default Work Unit\FS</ObjectPath>
-			<ShortName>FS</ShortName>
-			<Path>FS.bnk</Path>
+		<SoundBank Id="1635194334" Type="User" GUID="{DA71F8A2-7CC1-428F-BA16-9C260853630D}" Language="SFX" Hash="{0FA963FD-5E4A-2508-187D-6549EB8358AC}">
+			<ObjectPath>\SoundBanks\Default Work Unit\PC</ObjectPath>
+			<ShortName>PC</ShortName>
+			<Path>PC.bnk</Path>
 			<Media>
-				<File Id="756648171" Language="SFX" Streaming="false" Location="Memory">
-					<ShortName>PTB_FS_Easy_260616.wav</ShortName>
-					<CachePath>SFX/PTB_FS_Easy_260616_818F3B66.wem</CachePath>
+				<File Id="17910444" Language="SFX" Streaming="false" Location="Memory">
+					<ShortName>Play_PC_BGM.wav</ShortName>
+					<CachePath>SFX/Play_PC_BGM_818F3B66.wem</CachePath>
 				</File>
 			</Media>
 			<Events>
-				<Event Id="2232388889" Name="Play_PTB_FS_Easy_260616" ObjectPath="\Events\Default Work Unit\Play_PTB_FS_Easy_260616" GUID="{4F646AA5-8AB5-4194-92D3-6E15C0DC74D5}" DurationType="OneShot" DurationMin="127.39998" DurationMax="127.39998">
+				<Event Id="3036750162" Name="Play_PC_BGM" ObjectPath="\Events\Default Work Unit\Play_PC_BGM" GUID="{2E11A0D5-37EE-40A6-B4AF-B0FE6877551B}" DurationType="OneShot" DurationMin="115.54877" DurationMax="115.54877">
 					<MediaRefs>
-						<MediaRef Id="756648171"/>
+						<MediaRef Id="17910444"/>
 					</MediaRefs>
 				</Event>
 			</Events>
 		</SoundBank>
 	</SoundBanks>
-	<FileHash>{846480DB-48EA-B163-6090-CDD3C928D22B}</FileHash>
+	<FileHash>{D22CD8A3-CE34-1390-4E74-B9CA27CA6135}</FileHash>
 </SoundBanksInfo>

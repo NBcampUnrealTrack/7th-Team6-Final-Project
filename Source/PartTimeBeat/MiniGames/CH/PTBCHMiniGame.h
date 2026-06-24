@@ -7,7 +7,7 @@
 
 class UPTBCHMiniGameRuleSet;
 class UWrapperWidget;
-class UPTBCHHUDWidget;
+class UUserWidget;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FPTBCHNoteEvent, FPTBNoteEvent, Note);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FPTBCHJudgementEvent, FPTBJudgementResult, Result, FPTBNoteEvent, Note);
@@ -170,6 +170,9 @@ protected:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PTB|CH")
     TArray<FPTBNoteEvent> CuedNotes;
 
+    /** NoteId → 재료 매핑된 ActionType (Arm/Reached 이벤트에 일관성 있게 전달하기 위함) */
+    TMap<int32, EPTBActionType> NoteIdToIngredientAction;
+
     /** Arm 상태 노트 */
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PTB|CH")
     TArray<FPTBNoteEvent> ArmedNotes;
@@ -200,7 +203,10 @@ protected:
 
     /** 재료 Blueprint 클래스 (에디터에서 설정) */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|CH|Ingredients")
-    TSubclassOf<AActor> IngredientClass_Bread;
+    TSubclassOf<AActor> IngredientClass_BreadBottom;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|CH|Ingredients")
+    TSubclassOf<AActor> IngredientClass_BreadTop;
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|CH|Ingredients")
     TSubclassOf<AActor> IngredientClass_Lettuce;
@@ -216,7 +222,7 @@ protected:
 
     /** 현재 쌓인 높이 트래킹 */
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PTB|CH")
-    float StackHeight = 15.0f;
+    float StackHeight = 50.0f;
 
     /** 스폰된 재료 Actor 목록 */
     UPROPERTY()
@@ -225,10 +231,48 @@ protected:
     /** 재료 스폰 함수 */
     void SpawnIngredient(EPTBCHIngredientType IngredientType, bool bIsLastBread = false);
 
+    /** 완성된 햄버거 목록 (각 햄버거의 재료 Actor 배열) */
+    TArray<TArray<TObjectPtr<AActor>>> CompletedHamburgers;
+
+    /** 접시 Blueprint 클래스 (에디터에서 설정) */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|CH")
+    TSubclassOf<AActor> PlateActorClass;
+
+    /** 완성된 햄버거의 접시 목록 */
+    TArray<TObjectPtr<AActor>> CompletedPlates;
+
+    /** 이동 속도 */
+    float SlideSpeed = 800.0f;
+
+    /** 슬라이드 그룹 (접시 + 위에 쌓인 재료들을 한 단위로 이동) */
+    struct FCHSlideGroup
+    {
+        AActor* Plate = nullptr;
+        TArray<AActor*> Ingredients;
+        float TargetX = 0.0f;
+        float Delay = 0.0f;
+    };
+    TArray<FCHSlideGroup> SlideGroups;
+
+    /** 드롭 애니메이션 (위에서 떨어지는 효과 + 바운스) */
+    struct FCHDropAnim
+    {
+        AActor* Ingredient = nullptr;
+        float TargetZ = 0.0f;
+        float Velocity = 0.0f;
+        bool bDone = false;
+    };
+    TArray<FCHDropAnim> DroppingIngredients;
+    float DropStartOffset = 80.0f;
+    float DropGravity = 2000.0f;    // 낙하 가속도
+    float DropRestitution = 0.3f;   // 바운스 반발계수 (0=없음, 1=완전탄성)
+
     /** 생성된 HUD 위젯 인스턴스 */
     UPROPERTY(BlueprintReadOnly, Category = "PTB|CH")
     TObjectPtr<UUserWidget> HUDWidget;
 
     /** HUD 생성 및 화면에 추가 */
     void CreateAndAddHUD();
+
+    virtual void Tick(float DeltaTime) override;
 };

@@ -4,11 +4,11 @@
   "miniGameId": "FOD",
   "songId": "",
   "difficulty": "Easy",
-  "bpm": 120,
-  "offsetMs": 0,
+  "bpm": 140,
+  "offsetMs": -360,
   "timeSignature": { "numerator": 4, "denominator": 4 },
   "tempoEvents": [
-    { "beat": 0, "bpm": 120 }
+    { "beat": 0, "bpm": 140 }
   ],
   "timeSignatureEvents": [
     { "beat": 0, "numerator": 4, "denominator": 4 }
@@ -19,15 +19,15 @@
   },
   "noteFormat": ["id", "timeMs", "beat", "action", "lane", "type"],
   "notes": [
-    [1, 2000, 4, "A", 0, "Tap"],
-    [2, 3000, 6, "B", 1, "Tap"],
-    [3, 4000, 8, "A", 0, "Tap"],
-    [4, 5000, 10, "B", 1, "Tap"],
-    [5, 6000, 12, "A", 0, "Tap"],
-    [6, 8000, 16, "B", 1, "Tap"],
-    [7, 10000, 20, "A", 0, "Tap"],
-    [8, 12000, 24, "B", 1, "Tap"],
-    [9, 14000, 28, "A", 0, "Tap"],
-    [10, 16000, 32, "B", 1, "Tap"]
+    [1,  3428.571,  8, "A", 0, "Tap"],
+    [2,  4285.714, 10, "B", 1, "Tap"],
+    [3,  5142.857, 12, "A", 0, "Tap"],
+    [4,  6000.000, 14, "B", 1, "Tap"],
+    [5,  6857.143, 16, "A", 0, "Tap"],
+    [6,  8571.429, 20, "B", 1, "Tap"],
+    [7, 10285.714, 24, "A", 0, "Tap"],
+    [8, 12000.000, 28, "B", 1, "Tap"],
+    [9, 13714.286, 32, "A", 0, "Tap"],
+    [10,15428.571, 36, "B", 1, "Tap"]
   ]
 }

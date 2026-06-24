@@ -4,13 +4,31 @@
 
 #include "Components/BoxComponent.h"
 #include "Debug/PTBTeamLog.h"
+#include "Audio/PTBWwiseRhythmSyncComponent.h"
+#include "MiniGames/Common/PTBMiniGameRuleSet.h"
 #include "PTBLCLogisticBox.h"
+#include "Rhythm/PTBRhythmConductorComponent.h"
 
 
 APTBLCMiniGame::APTBLCMiniGame()
 {
 	CollisionBox = CreateDefaultSubobject<UBoxComponent>(TEXT("CollisionBox"));
 	CollisionBox->SetupAttachment(RootComponent);
+}
+
+void APTBLCMiniGame::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+
+	if (!bEnableBeatPulse || !RhythmConductor)
+	{
+		ApplyBeatPulseToBoxes(1.0f);
+		return;
+	}
+
+	const float CurrentBeat = RhythmConductor->GetCurrentBeat();
+	const float BeatPhase = CurrentBeat - FMath::FloorToFloat(CurrentBeat);
+	ApplyBeatPulseToBoxes(CalculateBeatPulseScale(BeatPhase));
 }
 
 void APTBLCMiniGame::BuildRuntimeState()
@@ -70,7 +88,10 @@ void APTBLCMiniGame::HandleNoteCue(FPTBNoteEvent Note)
 	
 		if (SpawnedActor)
 		{
-			SpawnedActor->SetBoxMaterlalInstanceByActionType(Note.ActionType);
+			SpawnedActor->InitializeFromNote(Note);
+			ApplyCueSpawnDelayCompensation(SpawnedActor, Note);
+			ActiveLogisticBoxes.Add(SpawnedActor);
+			SpawnedActor->OnDestroyed.AddDynamic(this, &APTBLCMiniGame::HandleLogisticBoxDestroyed);
 			PTB_RECORD(LogPTBMiniGames, TEXT("[LC] Logistic box spawned. NoteId=%d Action=%d Location=(%.2f, %.2f, %.2f) Class=%s"),
 				Note.NoteId,
 				static_cast<int32>(Note.ActionType),
@@ -120,21 +141,124 @@ void APTBLCMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 			{
 				return;
 			}
+			
+			APTBLCLogisticBox* TargetLogisticBox = nullptr;
 			for (AActor* OverlappingActor : OverlappingActors)
 			{
-				if (OverlappingActor && OverlappingActor->IsA<APTBLCLogisticBox>())
+				APTBLCLogisticBox* LogisticBox = Cast<APTBLCLogisticBox>(OverlappingActor);
+				if (LogisticBox && !LogisticBox->GetIsPackaged() && LogisticBox->GetNoteId() == Result.NoteId)
 				{
-					if (Result.JudgementType == EPTBJudgementType::Good || Result.JudgementType == EPTBJudgementType::Perfect || Result.JudgementType == EPTBJudgementType::HighPerfect)
-					{
-						APTBLCLogisticBox* LogisticBox = Cast<APTBLCLogisticBox>(OverlappingActor);
-						if (LogisticBox && !LogisticBox->GetIsPackaged())
-						{
-							LogisticBox->ChangeMeshToBox();
-							LogisticBox->SetBoxStateByActionType(Result.ActionType);
-						}
-					}
+					TargetLogisticBox = LogisticBox;
+					break;
 				}
 			}
+			
+			const bool bShouldPackage =
+				Result.Reason == EPTBJudgementReason::WrongInput ||
+				Result.JudgementType == EPTBJudgementType::Good ||
+				Result.JudgementType == EPTBJudgementType::Perfect ||
+				Result.JudgementType == EPTBJudgementType::HighPerfect;
+			if (TargetLogisticBox && bShouldPackage)
+			{
+				const EPTBActionType PackageActionType = Result.Reason == EPTBJudgementReason::WrongInput
+					? Result.InputActionType
+					: Result.ActionType;
+				TargetLogisticBox->PackageWithActionType(PackageActionType);
+			}
+		}
+	}
+}
+
+float APTBLCMiniGame::CalculateScheduledCueTimeMs(const FPTBNoteEvent& Note) const
+{
+	if (!RuleSet)
+	{
+		return Note.TimeMs;
+	}
+
+	if (RuleSet->CueLeadTimeMode == EPTBCueLeadTimeMode::MS)
+	{
+		return Note.TimeMs - FMath::Max(0.0f, RuleSet->CueLeadTimeMs);
+	}
+
+	const float BeatMs = GameContext.ChartData.BPM > 0.0f
+		? 60000.0f / GameContext.ChartData.BPM
+		: 0.0f;
+	return Note.TimeMs - FMath::Max(0.0f, RuleSet->LookAheadBeats) * BeatMs;
+}
+
+void APTBLCMiniGame::ApplyCueSpawnDelayCompensation(APTBLCLogisticBox* LogisticBox, const FPTBNoteEvent& Note) const
+{
+	if (!bUseCueSpawnDelayCompensation || !LogisticBox)
+	{
+		return;
+	}
+
+	const float CurrentCueTimeMs = RhythmSyncComponent
+		? RhythmSyncComponent->GetVisualChartTimeMs()
+		: GetCurrentChartTimeMs();
+	const float ScheduledCueTimeMs = CalculateScheduledCueTimeMs(Note);
+	const float DelayMs = FMath::Clamp(CurrentCueTimeMs - ScheduledCueTimeMs, 0.0f, MaxCueSpawnCompensationMs);
+	if (DelayMs <= 0.0f)
+	{
+		return;
+	}
+
+	const float CompensationDistance = LogisticBox->GetMovingSpeed() * (DelayMs / 1000.0f);
+	LogisticBox->AddActorWorldOffset(LogisticBox->GetActorRightVector() * CompensationDistance);
+}
+
+float APTBLCMiniGame::CalculateBeatPulseScale(float BeatPhase) const
+{
+	const float SafeShrinkRatio = FMath::Max(0.01f, BeatPulseShrinkBeatRatio);
+	const float SafeRecoverRatio = FMath::Max(0.01f, BeatPulseRecoverBeatRatio);
+	const float SafeMinScale = FMath::Clamp(BeatPulseMinScale, 0.0f, 1.0f);
+
+	if (BeatPhase < SafeShrinkRatio)
+	{
+		const float Alpha = FMath::Clamp(BeatPhase / SafeShrinkRatio, 0.0f, 1.0f);
+		const float EasedAlpha = FMath::InterpEaseIn(0.0f, 1.0f, Alpha, BeatPulseShrinkEaseExponent);
+		return FMath::Lerp(1.0f, SafeMinScale, EasedAlpha);
+	}
+
+	if (BeatPhase < SafeShrinkRatio + SafeRecoverRatio)
+	{
+		const float Alpha = FMath::Clamp((BeatPhase - SafeShrinkRatio) / SafeRecoverRatio, 0.0f, 1.0f);
+		const float EasedAlpha = FMath::InterpEaseOut(0.0f, 1.0f, Alpha, BeatPulseRecoverEaseExponent);
+		return FMath::Lerp(SafeMinScale, 1.0f, EasedAlpha);
+	}
+
+	return 1.0f;
+}
+
+void APTBLCMiniGame::ApplyBeatPulseToBoxes(float PulseScale)
+{
+	for (int32 Index = ActiveLogisticBoxes.Num() - 1; Index >= 0; --Index)
+	{
+		APTBLCLogisticBox* LogisticBox = ActiveLogisticBoxes[Index].Get();
+		if (!LogisticBox)
+		{
+			ActiveLogisticBoxes.RemoveAt(Index);
+			continue;
+		}
+
+		LogisticBox->SetBeatPulseScale(PulseScale);
+	}
+}
+
+void APTBLCMiniGame::HandleLogisticBoxDestroyed(AActor* DestroyedActor)
+{
+	APTBLCLogisticBox* DestroyedLogisticBox = Cast<APTBLCLogisticBox>(DestroyedActor);
+	if (!DestroyedLogisticBox)
+	{
+		return;
+	}
+
+	for (int32 Index = ActiveLogisticBoxes.Num() - 1; Index >= 0; --Index)
+	{
+		if (!ActiveLogisticBoxes[Index].IsValid() || ActiveLogisticBoxes[Index].Get() == DestroyedLogisticBox)
+		{
+			ActiveLogisticBoxes.RemoveAt(Index);
 		}
 	}
 }

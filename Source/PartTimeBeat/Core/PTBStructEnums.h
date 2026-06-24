@@ -228,6 +228,9 @@ public:
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
     EPTBActionType ActionType = EPTBActionType::None;
+    
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
+    EPTBActionType InputActionType = EPTBActionType::None;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
     EPTBJudgementType JudgementType = EPTBJudgementType::Miss;

@@ -133,5 +133,6 @@ float APTBDodgeMiniGame::ResolveInputOffsetMs(const FPTBMiniGameContext& Context
  /*   float Result = -250.0f;
     UE_LOG(LogTemp, Warning, TEXT("[DodgeMiniGame] 강제 보정 적용! Result: %.2f"), Result); */
 
-    return 0;
+    return Super::ResolveInputOffsetMs(Context);
+
 }

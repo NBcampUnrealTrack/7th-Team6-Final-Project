@@ -5,6 +5,7 @@
 #include "PTBJJMiniGame.generated.h"
 
 class UPTBJJMiniGameRuleSet;
+class APTBJJJumpActor;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FPTBJJJumpEvent, int32, CharacterIndex, FPTBNoteEvent, Note);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FPTBJJLandingEvent, int32, CharacterIndex, FPTBJudgementResult, Result, FPTBNoteEvent, Note);
@@ -21,6 +22,8 @@ class PARTTIMEBEAT_API APTBJJMiniGame : public APTBBaseMiniGame
 	GENERATED_BODY()
 
 public:
+	APTBJJMiniGame();
+
 	/** 점프 큐 이벤트(선행 비주얼) */
 	UPROPERTY(BlueprintAssignable, Category = "PTB|JumpJump")
 	FPTBJJJumpEvent OnJJJumpCue;
@@ -78,6 +81,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "PTB|JumpJump")
 	void HandleJJInputReleased(EPTBActionType Action, float TimeMs = -1.0f);
 
+	/** 좌/중/우 점프 캐릭터 Actor 등록(인덱스 = ResolveCharacterIndex 결과) */
+	UFUNCTION(BlueprintCallable, Category = "PTB|JumpJump")
+	void SetJumpActor(int32 CharacterIndex, APTBJJJumpActor* JumpActor);
+
 protected:
 	/** 미니게임 전용 피드백(착지 연출 연결점) */
 	//virtual void PlayJudgementFeedback(const FPTBJudgementResult& Result) override;
@@ -100,6 +107,17 @@ protected:
 	/** 노트 디버그 로그 출력 */
 	void LogNoteDebug(const TCHAR* EventName, const FPTBNoteEvent& Note) const;
 
+	/** 채보 전체를 스캔해 노트별 체공시간을 미리 계산 */
+	void PrecomputeAirtimes();
+
+	/** NoteId로 미리 계산된 체공시간 조회(없으면 기본값) */
+	float GetAirtimeMsForNote(int32 NoteId) const;
+
+	/** 점프를 실제로 발동(타이머 콜백) */
+	void StartScheduledJump(int32 CharacterIndex, float AirtimeMs, float HeightScale);
+
+	/** JumpActorClass를 JumpSpawnTransforms 위치에 스폰하고 JumpActors에 등록 */
+	void SpawnJumpActors();
 	/** 점프 누적 수 */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PTB|JumpJump")
 	int32 JumpCount = 0;
@@ -131,4 +149,30 @@ protected:
 	/** 정시점 도달 노트 */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PTB|JumpJump")
 	TArray<FPTBNoteEvent> ReachedNotes;
+
+	/** 최대 선행 점프 시간 상한(ms). 노트 간격이 이보다 길면 이 값으로 고정 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|JumpJump", meta = (ClampMin = "0"))
+	float MaxAirtimeMs = 2000.0f;
+
+	/** 최소 체공시간 하한(ms). 간격이 너무 짧아도 이보다 짧게는 안 뜀 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|JumpJump", meta = (ClampMin = "0"))
+	float MinAirtimeMs = 250.0f;
+
+	/** 좌/중/우 점프 캐릭터 Actor (인덱스 0/1/2) */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|JumpJump")
+	TArray<TObjectPtr<APTBJJJumpActor>> JumpActors;
+
+	/** NoteId → 미리 계산된 체공시간(ms) */
+	TMap<int32, float> NoteAirtimeMs;
+
+	/** 점프 발동 예약 타이머 핸들 모음(라운드 종료 시 정리용) */
+	TArray<FTimerHandle> PendingJumpTimers;
+
+	/** 스폰할 점프 캐릭터 클래스(BP_JJ_JumpChar 등을 지정) */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|JumpJump|Spawn")
+	TSubclassOf<APTBJJJumpActor> JumpActorClass;
+
+	/** 좌/중/우 스폰 Transform (인덱스 0=좌, 1=중, 2=우). 월드 기준 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|JumpJump|Spawn")
+	TArray<FTransform> JumpSpawnTransforms;
 };

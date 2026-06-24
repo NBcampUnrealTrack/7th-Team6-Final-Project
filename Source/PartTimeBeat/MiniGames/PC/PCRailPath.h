@@ -16,4 +16,7 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	USplineComponent* Spline;
+
+	UFUNCTION()
+	FVector GetPointLocation(int32 Index);
 };

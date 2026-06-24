@@ -6,11 +6,16 @@
 
 APCRailCharacter::APCRailCharacter()
 {
+    PrimaryActorTick.bCanEverTick = true;
+
     Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
     RootComponent = Camera;
 
     HandsMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("HandsMesh"));
     HandsMesh->SetupAttachment(Camera);
+
+    JudgementZone = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("JudgementZone"));
+    JudgementZone->SetupAttachment(Camera);
 
     bUseControllerRotationPitch = false;
     bUseControllerRotationYaw = false;
@@ -25,10 +30,32 @@ void APCRailCharacter::BeginPlay()
     {
         FVector StartLocation = PCRailPath->Spline->GetLocationAtDistanceAlongSpline(0.f, ESplineCoordinateSpace::World);
         FRotator StartRotation = PCRailPath->Spline->GetRotationAtDistanceAlongSpline(0.f, ESplineCoordinateSpace::World);
-        StartRotation.Pitch = 0.f;
+        StartRotation.Pitch = -10.f;
         StartRotation.Roll = 0.f;
 
         SetActorLocationAndRotation(StartLocation, StartRotation);
+    }
+}
+
+void APCRailCharacter::Tick(float DeltaTime)
+{
+    Super::Tick(DeltaTime);
+
+    if (!bIsMoving) return;
+
+    FVector CurrentLocation = GetActorLocation();
+    FRotator CurrentRotation = GetActorRotation();
+
+    FVector NewLocation = FMath::VInterpTo(CurrentLocation, TargetLocation, DeltaTime, MoveInterpSpeed);
+    FRotator NewRotation = FMath::RInterpTo(CurrentRotation, TargetRotation, DeltaTime, MoveInterpSpeed);
+
+    SetActorLocationAndRotation(NewLocation, NewRotation);
+
+ 
+    if (FVector::Dist(NewLocation, TargetLocation) < 1.f)
+    {
+        SetActorLocationAndRotation(TargetLocation, TargetRotation);
+        bIsMoving = false;
     }
 }
 
@@ -41,27 +68,11 @@ void APCRailCharacter::MoveOneStep()
     float MaxDist = PCRailPath->Spline->GetSplineLength();
     CurrentSplineDistance = FMath::Clamp(CurrentSplineDistance, 0.f, MaxDist);
 
-    FVector NewLocation = PCRailPath->Spline->GetLocationAtDistanceAlongSpline(
-        CurrentSplineDistance, ESplineCoordinateSpace::World);
 
-    FRotator NewRotation = PCRailPath->Spline->GetRotationAtDistanceAlongSpline(
-        CurrentSplineDistance, ESplineCoordinateSpace::World);
-    NewRotation.Pitch = 0.f;
-    NewRotation.Roll = 0.f;
+    TargetLocation = PCRailPath->Spline->GetLocationAtDistanceAlongSpline(CurrentSplineDistance, ESplineCoordinateSpace::World);
+    TargetRotation = PCRailPath->Spline->GetRotationAtDistanceAlongSpline(CurrentSplineDistance, ESplineCoordinateSpace::World);
+    TargetRotation.Pitch = -10.f;
+    TargetRotation.Roll = 0.f;
 
-    SetActorLocationAndRotation(NewLocation, NewRotation);
-}
-
-void APCRailCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
-{
-    Super::SetupPlayerInputComponent(PlayerInputComponent);
-    
-    PlayerInputComponent->BindKey(EKeys::SpaceBar, IE_Pressed, this, &APCRailCharacter::MoveOneStep);
-    PlayerInputComponent->BindKey(EKeys::F, IE_Pressed, this, &APCRailCharacter::TestSpawnTile);
-}
-
-void APCRailCharacter::TestSpawnTile()
-{
-    if (TileSpawner)
-        TileSpawner->SpawnTile();
+    bIsMoving = true;
 }

@@ -52,7 +52,7 @@ public:
 	UFUNCTION(BlueprintPure, Category = "PTB|Sushi") int32 GetToppingTypeFromQueue(int32 NoteId) const;
 	UFUNCTION(BlueprintPure, Category = "PTB|Sushi") FPTBToppingRow GetToppingData(int32 ToppingType) const;
 
-	UPROPERTY(BlueprintReadWrite, Category = "PTB|Sushi|UI") class UUserWidget* WBP_SR_Preview;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|Sushi|UI") class UUserWidget* WBP_SR_Preview;
 	UFUNCTION(BlueprintCallable, Category = "PTB|Sushi|UI") void RefreshPreviewUI();
 protected:
 	// 연결할 기획 데이터 테이블 에셋 (DT_SR_ToppingList)
@@ -61,6 +61,7 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MiniGame|Setup") float PlateMoveSpeed;
 	// 접시/토핑이 생성될 안전한 Z축 높이 (지하 바닥 뚫림 버그 해결용)
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MiniGame|Setup") float SpawnerZHeight;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|Sushi")	int32 SuccessSushiCount = 0;
 
 	// 엔진 고유 가상 함수 오버라이드
 	virtual void HandleNoteCue(FPTBNoteEvent Note) override;
@@ -69,7 +70,9 @@ protected:
 	virtual TMap<FKey, EPTBActionType> GetActionMapping() const override;
 	UFUNCTION(BlueprintCallable, Category = "MiniGame")
 	virtual void InitializeMiniGame(const FPTBMiniGameContext& Context) override;
-
+	
+	UFUNCTION(BlueprintCallable, Category = "MiniGame")
+	FPTBRoundResult FinishMiniGame(EPTBRoundEndReason Reason) override;
 	UPROPERTY(BlueprintReadWrite, Category = "PTB|Sushi") int32 CurrentNoteIndex = 0;
 
 	UPROPERTY(BlueprintReadOnly, Category = "PTB|Sushi") TArray<int32> ToppingQueue;
