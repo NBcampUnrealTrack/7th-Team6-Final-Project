@@ -34,7 +34,7 @@ protected:
  
 	// 보간 속도 — 에디터에서 조정 가능
 	UPROPERTY(EditDefaultsOnly, Category = "Fish")
-	float InterpSpeed = 1.0f;
+	float InterpSpeed = 5.0f;
  
 private:
 	// Tick에서 현재 위치 → TargetLocation으로 VInterpTo 보간

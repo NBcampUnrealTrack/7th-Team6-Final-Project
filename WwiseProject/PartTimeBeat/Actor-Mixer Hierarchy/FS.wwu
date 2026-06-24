@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<WwiseDocument Type="WorkUnit" ID="{80922B44-8199-48E9-AD42-42425C050CEB}" SchemaVersion="119">
+	<AudioObjects>
+		<WorkUnit Name="FS" ID="{80922B44-8199-48E9-AD42-42425C050CEB}" PersistMode="Standalone">
+			<ChildrenList>
+				<Sound Name="PTB_FS_Easy_260616" ID="{9BD39A85-D3D8-4939-A651-5581A9F0FDC9}" ShortID="975459494">
+					<PropertyList>
+						<Property Name="ListenerRelativeRouting" Type="bool" Value="False"/>
+					</PropertyList>
+					<ReferenceList>
+						<Reference Name="Conversion">
+							<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{01EA0F64-0215-4D91-8B1B-BBF638BBC5DC}"/>
+						</Reference>
+						<Reference Name="OutputBus">
+							<ObjectRef Name="Master Audio Bus" ID="{1514A4D8-1DA6-412A-A17E-75CA0C2149F3}" WorkUnitID="{95FF6337-5249-4E55-B0BA-291C12594EA3}"/>
+						</Reference>
+					</ReferenceList>
+					<ChildrenList>
+						<AudioFileSource Name="PTB_FS_Easy_260616" ID="{4EF466D2-666E-4647-A9D4-2CD0F0ABE4B0}">
+							<Language>SFX</Language>
+							<AudioFile>PTB_FS_Easy_260616.wav</AudioFile>
+							<MediaIDList>
+								<MediaID ID="756648171"/>
+							</MediaIDList>
+						</AudioFileSource>
+					</ChildrenList>
+					<ActiveSourceList>
+						<ActiveSource Name="PTB_FS_Easy_260616" ID="{4EF466D2-666E-4647-A9D4-2CD0F0ABE4B0}" Platform="Linked"/>
+					</ActiveSourceList>
+				</Sound>
+			</ChildrenList>
+		</WorkUnit>
+	</AudioObjects>
+</WwiseDocument>

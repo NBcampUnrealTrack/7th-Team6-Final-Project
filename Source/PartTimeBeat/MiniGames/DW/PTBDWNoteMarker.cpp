@@ -6,6 +6,7 @@
 #include "Materials/MaterialInstanceDynamic.h"
 #include "UObject/ConstructorHelpers.h"
 
+//마커 placeholder
 APTBDWNoteMarker::APTBDWNoteMarker()
 {
 	PrimaryActorTick.bCanEverTick = false;
@@ -15,13 +16,13 @@ APTBDWNoteMarker::APTBDWNoteMarker()
 	Mesh->SetMobility(EComponentMobility::Movable);
 	Mesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
-	static ConstructorHelpers::FObjectFinder<UStaticMesh> SphereMesh(
-		TEXT("/Engine/BasicShapes/Sphere.Sphere"));
-	if (SphereMesh.Succeeded())
+	static ConstructorHelpers::FObjectFinder<UStaticMesh> CubeMesh(
+		TEXT("/Engine/BasicShapes/Cube.Cube"));
+	if (CubeMesh.Succeeded())
 	{
-		Mesh->SetStaticMesh(SphereMesh.Object);
+		Mesh->SetStaticMesh(CubeMesh.Object);
 	}
-	Mesh->SetRelativeScale3D(FVector(0.3f));
+	Mesh->SetRelativeScale3D(FVector(0.6f, 0.6f, 0.05f));
 }
 
 void APTBDWNoteMarker::Configure(UStaticMesh* InMesh, UMaterialInterface* InBaseMaterial, FLinearColor InColor, FVector InScale)
@@ -36,5 +37,13 @@ void APTBDWNoteMarker::Configure(UStaticMesh* InMesh, UMaterialInterface* InBase
 	if (UMaterialInstanceDynamic* MID = Mesh->CreateDynamicMaterialInstance(0, Base))
 	{
 		MID->SetVectorParameterValue(TEXT("Color"), InColor);
+	}
+}
+
+void APTBDWNoteMarker::SetMesh(UStaticMesh* InMesh)
+{
+	if (InMesh)
+	{
+		Mesh->SetStaticMesh(InMesh);
 	}
 }
