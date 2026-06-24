@@ -16,6 +16,14 @@ public:
 
 	void SetTexture(UTexture2D* Texture);
 
+
+	UFUNCTION(BlueprintCallable)
+	void ActivateGlow();
+
+	UPROPERTY(EditAnywhere)
+	UMaterialInterface* GlowMaterial; // 에디터에서 오버레이 머티리얼 연결
+
+
 private:
 
 	UPROPERTY(VisibleAnywhere)
