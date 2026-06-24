@@ -17,6 +17,34 @@
 					<ObjectExclusionList/>
 					<GameSyncExclusionList/>
 				</SoundBank>
+				<SoundBank Name="BB" ID="{02B8FCEF-1BD6-4305-BDDC-B8492AFD1A9E}">
+					<ObjectInclusionList>
+						<ObjectRef Name="Play_PTB_BB" ID="{3088C6FD-EB7C-4A3F-B026-3BE268479C9F}" WorkUnitID="{57C27AFF-72CF-40EC-ADB0-4148A3A0D350}" Origin="Manual" Filter="7"/>
+					</ObjectInclusionList>
+					<ObjectExclusionList/>
+					<GameSyncExclusionList/>
+				</SoundBank>
+				<SoundBank Name="DW" ID="{46BDD5DB-EE49-43BF-97DD-BCCF5D8B954C}">
+					<ObjectInclusionList>
+						<ObjectRef Name="Play_DW_Cheery_Monday" ID="{87F5C698-8113-472E-A758-7D3D9541E911}" WorkUnitID="{57C27AFF-72CF-40EC-ADB0-4148A3A0D350}" Origin="Manual" Filter="7"/>
+					</ObjectInclusionList>
+					<ObjectExclusionList/>
+					<GameSyncExclusionList/>
+				</SoundBank>
+				<SoundBank Name="SR" ID="{B2938181-788B-4184-B2D3-331BB75588D1}">
+					<ObjectInclusionList>
+						<ObjectRef Name="Play_SR_BGM" ID="{EEEE5619-46CE-4444-ACE4-16CF74858FF0}" WorkUnitID="{57C27AFF-72CF-40EC-ADB0-4148A3A0D350}" Origin="Manual" Filter="7"/>
+					</ObjectInclusionList>
+					<ObjectExclusionList/>
+					<GameSyncExclusionList/>
+				</SoundBank>
+				<SoundBank Name="PC" ID="{007CA0E5-F67C-4DFA-B327-B8787A690CF7}">
+					<ObjectInclusionList>
+						<ObjectRef Name="Play_Play_PC_BGM" ID="{4F266B37-DD26-428D-9274-A538E999612B}" WorkUnitID="{57C27AFF-72CF-40EC-ADB0-4148A3A0D350}" Origin="Manual" Filter="7"/>
+					</ObjectInclusionList>
+					<ObjectExclusionList/>
+					<GameSyncExclusionList/>
+				</SoundBank>
 			</ChildrenList>
 		</WorkUnit>
 	</SoundBanks>
