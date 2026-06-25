@@ -10,7 +10,7 @@
     "Type": "User",
     "GUID": "{02B8FCEF-1BD6-4305-BDDC-B8492AFD1A9E}",
     "Language": "SFX",
-    "Hash": "{EAB63409-B560-880A-9AB1-CA2EE801D396}",
+    "Hash": "{9F1F0E83-77A0-7A83-7B11-93ED9B1A2300}",
     "ObjectPath": "\\SoundBanks\\Default Work Unit\\BB",
     "ShortName": "BB",
     "Path": "BB.bnk",
@@ -26,9 +26,9 @@
     ],
     "Events": [
      {
-      "Id": "3499671663",
-      "Name": "Play_PTB_BB",
-      "ObjectPath": "\\Events\\Default Work Unit\\Play_PTB_BB",
+      "Id": "3299595693",
+      "Name": "Play_BB_BGM",
+      "ObjectPath": "\\Events\\Default Work Unit\\Play_BB_BGM",
       "GUID": "{3088C6FD-EB7C-4A3F-B026-3BE268479C9F}",
       "DurationType": "OneShot",
       "DurationMin": "156.87006",
@@ -42,6 +42,6 @@
     ]
    }
   ],
-  "FileHash": "{36F44FAA-8052-ED21-A82D-A337ECAFFDAC}"
+  "FileHash": "{A3BEEBB0-B547-216F-C462-D6E531D21D69}"
  }
 }

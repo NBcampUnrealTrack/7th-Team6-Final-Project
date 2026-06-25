@@ -14,12 +14,12 @@
 						</Action>
 					</ChildrenList>
 				</Event>
-				<Event Name="Play_PTB_BB" ID="{3088C6FD-EB7C-4A3F-B026-3BE268479C9F}">
+				<Event Name="Play_BB_BGM" ID="{3088C6FD-EB7C-4A3F-B026-3BE268479C9F}">
 					<ChildrenList>
 						<Action Name="" ID="{CA516240-55A1-46C3-A69D-ED3F4D607CD9}" ShortID="1015027953">
 							<ReferenceList>
 								<Reference Name="Target">
-									<ObjectRef Name="PTB_BB" ID="{3A8D382E-F892-4B4A-BE61-58393897A433}" WorkUnitID="{3756954E-2AEA-4023-9F7F-FE58F7299F7A}"/>
+									<ObjectRef Name="Play_BB_BGM" ID="{3A8D382E-F892-4B4A-BE61-58393897A433}" WorkUnitID="{3756954E-2AEA-4023-9F7F-FE58F7299F7A}"/>
 								</Reference>
 							</ReferenceList>
 						</Action>

@@ -12,7 +12,7 @@
 				</SoundBank>
 				<SoundBank Name="BB" ID="{02B8FCEF-1BD6-4305-BDDC-B8492AFD1A9E}">
 					<ObjectInclusionList>
-						<ObjectRef Name="Play_PTB_BB" ID="{3088C6FD-EB7C-4A3F-B026-3BE268479C9F}" WorkUnitID="{57C27AFF-72CF-40EC-ADB0-4148A3A0D350}" Origin="Manual" Filter="7"/>
+						<ObjectRef Name="Play_BB_BGM" ID="{3088C6FD-EB7C-4A3F-B026-3BE268479C9F}" WorkUnitID="{57C27AFF-72CF-40EC-ADB0-4148A3A0D350}" Origin="Manual" Filter="7"/>
 					</ObjectInclusionList>
 					<ObjectExclusionList/>
 					<GameSyncExclusionList/>

@@ -289,7 +289,7 @@
 				</Event>
 			</Events>
 		</SoundBank>
-		<SoundBank Id="1870080933" Type="User" GUID="{02B8FCEF-1BD6-4305-BDDC-B8492AFD1A9E}" Language="SFX" Hash="{EAB63409-B560-880A-9AB1-CA2EE801D396}">
+		<SoundBank Id="1870080933" Type="User" GUID="{02B8FCEF-1BD6-4305-BDDC-B8492AFD1A9E}" Language="SFX" Hash="{9F1F0E83-77A0-7A83-7B11-93ED9B1A2300}">
 			<ObjectPath>\SoundBanks\Default Work Unit\BB</ObjectPath>
 			<ShortName>BB</ShortName>
 			<Path>BB.bnk</Path>
@@ -300,7 +300,7 @@
 				</File>
 			</Media>
 			<Events>
-				<Event Id="3499671663" Name="Play_PTB_BB" ObjectPath="\Events\Default Work Unit\Play_PTB_BB" GUID="{3088C6FD-EB7C-4A3F-B026-3BE268479C9F}" DurationType="OneShot" DurationMin="156.87006" DurationMax="156.87006">
+				<Event Id="3299595693" Name="Play_BB_BGM" ObjectPath="\Events\Default Work Unit\Play_BB_BGM" GUID="{3088C6FD-EB7C-4A3F-B026-3BE268479C9F}" DurationType="OneShot" DurationMin="156.87006" DurationMax="156.87006">
 					<MediaRefs>
 						<MediaRef Id="744081046"/>
 					</MediaRefs>
@@ -308,5 +308,5 @@
 			</Events>
 		</SoundBank>
 	</SoundBanks>
-	<FileHash>{2B478320-A9BF-FAF3-5127-46D242CDC990}</FileHash>
+	<FileHash>{84944FDB-BEEF-92F9-7059-038C06E5333F}</FileHash>
 </SoundBanksInfo>

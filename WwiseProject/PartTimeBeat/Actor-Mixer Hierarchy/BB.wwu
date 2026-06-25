@@ -3,7 +3,7 @@
 	<AudioObjects>
 		<WorkUnit Name="BB" ID="{3756954E-2AEA-4023-9F7F-FE58F7299F7A}" PersistMode="Standalone">
 			<ChildrenList>
-				<Sound Name="PTB_BB" ID="{3A8D382E-F892-4B4A-BE61-58393897A433}" ShortID="675150921">
+				<Sound Name="Play_BB_BGM" ID="{3A8D382E-F892-4B4A-BE61-58393897A433}" ShortID="675150921">
 					<PropertyList>
 						<Property Name="ListenerRelativeRouting" Type="bool" Value="False"/>
 					</PropertyList>
