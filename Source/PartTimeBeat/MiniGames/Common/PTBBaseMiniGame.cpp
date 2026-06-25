@@ -100,6 +100,7 @@ APTBBaseMiniGame::APTBBaseMiniGame()
 	bFinishSequenceActive = false;
 	bInputLocked = true;
 	bPendingRoundFinish = false;
+	bPendingRoundFailed = false;
 	bAllNotesDispatched = false;
 	ActiveBGMPlayingId = 0;
 	PendingEndReason = EPTBRoundEndReason::Completed;
@@ -179,6 +180,12 @@ void APTBBaseMiniGame::Tick(float DeltaTime)
 	JudgementSystem->ForceMissExpiredNotes(CurrentInputTimeMs);
 	ResolveSatisfiedHoldInputs(CurrentInputTimeMs);
 
+	if (bPendingRoundFailed)
+	{
+		FinishMiniGame(EPTBRoundEndReason::Failed);
+		return;
+	}
+
 	const bool bHasPendingNotes = !JudgementSystem->PendingNotes.IsEmpty();
 	const bool bHasActiveHolds = !ActiveHoldStates.IsEmpty();
 	if (bPendingRoundFinish && !bHasPendingNotes && !bHasActiveHolds)
@@ -207,6 +214,7 @@ void APTBBaseMiniGame::InitializeMiniGame(const FPTBMiniGameContext& Context)
 	EmptyInputActionLockUntilTimeMs.Reset();
 	RoundResult = FPTBRoundResult();
 	bPendingRoundFinish = false;
+	bPendingRoundFailed = false;
 	bAllNotesDispatched = false;
 	ActiveBGMPlayingId = 0;
 	bIsInitialized = false;
@@ -574,6 +582,7 @@ void APTBBaseMiniGame::BeginGameplaySequence()
 
 	ActiveBGMPlayingId = PlayingId;
 	bPendingRoundFinish = false;
+	bPendingRoundFailed = false;
 	bAllNotesDispatched = ChartAsset->NoteEvents.IsEmpty();
 
 	if (RhythmSyncComponent)
@@ -625,6 +634,7 @@ FPTBRoundResult APTBBaseMiniGame::FinishMiniGame(EPTBRoundEndReason Reason)
 	bIsReadyToStart = false;
 	bInputLocked = true;
 	bPendingRoundFinish = false;
+	bPendingRoundFailed = false;
 	GetWorldTimerManager().ClearTimer(IntroTimerHandle);
 	ApplyGameAndUIInputMode();
 

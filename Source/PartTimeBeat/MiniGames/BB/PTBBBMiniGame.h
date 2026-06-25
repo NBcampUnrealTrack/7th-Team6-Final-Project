@@ -180,4 +180,22 @@ private:
 
 	/** Miss 시 플레이어가 받는 데미지 (BuildRuntimeState에서 캐시) */
 	float CachedDamageTakenOnMiss = 15.f;
+
+	// ── 시간 제한 / BGM 페이드 ───────────────────────────────────
+
+public:
+	/** 모든 노트 발행 후 BGM 페이드아웃 지속 시간 (초). 이 시간이 지나면 아웃트로로 전환. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|BB|Timing")
+	float BGMFadeDurationSec = 3.0f;
+
+protected:
+	virtual void ReceiveGameplayStarted_Implementation() override;
+
+private:
+	UFUNCTION()
+	void OnAllNotesDispatched();
+
+	void OnFadeFinished();
+
+	FTimerHandle TimeLimitTimerHandle;
 };

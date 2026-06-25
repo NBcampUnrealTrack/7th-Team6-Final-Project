@@ -280,6 +280,10 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PTB|MiniGame")
 	bool bPendingRoundFinish = false;
 
+	/** 라운드 실패 예약 여부 (Tick에서 즉시 FinishMiniGame(Failed) 호출) */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PTB|MiniGame")
+	bool bPendingRoundFailed = false;
+
 	/** 모든 노트 발행 완료 여부 */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PTB|MiniGame")
 	bool bAllNotesDispatched = false;

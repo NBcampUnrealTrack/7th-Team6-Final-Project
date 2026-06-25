@@ -4,6 +4,7 @@
 #include "Debug/PTBTeamLog.h"
 #include "Rhythm/PTBScoreCalculator.h"
 #include "Rhythm/PTBRhythmChartAsset.h"
+#include "Rhythm/PTBRhythmConductorComponent.h"
 
 // ── 런타임 상태 조회 ─────────────────────────────────────────────
 
@@ -57,6 +58,50 @@ TMap<FKey, EPTBActionType> APTBBBMiniGame::GetActionMapping() const
 	return Map;
 }
 
+// ── 게임플레이 시작 훅 ───────────────────────────────────────────
+
+void APTBBBMiniGame::ReceiveGameplayStarted_Implementation()
+{
+	Super::ReceiveGameplayStarted_Implementation();
+
+	if (RhythmConductor)
+	{
+		RhythmConductor->OnAllNotesPassed.AddUniqueDynamic(this, &APTBBBMiniGame::OnAllNotesDispatched);
+	}
+}
+
+void APTBBBMiniGame::OnAllNotesDispatched()
+{
+	if (!bIsRoundActive || !AudioManager || ActiveBGMPlayingId == 0)
+	{
+		return;
+	}
+
+	AudioManager->StopBGM(BGMFadeDurationSec * 1000.0f);
+
+	GetWorldTimerManager().SetTimer(
+		TimeLimitTimerHandle, this, &APTBBBMiniGame::OnFadeFinished,
+		BGMFadeDurationSec, false);
+}
+
+void APTBBBMiniGame::OnFadeFinished()
+{
+	if (!bIsRoundActive)
+	{
+		return;
+	}
+
+	const int32 CurrentScore = ScoreCalculator ? ScoreCalculator->CurrentScore : 0;
+	if (CachedTargetScore > 0 && CurrentScore < CachedTargetScore)
+	{
+		bPendingRoundFailed = true;
+	}
+	else
+	{
+		bPendingRoundFinish = true;
+	}
+}
+
 // ── 초기화 ───────────────────────────────────────────────────────
 
 void APTBBBMiniGame::BuildRuntimeState()
@@ -69,13 +114,11 @@ void APTBBBMiniGame::BuildRuntimeState()
 		PTB_WARNING(LogPTBMiniGames, TEXT("[BBMiniGame] BuildRuntimeState: BBRuleSet을 찾을 수 없습니다. 기본값을 사용합니다."));
 	}
 
-	// 난이도 수치 캐시 (BossMaxHP 자동 계산에 DamagePerParry가 필요하므로 먼저 처리)
 	const EPTBDifficulty Difficulty = GameContext.SessionRequest.Difficulty;
 	const FPTBBBDifficultyConfig Config = BBRuleSet
 		? BBRuleSet->GetDifficultyConfig(Difficulty)
 		: FPTBBBDifficultyConfig{};
 
-	CachedDamagePerParry    = Config.DamagePerParry;
 	CachedDamageTakenOnMiss = Config.DamageTakenOnMiss;
 	CachedTargetScore       = Config.TargetScore;
 
@@ -84,7 +127,11 @@ void APTBBBMiniGame::BuildRuntimeState()
 	PlayerCurrentHP = PlayerMaxHP;
 	bBossDefeated   = false;
 
-	// 보스 MaxHP: bAutoScaleBossHP이면 채보 노트 수 × DamagePerParry로 자동 계산
+	// 보스 MaxHP 및 패링 데미지 계산
+	BossMaxHP = BBRuleSet ? BBRuleSet->BossMaxHP : 100.f;
+
+	// bAutoScaleBossHP: BossMaxHP는 고정, ClearRatio를 만족하도록 DamagePerParry를 역산
+	// → ClearRatio만이 실질적인 난이도 변수가 됨
 	if (BBRuleSet && BBRuleSet->bAutoScaleBossHP && ChartAsset)
 	{
 		int32 HittableCount = 0;
@@ -97,13 +144,14 @@ void APTBBBMiniGame::BuildRuntimeState()
 		}
 		const float ClearRatio = FMath::Clamp(Config.ClearRatio, 0.01f, 1.f);
 		const float RequiredParries = FMath::CeilToFloat(HittableCount * ClearRatio);
-		BossMaxHP = FMath::Max(1.f, RequiredParries * CachedDamagePerParry);
-		PTB_WARNING(LogPTBMiniGames, TEXT("[BBMiniGame] AutoScaleBossHP: %d 노트 x %.2f(ratio) = %.0f회 패링 필요, BossMaxHP=%.1f"),
-			HittableCount, ClearRatio, RequiredParries, BossMaxHP);
+		CachedDamagePerParry = FMath::Max(0.01f, BossMaxHP / RequiredParries);
+		PTB_WARNING(LogPTBMiniGames, TEXT("[BBMiniGame] AutoScaleBossHP: %d 노트 x %.2f(ratio) = %.0f회 패링 필요, DamagePerParry=%.2f BossMaxHP=%.1f"),
+			HittableCount, ClearRatio, RequiredParries, CachedDamagePerParry, BossMaxHP);
 	}
 	else
 	{
-		BossMaxHP = BBRuleSet ? BBRuleSet->BossMaxHP : 100.f;
+		// bAutoScaleBossHP = false: DamagePerParry를 직접 설정값으로 사용
+		CachedDamagePerParry = Config.DamagePerParry;
 	}
 	BossCurrentHP = BossMaxHP;
 }
@@ -163,7 +211,7 @@ void APTBBBMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 			const UPTBBBMiniGameRuleSet* BBRuleSet = GetBBRuleSet();
 			if (BBRuleSet && BBRuleSet->bFailOnPlayerHPDepleted)
 			{
-				FinishMiniGame(EPTBRoundEndReason::Failed);
+				bPendingRoundFailed = true;
 			}
 		}
 	}
