@@ -13,7 +13,11 @@ struct FPTBBBDifficultyConfig
 {
 	GENERATED_BODY()
 
-	/** 패링 성공(HighPerfect/Perfect/Good) 시 보스에게 주는 데미지 */
+	/**
+	 * 패링 성공(HighPerfect/Perfect/Good) 시 보스에게 주는 데미지.
+	 * bAutoScaleBossHP = true일 때는 무시되며, BossMaxHP / RequiredParries로 자동 계산된다.
+	 * bAutoScaleBossHP = false일 때만 이 값이 직접 사용된다.
+	 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|BB|Damage",
 		meta = (ClampMin = "0.0"))
 	float DamagePerParry = 10.f;

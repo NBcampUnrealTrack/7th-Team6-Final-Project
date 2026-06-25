@@ -307,7 +307,53 @@ struct FPTBRhythmKeyBindings
         default:                      return EKeys::Invalid;
         }
     }
+
+    /** EPTBActionType에 새 키를 할당 */
+    void SetKey(EPTBActionType Action, const FKey& Key)
+    {
+        switch (Action)
+        {
+        case EPTBActionType::ActionA: ActionA = Key; break;
+        case EPTBActionType::ActionB: ActionB = Key; break;
+        case EPTBActionType::ActionC: ActionC = Key; break;
+        case EPTBActionType::ActionD: ActionD = Key; break;
+        case EPTBActionType::ActionE: ActionE = Key; break;
+        default: break;
+        }
+    }
 };
+
+/** 창 모드 설정 */
+UENUM(BlueprintType)
+enum class EPTBWindowMode : uint8
+{
+    Fullscreen           UMETA(DisplayName = "전체화면"),
+    WindowedFullscreen   UMETA(DisplayName = "창 전체화면"),
+    Windowed             UMETA(DisplayName = "창 모드"),
+};
+
+/** 해상도 프리셋 (PTBSettingsWidget / PTBGameInstance 공유 유틸리티) */
+namespace PTBResolution
+{
+    constexpr int32 PresetCount = 5;
+
+    inline FIntPoint GetPreset(int32 Index)
+    {
+        static const FIntPoint Presets[PresetCount] = {
+            {1280, 720}, {1600, 900}, {1920, 1080}, {2560, 1440}, {3840, 2160}
+        };
+        if (Index >= 0 && Index < PresetCount) return Presets[Index];
+        return {1920, 1080};
+    }
+
+    inline TArray<FString> GetPresetNames()
+    {
+        return {
+            TEXT("1280×720"), TEXT("1600×900"), TEXT("1920×1080"),
+            TEXT("2560×1440"), TEXT("3840×2160")
+        };
+    }
+}
 
 USTRUCT(BlueprintType)
 struct FPTBUserSettings
@@ -327,8 +373,18 @@ public:
     float JudgementOffsetMs = 0.0f;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
     float InputLatencyMs = 0.0f;
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
-    bool bFullscreen = false;
+    /** 창 모드 (전체화면 / 창 전체화면 / 창 모드) */
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|Display")
+    EPTBWindowMode WindowMode = EPTBWindowMode::Windowed;
+
+    /** 해상도 프리셋 인덱스 (0=720p, 1=900p, 2=1080p, 3=1440p, 4=4K) */
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|Display", meta = (ClampMin = "0", ClampMax = "4"))
+    int32 ResolutionPresetIndex = 2;
+
+    /** 그래픽 품질 (0=낮음, 1=중간, 2=높음, 3=최고) */
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|Display", meta = (ClampMin = "0", ClampMax = "3"))
+    int32 GraphicsQuality = 2;
+
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
     bool bVibrationEnabled = true;
 
