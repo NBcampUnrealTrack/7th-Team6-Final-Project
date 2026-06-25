@@ -14,6 +14,7 @@
 #include "Rhythm/PTBRhythmChartAsset.h"
 #include "Rhythm/PTBRhythmConductorComponent.h"
 #include "Camera/CameraActor.h"
+#include "MiniGames/Common/UI/PTBMiniGameLoadingWidget.h"
 
 APTBFSMiniGame::APTBFSMiniGame()
 {
@@ -390,23 +391,14 @@ void APTBFSMiniGame::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	Super::EndPlay(EndPlayReason);
 }
 
-void APTBFSMiniGame::OnStartFishingGame()
+void APTBFSMiniGame::StartFishingGame()
 {
 	FPTBMiniGameContext Context;
 	UPTBGameFlowSubsystem* FlowSys = GetGameInstance()->GetSubsystem<UPTBGameFlowSubsystem>();
-    
-	EPTBDifficulty Difficulty = EPTBDifficulty::Easy;
-	if (FlowSys && !FlowSys->PendingSessionRequest.MiniGameId.IsNone())
-	{
-		Difficulty = FlowSys->PendingSessionRequest.Difficulty;
-	}
-    
-	PTB_WARNING(LogPTBMiniGames, TEXT("[Fishing] Difficulty: %d"), static_cast<int32>(Difficulty));
-    
-	Context.SessionRequest.Difficulty = Difficulty;
+	if (FlowSys)
+		Context.SessionRequest.Difficulty = FlowSys->PendingSessionRequest.Difficulty;
 	Context.SessionRequest.MiniGameId = FName("FishMiniGame");
 	InitializeMiniGame(Context);
-	StartMiniGame();
 }
 
 void APTBFSMiniGame::HandleActionAInput()

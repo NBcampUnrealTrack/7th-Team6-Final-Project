@@ -35,48 +35,38 @@ void UFSWidget::OnNoteEvent(EPTBActionType Action, bool bLongNote, float InTarge
 void UFSWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 {
 	Super::NativeTick(MyGeometry, InDeltaTime);
-	if (!bIsActive) 
-	{
-		UE_LOG(LogTemp, Error, TEXT("[FS] bIsActive가 false입니다!"));
-		return;
-	}
+	if (!bIsActive) return;
+    
+	float CurrentTime = FSMiniGame ? FSMiniGame->GetUPTBWwiseRhythmSyncComponent()->GetVisualChartTimeMs() : 0.0f;
+	float Alpha = FMath::Clamp((TargetTimeMs - CurrentTime) / CueLeadTimeMs, 0.0f, 1.0f);
 
 	UImage* ActiveArrow = nullptr;
 	FVector2D StartPos;
-	if (CurrentAction == EPTBActionType::ActionA) StartPos = FVector2D(100, 540); // 왼쪽 밖에서 시작
-	else if (CurrentAction == EPTBActionType::ActionB) StartPos = FVector2D(1820, 540); // 오른쪽 밖에서 시작
-	else if (CurrentAction == EPTBActionType::ActionC) StartPos = FVector2D(960, 100); // 위쪽 밖에서 시작
-	FVector2D EndPos = FVector2D(960, 540);
-
-	if (CurrentAction == EPTBActionType::ActionA) 
-	{
+	FVector2D EndPos = FVector2D(960, 540); // 중앙
+	
+	if (CurrentAction == EPTBActionType::ActionA) {
 		ActiveArrow = ArrowLeft;
+		StartPos = FVector2D(100, 540);
 	}
-	else if (CurrentAction == EPTBActionType::ActionB)
-	{
+	else if (CurrentAction == EPTBActionType::ActionB) {
 		ActiveArrow = ArrowRight;
+		StartPos = FVector2D(1820, 540);
 	}
-	else if (CurrentAction == EPTBActionType::ActionC) 
-	{
+	else if (CurrentAction == EPTBActionType::ActionC) {
 		ActiveArrow = ArrowUp;
+		StartPos = FVector2D(960, 100);
 	}
 
-		if (!ActiveArrow) 
-	{
-		UE_LOG(LogTemp, Error, TEXT("[FS] ActiveArrow가 NULL입니다! CurrentAction: %d"), (int32)CurrentAction);
-		return;
-	}
-	
-	float CurrentTime = FSMiniGame ? FSMiniGame->GetUPTBWwiseRhythmSyncComponent()->GetVisualChartTimeMs() : 0.0f;
-	float Alpha = FMath::Clamp((TargetTimeMs - CurrentTime) / CueLeadTimeMs, 0.0f, 1.0f);
-	
+	if (!ActiveArrow) return;
+    
 	if (UCanvasPanelSlot* CanvasSlot = Cast<UCanvasPanelSlot>(ActiveArrow->Slot))
 	{
 		CanvasSlot->SetPosition(FMath::Lerp(EndPos, StartPos, Alpha));
 	}
 	
-	if (Alpha >= 1.0f) {
+	if (Alpha <= 0.0f) {
 		bIsActive = false;
 		ActiveArrow->SetVisibility(ESlateVisibility::Hidden);
+		UE_LOG(LogTemp, Warning, TEXT("[FS] 화살표 중앙 도착! 비활성화함."));
 	}
 }

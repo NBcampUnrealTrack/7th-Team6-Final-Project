@@ -14,7 +14,7 @@
   ],
   "wwise": {
     "bankName": "FS",
-    "bgmEventName": "Play_PTB_FS_Easy_260616"
+    "bgmEventName": "Play_FS_BGM"
   },
   "noteFormat": ["id", "timeMs", "beat", "action", "lane", "type"],
   "notes": [
