@@ -1,6 +1,6 @@
 {
   "chartVersion": 1,
-  "chartId": "Cheery Monday",
+  "chartId": "DW_Cheery Monday",
   "miniGameId": "DW",
   "songId": "DW",
   "difficulty": "Standard",
@@ -15,7 +15,7 @@
   ],
   "wwise": {
     "bankName": "DW",
-    "bgmEventName": "Play_DW_BGM"
+    "bgmEventName": "Play_DW_Cheery_Monday"
   },
   "noteFormat": ["id", "timeMs", "beat", "action", "lane", "type"],
   "notes": [
