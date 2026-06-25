@@ -17,7 +17,7 @@ public:
     int32 CurrentScore = 0;
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PTB|Dodge")
-    int32 Health = 100;
+    float Health = 100.0;
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PTB|Dodge")
     int32 DodgeCount = 0;

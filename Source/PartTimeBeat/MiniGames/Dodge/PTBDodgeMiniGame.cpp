@@ -58,7 +58,7 @@ void APTBDodgeMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
     {
         Health -= 10;
         HitCount++;
-        UE_LOG(LogTemp, Log, TEXT("[DodgeMiniGame] 장애물 맞음! 체력: %d"), Health);
+        UE_LOG(LogTemp, Log, TEXT("[DodgeMiniGame] 장애물 맞음! 체력: %f"), Health);
         if (Health <= 0)
         {
             Health = 0;
