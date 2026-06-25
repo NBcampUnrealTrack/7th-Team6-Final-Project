@@ -2,7 +2,7 @@
   "chartVersion": 1,
   "chartId": "Sparkling Tide Catch",
   "miniGameId": "FishMiniGame",
-  "difficulty": "Standard",
+  "difficulty": "Easy",
   "bpm": 120,
   "offsetMs": 0,
   "timeSignature": { "numerator": 4, "denominator": 4 },
@@ -14,7 +14,7 @@
   ],
   "wwise": {
     "bankName": "FS",
-    "bgmEventName": "Play_PTB_FS_Easy_260616"
+    "bgmEventName": "Play_FS_BGM"
   },
   "noteFormat": ["id", "timeMs", "beat", "action", "lane", "type"],
   "notes": [

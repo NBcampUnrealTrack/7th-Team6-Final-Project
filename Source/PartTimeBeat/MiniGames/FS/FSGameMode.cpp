@@ -7,6 +7,7 @@
 #include "PTBFSMiniGame.h"
 #include "Debug/PTBLogChannels.h"
 #include "Debug/PTBTeamLog.h"
+#include "Flow/PTBGameFlowSubsystem.h"
 
 AFSGameMode::AFSGameMode()
 {
@@ -46,7 +47,19 @@ void AFSGameMode::BeginPlay()
 
 		FishingMiniGame->OnMiniGameFinished.AddDynamic(
 			this, &AFSGameMode::HandleFishingMiniGameFinished);
-		FishingMiniGame->OnStartFishingGame();
+		FTimerHandle TempHandle;
+		GetWorldTimerManager().SetTimer(TempHandle, [this]()
+		{
+			if (!FishingMiniGame) return;
+    
+			FPTBMiniGameContext Context;
+			UPTBGameFlowSubsystem* FlowSys = GetGameInstance()->GetSubsystem<UPTBGameFlowSubsystem>();
+			if (FlowSys)
+				Context.SessionRequest.Difficulty = FlowSys->PendingSessionRequest.Difficulty;
+    
+			Context.SessionRequest.MiniGameId = FName("FishMiniGame");
+			FishingMiniGame->StartFishingGame();
+		}, 0.1f, false);
 	}
 
 	APlayerController* PC = GetWorld()->GetFirstPlayerController();

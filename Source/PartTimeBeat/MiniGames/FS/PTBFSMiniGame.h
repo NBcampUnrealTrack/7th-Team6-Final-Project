@@ -147,7 +147,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Fishing")
 	void SetFishActor(AFishActor* InFishActor) { FishActor = InFishActor; }
 
-	void OnStartFishingGame();
+	void StartFishingGame();
 	
 	TObjectPtr<UPTBWwiseRhythmSyncComponent> GetUPTBWwiseRhythmSyncComponent()
 	{
