@@ -7,8 +7,6 @@
 #include "Components/StaticMeshComponent.h"
 #include "Debug/PTBTeamLog.h"
 
-
-// Sets default values
 APTBFSCharacter::APTBFSCharacter()
 {
 	PrimaryActorTick.bCanEverTick = false;
