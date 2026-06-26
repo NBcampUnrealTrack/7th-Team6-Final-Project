@@ -3,8 +3,6 @@
 
 #include "FishActor.h"
 
-#include "Debug/PTBTeamLog.h"
-
 
 AFishActor::AFishActor()
 {
@@ -25,10 +23,9 @@ void AFishActor::SetTargetLocation(FVector NewLocation)
 
 void AFishActor::BeginPlay()
 {
-	Super::BeginPlay();	
-	
+	Super::BeginPlay();
+
 	TargetLocation = GetActorLocation();
-	PTB_WARNING(LogPTBMiniGames,TEXT("미니게임 엑터 호출완료"));
 }
 
 void AFishActor::Tick(float DeltaTime)
@@ -36,12 +33,12 @@ void AFishActor::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 	FVector Current = GetActorLocation();
 	FVector NewLocation = FMath::VInterpTo(
-		Current,     
+		Current,
 		TargetLocation,
 		DeltaTime,
-		InterpSpeed  
+		InterpSpeed
 	);
-	float MoveDist =  FVector::Dist(Current, NewLocation);
+	float MoveDist = FVector::Dist(Current, NewLocation);
 	if (MoveDist > 1.0f)
 	{
 		if (SwimMontage && !SkeletalMesh->GetAnimInstance()->Montage_IsPlaying(SwimMontage))
@@ -54,4 +51,3 @@ void AFishActor::Tick(float DeltaTime)
 	}
 	SetActorLocation(NewLocation);
 }
-
