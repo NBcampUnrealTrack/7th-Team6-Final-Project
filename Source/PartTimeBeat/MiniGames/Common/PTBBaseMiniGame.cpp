@@ -341,13 +341,9 @@ void APTBBaseMiniGame::PreloadAssets()
 
 	if (ChartAsset)
 	{
-#if WITH_EDITOR
-		const bool bShouldLoadSourceJson = true;
-#else
-		const bool bShouldLoadSourceJson = ChartAsset->NoteEvents.IsEmpty();
-#endif
+		const bool bShouldLoadSourceJson = !ChartAsset->SourceJsonFilePath.IsEmpty();
 
-		if (bShouldLoadSourceJson && !ChartAsset->SourceJsonFilePath.IsEmpty())
+		if (bShouldLoadSourceJson)
 		{
 			TArray<FText> LoadErrors;
 			if (!ChartAsset->LoadFromSourceJson(LoadErrors))
