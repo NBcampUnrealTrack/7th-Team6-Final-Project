@@ -136,6 +136,19 @@ void UPTBWwiseAudioManager::UnloadAllBanks()
 	LoadedBanks.Reset();
 }
 
+bool UPTBWwiseAudioManager::PrepareEvent(FName EventKey)
+{
+	const TObjectPtr<UAkAudioEvent>* FoundEvent = EventMap.Find(EventKey);
+	if (!FoundEvent || !FoundEvent->Get())
+	{
+		return false;
+	}
+
+	UAkAudioEvent* Event = FoundEvent->Get();
+	PTBWwiseAudioManagerInternal::EnsureEventDataLoaded(Event);
+	return Event->IsLoaded() && Event->IsDataFullyLoaded();
+}
+
 int32 UPTBWwiseAudioManager::PostEvent(FName EventKey, AActor* Target)
 {
 	const TObjectPtr<UAkAudioEvent>* FoundEvent = EventMap.Find(EventKey);

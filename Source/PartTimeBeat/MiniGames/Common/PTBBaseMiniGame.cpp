@@ -376,6 +376,7 @@ void APTBBaseMiniGame::PreloadAudioAssets()
 
 	if (!GameContext.ChartData.WwiseEventName.IsNone())
 	{
+		AudioManager->PrepareEvent(GameContext.ChartData.WwiseEventName);
 		UE_LOG(LogWwise, Log, TEXT("[%s] Wwise BGM event ready: %s"),
 			*GetNameSafe(this),
 			*GameContext.ChartData.WwiseEventName.ToString());

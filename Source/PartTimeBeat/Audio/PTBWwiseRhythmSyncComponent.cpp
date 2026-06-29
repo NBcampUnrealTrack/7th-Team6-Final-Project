@@ -139,6 +139,26 @@ void UPTBWwiseRhythmSyncComponent::TickComponent(float DeltaTime, ELevelTick Tic
 	}
 
 	SyncData.CurrentPlaybackMs = FMath::Max(0.0f, PlaybackMs);
+	if (!bUseVisualSmoothing)
+	{
+		SmoothedPlaybackMs = SyncData.CurrentPlaybackMs;
+	}
+	else
+	{
+		const float DeltaMs = SyncData.CurrentPlaybackMs - SmoothedPlaybackMs;
+		if (FMath::Abs(DeltaMs) <= VisualSmoothingSnapThresholdMs)
+		{
+			SmoothedPlaybackMs = SyncData.CurrentPlaybackMs;
+		}
+		else
+		{
+			const float MaxStepMs = FMath::Max(0.0f, MaxVisualSmoothingStepMs);
+			SmoothedPlaybackMs = MaxStepMs > 0.0f
+				? SmoothedPlaybackMs + FMath::Clamp(DeltaMs, -MaxStepMs, MaxStepMs)
+				: SyncData.CurrentPlaybackMs;
+		}
+	}
+
 	SyncData.CurrentBeat = GetChartBeat();
 	SyncData.BPM = PTBWwiseRhythmSyncInternal::GetBaseTempoBpm(ActiveChartData);
 
@@ -182,6 +202,7 @@ void UPTBWwiseRhythmSyncComponent::StartSync(int32 PlayingId, const FPTBChartDat
 	ChartOffsetMs = InChartData.OffsetMs;
 	SyncData = FPTBWwiseSyncData();
 	SyncData.BPM = PTBWwiseRhythmSyncInternal::GetBaseTempoBpm(ActiveChartData);
+	SmoothedPlaybackMs = SyncData.CurrentPlaybackMs;
 	SyncData.CurrentBeat = GetChartBeat();
 	SyncData.bIsPlaying = CurrentPlayingId != 0 || SyncData.BPM > 0.0f;
 
@@ -195,6 +216,7 @@ void UPTBWwiseRhythmSyncComponent::StopSync()
 	ActiveChartData = FPTBChartData();
 	ChartOffsetMs = 0.0f;
 	SyncData = FPTBWwiseSyncData();
+	SmoothedPlaybackMs = 0.0f;
 
 	LastBeatTickIndex = -1;
 	LastBarTickIndex = -1;
@@ -217,7 +239,7 @@ float UPTBWwiseRhythmSyncComponent::GetAudibleChartTimeMs() const
 
 float UPTBWwiseRhythmSyncComponent::GetVisualChartTimeMs() const
 {
-	return GetChartTimeMs() + VisualOffsetMs;
+	return SmoothedPlaybackMs - ChartOffsetMs + VisualOffsetMs;
 }
 
 float UPTBWwiseRhythmSyncComponent::GetInputJudgeTimeMs() const

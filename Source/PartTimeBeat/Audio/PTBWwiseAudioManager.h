@@ -75,6 +75,9 @@ public:
 	void UnloadSoundBank(FName BankName);
 	void UnloadAllBanks();
 
+	/** 이벤트 데이터 준비 */
+	bool PrepareEvent(FName EventKey);
+
 	/** 일반 이벤트 재생 */
 	int32 PostEvent(FName EventKey, AActor* Target);
 
