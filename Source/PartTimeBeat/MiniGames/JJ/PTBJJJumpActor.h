@@ -16,6 +16,7 @@ class PARTTIMEBEAT_API APTBJJJumpActor : public AActor
 public:
 	APTBJJJumpActor();
 
+
 	/**
 	 * 점프 시작.
 	 * @param AirtimeMs   체공시간(ms). 이 시간 뒤에 정확히 착지한다.
