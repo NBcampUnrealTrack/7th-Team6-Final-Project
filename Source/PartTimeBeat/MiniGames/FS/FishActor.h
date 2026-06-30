@@ -40,6 +40,9 @@ private:
 	// Tick에서 현재 위치 → TargetLocation으로 VInterpTo 보간
 	FVector TargetLocation;
 	
+	UPROPERTY(EditAnywhere, Category = "Fish")
+	TObjectPtr<UDataTable> FishDataTable;
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Fish|Anim",meta = (AllowPrivateAccess))
 	TObjectPtr<UAnimMontage> SwimMontage;
 	

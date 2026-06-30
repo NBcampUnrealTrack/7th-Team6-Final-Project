@@ -2,8 +2,8 @@
 
 
 #include "FishActor.h"
-
-
+#include "FFSSkFish.h"
+	
 AFishActor::AFishActor()
 {
 	PrimaryActorTick.bCanEverTick = true;
@@ -26,6 +26,37 @@ void AFishActor::BeginPlay()
 	Super::BeginPlay();
 
 	TargetLocation = GetActorLocation();
+	if (FishDataTable)
+	{
+		TArray<FFFSSkFish*> Rows;
+		FishDataTable->GetAllRows<FFFSSkFish>(TEXT("FishActor"), Rows);
+    
+		float TotalWeight = 0.0f;
+		for (const FFFSSkFish* Row : Rows)
+			TotalWeight += Row->SpawnWeight;
+    
+		float RandomValue = FMath::FRandRange(0.0f, TotalWeight);
+		float AccumulatedWeight = 0.0f;
+		const FFFSSkFish* SelectedFish = nullptr;
+    
+		for (const FFFSSkFish* Row : Rows)
+		{
+			AccumulatedWeight += Row->SpawnWeight;
+			if (RandomValue <= AccumulatedWeight)
+			{
+				SelectedFish = Row;
+				break;
+			}
+		}
+    
+		if (SelectedFish)
+		{
+			if (SelectedFish->FishMesh)
+				SkeletalMesh->SetSkeletalMesh(SelectedFish->FishMesh);
+			SwimMontage = SelectedFish->SwimMontage;
+			IdleMontage = SelectedFish->IdleMontage;
+		}
+	}
 }
 
 void AFishActor::Tick(float DeltaTime)

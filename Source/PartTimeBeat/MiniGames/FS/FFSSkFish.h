@@ -17,4 +17,7 @@ struct FFFSSkFish : public FTableRowBase
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TObjectPtr<UAnimMontage> IdleMontage;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float SpawnWeight =0;
 };
