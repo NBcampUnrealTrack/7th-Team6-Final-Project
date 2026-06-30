@@ -591,3 +591,6 @@ Source/PartTimeBeat/Debug/PTBFlowTestActor.*
 
 # 금칙어 목록
 Content/PTB/Data/ForbiddenWords.txt
+
+# 유료
+Content/PaidAssets
