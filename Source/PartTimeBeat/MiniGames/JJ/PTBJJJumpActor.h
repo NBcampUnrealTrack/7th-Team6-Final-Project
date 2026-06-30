@@ -8,6 +8,19 @@
 class UStaticMeshComponent;
 class UMaterialInstanceDynamic;
 
+/**
+ * JumpJump 미니게임에서 박자에 맞춰 점프하는 캐릭터 Actor입니다.
+ *
+ * 물리 점프가 아니라 "체공시간(AirtimeMs)을 명시적으로 받아" 그 시간 동안
+ * 정확히 포물선을 그리며 떴다가 내려오는 연출 점프입니다.
+ * 따라서 StartJump() 호출 후 정확히 AirtimeMs 뒤에 바닥(Z=0 오프셋)에 착지합니다.
+ *
+ * 리듬게임 특성상 "착지 시각 = 노트 정시점"이 보장되어야 하므로,
+ * 미니게임 쪽에서 (정시점 - 체공시간) 시점에 StartJump를 호출하면
+ * 노트 정시점에 자동으로 착지가 맞아떨어집니다.
+ *
+ * 발밑의 JudgePlane은 판정 결과에 따라 색을 짧게 플래시한 뒤 기본색으로 복귀합니다.
+ */
 UCLASS()
 class PARTTIMEBEAT_API APTBJJJumpActor : public AActor
 {
