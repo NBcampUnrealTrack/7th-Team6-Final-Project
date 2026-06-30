@@ -16,6 +16,7 @@ class UPTBJudgementSystem;
 class UPTBScoreCalculator;
 class UPTBMiniGameLoadingWidget;
 class UAkComponent;
+struct FStreamableHandle;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FPTBOnMiniGameFinished, FPTBRoundResult, Result);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FPTBOnMiniGameReadyToStart);
@@ -296,8 +297,15 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PTB|MiniGame")
 	TMap<EPTBActionType, float> EmptyInputActionLockUntilTimeMs;
 
+	/** 사전 로드된 에셋 */
+	UPROPERTY()
+	TArray<TObjectPtr<UObject>> PreloadedAssets;
+
 	/** 유지 중인 Hold 노트 */
 	TArray<FPTBActiveHoldState> ActiveHoldStates;
+
+	/** 사전 로드 핸들 */
+	TSharedPtr<FStreamableHandle> PreloadHandle;
 
 	/** 인트로 후 Audio/Chart 시작 타이머 */
 	FTimerHandle IntroTimerHandle;
@@ -310,6 +318,21 @@ protected:
 
 	/** 라운드 시작 전 에셋 준비(하위 override 권장) */
 	virtual void PreloadAssets();
+
+	/** 사전 로드 에셋 요청 */
+	void RequestPreloadAssets();
+
+	/** 사전 로드 에셋 경로 수집 */
+	void GatherPreloadAssetPaths(TArray<FSoftObjectPath>& OutAssetPaths) const;
+
+	/** 사전 로드 완료 확인 */
+	bool VerifyPreloadedAssets(const TArray<FSoftObjectPath>& AssetPaths);
+
+	/** 사전 로드 완료 처리 */
+	void HandlePreloadAssetsLoaded(TArray<FSoftObjectPath> AssetPaths);
+
+	/** 초기화 마무리 */
+	void CompleteMiniGameInitialization();
 
 	/** 오브젝트 / 상태 구성(하위 override) */
 	virtual void BuildRuntimeState();

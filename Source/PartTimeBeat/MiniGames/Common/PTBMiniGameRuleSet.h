@@ -7,6 +7,7 @@
 
 class UPTBRhythmChartAsset;
 class UPTBWwiseEventMapAsset;
+class UPTBMiniGamePreloadAssetSet;
 
 /**
  * 공통 미니게임 라운드에서 채보 노트를 각 미니게임 규칙으로 해석하기 위한 기본 RuleSet DataAsset입니다
@@ -48,6 +49,10 @@ public:
 	/** Wwise 이벤트 매핑 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Audio")
 	TObjectPtr<UPTBWwiseEventMapAsset> AudioEventSet;
+
+	/** 사전 로드 에셋 목록 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Preload")
+	TObjectPtr<UPTBMiniGamePreloadAssetSet> PreloadAssetSet;
 
 	/** 시작 연출 시간을 사용할지 여부 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Intro/Outro")
