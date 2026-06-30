@@ -10,6 +10,7 @@
 #include "MiniGames/DW/PTBDWCharacter.h"
 #include "Audio/PTBWwiseRhythmSyncComponent.h"
 #include "Rhythm/PTBRhythmChartAsset.h"
+#include "Rhythm/PTBRhythmConductorComponent.h"
 
 namespace
 {
@@ -47,8 +48,12 @@ namespace
 	}
 }
 
-bool APTBDWMiniGame::IsSupportedAction(EPTBActionType Action)
+bool APTBDWMiniGame::IsSupportedAction(EPTBActionType Action) const
 {
+	if (const UPTBDWMiniGameRuleSet* DWRule = GetDWRuleSet())
+	{
+		return DWRule->SupportsAction(Action);
+	}
 	return Action == EPTBActionType::ActionA || Action == EPTBActionType::ActionB;
 }
 
@@ -179,6 +184,18 @@ void APTBDWMiniGame::StartMiniGame()
 void APTBDWMiniGame::BuildRuntimeState()
 {
 	Super::BuildRuntimeState();
+
+	if (RhythmConductor)
+	{
+		if (const UPTBDWMiniGameRuleSet* DWRule = GetDWRuleSet())
+		{
+			if (const float* FoundLookAhead = DWRule->LookAheadBeatsByDifficulty.Find(GameContext.SessionRequest.Difficulty))
+			{
+				RhythmConductor->SetLookAheadBeats(*FoundLookAhead);
+				PTB_RECORD(LogPTBMiniGames, TEXT("[%s] DW LookAheadBeats override=%.2f"), *GetNameSafe(this), *FoundLookAhead);
+			}
+		}
+	}
 
 	ClearAllNoteViews();
 	SpawnCharactersIfNeeded();

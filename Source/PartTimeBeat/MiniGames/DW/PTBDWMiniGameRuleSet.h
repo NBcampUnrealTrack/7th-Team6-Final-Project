@@ -176,4 +176,8 @@ public:
 	/** 마커 스폰 거리. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW")
 	float MarkerSpawnDistance = 1200.0f;
+
+	/** 난이도별 접근 속도(LookAheadBeats). */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW")
+	TMap<EPTBDifficulty, float> LookAheadBeatsByDifficulty;
 };
