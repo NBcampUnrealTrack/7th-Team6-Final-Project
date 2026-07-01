@@ -4,6 +4,7 @@
 #include "MiniGames/CH/PTBCHMiniGameRuleSet.h"
 #include "Rhythm/PTBJudgementSystem.h"
 #include "Rhythm/PTBRhythmChartAsset.h"
+#include "Rhythm/PTBRhythmConductorComponent.h"
 #include "Rhythm/PTBScoreCalculator.h"
 #include "Blueprint/UserWidget.h"
 #include "Components/PrimitiveComponent.h"
@@ -40,6 +41,42 @@ void APTBCHMiniGame::BuildRuntimeState()
     NoteIdToIngredientAction.Reset();
     SlideGroups.Reset();
     DroppingIngredients.Reset();
+
+    // ChartAsset NoteEvents 순서 기반으로 NoteId → IngredientAction 사전 매핑
+    // HandleNoteCue 시점에 맵에 없어서 bCorrectKey가 false되는 레이스 컨디션 방지
+    if (ChartAsset.Get() && ChartAsset->NoteEvents.Num() > 0)
+    {
+        TArray<EPTBCHIngredientType> AllIngredients;
+        for (const FPTBCHCustomerOrder& Order : CustomerOrders)
+        {
+            for (EPTBCHIngredientType Ing : Order.Ingredients)
+            {
+                AllIngredients.Add(Ing);
+            }
+        }
+
+        for (int32 i = 0; i < ChartAsset->NoteEvents.Num() && i < AllIngredients.Num(); ++i)
+        {
+            EPTBActionType ActionType = EPTBActionType::None;
+            switch (AllIngredients[i])
+            {
+            case EPTBCHIngredientType::BreadBottom: ActionType = EPTBActionType::ActionA; break;
+            case EPTBCHIngredientType::BreadTop:    ActionType = EPTBActionType::ActionA; break;
+            case EPTBCHIngredientType::Lettuce:     ActionType = EPTBActionType::ActionB; break;
+            case EPTBCHIngredientType::Patty:       ActionType = EPTBActionType::ActionC; break;
+            case EPTBCHIngredientType::Cheese:      ActionType = EPTBActionType::ActionD; break;
+            case EPTBCHIngredientType::Tomato:      ActionType = EPTBActionType::ActionE; break;
+            default: break;
+            }
+            if (ActionType != EPTBActionType::None)
+            {
+                NoteIdToIngredientAction.Add(ChartAsset->NoteEvents[i].NoteId, ActionType);
+            }
+        }
+
+        UE_LOG(LogPTBMiniGames, Log, TEXT("[%s] CH NoteIdToIngredientAction pre-mapped: %d entries"),
+            *GetNameSafe(this), NoteIdToIngredientAction.Num());
+    }
 
     // 첫 번째 접시 스폰
     if (PlateActorClass && GetWorld())
@@ -132,28 +169,23 @@ void APTBCHMiniGame::HandleNoteCue(FPTBNoteEvent Note)
 
     TrackNote(CuedNotes, Note);
 
-    // 현재 손님 주문 순서에 맞는 ActionType으로 변환해서 브로드캐스트
-    // NoteId 기반으로 현재 몇 번째 노트인지 계산 (0부터 시작)
-    const FPTBCHCustomerOrder& Order = CustomerOrders[CurrentCustomerIndex % CustomerOrders.Num()];
-    const int32 IngredientIndex = CurrentIngredientIndex;
-
-    if (CustomerOrders.IsValidIndex(CurrentCustomerIndex) &&
-        Order.Ingredients.IsValidIndex(IngredientIndex))
+    // 사전 매핑 완료 상태에서 NoteId가 맵에 없으면 이미 판정된 것(HandleJudgementResult에서 제거)
+    // → Cue가 늦게 발동돼도 슬롯을 다시 켜지 않음 (노란불 잔류 버그 방지)
+    const EPTBActionType* Mapped = NoteIdToIngredientAction.Find(Note.NoteId);
+    if (!Mapped && NoteIdToIngredientAction.Num() > 0)
     {
-        EPTBCHIngredientType NextIngredient = Order.Ingredients[IngredientIndex];
+        return;
+    }
+
+    if (Mapped)
+    {
         FPTBNoteEvent ModifiedNote = Note;
-        switch (NextIngredient)
-        {
-        case EPTBCHIngredientType::BreadBottom: ModifiedNote.ActionType = EPTBActionType::ActionA; break;
-        case EPTBCHIngredientType::BreadTop:    ModifiedNote.ActionType = EPTBActionType::ActionA; break;
-        case EPTBCHIngredientType::Lettuce:     ModifiedNote.ActionType = EPTBActionType::ActionB; break;
-        case EPTBCHIngredientType::Patty:       ModifiedNote.ActionType = EPTBActionType::ActionC; break;
-        case EPTBCHIngredientType::Cheese:      ModifiedNote.ActionType = EPTBActionType::ActionD; break;
-        case EPTBCHIngredientType::Tomato:      ModifiedNote.ActionType = EPTBActionType::ActionE; break;
-        default: break;
-        }
-        NoteIdToIngredientAction.Add(Note.NoteId, ModifiedNote.ActionType);
+        ModifiedNote.ActionType = *Mapped;
         OnCHNoteCue.Broadcast(ModifiedNote);
+    }
+    else
+    {
+        OnCHNoteCue.Broadcast(Note);
     }
 
     const UPTBCHMiniGameRuleSet* CHRuleSet = GetCHRuleSet();
@@ -169,17 +201,37 @@ void APTBCHMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
     const bool bHasJudgedNote = FindTrackedNote(Result.NoteId, JudgedNote);
     UE_LOG(LogPTBMiniGames, Log, TEXT("[CH] HandleJudgementResult: NoteId=%d bHasJudgedNote=%d Reason=%d"),
         Result.NoteId, bHasJudgedNote ? 1 : 0, static_cast<int32>(Result.Reason));
+
+    // 키 정확도 판정 (Super 호출 전에 계산해서 점수에도 반영)
+    EPTBActionType ExpectedIngredientAction = EPTBActionType::None;
+    if (Result.NoteId != 0)
+    {
+        if (const EPTBActionType* Mapped = NoteIdToIngredientAction.Find(Result.NoteId))
+        {
+            ExpectedIngredientAction = *Mapped;
+        }
+    }
+    const bool bCorrectKey = (Result.Reason != EPTBJudgementReason::EmptyInput
+        && LastPressedAction != EPTBActionType::None
+        && ExpectedIngredientAction != EPTBActionType::None
+        && ExpectedIngredientAction == LastPressedAction);
+
+    // 타이밍이 맞아도 틀린 키면 Miss 처리
+    if (Result.NoteId != 0 && Result.Reason == EPTBJudgementReason::Note && !bCorrectKey)
+    {
+        Result.JudgementType = EPTBJudgementType::Miss;
+        Result.ScoreDelta = 0;
+        Result.bBreaksCombo = true;
+    }
+
     Super::HandleJudgementResult(Result);
+    CallHUDShowJudgement(Result.JudgementType);
     UE_LOG(LogPTBMiniGames, Log, TEXT("[CH] Result.ActionType=%d, NoteId=%d"),
         static_cast<int32>(Result.ActionType), Result.NoteId);
 
     //햄버거 스폰
     if (Result.NoteId != 0)
     {
-        const bool bCorrectKey = (Result.Reason != EPTBJudgementReason::EmptyInput
-            && LastPressedAction != EPTBActionType::None
-            && Result.ActionType == LastPressedAction);
-
         UE_LOG(LogPTBMiniGames, Log, TEXT("[CH] SpawnCheck: bHasJudged=%d NoteId=%d Reason=%d LastPressedAction=%d bCorrectKey=%d"),
             bHasJudgedNote ? 1 : 0,
             Result.NoteId,
@@ -240,6 +292,8 @@ void APTBCHMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
                 SpawnedIngredients.Reset();
                 CurrentIngredientIndex = 0;
                 CurrentCustomerIndex++;
+                OnCHCustomerChanged.Broadcast(CurrentCustomerIndex + 1);
+                CallHUDUpdateCustomerNumber(CurrentCustomerIndex + 1);
 
                 // StackHeight: 새 접시 윗면 기준으로 리셋
                 if (CompletedPlates.Num() > 0 && CompletedPlates.Last())
@@ -260,14 +314,56 @@ void APTBCHMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
         RemoveTrackedNote(CuedNotes, Result.NoteId);
         RemoveTrackedNote(ArmedNotes, Result.NoteId);
         RemoveTrackedNote(ReachedNotes, Result.NoteId);
+
+        // 리매핑된 ActionType으로 브로드캐스트해야 HUD가 올바른 재료 슬롯을 클리어함
+        // (차트 원본 ActionA로 브로드캐스트하면 HandleCHJudgement가 항상 SlotBread만 클리어)
+        EPTBActionType RemappedActionType = Result.ActionType;
+        if (const EPTBActionType* Mapped = NoteIdToIngredientAction.Find(Result.NoteId))
+        {
+            RemappedActionType = *Mapped;
+        }
         NoteIdToIngredientAction.Remove(Result.NoteId);
-        OnCHJudgement.Broadcast(Result, JudgedNote);
+
+        FPTBJudgementResult BroadcastResult = Result;
+        BroadcastResult.ActionType = RemappedActionType;
+        OnCHJudgement.Broadcast(BroadcastResult, JudgedNote);
         OnCHNoteCleared.Broadcast(Result.NoteId, Result.JudgementType);
+
+        // 같은 ActionType에 이미 Cue된 다음 노트가 있으면 다시 Cue 브로드캐스트
+        // (BreadTop 판정이 ActionA 슬롯을 끄면, 이미 Cue된 BreadBottom 슬롯이 같이 꺼지는 버그 방지)
+        for (const FPTBNoteEvent& CuedNote : CuedNotes)
+        {
+            if (const EPTBActionType* NextMapped = NoteIdToIngredientAction.Find(CuedNote.NoteId))
+            {
+                if (*NextMapped == RemappedActionType)
+                {
+                    FPTBNoteEvent ReCueNote = CuedNote;
+                    ReCueNote.ActionType = *NextMapped;
+                    OnCHNoteCue.Broadcast(ReCueNote);
+                    break;
+                }
+            }
+        }
     }
     else if (Result.Reason == EPTBJudgementReason::EmptyInput)
     {
         FPTBNoteEvent EmptyInputNote;
         OnCHJudgement.Broadcast(Result, EmptyInputNote);
+    }
+    else if (Result.NoteId != 0)
+    {
+        // 판정이 Arm/Cue 틱보다 먼저 실행된 경우 — 맵 제거 + HUD 클리어
+        EPTBActionType RemappedActionType = Result.ActionType;
+        if (const EPTBActionType* Mapped = NoteIdToIngredientAction.Find(Result.NoteId))
+        {
+            RemappedActionType = *Mapped;
+        }
+        NoteIdToIngredientAction.Remove(Result.NoteId);
+
+        FPTBJudgementResult BroadcastResult = Result;
+        BroadcastResult.ActionType = RemappedActionType;
+        FPTBNoteEvent EmptyNote;
+        OnCHJudgement.Broadcast(BroadcastResult, EmptyNote);
     }
     const UPTBCHMiniGameRuleSet* CHRuleSet = GetCHRuleSet();
     if (!CHRuleSet || CHRuleSet->bLogJudgement)
@@ -469,6 +565,29 @@ void APTBCHMiniGame::HandleReadyToStart()
             UE_LOG(LogPTBMiniGames, Warning, TEXT("[%s] CH Init function NOT found!"), *GetNameSafe(this));
         }
     }
+
+    OnCHCustomerChanged.Broadcast(1);
+    CallHUDUpdateCustomerNumber(1);
+}
+
+void APTBCHMiniGame::CallHUDShowJudgement(EPTBJudgementType JudgementType)
+{
+    if (!HUDWidget) return;
+    if (UFunction* Func = HUDWidget->FindFunction(TEXT("ShowJudgement")))
+    {
+        struct { EPTBJudgementType InJudgementType; } Params{ JudgementType };
+        HUDWidget->ProcessEvent(Func, &Params);
+    }
+}
+
+void APTBCHMiniGame::CallHUDUpdateCustomerNumber(int32 CustomerNumber)
+{
+    if (!HUDWidget) return;
+    if (UFunction* Func = HUDWidget->FindFunction(TEXT("UpdateCustomerNumber")))
+    {
+        struct { int32 InCustomerNumber; } Params{ CustomerNumber };
+        HUDWidget->ProcessEvent(Func, &Params);
+    }
 }
 
 void APTBCHMiniGame::CreateAndAddHUD()
@@ -522,10 +641,13 @@ void APTBCHMiniGame::HandleRhythmInput(EPTBActionType Action, float TimeMs)
         }
     }
 
+    UE_LOG(LogPTBMiniGames, Log, TEXT("[CH] Input: Pressed=%d bFound=%d BestNoteId=%d BestNoteAction=%d BestDelta=%.1f"),
+        static_cast<int32>(Action), bFound ? 1 : 0, BestNote.NoteId, static_cast<int32>(BestNote.ActionType), bFound ? BestDelta : -1.f);
+
     if (bFound)
     {
         LastPressedAction = Action;
-        Super::HandleRhythmInput(Action, TimeMs);
+        Super::HandleRhythmInput(BestNote.ActionType, TimeMs);
     }
     else
     {
