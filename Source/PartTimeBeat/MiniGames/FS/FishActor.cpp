@@ -2,10 +2,8 @@
 
 
 #include "FishActor.h"
-
-#include "Debug/PTBTeamLog.h"
-
-
+#include "FFSSkFish.h"
+	
 AFishActor::AFishActor()
 {
 	PrimaryActorTick.bCanEverTick = true;
@@ -25,10 +23,40 @@ void AFishActor::SetTargetLocation(FVector NewLocation)
 
 void AFishActor::BeginPlay()
 {
-	Super::BeginPlay();	
-	
+	Super::BeginPlay();
+
 	TargetLocation = GetActorLocation();
-	PTB_WARNING(LogPTBMiniGames,TEXT("미니게임 엑터 호출완료"));
+	if (FishDataTable)
+	{
+		TArray<FFFSSkFish*> Rows;
+		FishDataTable->GetAllRows<FFFSSkFish>(TEXT("FishActor"), Rows);
+    
+		float TotalWeight = 0.0f;
+		for (const FFFSSkFish* Row : Rows)
+			TotalWeight += Row->SpawnWeight;
+    
+		float RandomValue = FMath::FRandRange(0.0f, TotalWeight);
+		float AccumulatedWeight = 0.0f;
+		const FFFSSkFish* SelectedFish = nullptr;
+    
+		for (const FFFSSkFish* Row : Rows)
+		{
+			AccumulatedWeight += Row->SpawnWeight;
+			if (RandomValue <= AccumulatedWeight)
+			{
+				SelectedFish = Row;
+				break;
+			}
+		}
+    
+		if (SelectedFish)
+		{
+			if (SelectedFish->FishMesh)
+				SkeletalMesh->SetSkeletalMesh(SelectedFish->FishMesh);
+			SwimMontage = SelectedFish->SwimMontage;
+			IdleMontage = SelectedFish->IdleMontage;
+		}
+	}
 }
 
 void AFishActor::Tick(float DeltaTime)
@@ -36,12 +64,12 @@ void AFishActor::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 	FVector Current = GetActorLocation();
 	FVector NewLocation = FMath::VInterpTo(
-		Current,     
+		Current,
 		TargetLocation,
 		DeltaTime,
-		InterpSpeed  
+		InterpSpeed
 	);
-	float MoveDist =  FVector::Dist(Current, NewLocation);
+	float MoveDist = FVector::Dist(Current, NewLocation);
 	if (MoveDist > 1.0f)
 	{
 		if (SwimMontage && !SkeletalMesh->GetAnimInstance()->Montage_IsPlaying(SwimMontage))
@@ -54,4 +82,3 @@ void AFishActor::Tick(float DeltaTime)
 	}
 	SetActorLocation(NewLocation);
 }
-

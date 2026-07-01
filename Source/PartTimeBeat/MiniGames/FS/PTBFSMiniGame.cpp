@@ -8,7 +8,6 @@
 #include "PTBFSMiniGameRuleSet.h"
 #include "Core/PTBGameInstance.h"
 #include "Debug/PTBTeamLog.h"
-#include "Flow/PTBGameFlowSubsystem.h"
 #include "Kismet/GameplayStatics.h"
 #include "Rhythm/PTBJudgementSystem.h"
 #include "Rhythm/PTBRhythmChartAsset.h"
@@ -85,6 +84,11 @@ void APTBFSMiniGame::Tick(float DeltaTime)
 void APTBFSMiniGame::BuildRuntimeState()
 {
 	Super::BuildRuntimeState();
+	TArray<AActor*> FishActors;
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AFishActor::StaticClass(), FishActors);
+	if (FishActors.Num() > 0)
+		FishActor = Cast<AFishActor>(FishActors[0]);
+	
 	FishRuleSet = Cast<UPTBFSMiniGameRuleSet>(RuleSet);
 	Character = Cast<APTBFSCharacter>(UGameplayStatics::GetPlayerPawn(GetWorld(), 0));
 	UPTBGameInstance* GI = Cast<UPTBGameInstance>(GetGameInstance());
@@ -128,15 +132,11 @@ void APTBFSMiniGame::BuildRuntimeState()
 		JudgementSystem->HitWindowPerfectMs = 200.0f;
 		JudgementSystem->HitWindowHighPerfectMs = 80.0f;
 	}
-
-	PTB_WARNING(LogPTBMiniGames, TEXT("[Fishing] StepDistance: %f,TotalNoteCount: %d"),
-	            StepDistance, TotalNoteCount);
-
+	
 	Character->SetFishLineTarget(FishActor);
 	Character->OnPlayCastAnimMontage();
 	for (TActorIterator<ACameraActor> It(GetWorld()); It; ++It)
 	{
-		PTB_WARNING(LogPTBMiniGames, TEXT("[Fishing] Camera found: %s"), *It->GetName());
 		if (It->ActorHasTag(FName("SuccessCamera1")))
 			SuccessCamera1 = *It;
 		else if ((It->ActorHasTag(FName("SuccessCamera2"))))
@@ -150,14 +150,11 @@ void APTBFSMiniGame::BuildRuntimeState()
 void APTBFSMiniGame::HandleNoteCue(FPTBNoteEvent Note)
 {
 	Super::HandleNoteCue(Note);
-
-	PTB_WARNING(LogPTBMiniGames, TEXT("[Fishing] HandleNoteCue 호출됨 MovingCount: %d FishDistance: %f"), MovingCount,
-	            FishDistance);
 	if (!FishRuleSet)return;	
 	float ActualLeadTime = 0.0f;
 	if (RhythmConductor)
 	{
-		 ActualLeadTime = RhythmConductor->CueLeadTimeMs; // 또는 프로젝트에서 정의한 리드타임 변수명
+		 ActualLeadTime = RhythmConductor->CueLeadTimeMs; 
 	}
 	OnFishingPromptCue.Broadcast(Note.ActionType, Note.bIsLongNote,Note.TimeMs,ActualLeadTime);
 	MovingCount++;
@@ -213,8 +210,6 @@ void APTBFSMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 	if (Result.Reason == EPTBJudgementReason::EmptyInput) return;
 	if (Result.Reason == EPTBJudgementReason::EarlyRelease)
 	{
-		PTB_WARNING(LogPTBMiniGames, TEXT("[Fishing] EarlyRelease NoteId: %d ActionType: %d"), Result.NoteId,
-		            static_cast<int32>(Result.ActionType));
 		OnFishSlipped.Broadcast(1.0f);
 		OnFishingPromptReleased.Broadcast(Result.ActionType);
 		return;
@@ -260,12 +255,6 @@ void APTBFSMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 		OnFishingPromptReleased.Broadcast(Result.ActionType);
 		if (Result.Reason == EPTBJudgementReason::ExpiredNote)
 		{
-			PTB_WARNING(LogPTBMiniGames, TEXT("[Fishing] Miss NoteId: %d ActionType: %d Reason: %d DeltaMs: %f"),
-			            Result.NoteId,
-			            static_cast<int32>(Result.ActionType),
-			            static_cast<int32>(Result.Reason),
-			            Result.DeltaMs);
-			PTB_WARNING(LogPTBMiniGames, TEXT("[Fishing] OnFishSlipped 브로드캐스트"));
 			ApplyDistanceDelta(StepDistance * 1.0f);
 			OnFishSlipped.Broadcast(1.0f);
 		}
@@ -284,7 +273,15 @@ void APTBFSMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 
 FPTBMiniGameResultPayload APTBFSMiniGame::BuildResultPayload() const
 {
-	return Super::BuildResultPayload();
+	FPTBMiniGameResultPayload Payload = Super::BuildResultPayload();
+	Payload.PayloadType = TEXT("FS");
+    
+	Payload.IntValues.Add(TEXT("CorrectCount"), CorrectCount);
+	Payload.FloatValues.Add(TEXT("FinalFishDistance"), FishDistance);
+	Payload.IntValues.Add(TEXT("bCaught"), FishDistance <= 0.3f ? 1 : 0);
+	
+	
+	return Payload;
 }
 
 void APTBFSMiniGame::InitializeMiniGame(const FPTBMiniGameContext& Context)
@@ -389,16 +386,6 @@ void APTBFSMiniGame::EndPlay(const EEndPlayReason::Type EndPlayReason)
 		GI->CachedSettings.RhythmKeys = OriginalKeyBindings;
 	}
 	Super::EndPlay(EndPlayReason);
-}
-
-void APTBFSMiniGame::StartFishingGame()
-{
-	FPTBMiniGameContext Context;
-	UPTBGameFlowSubsystem* FlowSys = GetGameInstance()->GetSubsystem<UPTBGameFlowSubsystem>();
-	if (FlowSys)
-		Context.SessionRequest.Difficulty = FlowSys->PendingSessionRequest.Difficulty;
-	Context.SessionRequest.MiniGameId = FName("FishMiniGame");
-	InitializeMiniGame(Context);
 }
 
 void APTBFSMiniGame::HandleActionAInput()
