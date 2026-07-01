@@ -50,6 +50,8 @@ public:
 	int32 MenuZOrder = 100;
 
 protected:
+	// PreviewKeyDown: 포커스 경로상 모든 위젯에 먼저(터널링) 전달 → 자식 버튼 포커스 시에도 ESC 수신 가능
+	virtual FReply NativeOnPreviewKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent) override;
 	virtual FReply NativeOnKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent) override;
 
 	/** 메뉴가 열렸을 때 BP에서 진입 애니메이션 등 처리 */
