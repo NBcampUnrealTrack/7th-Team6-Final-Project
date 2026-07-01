@@ -159,12 +159,6 @@ void APTBBBMiniGame::BuildRuntimeState()
 void APTBBBMiniGame::PreloadAudioAssets()
 {
 	Super::PreloadAudioAssets();
-
-	// BGM Bank 선로드
-	if (AudioManager && !GameContext.ChartData.WwiseBankName.IsNone())
-	{
-		AudioManager->LoadSoundBank(GameContext.ChartData.WwiseBankName);
-	}
 }
 
 // ── Conductor 이벤트 훅 ──────────────────────────────────────────

@@ -1,4 +1,5 @@
 #include "Core/PTBGameInstance.h"
+#include "Audio/PTBWwiseAudioManager.h"
 #include "Core/PTBSaveGame.h"
 #include "GameFramework/GameUserSettings.h"
 #include "Kismet/GameplayStatics.h"
@@ -34,9 +35,7 @@ void UPTBGameInstance::InitPTBSystems()
 	}
 
 	// 2) AudioManager 초기화
-	// AudioManager가 UObject 파생이라면:
-	// AudioManager = NewObject<UPTBWwiseAudioManager>(this);
-	// AudioManager->Initialize();
+	AudioManager = NewObject<UPTBWwiseAudioManager>(this);
 
 	// 3) 캐시된 설정 적용
 	ApplyUserSettings(CachedSettings);
@@ -63,8 +62,7 @@ void UPTBGameInstance::ApplyUserSettings(const FPTBUserSettings& InSettings)
 {
 	CachedSettings = InSettings;
 
-	// TODO: Wwise RTPC 연결 후 활성화
-	// if (AudioManager) { AudioManager->ApplySettings(InSettings); }
+	if (AudioManager) { AudioManager->ApplySettings(InSettings); }
 
 	// 창 모드·해상도·그래픽 품질 반영
 	if (UGameUserSettings* GUS = UGameUserSettings::GetGameUserSettings())

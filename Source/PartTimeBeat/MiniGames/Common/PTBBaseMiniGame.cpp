@@ -378,12 +378,28 @@ void APTBBaseMiniGame::PreloadAudioAssets()
 		return;
 	}
 
+	if (!GameContext.ChartData.WwiseBankName.IsNone())
+	{
+		AudioManager->LoadSoundBank(GameContext.ChartData.WwiseBankName);
+		UE_LOG(LogWwise, Log, TEXT("[%s] LoadSoundBank: %s"),
+			*GetNameSafe(this), *GameContext.ChartData.WwiseBankName.ToString());
+	}
+
 	if (!GameContext.ChartData.WwiseEventName.IsNone())
 	{
 		UE_LOG(LogWwise, Log, TEXT("[%s] Wwise BGM event ready: %s"),
-			*GetNameSafe(this),
-			*GameContext.ChartData.WwiseEventName.ToString());
+			*GetNameSafe(this), *GameContext.ChartData.WwiseEventName.ToString());
 	}
+}
+
+void APTBBaseMiniGame::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	if (AudioManager && !GameContext.ChartData.WwiseBankName.IsNone())
+	{
+		AudioManager->UnloadSoundBank(GameContext.ChartData.WwiseBankName);
+	}
+
+	Super::EndPlay(EndPlayReason);
 }
 
 void APTBBaseMiniGame::ApplyRuleSet()
