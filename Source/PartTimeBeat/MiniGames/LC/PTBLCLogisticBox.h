@@ -6,6 +6,8 @@
 #include "Materials/MaterialInterface.h"
 #include "PTBLCLogisticBox.generated.h"
 
+class UMaterialInstanceDynamic;
+
 /** LC 박스 색 상태 */
 UENUM(BlueprintType)
 enum class EPTBLCColorState : uint8
@@ -92,9 +94,13 @@ protected:
 	/** 게임 시작 처리 */
 	virtual void BeginPlay() override;
 
-	/** 박스 비주얼 메시 */
+	/** 내용물 비주얼 메시 컴포넌트 */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "PTB|LC|Mesh")
 	TObjectPtr<UStaticMeshComponent> BaseMeshComponent;
+
+	/** 포장 박스 비주얼 메시 컴포넌트 */
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "PTB|LC|Mesh")
+	TObjectPtr<UStaticMeshComponent> BoxMeshComponent;
 
 	/** 포장 후 박스 메시 */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "PTB|LC|Mesh")
@@ -156,6 +162,10 @@ protected:
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "PTB|LC|State")
 	EPTBLCColorState BoxColorState = EPTBLCColorState::None;
 
+	/** 포장 박스 Dynamic Material */
+	UPROPERTY()
+	TObjectPtr<UMaterialInstanceDynamic> PackagedBoxDynamicMaterial;
+
 private:
 	/** Beat 둠칫 효과 적용 가능 여부 */
 	bool ShouldApplyBeatPulse() const;
@@ -184,4 +194,7 @@ private:
 
 	/** Beat 둠칫 효과 기준 메시 스케일 */
 	FVector BaseMeshRelativeScale = FVector::OneVector;
+
+	/** Beat 둠칫 효과 기준 박스 메시 스케일 */
+	FVector BoxMeshRelativeScale = FVector::OneVector;
 };

@@ -6,8 +6,11 @@
 #include "Core/PTBGameModeBase.h"
 #include "Debug/PTBLogChannels.h"
 #include "MiniGames/Common/PTBMiniGameRuleSet.h"
+#include "MiniGames/Common/PTBMiniGamePreloadAssetSet.h"
 #include "MiniGames/Common/UI/PTBMiniGameLoadingWidget.h"
 #include "Components/InputComponent.h"
+#include "Engine/AssetManager.h"
+#include "Engine/StreamableManager.h"
 #include "Rhythm/PTBJudgementSystem.h"
 #include "Rhythm/PTBRhythmChartAsset.h"
 #include "Rhythm/PTBRhythmConductorComponent.h"
@@ -211,7 +214,13 @@ void APTBBaseMiniGame::InitializeMiniGame(const FPTBMiniGameContext& Context)
 	MiniGameCode = Context.SessionRequest.MiniGameCode;
 	ActiveNoteQueue.Reset();
 	ActiveHoldStates.Reset();
+	PreloadedAssets.Reset();
 	EmptyInputActionLockUntilTimeMs.Reset();
+	if (PreloadHandle.IsValid())
+	{
+		PreloadHandle->CancelHandle();
+		PreloadHandle.Reset();
+	}
 	RoundResult = FPTBRoundResult();
 	bPendingRoundFinish = false;
 	bPendingRoundFailed = false;
@@ -297,6 +306,18 @@ void APTBBaseMiniGame::InitializeMiniGame(const FPTBMiniGameContext& Context)
 		return;
 	}
 
+	RequestPreloadAssets();
+}
+
+void APTBBaseMiniGame::CompleteMiniGameInitialization()
+{
+	if (!ChartAsset)
+	{
+		UE_LOG(LogRhythm, Warning, TEXT("[%s] MiniGame initialization failed. ChartAsset is not ready. MiniGameId=%s"), *GetNameSafe(this), *MiniGameId.ToString());
+		HideLoadingWidget();
+		return;
+	}
+
 	if (JudgementSystem)
 	{
 		JudgementSystem->Initialize(GameContext.ChartData, 0.0f);
@@ -319,7 +340,7 @@ void APTBBaseMiniGame::InitializeMiniGame(const FPTBMiniGameContext& Context)
 
 	if (RhythmConductor && JudgementSystem)
 	{
-		const float InputCompensationMs = FMath::Abs(ResolveInputOffsetMs(Context));
+		const float InputCompensationMs = FMath::Abs(ResolveInputOffsetMs(GameContext));
 		RhythmConductor->SetArmLeadTimeMs(JudgementSystem->HitWindowMissMs + InputCompensationMs);
 	}
 
@@ -363,6 +384,83 @@ void APTBBaseMiniGame::PreloadAssets()
 	UE_LOG(LogRhythm, Warning, TEXT("[%s] ChartAsset is required. Configure RuleSet.ChartAssetsByDifficulty or ChartAsset."), *GetNameSafe(this));
 }
 
+void APTBBaseMiniGame::RequestPreloadAssets()
+{
+	TArray<FSoftObjectPath> AssetPaths;
+	GatherPreloadAssetPaths(AssetPaths);
+
+	if (AssetPaths.IsEmpty())
+	{
+		CompleteMiniGameInitialization();
+		return;
+	}
+
+	FStreamableManager& StreamableManager = UAssetManager::GetStreamableManager();
+	PreloadHandle = StreamableManager.RequestAsyncLoad(
+		AssetPaths,
+		FStreamableDelegate::CreateUObject(this, &APTBBaseMiniGame::HandlePreloadAssetsLoaded, AssetPaths));
+
+	if (!PreloadHandle.IsValid())
+	{
+		UE_LOG(LogRhythm, Error, TEXT("[%s] Preload request failed. AssetCount=%d"), *GetNameSafe(this), AssetPaths.Num());
+		HideLoadingWidget();
+	}
+}
+
+void APTBBaseMiniGame::GatherPreloadAssetPaths(TArray<FSoftObjectPath>& OutAssetPaths) const
+{
+	if (!RuleSet || !RuleSet->PreloadAssetSet)
+	{
+		return;
+	}
+
+	for (const TSoftObjectPtr<UObject>& Asset : RuleSet->PreloadAssetSet->Assets)
+	{
+		const FSoftObjectPath AssetPath = Asset.ToSoftObjectPath();
+		if (!AssetPath.IsValid())
+		{
+			continue;
+		}
+
+		OutAssetPaths.AddUnique(AssetPath);
+	}
+}
+
+bool APTBBaseMiniGame::VerifyPreloadedAssets(const TArray<FSoftObjectPath>& AssetPaths)
+{
+	PreloadedAssets.Reset();
+
+	bool bAllLoaded = true;
+	for (const FSoftObjectPath& AssetPath : AssetPaths)
+	{
+		UObject* LoadedAsset = AssetPath.ResolveObject();
+		if (!LoadedAsset)
+		{
+			bAllLoaded = false;
+			UE_LOG(LogRhythm, Error, TEXT("[%s] Preload asset missing: %s"), *GetNameSafe(this), *AssetPath.ToString());
+			continue;
+		}
+
+		PreloadedAssets.Add(LoadedAsset);
+	}
+
+	return bAllLoaded;
+}
+
+void APTBBaseMiniGame::HandlePreloadAssetsLoaded(TArray<FSoftObjectPath> AssetPaths)
+{
+	PreloadHandle.Reset();
+
+	if (!VerifyPreloadedAssets(AssetPaths))
+	{
+		HideLoadingWidget();
+		return;
+	}
+
+	UE_LOG(LogRhythm, Log, TEXT("[%s] Preload assets ready. Count=%d"), *GetNameSafe(this), PreloadedAssets.Num());
+	CompleteMiniGameInitialization();
+}
+
 void APTBBaseMiniGame::BuildRuntimeState()
 {
 }
@@ -376,8 +474,19 @@ void APTBBaseMiniGame::PreloadAudioAssets()
 
 	if (!GameContext.ChartData.WwiseEventName.IsNone())
 	{
-		UE_LOG(LogWwise, Log, TEXT("[%s] Wwise BGM event ready: %s"),
-			*GetNameSafe(this), *GameContext.ChartData.WwiseEventName.ToString());
+		const bool bPrepared = AudioManager->PrepareEvent(GameContext.ChartData.WwiseEventName);
+		if (bPrepared)
+		{
+			UE_LOG(LogWwise, Log, TEXT("[%s] Wwise BGM event ready: %s"),
+				*GetNameSafe(this),
+				*GameContext.ChartData.WwiseEventName.ToString());
+		}
+		else
+		{
+			UE_LOG(LogWwise, Warning, TEXT("[%s] Wwise BGM event prepare failed: %s"),
+				*GetNameSafe(this),
+				*GameContext.ChartData.WwiseEventName.ToString());
+		}
 	}
 }
 

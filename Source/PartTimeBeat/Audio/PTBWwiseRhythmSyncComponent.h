@@ -70,9 +70,24 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm|Sync")
 	bool bUseMusicCallbacks = true;
 
+	/** 화면 연출 시간 보간 사용 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm|Sync")
+	bool bUseVisualSmoothing = true;
+
+	/** 보간 생략 기준(ms) */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm|Sync", meta = (ClampMin = "0", UIMin = "0"))
+	float VisualSmoothingSnapThresholdMs = 8.0f;
+
+	/** 프레임당 최대 보정 시간(ms) */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm|Sync", meta = (ClampMin = "0", UIMin = "0"))
+	float MaxVisualSmoothingStepMs = 20.0f;
+
 	/** 마디당 Beat 수 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm|Sync", meta = (ClampMin = "1", UIMin = "1"))
 	int32 BeatsPerBar = 4;
+
+	/** 화면 연출용 재생 시간 */
+	float SmoothedPlaybackMs = 0.0f;
 
 	/** 마지막 Beat Tick 인덱스 */
 	int32 LastBeatTickIndex = -1;
