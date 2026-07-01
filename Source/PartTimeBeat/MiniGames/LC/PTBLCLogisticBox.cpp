@@ -246,9 +246,19 @@ void APTBLCLogisticBox::SetMovementRotation(FRotator NewRotation)
 
 void APTBLCLogisticBox::ChangeMeshToBox()
 {
-	if (!BaseMeshComponent || !BoxMeshComponent)
+	if (!BaseMeshComponent || !BoxMeshComponent || !BoxMeshAsset)
 	{
+		PTB_WARNING(LogPTBMiniGames, TEXT("[LC] ChangeMeshToBox skipped: invalid mesh setup. Actor=%s BaseMesh=%s BoxMesh=%s BoxMeshAsset=%s"),
+			*GetNameSafe(this),
+			*GetNameSafe(BaseMeshComponent.Get()),
+			*GetNameSafe(BoxMeshComponent.Get()),
+			*GetNameSafe(BoxMeshAsset.Get()));
 		return;
+	}
+
+	if (BoxMeshComponent->GetStaticMesh() != BoxMeshAsset)
+	{
+		BoxMeshComponent->SetStaticMesh(BoxMeshAsset);
 	}
 
 	bIsPackaged = true;

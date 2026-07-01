@@ -474,10 +474,19 @@ void APTBBaseMiniGame::PreloadAudioAssets()
 
 	if (!GameContext.ChartData.WwiseEventName.IsNone())
 	{
-		AudioManager->PrepareEvent(GameContext.ChartData.WwiseEventName);
-		UE_LOG(LogWwise, Log, TEXT("[%s] Wwise BGM event ready: %s"),
-			*GetNameSafe(this),
-			*GameContext.ChartData.WwiseEventName.ToString());
+		const bool bPrepared = AudioManager->PrepareEvent(GameContext.ChartData.WwiseEventName);
+		if (bPrepared)
+		{
+			UE_LOG(LogWwise, Log, TEXT("[%s] Wwise BGM event ready: %s"),
+				*GetNameSafe(this),
+				*GameContext.ChartData.WwiseEventName.ToString());
+		}
+		else
+		{
+			UE_LOG(LogWwise, Warning, TEXT("[%s] Wwise BGM event prepare failed: %s"),
+				*GetNameSafe(this),
+				*GameContext.ChartData.WwiseEventName.ToString());
+		}
 	}
 }
 
