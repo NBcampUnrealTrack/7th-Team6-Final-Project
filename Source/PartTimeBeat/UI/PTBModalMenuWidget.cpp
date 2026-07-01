@@ -11,6 +11,7 @@ void UPTBModalMenuWidget::OpenMenu()
 
 		// SetWidgetToFocus: UIOnly 입력 모드에서 이 위젯을 키보드 포커스 대상으로 지정
 		// → 클릭 없이도 열자마자 ESC 등 키 입력이 이 위젯으로 전달됨
+		SetIsFocusable(true);
 		FInputModeUIOnly InputMode;
 		InputMode.SetWidgetToFocus(TakeWidget());
 		PC->SetInputMode(InputMode);
