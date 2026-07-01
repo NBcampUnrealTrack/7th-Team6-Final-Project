@@ -65,10 +65,10 @@ void APTBJJMiniGame::HandleNoteCue(FPTBNoteEvent Note)
 	// 1) 채보 간격 기반 희망 체공시간
 	const float DesiredAirtime = GetAirtimeMsForNote(Note.NoteId);
 
-	// 2) 실제 쓸 수 있는 시간으로 상한 (Cue 선행이 짧으면 그만큼만)
+	// 2) 실제 남은 시간으로 상한 (Cue 선행이 짧으면 그만큼만 떠야 늦지 않음)
 	float AirtimeMs = FMath::Min(DesiredAirtime, TimeToReach);
 
-	// 3) 하한 적용 (너무 짧은 점프 방지)
+	// 3) 하한 적용
 	AirtimeMs = FMath::Max(AirtimeMs, MinAirtimeMs);
 
 	const float DelayMs = TimeToReach - AirtimeMs;
@@ -137,19 +137,11 @@ void APTBJJMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 		? ResolveCharacterIndex(JudgedNote.ActionType)
 		: ResolveCharacterIndex(Result.ActionType);
 
-	// ── 판정 색 플래시 (진단 로그 포함) ──────────────────────────────
+	// 판정 색 플래시
 	if (JumpActors.IsValidIndex(CharacterIndex) && JumpActors[CharacterIndex])
 	{
-		UE_LOG(LogPTBMiniGames, Warning, TEXT("[JJ FLASH] CharIdx=%d Type=%d 호출"),
-			CharacterIndex, static_cast<int32>(Result.JudgementType));
 		JumpActors[CharacterIndex]->FlashJudgementColor(Result.JudgementType);
 	}
-	else
-	{
-		UE_LOG(LogPTBMiniGames, Warning, TEXT("[JJ FLASH] 실패 CharIdx=%d ActorsNum=%d"),
-			CharacterIndex, JumpActors.Num());
-	}
-	// ─────────────────────────────────────────────────────────────────
 
 	if (bHasJudgedNote)
 	{
@@ -367,7 +359,9 @@ void APTBJJMiniGame::PrecomputeAirtimes()
 			const float Gap = *NextTime - Note.TimeMs;   // 같은 액션끼리의 간격
 			if (Gap > 0.0f)
 			{
-				Airtime = FMath::Min(MaxAirtimeMs, Gap);
+				// 간격의 일정 비율만 체공 → 다음 노트 전에 착지 여유
+				// (비율을 곱한 뒤 상한으로 자른다)
+				Airtime = FMath::Min(MaxAirtimeMs, Gap * AirtimeRatio);
 			}
 		}
 

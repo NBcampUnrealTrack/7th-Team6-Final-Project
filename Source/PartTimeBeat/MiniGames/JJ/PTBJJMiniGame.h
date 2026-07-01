@@ -158,6 +158,11 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|JumpJump", meta = (ClampMin = "0"))
 	float MinAirtimeMs = 250.0f;
 
+	/** 체공시간 비율. 노트 간격(Gap)의 몇 %를 체공에 쓸지 (0.85 = 85%).
+	 *  1.0보다 작게 두면 다음 노트 전에 착지 여유가 생겨 빠른 구간이 덜 빡빡해진다. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|JumpJump", meta = (ClampMin = "0.1", ClampMax = "1.0"))
+	float AirtimeRatio = 0.85f;
+
 	/** 좌/중/우 점프 캐릭터 Actor (인덱스 0/1/2) */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|JumpJump")
 	TArray<TObjectPtr<APTBJJJumpActor>> JumpActors;

@@ -2,7 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
-#include "Core/PTBStructEnums.h"   // EPTBJudgementType
+#include "Core/PTBStructEnums.h" 
 #include "PTBJJJumpActor.generated.h"
 
 class UStaticMeshComponent;
@@ -28,6 +28,7 @@ class PARTTIMEBEAT_API APTBJJJumpActor : public AActor
 
 public:
 	APTBJJJumpActor();
+
 
 	/**
 	 * 점프 시작.
