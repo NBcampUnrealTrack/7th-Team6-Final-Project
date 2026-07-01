@@ -27,7 +27,7 @@ class UWidgetSwitcher;
  *          TextMasterValue, TextBgmValue, TextSfxValue
  *  [싱크]  SliderSyncOffset (-200~+200ms), TextSyncOffsetValue
  *  [화면]  ComboBoxWindowMode, ComboBoxResolution, ComboBoxGraphics
- *  [키]    TextKeyA~TextKeyE, ButtonRebindA~ButtonRebindE, TextRebindPrompt
+ *  [키]    KeyText_A~KeyText_E, ButtonRebindA~ButtonRebindE, TextRebindPrompt
  *  [제어]  ButtonApply, ButtonReset, ButtonCalibrate
  *  [알림]  TextNotification (2초 후 자동 숨김, Hidden 상태로 시작)
  */
