@@ -490,6 +490,11 @@ void APTBBaseMiniGame::PreloadAudioAssets()
 	}
 }
 
+void APTBBaseMiniGame::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	Super::EndPlay(EndPlayReason);
+}
+
 void APTBBaseMiniGame::ApplyRuleSet()
 {
 	if (!RuleSet)

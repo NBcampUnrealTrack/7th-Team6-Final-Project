@@ -56,7 +56,8 @@ public:
 	/** 현재 모드(Single Multi) */
 	EPTBPlayMode CurrentPlayMode;	
 	/** 전역 Wwise 매니저*/
-	UPTBWwiseAudioManager* AudioManager;
+	UPROPERTY()
+	TObjectPtr<UPTBWwiseAudioManager> AudioManager;
 	/** 현재 플로우 상태(FlowSubsystem과 동기) */
 	EGameFlowState CurrentFlowState;
 

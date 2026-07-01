@@ -99,12 +99,6 @@ void APTBPCMiniGame::HandleActionAInputReleased()
 void APTBPCMiniGame::PreloadAudioAssets()
 {
     Super::PreloadAudioAssets();
-
-    if (AudioManager && !GameContext.ChartData.WwiseBankName.IsNone())
-    {
-        AudioManager->LoadSoundBank(GameContext.ChartData.WwiseBankName);
-    }
-
 }
 
 void APTBPCMiniGame::HandleNoteCue(FPTBNoteEvent Note)
