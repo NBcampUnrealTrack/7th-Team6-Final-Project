@@ -27,12 +27,21 @@ APTBLCLogisticBox::APTBLCLogisticBox()
 	PrimaryActorTick.bCanEverTick = true;
 
 	BaseMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BaseMeshComponent"));
+	BoxMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BoxMeshComponent"));
 
 	if (BaseMeshComponent)
 	{
 		RootComponent = BaseMeshComponent;
 
 		BaseMeshComponent->SetSimulatePhysics(false);
+	}
+
+	if (BoxMeshComponent)
+	{
+		BoxMeshComponent->SetupAttachment(BaseMeshComponent);
+		BoxMeshComponent->SetSimulatePhysics(false);
+		BoxMeshComponent->SetVisibility(false);
+		BoxMeshComponent->SetHiddenInGame(true);
 	}
 }
 
@@ -48,6 +57,17 @@ void APTBLCLogisticBox::BeginPlay()
 	
 	MovementDirection = GetActorRightVector();
 	BaseMeshRelativeScale = BaseMeshComponent->GetRelativeScale3D();
+	if (BoxMeshComponent)
+	{
+		BoxMeshRelativeScale = BoxMeshComponent->GetRelativeScale3D();
+		BoxMeshComponent->SetStaticMesh(BoxMeshAsset);
+		if (PackagedBoxMaterial)
+		{
+			PackagedBoxDynamicMaterial = BoxMeshComponent->CreateDynamicMaterialInstance(0, PackagedBoxMaterial);
+		}
+		BoxMeshComponent->SetVisibility(bIsPackaged);
+		BoxMeshComponent->SetHiddenInGame(!bIsPackaged);
+	}
 
 	if (!bIsPackaged)
 	{
@@ -61,6 +81,9 @@ void APTBLCLogisticBox::BeginPlay()
 			            *GetNameSafe(this));
 		}
 	}
+
+	BaseMeshComponent->SetVisibility(!bIsPackaged);
+	BaseMeshComponent->SetHiddenInGame(bIsPackaged);
 }
 
 void APTBLCLogisticBox::Tick(float DeltaTime)
@@ -193,24 +216,26 @@ float APTBLCLogisticBox::GetMovingSpeed() const
 
 void APTBLCLogisticBox::SetBeatPulseScale(float NewScale)
 {
-	if (!BaseMeshComponent)
+	if (!BaseMeshComponent || !BoxMeshComponent)
 	{
 		return;
 	}
 
 	const float AppliedScale = ShouldApplyBeatPulse() ? FMath::Max(0.0f, NewScale) : 1.0f;
 	BaseMeshComponent->SetRelativeScale3D(BaseMeshRelativeScale * AppliedScale);
+	BoxMeshComponent->SetRelativeScale3D(BoxMeshRelativeScale * AppliedScale);
 }
 
 void APTBLCLogisticBox::StopMovingAndEnablePhysics()
 {
-	if (!BaseMeshComponent)
+	UStaticMeshComponent* ActiveMeshComponent = bIsPackaged ? BoxMeshComponent.Get() : BaseMeshComponent.Get();
+	if (!ActiveMeshComponent)
 	{
 		return;
 	}
 
 	bIsMoving = false;
-	BaseMeshComponent->SetSimulatePhysics(true);
+	ActiveMeshComponent->SetSimulatePhysics(true);
 }
 
 void APTBLCLogisticBox::SetMovementRotation(FRotator NewRotation)
@@ -221,24 +246,21 @@ void APTBLCLogisticBox::SetMovementRotation(FRotator NewRotation)
 
 void APTBLCLogisticBox::ChangeMeshToBox()
 {
-	if (!BaseMeshComponent || !BoxMeshAsset)
+	if (!BaseMeshComponent || !BoxMeshComponent)
 	{
 		return;
 	}
 
-	BaseMeshComponent->SetStaticMesh(BoxMeshAsset);
 	bIsPackaged = true;
+	BaseMeshComponent->SetVisibility(false);
+	BaseMeshComponent->SetHiddenInGame(true);
+	BoxMeshComponent->SetVisibility(true);
+	BoxMeshComponent->SetHiddenInGame(false);
 }
 
 void APTBLCLogisticBox::ApplyPackagedMaterial()
 {
-	if (!BaseMeshComponent || !PackagedBoxMaterial)
-	{
-		return;
-	}
-
-	UMaterialInstanceDynamic* DynamicMaterial = BaseMeshComponent->CreateDynamicMaterialInstance(0, PackagedBoxMaterial);
-	if (!DynamicMaterial)
+	if (!PackagedBoxDynamicMaterial)
 	{
 		return;
 	}
@@ -275,8 +297,8 @@ void APTBLCLogisticBox::ApplyPackagedMaterial()
 		break;
 	}
 
-	DynamicMaterial->SetVectorParameterValue(BoxColorParameterName, BoxColor);
-	DynamicMaterial->SetVectorParameterValue(MarkColorParameterName, MarkColor);
+	PackagedBoxDynamicMaterial->SetVectorParameterValue(BoxColorParameterName, BoxColor);
+	PackagedBoxDynamicMaterial->SetVectorParameterValue(MarkColorParameterName, MarkColor);
 }
 
 void APTBLCLogisticBox::StartPackagingSpin()
