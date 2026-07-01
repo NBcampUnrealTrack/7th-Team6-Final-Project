@@ -13,6 +13,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FPTBCHNoteEvent, FPTBNoteEvent, Note
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FPTBCHJudgementEvent, FPTBJudgementResult, Result, FPTBNoteEvent, Note);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FPTBCHNoteClearedEvent, int32, NoteId, EPTBJudgementType, JudgementType);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FPTBCHHoldStartedEvent, FPTBJudgementResult, Result, FPTBNoteEvent, Note);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FPTBCHCustomerChangedEvent, int32, CustomerNumber);
 
 /**
  * 커스텀 햄버거 미니게임 Actor입니다
@@ -48,6 +49,10 @@ public:
     /** 노트 제거 이벤트 */
     UPROPERTY(BlueprintAssignable, Category = "PTB|CH")
     FPTBCHNoteClearedEvent OnCHNoteCleared;
+
+    /** 손님(햄버거) 번호 변경 이벤트 — 1부터 시작 */
+    UPROPERTY(BlueprintAssignable, Category = "PTB|CH")
+    FPTBCHCustomerChangedEvent OnCHCustomerChanged;
 
     /** 오브젝트 / 상태 구성 */
     virtual void BuildRuntimeState() override;
@@ -273,6 +278,12 @@ protected:
 
     /** HUD 생성 및 화면에 추가 */
     void CreateAndAddHUD();
+
+    /** HUD Blueprint의 UpdateCustomerNumber 함수 호출 */
+    void CallHUDUpdateCustomerNumber(int32 CustomerNumber);
+
+    /** HUD Blueprint의 ShowJudgement 함수 호출 */
+    void CallHUDShowJudgement(EPTBJudgementType JudgementType);
 
     virtual void Tick(float DeltaTime) override;
 };
