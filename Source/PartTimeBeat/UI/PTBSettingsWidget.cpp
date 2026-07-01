@@ -74,9 +74,12 @@ void UPTBSettingsWidget::InitializeView()
 
 void UPTBSettingsWidget::SwitchToTab(int32 TabIndex)
 {
+	const int32 MaxIndex = TabSwitcher ? FMath::Max(0, TabSwitcher->GetNumWidgets() - 1) : 3;
+	const int32 ClampedIndex = FMath::Clamp(TabIndex, 0, MaxIndex);
+
 	if (TabSwitcher)
 	{
-		TabSwitcher->SetActiveWidgetIndex(TabIndex);
+		TabSwitcher->SetActiveWidgetIndex(ClampedIndex);
 	}
 
 	// 탭 인디케이터 라인: 선택된 탭만 표시
@@ -85,7 +88,7 @@ void UPTBSettingsWidget::SwitchToTab(int32 TabIndex)
 	{
 		if (TabLines[i])
 		{
-			TabLines[i]->SetVisibility(i == TabIndex ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Hidden);
+			TabLines[i]->SetVisibility(i == ClampedIndex ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Hidden);
 		}
 	}
 
@@ -98,7 +101,7 @@ void UPTBSettingsWidget::SwitchToTab(int32 TabIndex)
 		OnRebindCancelled(CancelledAction);
 	}
 
-	OnTabChanged(TabIndex);
+	OnTabChanged(ClampedIndex);
 }
 
 // ── 설정 적용 / 초기화 ────────────────────────────────────────────
