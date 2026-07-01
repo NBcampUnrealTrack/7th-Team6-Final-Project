@@ -199,6 +199,7 @@ public:
 protected:
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaTime) override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 	/** 고유 ID */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PTB|MiniGame", AdvancedDisplay)

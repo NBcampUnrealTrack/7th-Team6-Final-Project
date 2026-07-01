@@ -10,7 +10,7 @@
     "Type": "User",
     "GUID": "{701ECBBD-9C7B-4030-8CDB-749EE5D1C7B9}",
     "Language": "SFX",
-    "Hash": "{AB9F0343-CD85-AB9E-58D8-B63D74A50185}",
+    "Hash": "{B467C134-D627-F295-7EC8-28ECC8D344F5}",
     "ObjectPath": "Init",
     "ShortName": "Init",
     "Path": "Init.bnk",
@@ -36,6 +36,18 @@
     },
     "Busses": [
      {
+      "Id": "213475909",
+      "Name": "SFX_Bus",
+      "ObjectPath": "\\Master-Mixer Hierarchy\\Default Work Unit\\Master Audio Bus\\SFX_Bus",
+      "GUID": "{95A35F26-D1E1-451C-BAD8-08EA056CE99B}"
+     },
+     {
+      "Id": "2060214130",
+      "Name": "BGM_Bus",
+      "ObjectPath": "\\Master-Mixer Hierarchy\\Default Work Unit\\Master Audio Bus\\BGM_Bus",
+      "GUID": "{311698EB-E40F-46BD-8F0E-74A93390FBD8}"
+     },
+     {
       "Id": "3803692087",
       "Name": "Master Audio Bus",
       "ObjectPath": "\\Master-Mixer Hierarchy\\Default Work Unit\\Master Audio Bus",
@@ -48,6 +60,12 @@
       "Name": "SS_Air_RPM",
       "ObjectPath": "\\Game Parameters\\Factory Soundseed Air Game Syncs\\SS_Air_RPM",
       "GUID": "{A34890AB-B9D5-4526-A64D-5290C43EF2DC}"
+     },
+     {
+      "Id": "988953028",
+      "Name": "SFXVolume",
+      "ObjectPath": "\\Game Parameters\\Default Work Unit\\SFXVolume",
+      "GUID": "{C695A944-599A-4EEA-A805-8D128D3EDA8B}"
      },
      {
       "Id": "1029930033",
@@ -68,10 +86,22 @@
       "GUID": "{09E2B445-C4A3-447F-B3CA-818A1D925EF7}"
      },
      {
+      "Id": "2918011349",
+      "Name": "MasterVolume",
+      "ObjectPath": "\\Game Parameters\\Default Work Unit\\MasterVolume",
+      "GUID": "{0691878C-6D1A-444C-B364-6D231D75FEB7}"
+     },
+     {
       "Id": "3002758120",
       "Name": "SS_Air_Freefall",
       "ObjectPath": "\\Game Parameters\\Factory Soundseed Air Game Syncs\\SS_Air_Freefall",
       "GUID": "{2F2DFE37-4F9E-4D94-83D8-53CCA39781AD}"
+     },
+     {
+      "Id": "3043206523",
+      "Name": "BGMVolume",
+      "ObjectPath": "\\Game Parameters\\Default Work Unit\\BGMVolume",
+      "GUID": "{B95BA24B-294A-4DAC-994B-60B523F4EA2B}"
      },
      {
       "Id": "3074696722",
@@ -570,6 +600,6 @@
     ]
    }
   ],
-  "FileHash": "{93154148-5529-92E3-EE6B-B30DFAF8B1DD}"
+  "FileHash": "{8FDD07F1-6A2E-6372-147F-181865310184}"
  }
 }

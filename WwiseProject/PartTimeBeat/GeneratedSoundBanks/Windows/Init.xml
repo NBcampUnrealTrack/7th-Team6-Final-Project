@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <SoundBanksInfo Platform="Windows" BasePlatform="Windows" SchemaVersion="16" SoundBankVersion="150">
 	<SoundBanks>
-		<SoundBank Id="1355168291" Type="User" GUID="{701ECBBD-9C7B-4030-8CDB-749EE5D1C7B9}" Language="SFX" Hash="{AB9F0343-CD85-AB9E-58D8-B63D74A50185}">
+		<SoundBank Id="1355168291" Type="User" GUID="{701ECBBD-9C7B-4030-8CDB-749EE5D1C7B9}" Language="SFX" Hash="{B467C134-D627-F295-7EC8-28ECC8D344F5}">
 			<ObjectPath>Init</ObjectPath>
 			<ShortName>Init</ShortName>
 			<Path>Init.bnk</Path>
@@ -12,14 +12,19 @@
 				</AudioDevices>
 			</Plugins>
 			<Busses>
+				<Bus Id="213475909" Name="SFX_Bus" ObjectPath="\Master-Mixer Hierarchy\Default Work Unit\Master Audio Bus\SFX_Bus" GUID="{95A35F26-D1E1-451C-BAD8-08EA056CE99B}"/>
+				<Bus Id="2060214130" Name="BGM_Bus" ObjectPath="\Master-Mixer Hierarchy\Default Work Unit\Master Audio Bus\BGM_Bus" GUID="{311698EB-E40F-46BD-8F0E-74A93390FBD8}"/>
 				<Bus Id="3803692087" Name="Master Audio Bus" ObjectPath="\Master-Mixer Hierarchy\Default Work Unit\Master Audio Bus" GUID="{1514A4D8-1DA6-412A-A17E-75CA0C2149F3}"/>
 			</Busses>
 			<GameParameters>
 				<GameParameter Id="822163944" Name="SS_Air_RPM" ObjectPath="\Game Parameters\Factory Soundseed Air Game Syncs\SS_Air_RPM" GUID="{A34890AB-B9D5-4526-A64D-5290C43EF2DC}"/>
+				<GameParameter Id="988953028" Name="SFXVolume" ObjectPath="\Game Parameters\Default Work Unit\SFXVolume" GUID="{C695A944-599A-4EEA-A805-8D128D3EDA8B}"/>
 				<GameParameter Id="1029930033" Name="SS_Air_Fury" ObjectPath="\Game Parameters\Factory Soundseed Air Game Syncs\SS_Air_Fury" GUID="{A2AE79DC-CA3A-46BA-9652-9986C322A87B}"/>
 				<GameParameter Id="1351367891" Name="SS_Air_Fear" ObjectPath="\Game Parameters\Factory Soundseed Air Game Syncs\SS_Air_Fear" GUID="{F72E0659-4346-4E1C-A1B1-DAB46A05101E}"/>
 				<GameParameter Id="2648548617" Name="SS_Air_Month" ObjectPath="\Game Parameters\Factory Soundseed Air Game Syncs\SS_Air_Month" GUID="{09E2B445-C4A3-447F-B3CA-818A1D925EF7}"/>
+				<GameParameter Id="2918011349" Name="MasterVolume" ObjectPath="\Game Parameters\Default Work Unit\MasterVolume" GUID="{0691878C-6D1A-444C-B364-6D231D75FEB7}"/>
 				<GameParameter Id="3002758120" Name="SS_Air_Freefall" ObjectPath="\Game Parameters\Factory Soundseed Air Game Syncs\SS_Air_Freefall" GUID="{2F2DFE37-4F9E-4D94-83D8-53CCA39781AD}"/>
+				<GameParameter Id="3043206523" Name="BGMVolume" ObjectPath="\Game Parameters\Default Work Unit\BGMVolume" GUID="{B95BA24B-294A-4DAC-994B-60B523F4EA2B}"/>
 				<GameParameter Id="3074696722" Name="SS_Air_Size" ObjectPath="\Game Parameters\Factory Soundseed Air Game Syncs\SS_Air_Size" GUID="{1329EBEF-A193-472E-A38C-64668B494879}"/>
 				<GameParameter Id="3203397129" Name="SS_Air_TimeOfDay" ObjectPath="\Game Parameters\Factory Soundseed Air Game Syncs\SS_Air_TimeOfDay" GUID="{536FA72C-8C7E-4C8B-AE03-EF34FDADC314}"/>
 				<GameParameter Id="3715662592" Name="SS_Air_Storm" ObjectPath="\Game Parameters\Factory Soundseed Air Game Syncs\SS_Air_Storm" GUID="{E93F8CDB-06D1-4737-ACAF-7CD44BBED783}"/>
@@ -156,5 +161,5 @@
 			</AcousticTextures>
 		</SoundBank>
 	</SoundBanks>
-	<FileHash>{C270F1B3-6EF6-BE4D-2D20-21936FF09617}</FileHash>
+	<FileHash>{87E3EA41-AF88-8576-B720-58158028FB8E}</FileHash>
 </SoundBanksInfo>

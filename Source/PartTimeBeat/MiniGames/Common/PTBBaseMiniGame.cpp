@@ -377,9 +377,13 @@ void APTBBaseMiniGame::PreloadAudioAssets()
 	if (!GameContext.ChartData.WwiseEventName.IsNone())
 	{
 		UE_LOG(LogWwise, Log, TEXT("[%s] Wwise BGM event ready: %s"),
-			*GetNameSafe(this),
-			*GameContext.ChartData.WwiseEventName.ToString());
+			*GetNameSafe(this), *GameContext.ChartData.WwiseEventName.ToString());
 	}
+}
+
+void APTBBaseMiniGame::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	Super::EndPlay(EndPlayReason);
 }
 
 void APTBBaseMiniGame::ApplyRuleSet()

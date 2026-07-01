@@ -4,8 +4,10 @@
 
 #include "Components/Button.h"
 #include "Components/ComboBoxString.h"
+#include "Components/Image.h"
 #include "Components/Slider.h"
 #include "Components/TextBlock.h"
+#include "Components/WidgetSwitcher.h"
 #include "Core/PTBGameInstance.h"
 
 UPTBSettingsWidget::UPTBSettingsWidget(const FObjectInitializer& ObjectInitializer)
@@ -53,13 +55,53 @@ void UPTBSettingsWidget::InitializeView()
 		ComboBoxGraphics->AddOption(TEXT("높음"));
 		ComboBoxGraphics->AddOption(TEXT("최고"));
 	}
-	if (SliderSyncOffset)
-	{
-		SliderSyncOffset->SetMinValue(-200.f);
-		SliderSyncOffset->SetMaxValue(200.f);
-	}
+	if (SliderMaster)     { SliderMaster->SetMinValue(0.f); SliderMaster->SetMaxValue(1.f); }
+	if (SliderBgm)        { SliderBgm->SetMinValue(0.f);   SliderBgm->SetMaxValue(1.f); }
+	if (SliderSfx)        { SliderSfx->SetMinValue(0.f);   SliderSfx->SetMaxValue(1.f); }
+	if (SliderSyncOffset) { SliderSyncOffset->SetMinValue(-200.f); SliderSyncOffset->SetMaxValue(200.f); }
+
+	// 알림 텍스트 / 재바인딩 프롬프트 초기 숨김
+	if (TextNotification) TextNotification->SetVisibility(ESlateVisibility::Hidden);
+	if (TextRebindPrompt) TextRebindPrompt->SetVisibility(ESlateVisibility::Hidden);
+
+	// 첫 탭(그래픽)으로 시작
+	SwitchToTab(0);
 
 	RefreshAllWidgets();
+}
+
+// ── 탭 전환 ───────────────────────────────────────────────────────
+
+void UPTBSettingsWidget::SwitchToTab(int32 TabIndex)
+{
+	const int32 MaxIndex = TabSwitcher ? FMath::Max(0, TabSwitcher->GetNumWidgets() - 1) : 3;
+	const int32 ClampedIndex = FMath::Clamp(TabIndex, 0, MaxIndex);
+
+	if (TabSwitcher)
+	{
+		TabSwitcher->SetActiveWidgetIndex(ClampedIndex);
+	}
+
+	// 탭 인디케이터 라인: 선택된 탭만 표시
+	UImage* TabLines[] = { ImgTabLine_Graphics, ImgTabLine_Sounds, ImgTabLine_Keys, ImgTabLine_Game };
+	for (int32 i = 0; i < UE_ARRAY_COUNT(TabLines); ++i)
+	{
+		if (TabLines[i])
+		{
+			TabLines[i]->SetVisibility(i == ClampedIndex ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Hidden);
+		}
+	}
+
+	// 탭 전환 시 재바인딩 중이면 취소
+	if (PendingRebindAction != EPTBActionType::None)
+	{
+		const EPTBActionType CancelledAction = PendingRebindAction;
+		PendingRebindAction = EPTBActionType::None;
+		if (TextRebindPrompt) TextRebindPrompt->SetVisibility(ESlateVisibility::Hidden);
+		OnRebindCancelled(CancelledAction);
+	}
+
+	OnTabChanged(ClampedIndex);
 }
 
 // ── 설정 적용 / 초기화 ────────────────────────────────────────────
@@ -69,15 +111,69 @@ void UPTBSettingsWidget::ApplySettings()
 	if (UPTBGameInstance* GI = GetGameInstance<UPTBGameInstance>())
 	{
 		GI->ApplyUserSettings(PendingSettings);
+		OnSettingsApplied();
 	}
-	OnSettingsApplied();
 }
 
 void UPTBSettingsWidget::ResetToDefaults()
 {
 	PendingSettings = FPTBUserSettings{};
 	RefreshAllWidgets();
-	OnSettingsApplied();
+	OnSettingsReset();
+}
+
+// ── 알림 텍스트 ───────────────────────────────────────────────────
+
+void UPTBSettingsWidget::ShowNotification(const FString& Message)
+{
+	if (!TextNotification) return;
+
+	TextNotification->SetText(FText::FromString(Message));
+	TextNotification->SetVisibility(ESlateVisibility::HitTestInvisible);
+
+	// 이전 타이머 취소 후 2초 뒤 숨김
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().SetTimer(
+			NotificationTimerHandle,
+			this, &UPTBSettingsWidget::HideNotification,
+			2.f, false);
+	}
+}
+
+void UPTBSettingsWidget::HideNotification()
+{
+	if (TextNotification)
+	{
+		TextNotification->SetVisibility(ESlateVisibility::Hidden);
+	}
+}
+
+// ── BlueprintNativeEvent 기본 구현 ────────────────────────────────
+
+void UPTBSettingsWidget::OnSettingsApplied_Implementation()
+{
+	ShowNotification(TEXT("설정이 저장되었습니다."));
+}
+
+void UPTBSettingsWidget::OnSettingsReset_Implementation()
+{
+	ShowNotification(TEXT("기본값으로 초기화되었습니다."));
+}
+
+// ── 키 입력 처리 ──────────────────────────────────────────────────
+
+FReply UPTBSettingsWidget::NativeOnPreviewKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent)
+{
+	// 재바인딩 대기 중 ESC → 취소 후 부모의 CloseMenu 차단
+	if (PendingRebindAction != EPTBActionType::None && InKeyEvent.GetKey() == EKeys::Escape)
+	{
+		const EPTBActionType CancelledAction = PendingRebindAction;
+		CancelRebind();
+		OnRebindCancelled(CancelledAction);
+		return FReply::Handled();
+	}
+	return Super::NativeOnPreviewKeyDown(InGeometry, InKeyEvent);
 }
 
 // ── 키 재바인딩 ───────────────────────────────────────────────────
@@ -86,6 +182,7 @@ void UPTBSettingsWidget::RequestRebind(EPTBActionType Action)
 {
 	if (Action == EPTBActionType::None) return;
 	PendingRebindAction = Action;
+	if (TextRebindPrompt) TextRebindPrompt->SetVisibility(ESlateVisibility::HitTestInvisible);
 	SetKeyboardFocus();
 	OnRebindStarted(Action);
 }
@@ -93,6 +190,7 @@ void UPTBSettingsWidget::RequestRebind(EPTBActionType Action)
 void UPTBSettingsWidget::CancelRebind()
 {
 	PendingRebindAction = EPTBActionType::None;
+	if (TextRebindPrompt) TextRebindPrompt->SetVisibility(ESlateVisibility::Hidden);
 }
 
 FReply UPTBSettingsWidget::NativeOnKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent)
@@ -107,7 +205,9 @@ FReply UPTBSettingsWidget::NativeOnKeyDown(const FGeometry& InGeometry, const FK
 	// Escape → 재바인딩 취소
 	if (PressedKey == EKeys::Escape)
 	{
+		const EPTBActionType CancelledAction = PendingRebindAction;
 		CancelRebind();
+		OnRebindCancelled(CancelledAction);
 		return FReply::Handled();
 	}
 
@@ -134,6 +234,7 @@ FReply UPTBSettingsWidget::NativeOnKeyDown(const FGeometry& InGeometry, const FK
 
 	const EPTBActionType CompletedAction = PendingRebindAction;
 	PendingRebindAction = EPTBActionType::None;
+	if (TextRebindPrompt) TextRebindPrompt->SetVisibility(ESlateVisibility::Hidden);
 	OnRebindCompleted(CompletedAction, PressedKey);
 
 	return FReply::Handled();
@@ -196,11 +297,11 @@ void UPTBSettingsWidget::RefreshKeyText(EPTBActionType Action)
 
 	switch (Action)
 	{
-	case EPTBActionType::ActionA: SetText(TextKeyA); break;
-	case EPTBActionType::ActionB: SetText(TextKeyB); break;
-	case EPTBActionType::ActionC: SetText(TextKeyC); break;
-	case EPTBActionType::ActionD: SetText(TextKeyD); break;
-	case EPTBActionType::ActionE: SetText(TextKeyE); break;
+	case EPTBActionType::ActionA: SetText(KeyText_A); break;
+	case EPTBActionType::ActionB: SetText(KeyText_B); break;
+	case EPTBActionType::ActionC: SetText(KeyText_C); break;
+	case EPTBActionType::ActionD: SetText(KeyText_D); break;
+	case EPTBActionType::ActionE: SetText(KeyText_E); break;
 	default: break;
 	}
 }
@@ -216,6 +317,12 @@ void UPTBSettingsWidget::RefreshVolumeText(UTextBlock* TextWidget, float Value)
 
 void UPTBSettingsWidget::BindWidgetCallbacks()
 {
+	if (ButtonClose)        ButtonClose->OnClicked.AddUniqueDynamic(this,        &UPTBSettingsWidget::OnCloseClicked);
+	if (ButtonTabSounds)    ButtonTabSounds->OnClicked.AddUniqueDynamic(this,    &UPTBSettingsWidget::OnTabSoundsClicked);
+	if (ButtonTabGraphics)  ButtonTabGraphics->OnClicked.AddUniqueDynamic(this,  &UPTBSettingsWidget::OnTabGraphicsClicked);
+	if (ButtonTabKeys)      ButtonTabKeys->OnClicked.AddUniqueDynamic(this,      &UPTBSettingsWidget::OnTabKeysClicked);
+	if (ButtonTabGame)      ButtonTabGame->OnClicked.AddUniqueDynamic(this,      &UPTBSettingsWidget::OnTabGameClicked);
+
 	if (ButtonApply)   ButtonApply->OnClicked.AddUniqueDynamic(this,   &UPTBSettingsWidget::OnApplyClicked);
 	if (ButtonReset)   ButtonReset->OnClicked.AddUniqueDynamic(this,   &UPTBSettingsWidget::OnResetClicked);
 	if (ButtonRebindA) ButtonRebindA->OnClicked.AddUniqueDynamic(this, &UPTBSettingsWidget::OnRebindAClicked);
@@ -234,13 +341,18 @@ void UPTBSettingsWidget::BindWidgetCallbacks()
 	if (ComboBoxGraphics)   ComboBoxGraphics->OnSelectionChanged.AddUniqueDynamic(this,   &UPTBSettingsWidget::OnGraphicsSelectionChanged);
 }
 
-void UPTBSettingsWidget::OnApplyClicked() { ApplySettings(); }
-void UPTBSettingsWidget::OnResetClicked() { ResetToDefaults(); }
-void UPTBSettingsWidget::OnRebindAClicked() { RequestRebind(EPTBActionType::ActionA); }
-void UPTBSettingsWidget::OnRebindBClicked() { RequestRebind(EPTBActionType::ActionB); }
-void UPTBSettingsWidget::OnRebindCClicked() { RequestRebind(EPTBActionType::ActionC); }
-void UPTBSettingsWidget::OnRebindDClicked() { RequestRebind(EPTBActionType::ActionD); }
-void UPTBSettingsWidget::OnRebindEClicked() { RequestRebind(EPTBActionType::ActionE); }
+void UPTBSettingsWidget::OnCloseClicked()        { CloseMenu(); }
+void UPTBSettingsWidget::OnTabGraphicsClicked()  { SwitchToTab(0); }
+void UPTBSettingsWidget::OnTabSoundsClicked()    { SwitchToTab(1); }
+void UPTBSettingsWidget::OnTabKeysClicked()      { SwitchToTab(2); }
+void UPTBSettingsWidget::OnTabGameClicked()      { SwitchToTab(3); }
+void UPTBSettingsWidget::OnApplyClicked()        { ApplySettings(); }
+void UPTBSettingsWidget::OnResetClicked()        { ResetToDefaults(); }
+void UPTBSettingsWidget::OnRebindAClicked()      { RequestRebind(EPTBActionType::ActionA); }
+void UPTBSettingsWidget::OnRebindBClicked()      { RequestRebind(EPTBActionType::ActionB); }
+void UPTBSettingsWidget::OnRebindCClicked()      { RequestRebind(EPTBActionType::ActionC); }
+void UPTBSettingsWidget::OnRebindDClicked()      { RequestRebind(EPTBActionType::ActionD); }
+void UPTBSettingsWidget::OnRebindEClicked()      { RequestRebind(EPTBActionType::ActionE); }
 
 void UPTBSettingsWidget::OnMasterSliderChanged(float Value)
 {
