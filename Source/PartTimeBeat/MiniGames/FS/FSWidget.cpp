@@ -12,57 +12,49 @@ void UFSWidget::InitializeWidget(APTBFSMiniGame* InGame) { FSMiniGame = InGame; 
 
 void UFSWidget::OnNoteEvent(EPTBActionType Action, bool bLongNote, float InTargetTimeMs, float InCueLeadTimeMs)
 {
-	TargetTimeMs = InTargetTimeMs;
-	CueLeadTimeMs = InCueLeadTimeMs;
-	CurrentAction = Action;
-	bIsActive = true;
-	
-	if (ArrowLeft) ArrowLeft->SetVisibility(ESlateVisibility::Hidden);
-	if (ArrowRight) ArrowRight->SetVisibility(ESlateVisibility::Hidden);
-	if (ArrowUp) ArrowUp->SetVisibility(ESlateVisibility::Hidden);
-	
-	UImage* TargetArrow = nullptr;
-	if (Action == EPTBActionType::ActionA) TargetArrow = ArrowLeft;
-	else if (Action == EPTBActionType::ActionB) TargetArrow = ArrowRight;
-	else if (Action == EPTBActionType::ActionC) TargetArrow = ArrowUp;
-
-	if (TargetArrow) TargetArrow->SetVisibility(ESlateVisibility::Visible);
+	if (Action == EPTBActionType::ActionA) {
+		ArrowStateA.TargetTimeMs = InTargetTimeMs;
+		ArrowStateA.CueLeadTimeMs = InCueLeadTimeMs;
+		ArrowStateA.bIsActive = true;
+		if (ArrowLeft) ArrowLeft->SetVisibility(ESlateVisibility::Visible);
+	}
+	else if (Action == EPTBActionType::ActionB) {
+		ArrowStateB.TargetTimeMs = InTargetTimeMs;
+		ArrowStateB.CueLeadTimeMs = InCueLeadTimeMs;
+		ArrowStateB.bIsActive = true;
+		if (ArrowRight) ArrowRight->SetVisibility(ESlateVisibility::Visible);
+	}
+	else if (Action == EPTBActionType::ActionC) {
+		ArrowStateC.TargetTimeMs = InTargetTimeMs;
+		ArrowStateC.CueLeadTimeMs = InCueLeadTimeMs;
+		ArrowStateC.bIsActive = true;
+		if (ArrowUp) ArrowUp->SetVisibility(ESlateVisibility::Visible);
+	}
 }
 
 void UFSWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 {
 	Super::NativeTick(MyGeometry, InDeltaTime);
-	if (!bIsActive) return;
-    
-	float CurrentTime = FSMiniGame ? FSMiniGame->GetUPTBWwiseRhythmSyncComponent()->GetVisualChartTimeMs() : 0.0f;
-	float Alpha = FMath::Clamp((TargetTimeMs - CurrentTime) / CueLeadTimeMs, 0.0f, 1.0f);
-
-	UImage* ActiveArrow = nullptr;
-	FVector2D StartPos;
-	FVector2D EndPos = FVector2D(960, 540); 
 	
-	if (CurrentAction == EPTBActionType::ActionA) {
-		ActiveArrow = ArrowLeft;
-		StartPos = FVector2D(100, 540);
-	}
-	else if (CurrentAction == EPTBActionType::ActionB) {
-		ActiveArrow = ArrowRight;
-		StartPos = FVector2D(1820, 540);
-	}
-	else if (CurrentAction == EPTBActionType::ActionC) {
-		ActiveArrow = ArrowUp;
-		StartPos = FVector2D(960, 100);
-	}
+	if (!FSMiniGame) return;
+	UPTBWwiseRhythmSyncComponent* Sync = FSMiniGame->GetUPTBWwiseRhythmSyncComponent();
+	if (!Sync) return;
+	float CurrentTime = Sync->GetVisualChartTimeMs();
 
-	if (!ActiveArrow) return;
-    
-	if (UCanvasPanelSlot* CanvasSlot = Cast<UCanvasPanelSlot>(ActiveArrow->Slot))
+	auto UpdateArrow = [&](FFSArrowState& State, UImage* Arrow, FVector2D StartPos)
 	{
-		CanvasSlot->SetPosition(FMath::Lerp(EndPos, StartPos, Alpha));
-	}
-	
-	if (Alpha <= 0.0f) {
-		bIsActive = false;
-		ActiveArrow->SetVisibility(ESlateVisibility::Hidden);
-	}
+		if (!State.bIsActive || !Arrow) return;
+		float Alpha = FMath::Clamp((State.TargetTimeMs - CurrentTime) / State.CueLeadTimeMs, 0.0f, 1.0f);
+		FVector2D EndPos = FVector2D(960, 540);
+		if (UCanvasPanelSlot* Slot = Cast<UCanvasPanelSlot>(Arrow->Slot))
+			Slot->SetPosition(FMath::Lerp(EndPos, StartPos, Alpha));
+		if (Alpha <= 0.0f) {
+			State.bIsActive = false;
+			Arrow->SetVisibility(ESlateVisibility::Hidden);
+		}
+	};
+
+	UpdateArrow(ArrowStateA, ArrowLeft,  FVector2D(100, 540));
+	UpdateArrow(ArrowStateB, ArrowRight, FVector2D(1820, 540));
+	UpdateArrow(ArrowStateC, ArrowUp,    FVector2D(960, 100));
 }

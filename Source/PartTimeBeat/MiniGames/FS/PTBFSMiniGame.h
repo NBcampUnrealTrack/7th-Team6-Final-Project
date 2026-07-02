@@ -220,15 +220,19 @@ private:
 	TObjectPtr<ACameraActor> SuccessCamera1;
 	
 	FVector Camera1StartLocation;
-	
 	FVector Camera1EndLocation;
+	
+	FRotator Camera1StartRotation;
+	FRotator Camera1EndRotation;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera",meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<ACameraActor> SuccessCamera2;
 	
 	FVector Camera2StartLocation;
-	
 	FVector Camera2EndLocation;
+	
+	FRotator Camera2StartRotation;
+	FRotator Camera2EndRotation;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera",meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<ACameraActor>  DefaultCamera;
@@ -249,4 +253,10 @@ private:
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera", meta = (AllowPrivateAccess = "true"))
 	TSubclassOf<UCameraShakeBase> MissCameraShakeClass;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UAnimMontage> SuccessAnim; 
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UAnimMontage> FailAnim;; 
 };
