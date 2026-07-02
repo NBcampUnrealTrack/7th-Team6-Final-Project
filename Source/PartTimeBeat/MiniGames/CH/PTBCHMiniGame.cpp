@@ -226,6 +226,12 @@ void APTBCHMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 
     Super::HandleJudgementResult(Result);
     CallHUDShowJudgement(Result.JudgementType);
+    if (ScoreCalculator)
+    {
+        CallHUDUpdateStats(ScoreCalculator->CurrentScore, ScoreCalculator->ComboCount,
+            ScoreCalculator->HighPerfectCount, ScoreCalculator->PerfectCount,
+            ScoreCalculator->GoodCount, ScoreCalculator->MissCount);
+    }
     UE_LOG(LogPTBMiniGames, Log, TEXT("[CH] Result.ActionType=%d, NoteId=%d"),
         static_cast<int32>(Result.ActionType), Result.NoteId);
 
@@ -576,6 +582,17 @@ void APTBCHMiniGame::CallHUDShowJudgement(EPTBJudgementType JudgementType)
     if (UFunction* Func = HUDWidget->FindFunction(TEXT("ShowJudgement")))
     {
         struct { EPTBJudgementType InJudgementType; } Params{ JudgementType };
+        HUDWidget->ProcessEvent(Func, &Params);
+    }
+}
+
+void APTBCHMiniGame::CallHUDUpdateStats(int32 Score, int32 Combo, int32 HighPerfectCount, int32 PerfectCount, int32 GoodCount, int32 MissCount)
+{
+    if (!HUDWidget) return;
+    if (UFunction* Func = HUDWidget->FindFunction(TEXT("UpdateStats")))
+    {
+        struct { int32 InScore; int32 InCombo; int32 InHighPerfectCount; int32 InPerfectCount; int32 InGoodCount; int32 InMissCount; }
+            Params{ Score, Combo, HighPerfectCount, PerfectCount, GoodCount, MissCount };
         HUDWidget->ProcessEvent(Func, &Params);
     }
 }

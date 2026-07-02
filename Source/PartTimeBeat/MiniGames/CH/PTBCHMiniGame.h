@@ -285,5 +285,8 @@ protected:
     /** HUD Blueprint의 ShowJudgement 함수 호출 */
     void CallHUDShowJudgement(EPTBJudgementType JudgementType);
 
+    /** HUD Blueprint의 UpdateStats 함수 호출 (점수/콤보/판정별 누적 수) */
+    void CallHUDUpdateStats(int32 Score, int32 Combo, int32 HighPerfectCount, int32 PerfectCount, int32 GoodCount, int32 MissCount);
+
     virtual void Tick(float DeltaTime) override;
 };
