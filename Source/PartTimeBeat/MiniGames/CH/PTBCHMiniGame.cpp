@@ -827,10 +827,14 @@ void APTBCHMiniGame::SpawnIngredient(EPTBCHIngredientType IngredientType, bool b
             SlideGroups.Last().Ingredients.Add(SpawnedActor);
         }
 
-        // TargetZ = 접시 윗면(StackHeight) + 재료 반높이 → 재료 바닥이 접시 위에 딱 닿도록
+        // TargetZ = 접시 윗면(StackHeight) + (피벗~메쉬 바닥 거리) → 재료 바닥이 접시 위에 딱 닿도록
+        // 피벗이 바운딩 박스 중앙이 아닌 에셋(예: 바닥 피벗)이 섞여 있어도 정확히 동작하도록,
+        // 피벗 위치를 가정하지 않고 스폰 시점의 실제 메쉬 바닥과의 오프셋을 직접 구한다.
         FVector Origin, BoxExtent;
         SpawnedActor->GetActorBounds(true, Origin, BoxExtent);
-        const float TargetZ = StackHeight + BoxExtent.Z;
+        const float MeshBottomZ = Origin.Z - BoxExtent.Z;
+        const float PivotToBottomOffset = SpawnLocation.Z - MeshBottomZ;
+        const float TargetZ = StackHeight + PivotToBottomOffset;
         StackHeight += BoxExtent.Z * 2.0f;
 
         // 드롭 시작 위치(TargetZ + 오프셋)로 배치 후 애니메이션 등록
