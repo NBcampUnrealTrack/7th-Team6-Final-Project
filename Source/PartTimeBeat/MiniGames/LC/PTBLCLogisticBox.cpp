@@ -196,6 +196,63 @@ void APTBLCLogisticBox::InitializeFromNote(const FPTBNoteEvent& Note)
 	}
 }
 
+void APTBLCLogisticBox::ActivateFromPool(const FPTBNoteEvent& Note, const FVector& SpawnLocation)
+{
+	ResetForPool();
+	SetActorLocation(SpawnLocation);
+	SetActorRotation(FRotator::ZeroRotator);
+	SetActorHiddenInGame(false);
+	SetActorEnableCollision(true);
+	SetActorTickEnabled(true);
+
+	bIsMoving = true;
+	MovementDirection = GetActorRightVector();
+
+	InitializeFromNote(Note);
+}
+
+void APTBLCLogisticBox::ResetForPool()
+{
+	NoteId = 0;
+	NoteTimeMs = 0.0f;
+	ContentColorState = EPTBLCColorState::None;
+	BoxColorState = EPTBLCColorState::None;
+	bIsMoving = false;
+	bIsPackaged = false;
+	bIsPackagingSpinActive = false;
+	PackagingSpinElapsedSeconds = 0.0f;
+	PackagingSpinStartRotation = FRotator::ZeroRotator;
+	MovementDirection = FVector::RightVector;
+
+	if (BaseMeshComponent)
+	{
+		BaseMeshComponent->SetSimulatePhysics(false);
+		BaseMeshComponent->SetRelativeScale3D(BaseMeshRelativeScale);
+		if (TriangleMeshAsset && BaseMeshComponent->GetStaticMesh() != TriangleMeshAsset)
+		{
+			BaseMeshComponent->SetStaticMesh(TriangleMeshAsset);
+		}
+		BaseMeshComponent->SetVisibility(true);
+		BaseMeshComponent->SetHiddenInGame(false);
+	}
+
+	if (BoxMeshComponent)
+	{
+		BoxMeshComponent->SetSimulatePhysics(false);
+		BoxMeshComponent->SetRelativeScale3D(BoxMeshRelativeScale);
+		if (BoxMeshAsset && BoxMeshComponent->GetStaticMesh() != BoxMeshAsset)
+		{
+			BoxMeshComponent->SetStaticMesh(BoxMeshAsset);
+		}
+		BoxMeshComponent->SetVisibility(false);
+		BoxMeshComponent->SetHiddenInGame(true);
+	}
+
+	SetActorHiddenInGame(true);
+	SetActorEnableCollision(false);
+	SetActorTickEnabled(false);
+}
+
 void APTBLCLogisticBox::PackageWithActionType(EPTBActionType ActionType)
 {
 	BoxColorState = ActionTypeToLCColorState(ActionType);

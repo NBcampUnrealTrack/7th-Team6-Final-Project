@@ -61,6 +61,12 @@ public:
 	/** 채보 노트 기준으로 내용물 상태 초기화 */
 	void InitializeFromNote(const FPTBNoteEvent& Note);
 
+	/** 풀에서 꺼낸 박스를 노트 기준으로 활성화 */
+	void ActivateFromPool(const FPTBNoteEvent& Note, const FVector& SpawnLocation);
+
+	/** 풀 대기 상태로 초기화 */
+	void ResetForPool();
+
 	/** 입력 액션 기준으로 박스 포장 처리 */
 	void PackageWithActionType(EPTBActionType ActionType);
 

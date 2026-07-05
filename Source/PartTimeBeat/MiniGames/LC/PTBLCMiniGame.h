@@ -82,6 +82,8 @@ protected:
 	float BeatPulseRecoverEaseExponent = 3.0f;
 
 private:
+	bool IsLogisticBoxAction(EPTBActionType ActionType) const;
+
 	float CalculateScheduledCueTimeMs(const FPTBNoteEvent& Note) const;
 	
 	void ApplyCueSpawnDelayCompensation(APTBLCLogisticBox* LogisticBox, const FPTBNoteEvent& Note) const;
@@ -93,5 +95,14 @@ private:
 	UFUNCTION()
 	void HandleLogisticBoxDestroyed(AActor* DestroyedActor);
 	
+	void PrepareLogisticBoxPool();
+
+	APTBLCLogisticBox* AcquireLogisticBoxFromPool();
+
 	TArray<TWeakObjectPtr<APTBLCLogisticBox>> ActiveLogisticBoxes;
+
+	UPROPERTY()
+	TArray<TObjectPtr<APTBLCLogisticBox>> LogisticBoxPool;
+
+	int32 NextLogisticBoxPoolIndex = 0;
 };
