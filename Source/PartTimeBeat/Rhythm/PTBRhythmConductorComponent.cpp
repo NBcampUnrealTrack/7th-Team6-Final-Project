@@ -239,7 +239,8 @@ void UPTBRhythmConductorComponent::StartConductor(const FPTBChartData & Data, in
 
 void UPTBRhythmConductorComponent::StartConductor(UPTBRhythmChartAsset* InChartAsset, int32 PlayingId, UPTBWwiseAudioManager* InAudioManager)
 {
-	if (bCuePreRollOnly && ChartAsset == InChartAsset && ChartAsset)
+	const bool bContinueCuePreRollChart = bCuePreRollOnly && ChartAsset == InChartAsset && ChartAsset;
+	if (bContinueCuePreRollChart)
 	{
 		const TArray<FPTBNoteEvent>& Notes = ChartAsset->NoteEvents;
 		const float CueLeadBeats = FMath::Max(0.0f, LookAheadBeats);
@@ -258,8 +259,8 @@ void UPTBRhythmConductorComponent::StartConductor(UPTBRhythmChartAsset* InChartA
 		}
 	}
 
-	const int32 InitialCueIndex = bCuePreRollOnly ? NextCueIndex : 0;
-	const int32 InitialArmIndex = bCuePreRollOnly ? NextArmIndex : 0;
+	const int32 InitialCueIndex = bContinueCuePreRollChart ? NextCueIndex : 0;
+	const int32 InitialArmIndex = bContinueCuePreRollChart ? NextArmIndex : 0;
 
 	ChartAsset = InChartAsset;
 	if (!RhythmSyncComponent && GetOwner())
