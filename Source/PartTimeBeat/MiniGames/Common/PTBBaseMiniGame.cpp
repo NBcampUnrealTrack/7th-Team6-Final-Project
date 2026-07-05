@@ -174,7 +174,8 @@ void APTBBaseMiniGame::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	if (!bIsRoundActive || !JudgementSystem)
+	const bool bIsCuePreRollActive = IsCuePreRollActive();
+	if ((!bIsRoundActive && !bIsCuePreRollActive) || !JudgementSystem)
 	{
 		return;
 	}
@@ -186,6 +187,11 @@ void APTBBaseMiniGame::Tick(float DeltaTime)
 	if (bPendingRoundFailed)
 	{
 		FinishMiniGame(EPTBRoundEndReason::Failed);
+		return;
+	}
+
+	if (bIsCuePreRollActive)
+	{
 		return;
 	}
 
@@ -234,6 +240,7 @@ void APTBBaseMiniGame::InitializeMiniGame(const FPTBMiniGameContext& Context)
 	bInputLocked = true;
 	PendingEndReason = EPTBRoundEndReason::Completed;
 	GetWorldTimerManager().ClearTimer(IntroTimerHandle);
+	GetWorldTimerManager().ClearTimer(CuePreRollTimerHandle);
 	GetWorldTimerManager().ClearTimer(OutroTimerHandle);
 
 	HandleLoadingStarted();
@@ -654,7 +661,34 @@ void APTBBaseMiniGame::StartMiniGame()
 		: 0.0f;
 	if (IntroDelaySeconds > 0.0f)
 	{
-		GetWorldTimerManager().SetTimer(IntroTimerHandle, this, &APTBBaseMiniGame::BeginGameplaySequence, IntroDelaySeconds, false);
+		GetWorldTimerManager().SetTimer(IntroTimerHandle, this, &APTBBaseMiniGame::BeginCuePreRollSequence, IntroDelaySeconds, false);
+		return;
+	}
+
+	BeginCuePreRollSequence();
+}
+
+void APTBBaseMiniGame::BeginCuePreRollSequence()
+{
+	GetWorldTimerManager().ClearTimer(IntroTimerHandle);
+	if (!bStartSequenceActive || bIsRoundActive || bFinishSequenceActive)
+	{
+		return;
+	}
+
+	OnMiniGameIntroFinished.Broadcast();
+	ReceiveIntroFinished();
+
+	const float CuePreRollTimeMs = ResolveCuePreRollTimeMs();
+	if (CuePreRollTimeMs > 0.0f)
+	{
+		if (RhythmConductor)
+		{
+			RhythmConductor->StartCuePreRoll(ChartAsset.Get(), CuePreRollTimeMs);
+		}
+
+		bInputLocked = false;
+		GetWorldTimerManager().SetTimer(CuePreRollTimerHandle, this, &APTBBaseMiniGame::BeginGameplaySequence, CuePreRollTimeMs / 1000.0f, false);
 		return;
 	}
 
@@ -664,6 +698,7 @@ void APTBBaseMiniGame::StartMiniGame()
 void APTBBaseMiniGame::BeginGameplaySequence()
 {
 	GetWorldTimerManager().ClearTimer(IntroTimerHandle);
+	GetWorldTimerManager().ClearTimer(CuePreRollTimerHandle);
 	if (!bStartSequenceActive || bIsRoundActive || bFinishSequenceActive)
 	{
 		return;
@@ -745,6 +780,7 @@ FPTBRoundResult APTBBaseMiniGame::FinishMiniGame(EPTBRoundEndReason Reason)
 	bPendingRoundFinish = false;
 	bPendingRoundFailed = false;
 	GetWorldTimerManager().ClearTimer(IntroTimerHandle);
+	GetWorldTimerManager().ClearTimer(CuePreRollTimerHandle);
 	ApplyGameAndUIInputMode();
 
 	if (Reason != EPTBRoundEndReason::Aborted && JudgementSystem)
@@ -859,6 +895,7 @@ void APTBBaseMiniGame::PauseMiniGame()
 	bInputLocked = true;
 	ApplyGameAndUIInputMode();
 	GetWorldTimerManager().PauseTimer(IntroTimerHandle);
+	GetWorldTimerManager().PauseTimer(CuePreRollTimerHandle);
 	GetWorldTimerManager().PauseTimer(OutroTimerHandle);
 	if (RhythmConductor)
 	{
@@ -879,6 +916,7 @@ void APTBBaseMiniGame::ResumeMiniGame()
 	}
 
 	GetWorldTimerManager().UnPauseTimer(IntroTimerHandle);
+	GetWorldTimerManager().UnPauseTimer(CuePreRollTimerHandle);
 	GetWorldTimerManager().UnPauseTimer(OutroTimerHandle);
 	if (RhythmConductor)
 	{
@@ -890,7 +928,7 @@ void APTBBaseMiniGame::ResumeMiniGame()
 		AudioManager->ResumeBGM();
 	}
 
-	bInputLocked = !bIsRoundActive;
+	bInputLocked = !(bIsRoundActive || IsCuePreRollActive());
 	ApplyGameOnlyInputMode();
 }
 
@@ -1224,6 +1262,10 @@ void APTBBaseMiniGame::ReceiveIntroStarted_Implementation()
 {
 }
 
+void APTBBaseMiniGame::ReceiveIntroFinished_Implementation()
+{
+}
+
 void APTBBaseMiniGame::ReceiveGameplayStarted_Implementation()
 {
 }
@@ -1265,7 +1307,16 @@ void APTBBaseMiniGame::RequestWwiseEvent(FName EventKey, AActor* Target)
 
 bool APTBBaseMiniGame::CanAcceptInput() const
 {
-	return bIsInitialized && bIsRoundActive && !bInputLocked && JudgementSystem != nullptr && ChartAsset != nullptr;
+	return bIsInitialized
+		&& (bIsRoundActive || IsCuePreRollActive())
+		&& !bInputLocked
+		&& JudgementSystem != nullptr
+		&& ChartAsset != nullptr;
+}
+
+bool APTBBaseMiniGame::IsCuePreRollActive() const
+{
+	return bStartSequenceActive && RhythmConductor && RhythmConductor->IsCuePreRollOnly();
 }
 
 TMap<FKey, EPTBActionType> APTBBaseMiniGame::GetActionMapping() const
@@ -1294,8 +1345,36 @@ float APTBBaseMiniGame::ResolveSoundOffsetMs(const FPTBMiniGameContext& Context)
 	return 0.0f;
 }
 
+float APTBBaseMiniGame::ResolveCuePreRollTimeMs() const
+{
+	if (!RuleSet || !RuleSet->bUseCuePreRoll)
+	{
+		return 0.0f;
+	}
+
+	if (RuleSet->CuePreRollMode == EPTBCueLeadTimeMode::MS)
+	{
+		return FMath::Max(0.0f, RuleSet->CuePreRollTimeMs);
+	}
+
+	const float BPM = GameContext.ChartData.BPM > 0.0f
+		? GameContext.ChartData.BPM
+		: (ChartAsset ? ChartAsset->ChartData.BPM : 0.0f);
+	if (BPM <= 0.0f)
+	{
+		return 0.0f;
+	}
+
+	return FMath::Max(0.0f, RuleSet->CuePreRollBeats) * 60000.0f / BPM;
+}
+
 float APTBBaseMiniGame::GetCurrentChartTimeMs() const
 {
+	if (RhythmConductor && RhythmConductor->IsCuePreRollOnly())
+	{
+		return RhythmConductor->GetCurrentChartTimeMs();
+	}
+
 	if (RhythmSyncComponent)
 	{
 		return RhythmSyncComponent->GetChartTimeMs();
@@ -1303,7 +1382,7 @@ float APTBBaseMiniGame::GetCurrentChartTimeMs() const
 
 	if (RhythmConductor)
 	{
-		return RhythmConductor->GetCurrentMusicTimeMs() - GameContext.ChartData.OffsetMs;
+		return RhythmConductor->GetCurrentChartTimeMs();
 	}
 
 	return 0.0f;
@@ -1311,6 +1390,11 @@ float APTBBaseMiniGame::GetCurrentChartTimeMs() const
 
 float APTBBaseMiniGame::GetCurrentInputJudgeTimeMs() const
 {
+	if (IsCuePreRollActive())
+	{
+		return GetCurrentChartTimeMs() + ResolveInputOffsetMs(GameContext);
+	}
+
 	if (RhythmSyncComponent)
 	{
 		return RhythmSyncComponent->GetInputJudgeTimeMs();
