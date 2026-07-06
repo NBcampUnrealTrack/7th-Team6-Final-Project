@@ -5,7 +5,21 @@
 #include "InputCoreTypes.h"
 #include "PTBLatencyCalibrationWidget.generated.h"
 
+class UCanvasPanel;
+class UBorder;
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCalibrationFinished, float, AverageOffsetMs);
+
+USTRUCT()
+struct FPTBCalibrationNote
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	TObjectPtr<UBorder> Widget = nullptr;
+
+	double SpawnTime = 0.0;
+};
 
 UCLASS()
 class PARTTIMEBEAT_API UPTBLatencyCalibrationWidget : public UUserWidget
@@ -14,6 +28,7 @@ class PARTTIMEBEAT_API UPTBLatencyCalibrationWidget : public UUserWidget
 
 public:
 	virtual void NativeConstruct() override;
+	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
 	virtual FReply NativeOnKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent) override;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Calibration")
@@ -25,6 +40,17 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Calibration")
 	int32 RequiredPressCount = 8;
 
+	// 노트가 판정선까지 도달하는 데 걸리는 박자 수 (클수록 화면 오른쪽에서 천천히 옴)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Calibration")
+	int32 NoteLeadBeats = 2;
+
+	// 판정선 X 위치 (0=왼쪽 끝, 1=오른쪽 끝) - 화면 비율 기준이라 반응형
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Calibration")
+	float JudgmentLineAnchorX = 0.2f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Calibration")
+	float NoteSizePx = 40.f;
+
 	UPROPERTY(BlueprintAssignable, Category = "Calibration")
 	FOnCalibrationFinished OnCalibrationFinished;
 
@@ -32,17 +58,30 @@ public:
 	void StartCalibration();
 
 protected:
-	// WBP에서 구현: 비주얼/오디오 큐(메트로놈 플래시 등)
+	// WBP Designer에 이 이름과 타입(Canvas Panel)으로 위젯을 만들어야 바인딩됨
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UCanvasPanel> NoteTrackCanvas;
+
+	// 선택: 판정선 표시용 위젯 (Border/Image), 만들어두면 위치 자동 동기화
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UWidget> JudgmentLineWidget;
+
 	UFUNCTION(BlueprintImplementableEvent, Category = "Calibration")
 	void OnMetronomeTick();
 
+	UFUNCTION(BlueprintImplementableEvent, Category = "Calibration")
+	void OnJudgementFlash(bool bGoodHit);
+
 private:
 	void MetronomeTick();
+	void SpawnNote();
 	void FinishCalibration();
 
 	float BeatIntervalSec = 0.f;
+	float NoteTravelTimeSec = 0.f;
 	int32 CurrentPressCount = 0;
 	double SessionStartTime = 0.0;
 	TArray<float> BeatOffsetsMs;
+	TArray<FPTBCalibrationNote> ActiveNotes;
 	FTimerHandle MetronomeTimerHandle;
 };
