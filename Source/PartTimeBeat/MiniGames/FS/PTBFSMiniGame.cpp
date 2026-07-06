@@ -1,7 +1,6 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 #include "PTBFSMiniGame.h"
 #include "Camera/CameraShakeBase.h"
-#include "EngineUtils.h"
 #include "FishActor.h"
 #include "FSWidget.h"
 #include "PTBFSCharacter.h"
@@ -12,7 +11,7 @@
 #include "Rhythm/PTBJudgementSystem.h"
 #include "Rhythm/PTBRhythmChartAsset.h"
 #include "Rhythm/PTBRhythmConductorComponent.h"
-#include "Camera/CameraActor.h"
+#include "LevelSequencePlayer.h"
 #include "MiniGames/Common/UI/PTBMiniGameLoadingWidget.h"
 
 APTBFSMiniGame::APTBFSMiniGame()
@@ -53,33 +52,6 @@ void APTBFSMiniGame::BeginPlay()
 void APTBFSMiniGame::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-	if (bMovingCamera1 && SuccessCamera1)
-	{
-		CameraElapsedTime += DeltaTime;
-		float Alpha = FMath::Clamp(CameraElapsedTime / 3.0f, 0.0f, 1.0f);
-		FVector NewLoc = FMath::Lerp(Camera1StartLocation, Camera1EndLocation, Alpha);
-		SuccessCamera1->SetActorLocation(NewLoc);
-
-		if (Alpha >= 1.0f)
-		{
-			bMovingCamera1 = false;
-		}
-		SuccessCamera1->SetActorRotation(FMath::Lerp(Camera1StartRotation, Camera1EndRotation, Alpha));
-	}
-
-	if (bMovingCamera2 && SuccessCamera2)
-	{
-		CameraElapsedTime += DeltaTime;
-		float Alpha = FMath::Clamp(CameraElapsedTime / 3.0f, 0.0f, 1.0f);
-		FVector NewLoc = FMath::Lerp(Camera2StartLocation, Camera2EndLocation, Alpha);
-		SuccessCamera2->SetActorLocation(NewLoc);
-
-		if (Alpha >= 1.0f)
-		{
-			bMovingCamera2 = false;
-		}
-		SuccessCamera2->SetActorRotation(FMath::Lerp(Camera2StartRotation, Camera2EndRotation, Alpha));
-	}
 }
 
 void APTBFSMiniGame::BuildRuntimeState()
@@ -136,13 +108,6 @@ void APTBFSMiniGame::BuildRuntimeState()
 
 	Character->SetFishLineTarget(FishActor);
 	Character->OnPlayCastAnimMontage();
-	for (TActorIterator<ACameraActor> It(GetWorld()); It; ++It)
-	{
-		if (It->ActorHasTag(FName("SuccessCamera1")))
-			SuccessCamera1 = *It;
-		else if ((It->ActorHasTag(FName("SuccessCamera2"))))
-			SuccessCamera2 = *It;
-	}
 	GI->CachedSettings.RhythmKeys.ActionA = EKeys::Left;
 	GI->CachedSettings.RhythmKeys.ActionB = EKeys::Right;
 	GI->CachedSettings.RhythmKeys.ActionC = EKeys::Up;
@@ -251,6 +216,7 @@ void APTBFSMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 		OnFishingComboChanged.Broadcast(CurrentComboCount);
 		break;
 	case EPTBJudgementType::Miss:
+		PTB_WARNING(LogPTBMiniGames, TEXT("[FS] Miss Reason: %d"), static_cast<int32>(Result.Reason));
 		FishLateralOffset = FVector::ZeroVector;
 		FishActor->SetTargetLocation(FMath::Lerp(CharacterLocation, FishStartLocation, FishDistance));
 		OnFishingPromptReleased.Broadcast(Result.ActionType);
@@ -269,6 +235,9 @@ void APTBFSMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 				PC->ClientStartCameraShake(MissCameraShakeClass);
 			}
 		}
+		break;
+	default:
+		break;
 	}
 }
 
@@ -279,9 +248,7 @@ FPTBMiniGameResultPayload APTBFSMiniGame::BuildResultPayload() const
 
 	Payload.IntValues.Add(TEXT("CorrectCount"), CorrectCount);
 	Payload.FloatValues.Add(TEXT("FinalFishDistance"), FishDistance);
-	Payload.IntValues.Add(TEXT("bCaught"), FishDistance <= 0.3f ? 1 : 0);
-
-
+	Payload.IntValues.Add(TEXT("bCaught"), FishDistance <= 0.5f ? 1 : 0);
 	return Payload;
 }
 
@@ -290,61 +257,34 @@ void APTBFSMiniGame::InitializeMiniGame(const FPTBMiniGameContext& Context)
 	Super::InitializeMiniGame(Context);
 }
 
-void APTBFSMiniGame::PlaySuccessCameraSequence()
-{
-	APlayerController* PC = GetWorld()->GetFirstPlayerController();
-	if (!PC) return;
-
-	if (SuccessCamera1)
-	{
-		Camera1StartLocation = SuccessCamera1->GetActorLocation();
-		Camera1EndLocation = Camera1StartLocation + FVector(0, 0, 75);
-		
-		Camera1StartRotation = SuccessCamera1->GetActorRotation();
-		Camera1EndRotation = Camera1StartRotation + FRotator(-10, 0, 0);
-		
-		CameraElapsedTime = 0.0f;
-		bMovingCamera1 = true;
-		PC->SetViewTargetWithBlend(SuccessCamera1, 0.5f);
-	}
-
-	GetWorldTimerManager().SetTimer(
-		CameraTimer,
-		[WeakThis = TWeakObjectPtr<APTBFSMiniGame>(this)]()
-		{
-			if (!WeakThis.IsValid()) return;
-
-			APlayerController* PC = WeakThis->GetWorld()->GetFirstPlayerController();
-			if (!PC) return;
-
-			if (WeakThis->SuccessCamera2)
-			{
-				WeakThis->Camera2StartLocation = WeakThis->SuccessCamera2->GetActorLocation();
-				WeakThis->Camera2EndLocation = WeakThis->Camera2StartLocation + FVector(0, 0, -75);
-				
-			WeakThis->Camera2StartRotation =WeakThis-> SuccessCamera2->GetActorRotation();
-			WeakThis->Camera2EndRotation = WeakThis->Camera2StartRotation + FRotator(10, 0, 0);
-				WeakThis->CameraElapsedTime = 0.0f;
-				WeakThis->bMovingCamera2 = true;
-				PC->SetViewTargetWithBlend(WeakThis->SuccessCamera2, 0.5f);
-			}
-		},
-		5.0f,
-		false
-	);
-}
 
 void APTBFSMiniGame::OnAllNotesPassedFishing()
 {
 	OnFishRevealed.Broadcast(FishActor);
-	if (FishDistance <= 0.3f) 
+	if (FishDistance <= 0.5f)
 	{
+		PTB_WARNING(LogPTBMiniGames, TEXT("[FS] 성공 분기 진입"));
 		if (ActiveFSWidget)
 		{
 			ActiveFSWidget->RemoveFromParent();
 			ActiveFSWidget = nullptr;
 		}
-		PlaySuccessCameraSequence();
+		//PlaySuccessCameraSequence();
+		if (SuccessCameraSequence)
+		{
+			ALevelSequenceActor* SequenceActor;
+			ULevelSequencePlayer* Player = ULevelSequencePlayer::CreateLevelSequencePlayer(
+				GetWorld(), SuccessCameraSequence, FMovieSceneSequencePlaybackSettings(), SequenceActor);
+			if (Player)
+			{
+				Player->Play();
+				PTB_WARNING(LogPTBMiniGames, TEXT("[FS] 레벨 시퀀스 재생 시작"));
+			}
+			else
+			{
+				PTB_WARNING(LogPTBMiniGames, TEXT("[FS] 레벨 시퀀스 플레이어 생성 실패"));
+			}
+		}
 		Character->StopAnimMontage();
 		FTimerHandle FirstHandle;
 		GetWorldTimerManager().SetTimer(FirstHandle, [WeakThis = TWeakObjectPtr<APTBFSMiniGame>(this)]()
@@ -365,10 +305,26 @@ void APTBFSMiniGame::OnAllNotesPassedFishing()
 	}
 	else
 	{
+		PTB_WARNING(LogPTBMiniGames, TEXT("[FS] 실패 분기 진입"));
 		if (ActiveFSWidget)
 		{
 			ActiveFSWidget->RemoveFromParent();
 			ActiveFSWidget = nullptr;
+		}
+		if (FailCameraSequence)
+		{
+			ALevelSequenceActor* SequenceActor;
+			ULevelSequencePlayer* Player = ULevelSequencePlayer::CreateLevelSequencePlayer(
+				GetWorld(), FailCameraSequence, FMovieSceneSequencePlaybackSettings(), SequenceActor);
+			if (Player)
+			{
+				Player->Play();
+				PTB_WARNING(LogPTBMiniGames, TEXT("[FS] 레벨 시퀀스 재생 시작"));
+			}
+			else
+			{
+				PTB_WARNING(LogPTBMiniGames, TEXT("[FS] 레벨 시퀀스 플레이어 생성 실패"));
+			}
 		}
 		Character->StopAnimMontage();
 		FTimerHandle FirstHandle;

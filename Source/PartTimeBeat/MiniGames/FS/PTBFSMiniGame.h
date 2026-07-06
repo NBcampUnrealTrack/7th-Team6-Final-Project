@@ -168,8 +168,7 @@ protected:
 	
 	UFUNCTION(BlueprintCallable, Category = "PTB|MiniGame")
 	virtual void InitializeMiniGame(const FPTBMiniGameContext& Context)override;
-
-	void PlaySuccessCameraSequence();
+	//void PlaySuccessCameraSequence();
 	
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	
@@ -216,37 +215,6 @@ private:
 	
 	FVector FishLateralOffset = FVector::ZeroVector;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera",meta = (AllowPrivateAccess = "true"))
-	TObjectPtr<ACameraActor> SuccessCamera1;
-	
-	FVector Camera1StartLocation;
-	FVector Camera1EndLocation;
-	
-	FRotator Camera1StartRotation;
-	FRotator Camera1EndRotation;
-	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera",meta = (AllowPrivateAccess = "true"))
-	TObjectPtr<ACameraActor> SuccessCamera2;
-	
-	FVector Camera2StartLocation;
-	FVector Camera2EndLocation;
-	
-	FRotator Camera2StartRotation;
-	FRotator Camera2EndRotation;
-	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera",meta = (AllowPrivateAccess = "true"))
-	TObjectPtr<ACameraActor>  DefaultCamera;
-	
-	FTimerHandle CameraTimer;
-	
-	UPROPERTY()
-	bool bMovingCamera1 = false;
-
-	UPROPERTY()
-	bool bMovingCamera2 = false;
-
-	float CameraElapsedTime = 0.0f;
-	
 	FPTBRhythmKeyBindings OriginalKeyBindings;
 	
 	int32 CurrentComboCount = 0;
@@ -259,4 +227,10 @@ private:
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UAnimMontage> FailAnim;; 
+	
+	UPROPERTY(EditAnywhere, Category = "Camera",meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<class ULevelSequence> SuccessCameraSequence;
+	
+	UPROPERTY(EditAnywhere, Category = "Camera",meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<class ULevelSequence> FailCameraSequence;
 };

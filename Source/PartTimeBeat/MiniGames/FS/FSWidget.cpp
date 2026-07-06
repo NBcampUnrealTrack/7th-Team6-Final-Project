@@ -41,11 +41,10 @@ void UFSWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 	if (!Sync) return;
 	float CurrentTime = Sync->GetVisualChartTimeMs();
 
-	auto UpdateArrow = [&](FFSArrowState& State, UImage* Arrow, FVector2D StartPos)
+	auto UpdateArrow = [&](FFSArrowState& State, UImage* Arrow, FVector2D StartPos, FVector2D EndPos)
 	{
 		if (!State.bIsActive || !Arrow) return;
 		float Alpha = FMath::Clamp((State.TargetTimeMs - CurrentTime) / State.CueLeadTimeMs, 0.0f, 1.0f);
-		FVector2D EndPos = FVector2D(960, 540);
 		if (UCanvasPanelSlot* Slot = Cast<UCanvasPanelSlot>(Arrow->Slot))
 			Slot->SetPosition(FMath::Lerp(EndPos, StartPos, Alpha));
 		if (Alpha <= 0.0f) {
@@ -54,7 +53,7 @@ void UFSWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 		}
 	};
 
-	UpdateArrow(ArrowStateA, ArrowLeft,  FVector2D(100, 540));
-	UpdateArrow(ArrowStateB, ArrowRight, FVector2D(1820, 540));
-	UpdateArrow(ArrowStateC, ArrowUp,    FVector2D(960, 100));
-}
+	UpdateArrow(ArrowStateA, ArrowLeft,  FVector2D(100, 540),  FVector2D(760, 540));
+	UpdateArrow(ArrowStateB, ArrowRight, FVector2D(1820, 540), FVector2D(1160, 540));
+	UpdateArrow(ArrowStateC, ArrowUp,    FVector2D(960, 100),  FVector2D(960, 540));
+}		
