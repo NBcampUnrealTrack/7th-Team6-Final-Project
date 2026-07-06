@@ -58,6 +58,11 @@ public:
 	void StartCalibration();
 
 protected:
+	UFUNCTION(BlueprintImplementableEvent, Category = "Calibration")
+	void OnOffsetMsUpdated(const FText& FormattedOffset);
+
+	UFUNCTION(BlueprintImplementableEvent, Category = "Calibration")
+	void OnCalibrationFinishedDisplay(const FText& FormattedAverage);
 	// WBP Designer에 이 이름과 타입(Canvas Panel)으로 위젯을 만들어야 바인딩됨
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UCanvasPanel> NoteTrackCanvas;
@@ -84,4 +89,6 @@ private:
 	TArray<float> BeatOffsetsMs;
 	TArray<FPTBCalibrationNote> ActiveNotes;
 	FTimerHandle MetronomeTimerHandle;
+
+	bool bIsCalibrationActive = false;
 };

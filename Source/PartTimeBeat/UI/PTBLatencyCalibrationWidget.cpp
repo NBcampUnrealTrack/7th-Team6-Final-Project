@@ -25,6 +25,8 @@ void UPTBLatencyCalibrationWidget::NativeConstruct()
 
 void UPTBLatencyCalibrationWidget::StartCalibration()
 {
+	bIsCalibrationActive = true;
+
 	BeatIntervalSec = 60.0f / BPM;
 	NoteTravelTimeSec = BeatIntervalSec * NoteLeadBeats;
 
@@ -123,6 +125,11 @@ void UPTBLatencyCalibrationWidget::NativeTick(const FGeometry& MyGeometry, float
 
 FReply UPTBLatencyCalibrationWidget::NativeOnKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent)
 {
+	if (!bIsCalibrationActive)
+	{
+		return FReply::Unhandled();
+	}
+
 	if (InKeyEvent.GetKey() == TargetKey && !InKeyEvent.IsRepeat())
 	{
 		const double CurrentTime = GetWorld()->GetTimeSeconds();
@@ -134,6 +141,9 @@ FReply UPTBLatencyCalibrationWidget::NativeOnKeyDown(const FGeometry& InGeometry
 
 		BeatOffsetsMs.Add(OffsetMs);
 		CurrentPressCount++;
+
+		const FString OffsetStr = FString::Printf(TEXT("%+.0fms"), OffsetMs);
+		OnOffsetMsUpdated(FText::FromString(OffsetStr));
 
 		OnJudgementFlash(FMath::Abs(OffsetMs) < 100.f);
 
@@ -174,6 +184,8 @@ FReply UPTBLatencyCalibrationWidget::NativeOnKeyDown(const FGeometry& InGeometry
 
 void UPTBLatencyCalibrationWidget::FinishCalibration()
 {
+	bIsCalibrationActive = false; 
+
 	GetWorld()->GetTimerManager().ClearTimer(MetronomeTimerHandle);
 
 	float AverageOffsetMs = 0.f;
@@ -186,6 +198,9 @@ void UPTBLatencyCalibrationWidget::FinishCalibration()
 		}
 		AverageOffsetMs = Sum / BeatOffsetsMs.Num();
 	}
+
+	const FString AverageStr = FString::Printf(TEXT("%+.1fms"), AverageOffsetMs);
+	OnCalibrationFinishedDisplay(FText::FromString(AverageStr));
 
 	OnCalibrationFinished.Broadcast(AverageOffsetMs);
 }
