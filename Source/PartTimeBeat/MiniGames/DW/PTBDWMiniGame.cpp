@@ -8,9 +8,13 @@
 #include "MiniGames/DW/PTBDWMiniGameRuleSet.h"
 #include "MiniGames/DW/PTBDWNoteMarker.h"
 #include "MiniGames/DW/PTBDWCharacter.h"
+#include "MiniGames/DW/PTBDWBackgroundScroller.h"
+#include "MiniGames/DW/PTBDWCameraRig.h"
+#include "EngineUtils.h"
 #include "Audio/PTBWwiseRhythmSyncComponent.h"
 #include "Rhythm/PTBRhythmChartAsset.h"
 #include "Rhythm/PTBRhythmConductorComponent.h"
+#include "Rhythm/PTBScoreCalculator.h"
 
 namespace
 {
@@ -84,6 +88,9 @@ void APTBDWMiniGame::Tick(float DeltaTime)
 
 	SpawnJudgeTargetIfNeeded();
 
+	const float KickGravity = GetDWRuleSet() ? GetDWRuleSet()->KickGravity : 2000.0f;
+	const FVector ResolveFwd = GetActorForwardVector();
+	const FVector ResolveRight = GetActorRightVector();
 	for (int32 i = ResolvingObstacles.Num() - 1; i >= 0; --i)
 	{
 		FDWResolvingObstacle& R = ResolvingObstacles[i];
@@ -96,7 +103,22 @@ void APTBDWMiniGame::Tick(float DeltaTime)
 
 		R.Timer -= DeltaTime;
 		const float P = FMath::Clamp(1.0f - R.Timer / FMath::Max(KINDA_SMALL_NUMBER, R.Duration), 0.f, 1.f);
-		if (R.bSplitPiece)
+		if (R.bLaunch)
+		{
+			R.Vel += FVector(0.f, 0.f, -KickGravity) * DeltaTime;
+			FVector NewLoc = Obs->GetActorLocation() + R.Vel * DeltaTime;
+			if (NewLoc.Z < R.GroundZ)
+			{
+				NewLoc.Z = R.GroundZ;
+				R.Vel.Z = FMath::Abs(R.Vel.Z) * R.Restitution;
+				R.Vel.X *= 0.7f;
+				R.Vel.Y *= 0.7f;
+			}
+			Obs->SetActorLocation(NewLoc);
+			Obs->AddActorLocalRotation(FRotator(R.SpinDegPerSec * DeltaTime, 0.f, 0.f));
+			if (P > 0.7f) { Obs->SetActorScale3D(R.StartScale * FMath::Max(0.f, 1.f - (P - 0.7f) / 0.3f)); }
+		}
+		else if (R.bSplitPiece)
 		{
 			const FVector Loc = R.StartLoc
 				+ R.SideDir * (DWBreak::FlyApart * P)
@@ -109,8 +131,35 @@ void APTBDWMiniGame::Tick(float DeltaTime)
 		}
 		else
 		{
-			Obs->SetActorRotation(R.StartRot + FRotator(70.0f * P, 0.f, 0.f));
-			Obs->SetActorScale3D(R.StartScale * (1.0f - P));
+			const float FallFrac = FMath::Clamp(R.FallFrac, 0.02f, 1.f);
+			if (R.BackVel > 1.f)
+			{
+				Obs->AddActorWorldOffset(-ResolveFwd * R.BackVel * DeltaTime);
+				const float fp = FMath::Clamp(P / FallFrac, 0.f, 1.f);
+				const float eased = 1.f - (1.f - fp) * (1.f - fp);
+				Obs->SetActorRotation(R.StartRot.Quaternion() * FRotator(R.EndRot.Pitch * eased, R.EndRot.Yaw * eased, R.EndRot.Roll * eased).Quaternion());
+				if (P < FallFrac && R.SpreadY != 0.f)
+				{
+					const float FallTime = FMath::Max(KINDA_SMALL_NUMBER, FallFrac * R.Duration);
+					Obs->AddActorWorldOffset(ResolveRight * (R.SpreadY / FallTime) * DeltaTime);
+				}
+			}
+			else
+			{
+				if (P <= FallFrac)
+				{
+					const float fp = P / FallFrac;
+					const float eased = 1.f - (1.f - fp) * (1.f - fp);
+					Obs->SetActorRotation(R.StartRot.Quaternion() * FRotator(R.EndRot.Pitch * eased, R.EndRot.Yaw * eased, R.EndRot.Roll * eased).Quaternion());
+					Obs->SetActorScale3D(R.StartScale);
+				}
+				else
+				{
+					const float gp = (P - FallFrac) / FMath::Max(KINDA_SMALL_NUMBER, 1.f - FallFrac);
+					Obs->SetActorRotation(R.StartRot.Quaternion() * R.EndRot.Quaternion());
+					Obs->SetActorScale3D(R.StartScale * FMath::Max(0.f, 1.f - gp));
+				}
+			}
 		}
 
 		if (R.Timer <= 0.f)
@@ -127,8 +176,9 @@ void APTBDWMiniGame::Tick(float DeltaTime)
 
 	const float VisualNow = RhythmSyncComponent->GetVisualChartTimeMs();
 	const FVector ForwardDir = GetActorForwardVector();
+	const float StarSpinDeg = (GetDWRuleSet() ? GetDWRuleSet()->StarSpinDegPerSec : 0.f) * DeltaTime;
 
-	TArray<int32> CompletedIds;
+	TArray<TTuple<int32, EPTBActionType, bool>> ToResolve;
 
 	for (TPair<int32, FDWNoteView>& Pair : ActiveNoteViews)
 	{
@@ -144,9 +194,9 @@ void APTBDWMiniGame::Tick(float DeltaTime)
 			const float HoldProg = FMath::Clamp((VisualNow - View.TargetMs) / HoldDen, 0.f, 1.f);
 			VisibleTailLen = View.TailLengthCm * (1.0f - HoldProg);
 
-			if (View.bJudgedSuccess && HoldProg >= 1.0f)
+			if (View.bJudged && HoldProg >= 1.0f)
 			{
-				CompletedIds.Add(Pair.Key);
+				ToResolve.Add(MakeTuple(Pair.Key, View.Action, View.bJudgedSuccess));
 			}
 		}
 
@@ -163,13 +213,17 @@ void APTBDWMiniGame::Tick(float DeltaTime)
 		}
 		if (View.Obstacle)
 		{
-			View.Obstacle->SetActorLocation(MarkerPos + ForwardDir * VisibleTailLen + View.ObstacleOffsetVec);
+			View.Obstacle->SetActorLocation(MarkerPos + ForwardDir * VisibleTailLen + View.ObstacleOffsetVec + View.ObstaclePivotWorld);
+			if (View.Action == EPTBActionType::ActionE && StarSpinDeg != 0.f)
+			{
+				View.Obstacle->AddActorLocalRotation(FRotator(0.f, StarSpinDeg, 0.f));
+			}
 		}
 	}
 
-	for (int32 Id : CompletedIds)
+	for (const TTuple<int32, EPTBActionType, bool>& T : ToResolve)
 	{
-		RecycleNoteView(Id);
+		PlayNoteResultEffects(T.Get<0>(), T.Get<1>(), T.Get<2>(), true);
 	}
 }
 
@@ -177,24 +231,85 @@ void APTBDWMiniGame::StartMiniGame()
 {
 	Super::StartMiniGame();
 
-	if (Protagonist) { Protagonist->StartRunning(); }
-	if (Dog)         { Dog->StartRunning(); }
+
+	if (!BackgroundScroller)
+	{
+		for (TActorIterator<APTBDWBackgroundScroller> It(GetWorld()); It; ++It)
+		{
+			BackgroundScroller = *It;
+			break;
+		}
+	}
+
+	if (!CameraRig)
+	{
+		for (TActorIterator<APTBDWCameraRig> It(GetWorld()); It; ++It)
+		{
+			CameraRig = *It;
+			break;
+		}
+	}
+}
+
+void APTBDWMiniGame::ReceiveIntroStarted_Implementation()
+{
+	Super::ReceiveIntroStarted_Implementation();
+
+	if (!CameraRig)
+	{
+		for (TActorIterator<APTBDWCameraRig> It(GetWorld()); It; ++It)
+		{
+			CameraRig = *It;
+			break;
+		}
+	}
+	if (CameraRig)
+	{
+		CameraRig->StartIntroMove();
+	}
+}
+
+void APTBDWMiniGame::ReceiveGameplayStarted_Implementation()
+{
+	Super::ReceiveGameplayStarted_Implementation();
+
+	const float MotionInfluence = GetDWRuleSet() ? GetDWRuleSet()->AnimSpeedInfluence : 0.3f;
+	const float MotionRate = 1.0f + (ActiveSpeedScale - 1.0f) * MotionInfluence;
+
+	const float BgMultiplier = GetDWRuleSet() ? GetDWRuleSet()->BackgroundScrollMultiplier : 1.0f;
+	if (BackgroundScroller)
+	{
+		BackgroundScroller->SetSpeedScale(ActiveSpeedScale, BgMultiplier);
+		BackgroundScroller->SetRunning(true);
+	}
+	if (Protagonist) { Protagonist->StartRunning(); Protagonist->SetMotionPlayRate(MotionRate); }
+	if (Dog)         { Dog->StartRunning();         Dog->SetMotionPlayRate(MotionRate); }
 }
 
 void APTBDWMiniGame::BuildRuntimeState()
 {
 	Super::BuildRuntimeState();
 
-	if (RhythmConductor)
 	{
+		float EffectiveLookAhead = RuleSet ? RuleSet->LookAheadBeats : ActiveLookAheadBeats;
 		if (const UPTBDWMiniGameRuleSet* DWRule = GetDWRuleSet())
 		{
 			if (const float* FoundLookAhead = DWRule->LookAheadBeatsByDifficulty.Find(GameContext.SessionRequest.Difficulty))
 			{
-				RhythmConductor->SetLookAheadBeats(*FoundLookAhead);
-				PTB_RECORD(LogPTBMiniGames, TEXT("[%s] DW LookAheadBeats override=%.2f"), *GetNameSafe(this), *FoundLookAhead);
+				EffectiveLookAhead = *FoundLookAhead;
 			}
 		}
+		ActiveLookAheadBeats = EffectiveLookAhead;
+		if (RhythmConductor)
+		{
+			RhythmConductor->SetLookAheadBeats(EffectiveLookAhead);
+		}
+
+		{
+			const float RefLookAhead = GetDWRuleSet() ? GetDWRuleSet()->ScrollSyncBaseLookAheadBeats : EffectiveLookAhead;
+			ActiveSpeedScale = FMath::Max(0.01f, RefLookAhead) / FMath::Max(0.01f, EffectiveLookAhead);
+		}
+		PTB_RECORD(LogPTBMiniGames, TEXT("[%s] DW LookAheadBeats=%.2f (resolved)"), *GetNameSafe(this), EffectiveLookAhead);
 	}
 
 	ClearAllNoteViews();
@@ -238,27 +353,11 @@ void APTBDWMiniGame::HandleNoteCue(FPTBNoteEvent Note)
 		Note.TimeMs);
 }
 
-void APTBDWMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
+void APTBDWMiniGame::PlayNoteResultEffects(int32 NoteId, EPTBActionType Action, bool bSuccess, bool bIsLong)
 {
-	Super::HandleJudgementResult(Result);
-
-	if (Result.Reason == EPTBJudgementReason::EmptyInput)
-	{
-		PTB_VERBOSE(LogPTBMiniGames,
-			TEXT("[%s] DW EmptyInput Action=%d"),
-			*GetNameSafe(this),
-			static_cast<int32>(Result.ActionType));
-		return;
-	}
-
-	const bool bSuccess = (Result.Reason == EPTBJudgementReason::Note)
-		&& (Result.JudgementType != EPTBJudgementType::Miss);
-
-	bool bIsLong = false;
 	AActor* FailObstacle = nullptr;
-	if (FDWNoteView* View = ActiveNoteViews.Find(Result.NoteId))
+	if (FDWNoteView* View = ActiveNoteViews.Find(NoteId))
 	{
-		bIsLong = View->bIsLong;
 		if (!bSuccess && View->Obstacle)
 		{
 			FailObstacle = View->Obstacle;
@@ -266,14 +365,14 @@ void APTBDWMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 		}
 	}
 
-	if (Protagonist && IsSupportedAction(Result.ActionType))
+	if (Protagonist && IsSupportedAction(Action))
 	{
-		Protagonist->PlayReaction(bSuccess, Result.ActionType, bIsLong);
+		Protagonist->PlayReaction(bSuccess, Action, bIsLong);
 
 		const UPTBDWMiniGameRuleSet* DWRule = GetDWRuleSet();
 		if (bSuccess)
 		{
-			if (Result.ActionType == EPTBActionType::ActionA)
+			if (Action == EPTBActionType::ActionA)
 			{
 				RequestDWSfx(DWRule ? DWRule->JumpSFXKey : NAME_None, Protagonist);
 				if (bIsLong)
@@ -282,7 +381,7 @@ void APTBDWMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 					RequestDWVfx(DWRule ? DWRule->SplashVFX.Get() : nullptr, Protagonist->GetActorLocation());
 				}
 			}
-			else if (Result.ActionType == EPTBActionType::ActionB)
+			else if (Action == EPTBActionType::ActionB)
 			{
 				RequestDWSfx(DWRule ? DWRule->SlideSFXKey : NAME_None, Protagonist);
 				RequestDWVfx(DWRule ? DWRule->SlideDustVFX.Get() : nullptr, Protagonist->GetActorLocation());
@@ -294,21 +393,86 @@ void APTBDWMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 		}
 	}
 
-	if (FailObstacle)
+	if (bSuccess && (Action == EPTBActionType::ActionA || Action == EPTBActionType::ActionB))
 	{
-		ResolveObstacleFail(FailObstacle, Result.ActionType);
+		if (FDWNoteView* V = ActiveNoteViews.Find(NoteId))
+		{
+			if (V->Obstacle)
+			{
+				ScrollObstacleAway(V->Obstacle);
+				V->Obstacle = nullptr;
+			}
+		}
 	}
 
-	if (bIsLong && bSuccess)
+	if (Action == EPTBActionType::ActionD)
 	{
-		if (FDWNoteView* View = ActiveNoteViews.Find(Result.NoteId))
+		AActor* Ball = nullptr;
+		if (bSuccess)
 		{
-			View->bJudgedSuccess = true;
+			if (FDWNoteView* V = ActiveNoteViews.Find(NoteId))
+			{
+				Ball = V->Obstacle;
+				V->Obstacle = nullptr;
+			}
 		}
+		else
+		{
+			Ball = FailObstacle;
+			FailObstacle = nullptr;
+		}
+		if (Ball) { LaunchKickBall(Ball, bSuccess, bIsLong); }
+	}
+
+	if (FailObstacle)
+	{
+		ResolveObstacleFail(FailObstacle, Action);
+	}
+
+	OnDWNoteResolved.Broadcast(bSuccess, ScoreCalculator ? ScoreCalculator->ComboCount : 0);
+
+	RecycleNoteView(NoteId);
+}
+
+
+void APTBDWMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
+{
+	Super::HandleJudgementResult(Result);
+
+	if (ScoreCalculator)
+	{
+		OnDWComboChanged.Broadcast(ScoreCalculator->ComboCount);
+	}
+
+	FDWNoteView* View = ActiveNoteViews.Find(Result.NoteId);
+	const bool bIsLong = View ? View->bIsLong : false;
+
+	if (Result.Reason == EPTBJudgementReason::EmptyInput)
+	{
+		if (bIsLong && View)
+		{
+			View->bJudged = true;
+			View->bJudgedSuccess = false;
+		}
+		PTB_VERBOSE(LogPTBMiniGames,
+			TEXT("[%s] DW EmptyInput Action=%d Long=%d"),
+			*GetNameSafe(this),
+			static_cast<int32>(Result.ActionType),
+			bIsLong ? 1 : 0);
+		return;
+	}
+
+	const bool bSuccess = (Result.Reason == EPTBJudgementReason::Note)
+		&& (Result.JudgementType != EPTBJudgementType::Miss);
+
+	if (bIsLong && View)
+	{
+		View->bJudged = true;
+		View->bJudgedSuccess = bSuccess;
 	}
 	else
 	{
-		RecycleNoteView(Result.NoteId);
+		PlayNoteResultEffects(Result.NoteId, Result.ActionType, bSuccess, false);
 	}
 
 	PTB_RECORD(LogPTBMiniGames,
@@ -335,16 +499,24 @@ void APTBDWMiniGame::SpawnNoteView(const FPTBNoteEvent& Note)
 	const UPTBDWMiniGameRuleSet* DWRule = GetDWRuleSet();
 	const float SpawnDistance = DWRule ? DWRule->MarkerSpawnDistance : 1200.0f;
 	const float HoldScale     = DWRule ? DWRule->HoldVisualScale : 0.5f;
-	const float ObstScale     = DWRule ? DWRule->ObstacleHoldScale : 0.5f;
 
 	const FVector ForwardDir = GetActorForwardVector();
 	const FVector LinePos = GetActorLocation();
 	const FVector SpawnPos = LinePos + ForwardDir * SpawnDistance;
 
 	const FVector OffsetVec = ForwardDir * GetObstacleOffset(Note.ActionType);
+	const FVector RightDir = GetActorRightVector();
+	const FVector UpDir    = GetActorUpVector();
+	const FVector PivotLocal = DWRule ? DWRule->ObstaclePivotOffsetByAction.FindRef(Note.ActionType) : FVector::ZeroVector;
+	const FVector PivotWorld = ForwardDir * PivotLocal.X + RightDir * PivotLocal.Y + UpDir * PivotLocal.Z;
 
-	const float SpawnVisualMs = RhythmSyncComponent->GetVisualChartTimeMs();
-	const float InvDuration   = 1.0f / FMath::Max(1.0f, Note.TimeMs - SpawnVisualMs);
+	const float PrerollMsPerBeat = (GameContext.ChartData.BPM > 0.f) ? (60000.0f / GameContext.ChartData.BPM) : 588.0f;
+	const float LookAheadMs   = FMath::Max(1.0f, ActiveLookAheadBeats * PrerollMsPerBeat);
+	const float SpawnVisualMs = Note.TimeMs - LookAheadMs;
+	const float InvDuration   = 1.0f / LookAheadMs;
+	const float NowVisualMs   = RhythmSyncComponent->GetVisualChartTimeMs();
+	const float InitAlpha     = FMath::Clamp((NowVisualMs - SpawnVisualMs) * InvDuration, 0.f, 1.f);
+	const FVector InitMarkerPos = FMath::Lerp(SpawnPos, LinePos, InitAlpha);
 
 	const bool bIsLong = Note.bIsLongNote || Note.NoteType == EPTBNoteType::Hold;
 
@@ -359,7 +531,7 @@ void APTBDWMiniGame::SpawnNoteView(const FPTBNoteEvent& Note)
 
 	UMaterialInterface* MarkerMat = DWRule ? DWRule->MarkerMaterial.Get() : nullptr;
 
-	APTBDWNoteMarker* Marker = World->SpawnActor<APTBDWNoteMarker>(SpawnPos, MarkerRot, Params);
+	APTBDWNoteMarker* Marker = World->SpawnActor<APTBDWNoteMarker>(InitMarkerPos, MarkerRot, Params);
 	if (!Marker)
 	{
 		return;
@@ -375,7 +547,7 @@ void APTBDWMiniGame::SpawnNoteView(const FPTBNoteEvent& Note)
 	{
 		const float HoldDurationMs = FMath::Max(0.0f, Note.ReleaseTimeMs - Note.TimeMs);
 		TailLengthCm = (SpawnDistance * InvDuration) * HoldDurationMs * HoldScale;
-		TailMarker = World->SpawnActor<APTBDWNoteMarker>(SpawnPos, MarkerRot, Params);
+		TailMarker = World->SpawnActor<APTBDWNoteMarker>(InitMarkerPos, MarkerRot, Params);
 		if (TailMarker)
 		{
 			const FLinearColor TailCol = DWRule ? DWRule->MarkerTailColor : FLinearColor(0.9f, 0.9f, 1.0f, 0.20f);
@@ -390,12 +562,16 @@ void APTBDWMiniGame::SpawnNoteView(const FPTBNoteEvent& Note)
 	{
 		const float HoldDurationMs = FMath::Max(0.0f, Note.ReleaseTimeMs - Note.TimeMs);
 		const float VisualSpeed    = SpawnDistance * InvDuration;
-		const float HoldLengthCm   = VisualSpeed * HoldDurationMs * HoldScale * ObstScale;
-		ObstacleScl.X = FMath::Max(ObstacleScl.X, HoldLengthCm / 100.0f);
+		const FVector* HoldMultPtr = DWRule ? DWRule->ObstacleHoldLengthScaleByAction.Find(Note.ActionType) : nullptr;
+		const FVector HoldMult     = HoldMultPtr ? *HoldMultPtr : FVector::ZeroVector;
+		const float BaseLenCm      = VisualSpeed * HoldDurationMs * HoldScale;
+		if (HoldMult.X > 0.f) { ObstacleScl.X = FMath::Max(ObstacleScl.X, BaseLenCm * HoldMult.X / 100.0f); }
+		if (HoldMult.Y > 0.f) { ObstacleScl.Y = FMath::Max(ObstacleScl.Y, BaseLenCm * HoldMult.Y / 100.0f); }
+		if (HoldMult.Z > 0.f) { ObstacleScl.Z = FMath::Max(ObstacleScl.Z, BaseLenCm * HoldMult.Z / 100.0f); }
 		ObstacleRot   = ForwardDir.Rotation();
 	}
 
-	APTBDWNoteMarker* Obstacle = World->SpawnActor<APTBDWNoteMarker>(SpawnPos + OffsetVec, ObstacleRot, Params);
+	APTBDWNoteMarker* Obstacle = World->SpawnActor<APTBDWNoteMarker>(InitMarkerPos + OffsetVec + PivotWorld, ObstacleRot, Params);
 	if (Obstacle)
 	{
 		UMaterialInterface* BaseMat = DWRule ? DWRule->ObstacleMaterial.Get() : nullptr;
@@ -413,6 +589,7 @@ void APTBDWMiniGame::SpawnNoteView(const FPTBNoteEvent& Note)
 	View.SpawnPos          = SpawnPos;
 	View.LinePos           = LinePos;
 	View.ObstacleOffsetVec = OffsetVec;
+	View.ObstaclePivotWorld = PivotWorld;
 	View.MarkerSquareSize  = SqSize;
 	View.MarkerThinX       = ThinX;
 	View.MarkerFlatZ       = FlatZ;
@@ -485,6 +662,38 @@ void APTBDWMiniGame::RecycleNoteView(int32 NoteId)
 	}
 }
 
+float APTBDWMiniGame::GetNoteApproachSpeedCmS() const
+{
+	const UPTBDWMiniGameRuleSet* DWRule = GetDWRuleSet();
+	const float SpawnDistance = DWRule ? DWRule->MarkerSpawnDistance : 1200.f;
+	const float MsPerBeat = (GameContext.ChartData.BPM > 0.f) ? (60000.f / GameContext.ChartData.BPM) : 588.f;
+	const float LookAheadMs = FMath::Max(1.f, ActiveLookAheadBeats * MsPerBeat);
+	return SpawnDistance / LookAheadMs * 1000.f;
+}
+
+void APTBDWMiniGame::ScrollObstacleAway(AActor* Obstacle)
+{
+	if (!Obstacle) { return; }
+
+	const UPTBDWMiniGameRuleSet* DWRule = GetDWRuleSet();
+	const float ScrollSpd = GetNoteApproachSpeedCmS();
+	const float Despawn = DWRule ? DWRule->BreakScrollDespawnDistance : 3500.f;
+	if (ScrollSpd <= 1.f) { Obstacle->Destroy(); return; }
+
+	FDWResolvingObstacle R;
+	R.Obstacle    = Obstacle;
+	R.Duration    = FMath::Max(0.1f, Despawn / ScrollSpd);
+	R.Timer       = R.Duration;
+	R.StartLoc    = Obstacle->GetActorLocation();
+	R.StartScale  = Obstacle->GetActorScale3D();
+	R.StartRot    = Obstacle->GetActorRotation();
+	R.EndRot       = FRotator::ZeroRotator;
+	R.FallFrac     = 1.f;
+	R.BackVel      = ScrollSpd;
+	R.bSplitPiece = false;
+	ResolvingObstacles.Add(R);
+}
+
 void APTBDWMiniGame::ResolveObstacleFail(AActor* Obstacle, EPTBActionType Action)
 {
 	if (!Obstacle)
@@ -494,8 +703,6 @@ void APTBDWMiniGame::ResolveObstacleFail(AActor* Obstacle, EPTBActionType Action
 
 	const UPTBDWMiniGameRuleSet* DWRule = GetDWRuleSet();
 
-	const FVector BreakLoc = GetActorLocation() + GetActorForwardVector() * GetObstacleOffset(Action);
-	Obstacle->SetActorLocation(BreakLoc);
 
 	if (DWRule)
 	{
@@ -503,6 +710,12 @@ void APTBDWMiniGame::ResolveObstacleFail(AActor* Obstacle, EPTBActionType Action
 		{
 			RequestDWVfx(*VFX, Obstacle->GetActorLocation());
 		}
+	}
+
+	if (DWRule && (DWRule->BrokenPieceLeftByAction.Contains(Action) || DWRule->BrokenPieceRightByAction.Contains(Action)))
+	{
+		SpawnBrokenPieces(Obstacle, Action);
+		return;
 	}
 
 	UStaticMesh* BrokenMesh = nullptr;
@@ -521,13 +734,24 @@ void APTBDWMiniGame::ResolveObstacleFail(AActor* Obstacle, EPTBActionType Action
 			M->SetMesh(BrokenMesh);
 		}
 
+		const float FallDur = DWRule ? DWRule->BreakFallDuration : 0.45f;
+		const float FadeDur = DWRule ? DWRule->BreakFadeDuration : 0.25f;
+		const float ScrollSpd = GetNoteApproachSpeedCmS();
+		const float Despawn = DWRule ? DWRule->BreakScrollDespawnDistance : 3500.f;
+		const float TotalDur = (ScrollSpd > 1.f)
+			? FMath::Max(FallDur, Despawn / ScrollSpd)
+			: FMath::Max(0.05f, FallDur + FadeDur);
+
 		FDWResolvingObstacle R;
 		R.Obstacle    = Obstacle;
-		R.Duration    = 0.18f;
-		R.Timer       = 0.18f;
+		R.Duration    = TotalDur;
+		R.Timer       = TotalDur;
 		R.StartLoc    = Obstacle->GetActorLocation();
 		R.StartScale  = Obstacle->GetActorScale3D();
 		R.StartRot    = Obstacle->GetActorRotation();
+		R.EndRot       = FRotator(DWRule ? DWRule->BreakFallAngleDeg : 85.f, 0.f, 0.f);
+		R.FallFrac     = FallDur / TotalDur;
+		R.BackVel      = ScrollSpd;
 		R.bSplitPiece = false;
 		ResolvingObstacles.Add(R);
 		return;
@@ -535,6 +759,103 @@ void APTBDWMiniGame::ResolveObstacleFail(AActor* Obstacle, EPTBActionType Action
 
 	SpawnSplitHalves(Obstacle, Action);
 	Obstacle->Destroy();
+}
+
+void APTBDWMiniGame::LaunchKickBall(AActor* Ball, bool bSuccess, bool bIsLong)
+{
+	if (!Ball) { return; }
+
+	const UPTBDWMiniGameRuleSet* DWRule = GetDWRuleSet();
+	const FVector Fwd   = GetActorForwardVector();
+	const FVector Up    = GetActorUpVector();
+	const FVector Right = GetActorRightVector();
+
+	FVector Vel = FVector::ZeroVector;
+	if (bSuccess)
+	{
+		const float Ang = bIsLong ? (DWRule ? DWRule->KickAngleLong : 40.f) : (DWRule ? DWRule->KickAngleSingle : 15.f);
+		const float Spd = bIsLong ? (DWRule ? DWRule->KickSpeedLong : 1400.f) : (DWRule ? DWRule->KickSpeedSingle : 900.f);
+		const float Rad = FMath::DegreesToRadians(Ang);
+		Vel = (Fwd * FMath::Cos(Rad) + Up * FMath::Sin(Rad)) * Spd;
+		RequestDWSfx(DWRule ? DWRule->KickSFXKey : NAME_None, Ball);
+		UNiagaraSystem* VFX = bIsLong ? (DWRule ? DWRule->KickVFXLong.Get() : nullptr) : (DWRule ? DWRule->KickVFX.Get() : nullptr);
+		RequestDWVfx(VFX, Ball->GetActorLocation());
+	}
+	else
+	{
+		const float Spd = DWRule ? DWRule->KickFailSpeed : 450.f;
+		Vel = (Fwd * -0.7f + Right * 0.5f + Up * 0.3f).GetSafeNormal() * Spd;
+	}
+
+	FDWResolvingObstacle R;
+	R.Obstacle      = Ball;
+	R.bLaunch       = true;
+	R.Vel           = Vel;
+	R.GroundZ       = Ball->GetActorLocation().Z;
+	R.Restitution   = DWRule ? DWRule->KickRestitution : 0.4f;
+	R.Duration      = bSuccess ? (DWRule ? DWRule->KickLifetime : 1.2f)
+	                            : (DWRule ? DWRule->KickFailLifetime : 5.0f);
+	R.Timer         = R.Duration;
+	R.StartScale    = Ball->GetActorScale3D();
+	R.SpinDegPerSec = 720.f;
+	ResolvingObstacles.Add(R);
+}
+
+void APTBDWMiniGame::SpawnBrokenPieces(AActor* Obstacle, EPTBActionType Action)
+{
+	UWorld* World = GetWorld();
+	const UPTBDWMiniGameRuleSet* DWRule = GetDWRuleSet();
+	if (!World || !Obstacle || !DWRule) { if (Obstacle) { Obstacle->Destroy(); } return; }
+
+	UStaticMesh* LeftMesh = nullptr;
+	UStaticMesh* RightMesh = nullptr;
+	if (const TObjectPtr<UStaticMesh>* Lm = DWRule->BrokenPieceLeftByAction.Find(Action))  { LeftMesh  = *Lm; }
+	if (const TObjectPtr<UStaticMesh>* Rm = DWRule->BrokenPieceRightByAction.Find(Action)) { RightMesh = *Rm; }
+
+	const FVector  Loc = Obstacle->GetActorLocation();
+	const FRotator Rot = Obstacle->GetActorRotation();
+	const FVector  Scl = Obstacle->GetActorScale3D();
+	UMaterialInterface* Mat = DWRule->ObstacleMaterial.Get();
+	const FLinearColor Col = GetObstacleColor(Action);
+
+	const float ScrollSpd = GetNoteApproachSpeedCmS();
+	const float Despawn   = DWRule->BreakScrollDespawnDistance;
+	const float FallDur   = DWRule->BreakFallDuration;
+	const float TotalDur  = (ScrollSpd > 1.f) ? FMath::Max(FallDur, Despawn / ScrollSpd) : FMath::Max(0.05f, FallDur);
+	const FRotator EndRotL = DWRule->BreakSplitEndRotLeft;
+	const FRotator EndRotR = DWRule->BreakSplitEndRotRight;
+	const float SpreadDist = DWRule->BreakSplitSpreadY;
+
+	Obstacle->Destroy();
+
+	FActorSpawnParameters Params;
+	Params.Owner = this;
+	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+	UStaticMesh* Meshes[2] = { LeftMesh, RightMesh };
+	const FRotator EndRots[2]  = { EndRotL, EndRotR };
+	const float  SpreadSign[2] = { -1.f, 1.f };
+	for (int32 s = 0; s < 2; ++s)
+	{
+		if (!Meshes[s]) { continue; }
+		APTBDWNoteMarker* Piece = World->SpawnActor<APTBDWNoteMarker>(Loc, Rot, Params);
+		if (!Piece) { continue; }
+		Piece->Configure(Meshes[s], Mat, Col, Scl);
+
+		FDWResolvingObstacle Rsv;
+		Rsv.Obstacle    = Piece;
+		Rsv.Duration    = TotalDur;
+		Rsv.Timer       = TotalDur;
+		Rsv.StartLoc    = Loc;
+		Rsv.StartScale  = Scl;
+		Rsv.StartRot    = Rot;
+		Rsv.EndRot  = EndRots[s];
+		Rsv.SpreadY = SpreadDist * SpreadSign[s];
+		Rsv.FallFrac     = FallDur / TotalDur;
+		Rsv.BackVel      = ScrollSpd;
+		Rsv.bSplitPiece  = false;
+		ResolvingObstacles.Add(Rsv);
+	}
 }
 
 void APTBDWMiniGame::SpawnSplitHalves(AActor* Obstacle, EPTBActionType Action)

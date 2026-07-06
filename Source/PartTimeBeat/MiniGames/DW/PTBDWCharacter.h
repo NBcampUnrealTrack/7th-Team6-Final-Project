@@ -31,6 +31,13 @@ public:
 	/** 달리기 루프 시작. */
 	void StartRunning();
 
+	/** 아이들,런 블렌드용. */
+	UFUNCTION(BlueprintPure, Category = "PTB|DW")
+	bool IsRunning() const { return bRunning; }
+
+	/** 난이도별 모션 배속. */
+	void SetMotionPlayRate(float Rate);
+
 	/** 개 예고 — Cue 시점에 짧게 해당 액션을 미리 연기. */
 	void PlayCue(EPTBActionType Action, float DurationSec);
 

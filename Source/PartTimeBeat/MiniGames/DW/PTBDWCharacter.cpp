@@ -74,6 +74,14 @@ void APTBDWCharacter::SetAnimations(UAnimSequenceBase* InRun, UAnimSequenceBase*
 	}
 }
 
+void APTBDWCharacter::SetMotionPlayRate(float Rate)
+{
+	if (Body)
+	{
+		Body->GlobalAnimRateScale = FMath::Max(0.01f, Rate);
+	}
+}
+
 void APTBDWCharacter::StartRunning()
 {
 	bRunning = true;
