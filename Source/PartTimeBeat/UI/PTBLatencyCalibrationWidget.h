@@ -31,6 +31,9 @@ public:
 	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
 	virtual FReply NativeOnKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent) override;
 
+	UFUNCTION(BlueprintImplementableEvent, Category = "Calibration")
+	void OnPressCountUpdated(const FText& FormattedCount);
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Calibration")
 	float BPM = 120.f;
 

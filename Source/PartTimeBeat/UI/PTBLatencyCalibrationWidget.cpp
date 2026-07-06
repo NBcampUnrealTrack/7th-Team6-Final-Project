@@ -145,6 +145,9 @@ FReply UPTBLatencyCalibrationWidget::NativeOnKeyDown(const FGeometry& InGeometry
 		const FString OffsetStr = FString::Printf(TEXT("%+.0fms"), OffsetMs);
 		OnOffsetMsUpdated(FText::FromString(OffsetStr));
 
+		const FString CountStr = FString::Printf(TEXT("%d / %d"), CurrentPressCount, RequiredPressCount);
+		OnPressCountUpdated(FText::FromString(CountStr));   // ← 추가
+
 		OnJudgementFlash(FMath::Abs(OffsetMs) < 100.f);
 
 		// 판정선에 가장 가까운 노트를 소모
@@ -187,6 +190,16 @@ void UPTBLatencyCalibrationWidget::FinishCalibration()
 	bIsCalibrationActive = false; 
 
 	GetWorld()->GetTimerManager().ClearTimer(MetronomeTimerHandle);
+
+	// 남아있는 노트 전부 제거
+	for (FPTBCalibrationNote& Note : ActiveNotes)
+	{
+		if (Note.Widget)
+		{
+			Note.Widget->RemoveFromParent();
+		}
+	}
+	ActiveNotes.Reset();
 
 	float AverageOffsetMs = 0.f;
 	if (BeatOffsetsMs.Num() > 0)
