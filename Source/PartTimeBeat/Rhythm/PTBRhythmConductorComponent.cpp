@@ -64,8 +64,11 @@ UPTBRhythmConductorComponent::UPTBRhythmConductorComponent()
 	LastBeatTickIndex = -1;
 	LastBarTickIndex = -1;
 	ChartOffsetMs = 0.0f;
+	CuePreRollTimeMs = 0.0f;
+	CuePreRollElapsedMs = 0.0f;
 	bIsPlaying = false;
 	bIsPaused = false;
+	bCuePreRollOnly = false;
 	bAllNotesPassed = false;
 }
 
@@ -85,6 +88,46 @@ void UPTBRhythmConductorComponent::TickComponent(float DeltaTime, ELevelTick Tic
 
 	if (!bIsPlaying || bIsPaused)
 	{
+		return;
+	}
+
+	if (bCuePreRollOnly)
+	{
+		if (!ChartAsset)
+		{
+			return;
+		}
+
+		CuePreRollElapsedMs = FMath::Min(
+			FMath::Max(0.0f, CuePreRollTimeMs),
+			CuePreRollElapsedMs + DeltaTime * PTBRhythmConductorInternal::MillisecondsPerSecond);
+
+		const float VisualChartTimeMs = CuePreRollElapsedMs - FMath::Max(0.0f, CuePreRollTimeMs);
+		CurrentTimeMs = VisualChartTimeMs + ChartOffsetMs;
+		CurrentBeat = PTBRhythmConductorInternal::CalculateBeat(VisualChartTimeMs, ChartData.BPM);
+		const float CueBeat = CurrentBeat;
+
+		const TArray<FPTBNoteEvent>& Notes = ChartAsset->NoteEvents;
+		const float CueLeadBeats = FMath::Max(0.0f, LookAheadBeats);
+		const float EffectiveCueLeadTimeMs = FMath::Max(0.0f, CueLeadTimeMs);
+		const float EffectiveArmLeadTimeMs = FMath::Max(0.0f, ArmLeadTimeMs);
+
+		while (Notes.IsValidIndex(NextArmIndex) && Notes[NextArmIndex].TimeMs - EffectiveArmLeadTimeMs <= VisualChartTimeMs)
+		{
+			OnNoteArm.Broadcast(Notes[NextArmIndex]);
+			++NextArmIndex;
+		}
+
+		while (Notes.IsValidIndex(NextCueIndex)
+			&& ((CueLeadTimeMode == EPTBCueLeadTimeMode::MS
+				&& Notes[NextCueIndex].TimeMs - EffectiveCueLeadTimeMs <= VisualChartTimeMs)
+				|| (CueLeadTimeMode == EPTBCueLeadTimeMode::Beat
+					&& Notes[NextCueIndex].BeatTime - CueLeadBeats <= CueBeat)))
+		{
+			OnNoteCue.Broadcast(Notes[NextCueIndex]);
+			++NextCueIndex;
+		}
+
 		return;
 	}
 
@@ -196,6 +239,29 @@ void UPTBRhythmConductorComponent::StartConductor(const FPTBChartData & Data, in
 
 void UPTBRhythmConductorComponent::StartConductor(UPTBRhythmChartAsset* InChartAsset, int32 PlayingId, UPTBWwiseAudioManager* InAudioManager)
 {
+	const bool bContinueCuePreRollChart = bCuePreRollOnly && ChartAsset == InChartAsset && ChartAsset;
+	if (bContinueCuePreRollChart)
+	{
+		const TArray<FPTBNoteEvent>& Notes = ChartAsset->NoteEvents;
+		const float CueLeadBeats = FMath::Max(0.0f, LookAheadBeats);
+		const float EffectiveCueLeadTimeMs = FMath::Max(0.0f, CueLeadTimeMs);
+		const float VisualChartTimeMs = 0.0f;
+		const float CueBeat = 0.0f;
+
+		while (Notes.IsValidIndex(NextCueIndex)
+			&& ((CueLeadTimeMode == EPTBCueLeadTimeMode::MS
+				&& Notes[NextCueIndex].TimeMs - EffectiveCueLeadTimeMs <= VisualChartTimeMs)
+				|| (CueLeadTimeMode == EPTBCueLeadTimeMode::Beat
+					&& Notes[NextCueIndex].BeatTime - CueLeadBeats <= CueBeat)))
+		{
+			OnNoteCue.Broadcast(Notes[NextCueIndex]);
+			++NextCueIndex;
+		}
+	}
+
+	const int32 InitialCueIndex = bContinueCuePreRollChart ? NextCueIndex : 0;
+	const int32 InitialArmIndex = bContinueCuePreRollChart ? NextArmIndex : 0;
+
 	ChartAsset = InChartAsset;
 	if (!RhythmSyncComponent && GetOwner())
 	{
@@ -214,17 +280,20 @@ void UPTBRhythmConductorComponent::StartConductor(UPTBRhythmChartAsset* InChartA
 	CurrentBeat = 0.0f;
 	CurrentTimeMs = 0.0f;
 	NextNoteIndex = 0;
-	NextCueIndex = 0;
-	NextArmIndex = 0;
+	NextCueIndex = InitialCueIndex;
+	NextArmIndex = InitialArmIndex;
 	LastBeatTickIndex = -1;
 	LastBarTickIndex = -1;
 	ChartOffsetMs = ChartData.OffsetMs;
+	CuePreRollTimeMs = 0.0f;
+	CuePreRollElapsedMs = 0.0f;
 	if (ChartData.TimeSignatureNumerator > 0)
 	{
 		BeatsPerBar = FMath::Max(PTBRhythmConductorInternal::MinBeatsPerBar, ChartData.TimeSignatureNumerator);
 	}
 	bIsPlaying = InChartAsset != nullptr;
 	bIsPaused = false;
+	bCuePreRollOnly = false;
 	bAllNotesPassed = false;
 
 	if (RhythmSyncComponent && bIsPlaying)
@@ -236,6 +305,82 @@ void UPTBRhythmConductorComponent::StartConductor(UPTBRhythmChartAsset* InChartA
 
 		RhythmSyncComponent->SetBeatsPerBar(BeatsPerBar);
 		RhythmSyncComponent->StartSync(WwisePlayingId, ChartData);
+	}
+
+	if (bIsPlaying && ChartAsset)
+	{
+		const float StartChartTimeMs = RhythmSyncComponent
+			? RhythmSyncComponent->GetChartTimeMs()
+			: CurrentTimeMs - ChartOffsetMs;
+		const float StartVisualChartTimeMs = RhythmSyncComponent
+			? RhythmSyncComponent->GetVisualChartTimeMs()
+			: StartChartTimeMs;
+		const float StartCueBeat = RhythmSyncComponent
+			? RhythmSyncComponent->GetVisualBeat()
+			: PTBRhythmConductorInternal::CalculateBeat(StartVisualChartTimeMs, ChartData.BPM);
+		const TArray<FPTBNoteEvent>& Notes = ChartAsset->NoteEvents;
+		const float CueLeadBeats = FMath::Max(0.0f, LookAheadBeats);
+		const float EffectiveCueLeadTimeMs = FMath::Max(0.0f, CueLeadTimeMs);
+		const float EffectiveArmLeadTimeMs = FMath::Max(0.0f, ArmLeadTimeMs);
+
+		while (Notes.IsValidIndex(NextArmIndex) && Notes[NextArmIndex].TimeMs - EffectiveArmLeadTimeMs <= StartChartTimeMs)
+		{
+			OnNoteArm.Broadcast(Notes[NextArmIndex]);
+			++NextArmIndex;
+		}
+
+		while (Notes.IsValidIndex(NextCueIndex)
+			&& ((CueLeadTimeMode == EPTBCueLeadTimeMode::MS
+				&& Notes[NextCueIndex].TimeMs - EffectiveCueLeadTimeMs <= StartVisualChartTimeMs)
+				|| (CueLeadTimeMode == EPTBCueLeadTimeMode::Beat
+					&& Notes[NextCueIndex].BeatTime - CueLeadBeats <= StartCueBeat)))
+		{
+			OnNoteCue.Broadcast(Notes[NextCueIndex]);
+			++NextCueIndex;
+		}
+
+		while (Notes.IsValidIndex(NextNoteIndex) && Notes[NextNoteIndex].TimeMs <= StartChartTimeMs)
+		{
+			OnNoteEvent.Broadcast(Notes[NextNoteIndex]);
+			++NextNoteIndex;
+		}
+
+		if (!bAllNotesPassed && NextNoteIndex >= Notes.Num())
+		{
+			bAllNotesPassed = true;
+			OnAllNotesPassed.Broadcast();
+		}
+	}
+}
+
+void UPTBRhythmConductorComponent::StartCuePreRoll(UPTBRhythmChartAsset* InChartAsset, float PreRollTimeMs)
+{
+	ChartAsset = InChartAsset;
+	AudioManager = nullptr;
+	ChartData = InChartAsset ? InChartAsset->ChartData : FPTBChartData();
+	WwisePlayingId = 0;
+	NextNoteIndex = 0;
+	NextCueIndex = 0;
+	NextArmIndex = 0;
+	LastBeatTickIndex = -1;
+	LastBarTickIndex = -1;
+	ChartOffsetMs = ChartData.OffsetMs;
+	CuePreRollTimeMs = FMath::Max(0.0f, PreRollTimeMs);
+	CuePreRollElapsedMs = 0.0f;
+	if (ChartData.TimeSignatureNumerator > 0)
+	{
+		BeatsPerBar = FMath::Max(PTBRhythmConductorInternal::MinBeatsPerBar, ChartData.TimeSignatureNumerator);
+	}
+	CurrentTimeMs = ChartOffsetMs - CuePreRollTimeMs;
+	CurrentBeat = PTBRhythmConductorInternal::CalculateBeat(-CuePreRollTimeMs, ChartData.BPM);
+	bIsPlaying = InChartAsset != nullptr && CuePreRollTimeMs > 0.0f;
+	bIsPaused = false;
+	bCuePreRollOnly = bIsPlaying;
+	bAllNotesPassed = false;
+
+	if (RhythmSyncComponent)
+	{
+		RhythmSyncComponent->StopSync();
 	}
 }
 
@@ -269,8 +414,11 @@ void UPTBRhythmConductorComponent::StopConductor()
 	NextArmIndex = 0;
 	LastBeatTickIndex = -1;
 	LastBarTickIndex = -1;
+	CuePreRollTimeMs = 0.0f;
+	CuePreRollElapsedMs = 0.0f;
 	bIsPlaying = false;
 	bIsPaused = false;
+	bCuePreRollOnly = false;
 	bAllNotesPassed = false;
 }
 
@@ -279,9 +427,19 @@ float UPTBRhythmConductorComponent::GetCurrentMusicTimeMs() const
 	return CurrentTimeMs;
 }
 
+float UPTBRhythmConductorComponent::GetCurrentChartTimeMs() const
+{
+	return CurrentTimeMs - ChartOffsetMs;
+}
+
 float UPTBRhythmConductorComponent::GetCurrentBeat() const
 {
 	return CurrentBeat;
+}
+
+bool UPTBRhythmConductorComponent::IsCuePreRollOnly() const
+{
+	return bCuePreRollOnly;
 }
 
 void UPTBRhythmConductorComponent::SetArmLeadTimeMs(float InArmLeadTimeMs)

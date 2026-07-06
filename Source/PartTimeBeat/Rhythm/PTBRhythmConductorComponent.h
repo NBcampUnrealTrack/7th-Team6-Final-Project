@@ -43,6 +43,9 @@ public:
 	/** ChartAsset 기반 시작 */
 	void StartConductor(UPTBRhythmChartAsset* InChartAsset, int32 PlayingId, UPTBWwiseAudioManager* InAudioManager);
 
+	/** Audio와 Chart 시작 전 Cue만 먼저 발행 */
+	void StartCuePreRoll(UPTBRhythmChartAsset* InChartAsset, float PreRollTimeMs);
+
 	/** 일시정지 */
 	void PauseConductor();
 
@@ -55,8 +58,14 @@ public:
 	/** 현재 음악 시간 */
 	float GetCurrentMusicTimeMs() const;
 
+	/** 현재 채보 시간 */
+	float GetCurrentChartTimeMs() const;
+
 	/** 현재 Beat */
 	float GetCurrentBeat() const;
+
+	/** Cue만 먼저 발행 중인지 여부 */
+	bool IsCuePreRollOnly() const;
 
 	/** 판정 선행 등록 시간(ms) 설정 */
 	void SetArmLeadTimeMs(float InArmLeadTimeMs);
@@ -119,12 +128,18 @@ public:
 	float ArmLeadTimeMs = 120.0f;
 	/**	채보 오프셋 */
 	float ChartOffsetMs;
+	/** Cue 선행 시작 시간(ms) */
+	float CuePreRollTimeMs;
+	/** Cue 선행 경과 시간(ms) */
+	float CuePreRollElapsedMs;
 	/**	Wwise 뮤직 콜백 사용 */
 	bool bUseMusicCallbacks = true;
 	/** 재생 중 여부 */
 	bool bIsPlaying;
 	/** 일시정지 여부 */
 	bool bIsPaused;
+	/** Cue만 먼저 발행 중인지 여부 */
+	bool bCuePreRollOnly;
 	/** 모든 노트 발행 완료 여부 */
 	bool bAllNotesPassed;
 		

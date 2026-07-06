@@ -90,6 +90,10 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "PTB|MiniGame")
 	FPTBOnMiniGameStarted OnMiniGameStarted;
 
+	/** 시작 연출이 끝나고 Cue 또는 Gameplay로 넘어갈 때 발생 */
+	UPROPERTY(BlueprintAssignable, Category = "PTB|MiniGame|Flow")
+	FPTBOnMiniGameStarted OnMiniGameIntroFinished;
+
 	/** Audio와 Chart가 실제로 시작될 때 발생 */
 	UPROPERTY(BlueprintAssignable, Category = "PTB|MiniGame|Flow")
 	FPTBOnMiniGameStarted OnMiniGameGameplayStarted;
@@ -181,6 +185,11 @@ public:
 	UFUNCTION(BlueprintNativeEvent, Category = "PTB|MiniGame|Flow")
 	void ReceiveIntroStarted();
 	virtual void ReceiveIntroStarted_Implementation();
+
+	/** BP 미니게임에서 시작 연출 완료 시점을 확장합니다. */
+	UFUNCTION(BlueprintNativeEvent, Category = "PTB|MiniGame|Flow")
+	void ReceiveIntroFinished();
+	virtual void ReceiveIntroFinished_Implementation();
 
 	/** BP 미니게임에서 Audio/Chart 실제 시작 시점 연출을 확장합니다. */
 	UFUNCTION(BlueprintNativeEvent, Category = "PTB|MiniGame|Flow")
@@ -311,6 +320,9 @@ protected:
 	/** 인트로 후 Audio/Chart 시작 타이머 */
 	FTimerHandle IntroTimerHandle;
 
+	/** Cue 선행 발행 후 Audio/Chart 시작 타이머 */
+	FTimerHandle CuePreRollTimerHandle;
+
 	/** 아웃트로 후 결과 전달 타이머 */
 	FTimerHandle OutroTimerHandle;
 
@@ -365,6 +377,9 @@ protected:
 	/** Audio와 Chart를 실제로 시작 */
 	virtual void BeginGameplaySequence();
 
+	/** Audio와 Chart 시작 전 Cue 선행 발행 */
+	virtual void BeginCuePreRollSequence();
+
 	/** 결과 전달 전 종료 연출을 시작하거나 즉시 완료 */
 	virtual void BeginOutroSequence(EPTBRoundEndReason Reason);
 
@@ -414,6 +429,9 @@ protected:
 	/** 입력 가능 여부 */
 	bool CanAcceptInput() const;
 
+	/** Cue 선행 발행 중 여부 */
+	bool IsCuePreRollActive() const;
+
 	/** 키 - 액션 매핑(하위 override) */
 	virtual TMap<FKey, EPTBActionType> GetActionMapping() const;
 
@@ -425,6 +443,9 @@ protected:
 
 	/** 소리 출력 오프셋 계산 */
 	virtual float ResolveSoundOffsetMs(const FPTBMiniGameContext& Context) const;
+
+	/** Cue 선행 발행 시간 계산 */
+	virtual float ResolveCuePreRollTimeMs() const;
 
 	/** 라운드 종료 기준 차트 시간(ms) */
 	float GetRoundEndChartTimeMs() const;

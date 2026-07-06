@@ -82,6 +82,22 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Timing", meta = (ClampMin = "0", UIMin = "0"))
 	float CueLeadTimeMs = 2000.0f;
 
+	/** Audio와 Chart 시작 전 Cue만 먼저 발행 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Timing")
+	bool bUseCuePreRoll = false;
+
+	/** Cue 선행 시작 시간 기준 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Timing", meta = (EditCondition = "bUseCuePreRoll", EditConditionHides))
+	EPTBCueLeadTimeMode CuePreRollMode = EPTBCueLeadTimeMode::Beat;
+
+	/** Cue 선행 시작 Beat 수 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Timing", meta = (EditCondition = "bUseCuePreRoll", EditConditionHides, ClampMin = "0", UIMin = "0"))
+	float CuePreRollBeats = 0.0f;
+
+	/** Cue 선행 시작 시간(ms) */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Timing", meta = (EditCondition = "bUseCuePreRoll", EditConditionHides, ClampMin = "0", UIMin = "0"))
+	float CuePreRollTimeMs = 0.0f;
+
 	/** 판정 등록 선행 시간 override 사용 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Timing")
 	bool bUseArmLeadTimeOverride = false;
