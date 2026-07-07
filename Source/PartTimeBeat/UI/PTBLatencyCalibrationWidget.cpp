@@ -5,6 +5,8 @@
 #include "Components/PanelSlot.h"
 #include "Components/Border.h"
 #include "Blueprint/WidgetTree.h"
+#include "Kismet/GameplayStatics.h"
+#include "Sound/SoundBase.h"
 
 void UPTBLatencyCalibrationWidget::NativeConstruct()
 {
@@ -55,6 +57,10 @@ void UPTBLatencyCalibrationWidget::StartCalibration()
 void UPTBLatencyCalibrationWidget::MetronomeTick()
 {
 	SpawnNote();
+	if (MetronomeSound)
+	{
+		UGameplayStatics::PlaySound2D(this, MetronomeSound);
+	}
 	OnMetronomeTick();
 }
 

@@ -7,6 +7,7 @@
 
 class UCanvasPanel;
 class UBorder;
+class USoundBase;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCalibrationFinished, float, AverageOffsetMs);
 
@@ -33,6 +34,10 @@ public:
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "Calibration")
 	void OnPressCountUpdated(const FText& FormattedCount);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Calibration")
+	TObjectPtr<USoundBase> MetronomeSound;
+
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Calibration")
 	float BPM = 120.f;
