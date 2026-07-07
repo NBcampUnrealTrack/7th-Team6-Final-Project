@@ -35,6 +35,18 @@ void UPTBBBCueWidgetBase::StopApproachTranslation()
 	SetRenderTranslation(FVector2D::ZeroVector);
 }
 
+UTexture2D* UPTBBBCueWidgetBase::GetJudgementTexture(EPTBJudgementType JudgementType) const
+{
+	switch (JudgementType)
+	{
+	case EPTBJudgementType::HighPerfect: return HighPerfectTexture;
+	case EPTBJudgementType::Perfect:     return PerfectTexture;
+	case EPTBJudgementType::Good:        return GoodTexture;
+	case EPTBJudgementType::Miss:        return MissTexture;
+	default:                             return nullptr;
+	}
+}
+
 void UPTBBBCueWidgetBase::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 {
 	Super::NativeTick(MyGeometry, InDeltaTime);

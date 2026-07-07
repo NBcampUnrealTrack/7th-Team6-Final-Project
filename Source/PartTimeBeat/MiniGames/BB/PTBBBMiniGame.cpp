@@ -1,6 +1,7 @@
 #include "MiniGames/BB/PTBBBMiniGame.h"
 #include "MiniGames/BB/PTBBBMiniGameRuleSet.h"
 #include "Audio/PTBWwiseAudioManager.h"
+#include "Camera/CameraShakeBase.h"
 #include "Debug/PTBTeamLog.h"
 #include "Rhythm/PTBScoreCalculator.h"
 #include "Rhythm/PTBRhythmChartAsset.h"
@@ -198,6 +199,14 @@ void APTBBBMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 	{
 		ApplyPlayerDamage(CachedDamageTakenOnMiss);
 		OnBBParryFail.Broadcast(Result, GetPlayerHPPercent());
+
+		if (MissCameraShakeClass)
+		{
+			if (APlayerController* PC = GetWorld()->GetFirstPlayerController())
+			{
+				PC->ClientStartCameraShake(MissCameraShakeClass);
+			}
+		}
 
 		// 플레이어 HP 0 실패 처리 (RuleSet 옵션이 켜져 있을 때만)
 		if (PlayerCurrentHP <= 0.f && !bPendingRoundFinish)

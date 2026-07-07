@@ -181,6 +181,10 @@ private:
 	/** Miss 시 플레이어가 받는 데미지 (BuildRuntimeState에서 캐시) */
 	float CachedDamageTakenOnMiss = 15.f;
 
+	/** Miss 판정 시 재생할 카메라 쉐이크 (BP_BB_MiniGame 디테일 패널에서 설정) */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera", meta = (AllowPrivateAccess = "true"))
+	TSubclassOf<class UCameraShakeBase> MissCameraShakeClass;
+
 	// ── 시간 제한 / BGM 페이드 ───────────────────────────────────
 
 public:
