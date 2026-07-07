@@ -7,6 +7,7 @@
 #include "Blueprint/WidgetTree.h"
 #include "Kismet/GameplayStatics.h"
 #include "Sound/SoundBase.h"
+#include "Core/PTBGameInstance.h"
 
 void UPTBLatencyCalibrationWidget::NativeConstruct()
 {
@@ -54,13 +55,44 @@ void UPTBLatencyCalibrationWidget::StartCalibration()
 	);
 }
 
+void UPTBLatencyCalibrationWidget::CloseCalibration()
+{
+	bIsCalibrationActive = false;
+	GetWorld()->GetTimerManager().ClearTimer(MetronomeTimerHandle);
+
+	for (FPTBCalibrationNote& Note : ActiveNotes)
+	{
+		if (Note.Widget)
+		{
+			Note.Widget->RemoveFromParent();
+		}
+	}
+	ActiveNotes.Reset();
+	BeatOffsetsMs.Reset();
+	CurrentPressCount = 0;
+
+	// GameInstance의 저장된 JudgementOffsetMs는 여기서 건드리지 않음 -> 마지막 완주 값 유지
+	RemoveFromParent();
+}
+
+float UPTBLatencyCalibrationWidget::GetSavedJudgementOffsetMs() const
+{
+	if (const UPTBGameInstance* PTBGameInstance = GetGameInstance<UPTBGameInstance>())
+	{
+		return PTBGameInstance->CachedSettings.JudgementOffsetMs;
+	}
+	return 0.f;
+}
+
 void UPTBLatencyCalibrationWidget::MetronomeTick()
 {
 	SpawnNote();
+
 	if (MetronomeSound)
 	{
 		UGameplayStatics::PlaySound2D(this, MetronomeSound);
 	}
+
 	OnMetronomeTick();
 }
 
@@ -152,7 +184,7 @@ FReply UPTBLatencyCalibrationWidget::NativeOnKeyDown(const FGeometry& InGeometry
 		OnOffsetMsUpdated(FText::FromString(OffsetStr));
 
 		const FString CountStr = FString::Printf(TEXT("%d / %d"), CurrentPressCount, RequiredPressCount);
-		OnPressCountUpdated(FText::FromString(CountStr));   // ← 추가
+		OnPressCountUpdated(FText::FromString(CountStr));
 
 		OnJudgementFlash(FMath::Abs(OffsetMs) < 100.f);
 
@@ -193,11 +225,9 @@ FReply UPTBLatencyCalibrationWidget::NativeOnKeyDown(const FGeometry& InGeometry
 
 void UPTBLatencyCalibrationWidget::FinishCalibration()
 {
-	bIsCalibrationActive = false; 
-
+	bIsCalibrationActive = false;
 	GetWorld()->GetTimerManager().ClearTimer(MetronomeTimerHandle);
 
-	// 남아있는 노트 전부 제거
 	for (FPTBCalibrationNote& Note : ActiveNotes)
 	{
 		if (Note.Widget)
@@ -216,6 +246,13 @@ void UPTBLatencyCalibrationWidget::FinishCalibration()
 			Sum += Offset;
 		}
 		AverageOffsetMs = Sum / BeatOffsetsMs.Num();
+	}
+
+	// 기존 GameInstance 인프라 재사용: CachedSettings 갱신 + 슬롯 저장까지 한 번에 처리됨
+	if (UPTBGameInstance* PTBGameInstance = GetGameInstance<UPTBGameInstance>())
+	{
+		PTBGameInstance->SetJudgementOffsetMs(AverageOffsetMs);
+		PTBGameInstance->SaveGame();
 	}
 
 	const FString AverageStr = FString::Printf(TEXT("%+.1fms"), AverageOffsetMs);
