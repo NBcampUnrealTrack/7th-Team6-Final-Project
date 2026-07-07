@@ -180,7 +180,7 @@ FReply UPTBLatencyCalibrationWidget::NativeOnKeyDown(const FGeometry& InGeometry
 		BeatOffsetsMs.Add(OffsetMs);
 		CurrentPressCount++;
 
-		const FString OffsetStr = FString::Printf(TEXT("%+.0fms"), OffsetMs);
+		const FString OffsetStr = FString::Printf(TEXT("%+d ms"), FMath::RoundToInt(OffsetMs));
 		OnOffsetMsUpdated(FText::FromString(OffsetStr));
 
 		const FString CountStr = FString::Printf(TEXT("%d / %d"), CurrentPressCount, RequiredPressCount);
@@ -253,9 +253,14 @@ void UPTBLatencyCalibrationWidget::FinishCalibration()
 	{
 		PTBGameInstance->SetJudgementOffsetMs(AverageOffsetMs);
 		PTBGameInstance->SaveGame();
+		UE_LOG(LogTemp, Warning, TEXT("Saved JudgementOffsetMs: %f"), PTBGameInstance->CachedSettings.JudgementOffsetMs);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("GetGameInstance<UPTBGameInstance> returned nullptr!"));
 	}
 
-	const FString AverageStr = FString::Printf(TEXT("%+.1fms"), AverageOffsetMs);
+	const FString AverageStr = FString::Printf(TEXT("%+d ms"), FMath::RoundToInt(AverageOffsetMs));
 	OnCalibrationFinishedDisplay(FText::FromString(AverageStr));
 
 	OnCalibrationFinished.Broadcast(AverageOffsetMs);
