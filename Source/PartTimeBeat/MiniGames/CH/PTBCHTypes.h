@@ -34,3 +34,22 @@ struct FPTBCHCustomerOrder
     UPROPERTY(EditAnywhere, BlueprintReadOnly)
     TArray<EPTBCHIngredientType> Ingredients;
 };
+
+/**
+ * 완성된 햄버거의 재료 구성에 따른 손님 반응 종류
+ * (실제 대사 문구는 블루프린트/DataTable에서 이 타입을 키로 관리)
+ */
+UENUM(BlueprintType)
+enum class ECHCustomerReactionType : uint8
+{
+    /** 주문한 순서/재료와 완전히 일치 */
+    Perfect         UMETA(DisplayName = "완벽함"),
+    /** 빵 바로 위에 빵을 얹음 (사이에 다른 재료 없음) */
+    BreadOnBread    UMETA(DisplayName = "빵 위에 빵"),
+    /** 한 자리 이상 재료가 아예 빠짐 (타이밍 놓침) */
+    MissingIngredient UMETA(DisplayName = "재료 빠짐"),
+    /** 들어간 재료 구성은 같지만 순서가 뒤바뀜 */
+    OrderShuffled   UMETA(DisplayName = "순서 뒤바뀜"),
+    /** 주문과 다른 재료가 들어감 (그 외 일반적인 실수) */
+    WrongIngredient UMETA(DisplayName = "재료 틀림"),
+};
