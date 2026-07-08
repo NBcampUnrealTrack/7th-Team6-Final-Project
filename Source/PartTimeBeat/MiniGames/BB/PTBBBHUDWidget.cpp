@@ -114,6 +114,10 @@ void UPTBBBHUDWidget::NativeDestruct()
 	}
 
 	ClearCenterMessageTimers();
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(OutroImageTimerHandle);
+	}
 }
 
 void UPTBBBHUDWidget::ShowCenterMessage(const FText& Message)
@@ -306,12 +310,61 @@ void UPTBBBHUDWidget::HandleBBGameplayStarted()
 void UPTBBBHUDWidget::HandleBBOutroStarted(FPTBRoundResult Result, EPTBRoundEndReason EndReason)
 {
 	ClearCenterMessageTimers();
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(OutroImageTimerHandle);
+	}
+
+	// 1단계: "Finish!" 메시지를 단독으로 표시
 	ShowCenterMessage(FText::FromString(TEXT("Finish!")));
+
+	const int32 TierIndex = ResolveOutroTierIndex(Result);
+	UTexture2D* OutroTexture = OutroTexturesByStar.IsValidIndex(TierIndex) ? OutroTexturesByStar[TierIndex] : nullptr;
+
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return;
+	}
+
+	// 2단계: FinishMessageSeconds 후 "Finish!"를 지우고 결과 이미지 표시
+	FTimerDelegate ShowResultDelegate;
+	ShowResultDelegate.BindWeakLambda(this, [this, OutroTexture]()
+	{
+		if (bIsDestructed) return;
+
+		HideCenterMessage();
+		if (ResultTexture)
+		{
+			OnShowOutroImage(ResultTexture);
+		}
+
+		// 3단계: ResultDisplaySeconds 후 별점에 맞는 아웃트로 이미지로 전환
+		if (!OutroTexture)
+		{
+			return;
+		}
+		if (UWorld* InnerWorld = GetWorld())
+		{
+			FTimerDelegate ShowOutroDelegate;
+			ShowOutroDelegate.BindWeakLambda(this, [this, OutroTexture]()
+			{
+				if (bIsDestructed) return;
+				OnShowOutroImage(OutroTexture);
+			});
+			InnerWorld->GetTimerManager().SetTimer(OutroImageTimerHandle, ShowOutroDelegate, ResultDisplaySeconds, false);
+		}
+	});
+	World->GetTimerManager().SetTimer(OutroImageTimerHandle, ShowResultDelegate, FinishMessageSeconds, false);
 }
 
 void UPTBBBHUDWidget::HandleBBOutroFinished(FPTBRoundResult Result, EPTBRoundEndReason EndReason)
 {
 	ClearCenterMessageTimers();
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(OutroImageTimerHandle);
+	}
 }
 
 // ── 내부 헬퍼 ────────────────────────────────────────────────────
@@ -390,6 +443,21 @@ UPTBBBCueWidgetBase* UPTBBBHUDWidget::FindAndRemoveCue(int32 NoteId)
 		return Cue;
 	}
 	return nullptr;
+}
+
+int32 UPTBBBHUDWidget::ResolveOutroTierIndex(const FPTBRoundResult& Result) const
+{
+	const bool bBossDefeated = Result.MiniGamePayload.IntValues.FindRef(TEXT("BossDefeated")) != 0;
+	const float PlayerHPPercent = Result.MiniGamePayload.FloatValues.FindRef(TEXT("FinalPlayerHPPercent"));
+	const float BossHPPercent = Result.MiniGamePayload.FloatValues.FindRef(TEXT("FinalBossHPPercent"));
+
+	if (bBossDefeated)
+	{
+		// 3 = 압승(체력 50%이상), 2 = 신승(체력 50%미만)
+		return (PlayerHPPercent >= 0.5f) ? 3 : 2;
+	}
+	// 1 = 석패(보스 체력 50%이하로 깎음), 0 = 완패(보스 체력 50%초과 남음)
+	return (BossHPPercent <= 0.5f) ? 1 : 0;
 }
 
 void UPTBBBHUDWidget::ClearCenterMessageTimers()

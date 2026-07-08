@@ -10,6 +10,7 @@ class UPTBBBCueWidgetBase;
 class UCanvasPanel;
 class UProgressBar;
 class UTextBlock;
+class UTexture2D;
 struct FPTBNoteEvent;
 struct FPTBJudgementResult;
 
@@ -113,6 +114,28 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "PTB|BB|HUD")
 	TObjectPtr<APTBBBMiniGame> BBMiniGame;
 
+	// ── 아웃트로 이미지 ──────────────────────────────────────────
+
+	/** 게임 종료 시 가장 먼저 표시할 결과 이미지 (PTB_BB_Result) */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|BB|HUD|Outro")
+	TObjectPtr<UTexture2D> ResultTexture;
+
+	/**
+	 * 결과 등급(0~3)에 따라 이어서 표시할 이미지. 인덱스 0=Outro1 ... 3=Outro4.
+	 * 등급 판정: 0=보스 미처치+보스 체력 50%초과, 1=보스 미처치+보스 체력 50%이하,
+	 *           2=보스 처치+플레이어 체력 50%미만, 3=보스 처치+플레이어 체력 50%이상
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|BB|HUD|Outro")
+	TArray<TObjectPtr<UTexture2D>> OutroTexturesByStar;
+
+	/** "Finish!" 중앙 메시지를 단독으로 보여주는 시간(초). 이후 결과 이미지로 전환. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|BB|HUD|Outro", meta = (ClampMin = "0.0"))
+	float FinishMessageSeconds = 0.8f;
+
+	/** 결과 이미지를 보여준 뒤 등급 이미지로 전환하기까지의 지연(초) */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|BB|HUD|Outro", meta = (ClampMin = "0.0"))
+	float ResultDisplaySeconds = 1.0f;
+
 protected:
 	virtual void NativeConstruct() override;
 	virtual void NativeDestruct() override;
@@ -149,6 +172,10 @@ protected:
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "PTB|BB|HUD|Flow")
 	void OnCenterMessageHidden();
+
+	/** 아웃트로 이미지를 화면에 표시/교체할 때 호출. WBP에서 Image 위젯 갱신 담당. */
+	UFUNCTION(BlueprintImplementableEvent, Category = "PTB|BB|HUD|Outro")
+	void OnShowOutroImage(UTexture2D* Texture);
 
 private:
 	/** 현재 미니게임 HP 기준으로 메인 바·고스트 바 상태를 동기화. NativeConstruct/BindToMiniGame 양쪽에서 호출 */
@@ -214,12 +241,16 @@ private:
 	/** NoteId로 두 맵 중 해당 큐를 찾아 맵에서 제거하고 반환. 없으면 nullptr. */
 	UPTBBBCueWidgetBase* FindAndRemoveCue(int32 NoteId);
 
+	/** 보스 처치 여부 + 체력 비율로 OutroTexturesByStar의 인덱스(0~3)를 결정. */
+	int32 ResolveOutroTierIndex(const FPTBRoundResult& Result) const;
+
 	void ClearCenterMessageTimers();
 	void QueueCenterMessage(float DelaySeconds, const FText& Message);
 	void ShowCenterMessageForDuration(const FText& Message, float DurationSeconds);
 
 	TArray<FTimerHandle> CenterMessageTimerHandles;
 	FTimerHandle CenterMessageHoldTimerHandle;
+	FTimerHandle OutroImageTimerHandle;
 
 	// NativeDestruct 이후 GC 전 구간에서 타이머가 발화되지 않도록 막는 플래그
 	bool bIsDestructed = false;
