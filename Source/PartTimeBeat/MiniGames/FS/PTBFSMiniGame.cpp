@@ -263,13 +263,11 @@ void APTBFSMiniGame::OnAllNotesPassedFishing()
 	OnFishRevealed.Broadcast(FishActor);
 	if (FishDistance <= 0.5f)
 	{
-		PTB_WARNING(LogPTBMiniGames, TEXT("[FS] 성공 분기 진입"));
 		if (ActiveFSWidget)
 		{
 			ActiveFSWidget->RemoveFromParent();
 			ActiveFSWidget = nullptr;
 		}
-		//PlaySuccessCameraSequence();
 		if (SuccessCameraSequence)
 		{
 			ALevelSequenceActor* SequenceActor;
@@ -279,10 +277,6 @@ void APTBFSMiniGame::OnAllNotesPassedFishing()
 			{
 				Player->Play();
 				PTB_WARNING(LogPTBMiniGames, TEXT("[FS] 레벨 시퀀스 재생 시작"));
-			}
-			else
-			{
-				PTB_WARNING(LogPTBMiniGames, TEXT("[FS] 레벨 시퀀스 플레이어 생성 실패"));
 			}
 		}
 		Character->StopAnimMontage();
@@ -301,11 +295,9 @@ void APTBFSMiniGame::OnAllNotesPassedFishing()
 		}, 0.2f, false);
 		if (FishActor)
 			FishActor->SetActorHiddenInGame(true);
-		PTB_WARNING(LogPTBMiniGames, TEXT("성공!"));
 	}
 	else
 	{
-		PTB_WARNING(LogPTBMiniGames, TEXT("[FS] 실패 분기 진입"));
 		if (ActiveFSWidget)
 		{
 			ActiveFSWidget->RemoveFromParent();
@@ -320,10 +312,6 @@ void APTBFSMiniGame::OnAllNotesPassedFishing()
 			{
 				Player->Play();
 				PTB_WARNING(LogPTBMiniGames, TEXT("[FS] 레벨 시퀀스 재생 시작"));
-			}
-			else
-			{
-				PTB_WARNING(LogPTBMiniGames, TEXT("[FS] 레벨 시퀀스 플레이어 생성 실패"));
 			}
 		}
 		Character->StopAnimMontage();
@@ -410,16 +398,6 @@ void APTBFSMiniGame::HandleActionCInput()
 	HandleRhythmInput(EPTBActionType::ActionC);
 }
 
-void APTBFSMiniGame::HandleActionDInput()
-{
-	HandleRhythmInput(EPTBActionType::ActionD);
-}
-
-void APTBFSMiniGame::HandleActionEInput()
-{
-	HandleRhythmInput(EPTBActionType::ActionE);
-}
-
 void APTBFSMiniGame::HandleActionAInputReleased()
 {
 	HandleRhythmInputReleased(EPTBActionType::ActionA);
@@ -435,12 +413,3 @@ void APTBFSMiniGame::HandleActionCInputReleased()
 	HandleRhythmInputReleased(EPTBActionType::ActionC);
 }
 
-void APTBFSMiniGame::HandleActionDInputReleased()
-{
-	HandleRhythmInputReleased(EPTBActionType::ActionD);
-}
-
-void APTBFSMiniGame::HandleActionEInputReleased()
-{
-	HandleRhythmInputReleased(EPTBActionType::ActionE);
-}

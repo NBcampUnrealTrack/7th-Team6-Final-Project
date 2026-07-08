@@ -9,9 +9,7 @@
 
 class AFishActor;
 class UPTBFSMiniGameRuleSet;
-class APTBRhythmCharacterBase;
 class APTBFSCharacter;
-class ACameraActor;
 class UFSWidget;
 
 UENUM(BlueprintType)
@@ -122,12 +120,6 @@ public:
  
 	UFUNCTION(BlueprintCallable, Category = "Fishing|Input")
 	void HandleActionCInput(); 
- 
-	UFUNCTION(BlueprintCallable, Category = "Fishing|Input")
-	void HandleActionDInput(); 
-	
-	UFUNCTION(BlueprintCallable, Category = "Fishing|Input")
-	void HandleActionEInput();
 	
 	UFUNCTION(BlueprintCallable, Category = "Fishing|Input")
 	void HandleActionAInputReleased();
@@ -137,15 +129,6 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Fishing|Input")
 	void HandleActionCInputReleased();
-
-	UFUNCTION(BlueprintCallable, Category = "Fishing|Input")
-	void HandleActionDInputReleased();
-
-	UFUNCTION(BlueprintCallable, Category = "Fishing|Input")
-	void HandleActionEInputReleased();
-	
-	UFUNCTION(BlueprintCallable, Category = "Fishing")
-	void SetFishActor(AFishActor* InFishActor) { FishActor = InFishActor; }
 	
 	TObjectPtr<UPTBWwiseRhythmSyncComponent> GetUPTBWwiseRhythmSyncComponent()
 	{
@@ -168,7 +151,6 @@ protected:
 	
 	UFUNCTION(BlueprintCallable, Category = "PTB|MiniGame")
 	virtual void InitializeMiniGame(const FPTBMiniGameContext& Context)override;
-	//void PlaySuccessCameraSequence();
 	
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	
@@ -205,10 +187,6 @@ private:
 	UPROPERTY()
 	TObjectPtr<APTBFSCharacter> Character = nullptr;
 	
-	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category = "Fishing",meta = (AllowPrivateAccess = "true"))
-	float AutoDriftMultiplier = 0.3f;
-		
-	/**물고기 거리조정함수*/
 	void ApplyDistanceDelta(float Delta);
 	
 	EFishingLineState CalculateLineState(float Distance)const;
