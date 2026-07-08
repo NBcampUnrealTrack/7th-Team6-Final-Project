@@ -31,6 +31,13 @@ public:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PTB|Dodge")
     float ObstacleFallSpeed = 0.0f;
 
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PTB|Dodge")
+    int32 HighPerfectStreak = 0;
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PTB|Dodge")
+    bool bFeverMode = false;
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PTB|Dodge")
+    float ScoreMultiplier = 1.0f;
+
     static constexpr float MinReactionTimeMs = 150.0f;
 
     virtual void BuildRuntimeState() override;
@@ -65,4 +72,7 @@ public:
 
     UFUNCTION(BlueprintImplementableEvent, Category = "PTB|Dodge")
     void OnJudgementUpdated(EPTBJudgementType JudgementType);
+
+    UFUNCTION(BlueprintImplementableEvent, Category = "PTB|Dodge")
+    void OnFeverModeChanged(bool bFever);
 };
