@@ -8,6 +8,9 @@
 class UPTBCHMiniGameRuleSet;
 class UWrapperWidget;
 class UUserWidget;
+class UCameraShakeBase;
+class UStaticMesh;
+class UMaterialInterface;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FPTBCHNoteEvent, FPTBNoteEvent, Note);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FPTBCHJudgementEvent, FPTBJudgementResult, Result, FPTBNoteEvent, Note);
@@ -79,6 +82,9 @@ public:
 
     virtual void HandleRhythmInput(EPTBActionType Action, float TimeMs = -1.0f) override;
 
+    /** 재도전/종료 시 이 인스턴스가 스폰한 접시·재료 액터를 전부 정리 (레벨에 남아 다음 판과 겹치는 것 방지) */
+    virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+
     UPROPERTY()
     EPTBActionType LastPressedAction = EPTBActionType::None;
 
@@ -133,6 +139,22 @@ public:
     /** HUD 위젯 클래스 (에디터에서 설정) */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|CH")
     TSubclassOf<UUserWidget> HUDWidgetClass;
+
+    /** Miss 판정 시 재생할 카메라쉐이크 (에디터에서 설정) */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|CH|Camera")
+    TSubclassOf<UCameraShakeBase> MissCameraShakeClass;
+
+    /** 손님 주문 완벽 완성 시 표시할 후광 메쉬 (에디터에서 설정) */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|CH|VFX")
+    TObjectPtr<UStaticMesh> HaloEffectMesh;
+
+    /** 후광 메쉬에 적용할 머티리얼 (비워두면 메쉬 기본 머티리얼 사용) */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|CH|VFX")
+    TObjectPtr<UMaterialInterface> HaloEffectMaterial;
+
+    /** 후광이 화면에 유지되는 시간(초) */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|CH|VFX")
+    float HaloEffectDuration = 1.0f;
 
 protected:
     /** Hold 시작 입력 판정 */

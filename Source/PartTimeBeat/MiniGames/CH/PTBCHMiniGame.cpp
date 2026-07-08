@@ -7,7 +7,10 @@
 #include "Rhythm/PTBRhythmConductorComponent.h"
 #include "Rhythm/PTBScoreCalculator.h"
 #include "Blueprint/UserWidget.h"
+#include "Camera/CameraShakeBase.h"
 #include "Components/PrimitiveComponent.h"
+#include "Components/StaticMeshComponent.h"
+#include "Engine/StaticMeshActor.h"
 
 void APTBCHMiniGame::BuildRuntimeState()
 {
@@ -106,6 +109,36 @@ void APTBCHMiniGame::BuildRuntimeState()
         *GetNameSafe(this),
         *GetNameSafe(RuleSet.Get()),
         *GetNameSafe(ChartAsset.Get()));
+}
+
+void APTBCHMiniGame::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+    // 재도전 시 GameMode가 이 액터만 Destroy하고 스폰된 접시/재료는 정리하지 않아서,
+    // 다음 판 첫 접시가 이전 판에 남아있던 접시/재료와 같은 위치에서 겹쳐 보이는 문제 방지
+    for (AActor* Ingredient : SpawnedIngredients)
+    {
+        if (Ingredient) { Ingredient->Destroy(); }
+    }
+    SpawnedIngredients.Reset();
+
+    for (const TArray<TObjectPtr<AActor>>& Hamburger : CompletedHamburgers)
+    {
+        for (AActor* Ingredient : Hamburger)
+        {
+            if (Ingredient) { Ingredient->Destroy(); }
+        }
+    }
+    CompletedHamburgers.Reset();
+
+    for (AActor* Plate : CompletedPlates)
+    {
+        if (Plate) { Plate->Destroy(); }
+    }
+    CompletedPlates.Reset();
+
+    SlideGroups.Reset();
+
+    Super::EndPlay(EndPlayReason);
 }
 
 void APTBCHMiniGame::HandleChartEvent(FPTBNoteEvent Note)
@@ -227,6 +260,14 @@ void APTBCHMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
         bWrongKeyNotePress = true;
     }
 
+    if (Result.JudgementType == EPTBJudgementType::Miss && MissCameraShakeClass)
+    {
+        if (APlayerController* PC = GetWorld()->GetFirstPlayerController())
+        {
+            PC->ClientStartCameraShake(MissCameraShakeClass);
+        }
+    }
+
     Super::HandleJudgementResult(Result);
     CallHUDShowJudgement(Result.JudgementType);
     if (ScoreCalculator)
@@ -320,6 +361,32 @@ void APTBCHMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
                     OnCHCustomerReaction.Broadcast(ReactionType);
                     CallHUDShowCustomerReaction(ReactionType);
                     bCustomerOrderSucceeded = (ReactionType == ECHCustomerReactionType::Perfect);
+                }
+
+                if (bCustomerOrderSucceeded && HaloEffectMesh && GetWorld())
+                {
+                    FVector VfxLocation = PlateSpawnLocation;
+                    if (SpawnedIngredients.Num() > 0 && SpawnedIngredients.Last())
+                    {
+                        VfxLocation = SpawnedIngredients.Last()->GetActorLocation();
+                    }
+
+                    FActorSpawnParameters SpawnParams;
+                    SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+                    if (AStaticMeshActor* HaloActor = GetWorld()->SpawnActor<AStaticMeshActor>(VfxLocation, FRotator::ZeroRotator, SpawnParams))
+                    {
+                        if (UStaticMeshComponent* MeshComp = HaloActor->GetStaticMeshComponent())
+                        {
+                            MeshComp->SetMobility(EComponentMobility::Movable);
+                            MeshComp->SetStaticMesh(HaloEffectMesh);
+                            MeshComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+                            if (HaloEffectMaterial)
+                            {
+                                MeshComp->SetMaterial(0, HaloEffectMaterial);
+                            }
+                        }
+                        HaloActor->SetLifeSpan(HaloEffectDuration);
+                    }
                 }
                 CallHUDUpdateCustomerResult(CurrentCustomerIndex, bCustomerOrderSucceeded);
                 bReactionShownForCurrentCustomer = false;
