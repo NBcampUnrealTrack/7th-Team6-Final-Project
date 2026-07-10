@@ -18,11 +18,6 @@ APTBSRMiniGame::APTBSRMiniGame()
 void APTBSRMiniGame::BeginPlay()
 {
 	Super::BeginPlay();
-	FPTBMiniGameContext Context;
-	Context.SessionRequest.MiniGameId = FName("SR");
-	Context.SessionRequest.Difficulty = EPTBDifficulty::Easy;
-	InitializeMiniGame(Context);
-	StartMiniGame();
 }
 
 TMap<FKey, EPTBActionType> APTBSRMiniGame::GetActionMapping() const
