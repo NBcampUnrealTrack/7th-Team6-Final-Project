@@ -192,8 +192,6 @@ void APTBSRMiniGame::HandleNoteCue(FPTBNoteEvent Note)
 	if (Note.ActionType == EPTBActionType::ActionA)
 	{
 		int32 AssignedTopping = ToppingQueue.IsValidIndex(Note.NoteId) ? ToppingQueue[Note.NoteId] : 1;
-
-		// 이 신호가 정상 작동해야 블루프린트에서 접시가 다시 정상 스폰
 		OnSushiPlateSpawn.Broadcast(AssignedTopping, Note.NoteId);
 	}
 }
