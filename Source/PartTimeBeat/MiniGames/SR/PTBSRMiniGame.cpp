@@ -23,7 +23,7 @@ void APTBSRMiniGame::BeginPlay()
 TMap<FKey, EPTBActionType> APTBSRMiniGame::GetActionMapping() const
 {
 	return {
-		{ EKeys::Down, EPTBActionType::ActionA }
+		{ GameContext.UserSettings.RhythmKeys.ActionA, EPTBActionType::ActionA }
 	};
 }
 
@@ -185,6 +185,20 @@ void APTBSRMiniGame::RefreshPreviewUI()
 	}
 }
 
+void APTBSRMiniGame::HandleRhythmInput(EPTBActionType Action, float TimeMs)
+{
+	Super::HandleRhythmInput(Action, TimeMs);
+
+	// 토핑(스시)은 키를 누를 때마다 스폰
+	if (ToppingQueue.IsValidIndex(CurrentNoteIndex))
+	{
+		int32 AssignedTopping = ToppingQueue[CurrentNoteIndex];
+		OnToppingDrop.Broadcast(AssignedTopping, CurrentNoteIndex); // 델리게이트 이름 변경
+	}
+}
+
+
+
 void APTBSRMiniGame::HandleNoteCue(FPTBNoteEvent Note)
 {
 	Super::HandleNoteCue(Note);
@@ -199,38 +213,6 @@ void APTBSRMiniGame::HandleNoteCue(FPTBNoteEvent Note)
 void APTBSRMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 {
 	Super::HandleJudgementResult(Result);
-
-	/* 💥 오버랩 테스트를 위해 C++ 스위칭 잠시 봉인!
-	if (Result.JudgementType != EPTBJudgementType::Miss)
-	{
-		if (ActivePlatesMap.Contains(Result.NoteId))
-		{
-			AActor* TargetPlate = ActivePlatesMap[Result.NoteId];
-			if (IsValid(TargetPlate))
-			{
-				FTransform SpawnTransform = TargetPlate->GetActorTransform();
-				int32 ToppingType = GetToppingTypeFromQueue(Result.NoteId);
-				FPTBToppingRow ToppingData = GetToppingData(ToppingType);
-
-				if (ToppingData.SR_SushiBP)
-				{
-					FActorSpawnParameters SpawnParams;
-					SpawnParams.Owner = this;
-					SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-					GetWorld()->SpawnActor<AActor>(ToppingData.SR_SushiBP, SpawnTransform, SpawnParams);
-				}
-				TargetPlate->Destroy();
-			}
-			ActivePlatesMap.Remove(Result.NoteId);
-		}
-	}
-	else
-	{
-		ActivePlatesMap.Remove(Result.NoteId);
-	}
-	*/
-
-	// 리듬 UI 진행 흐름만 유지
 	CurrentNoteIndex++;
 	RefreshPreviewUI();
 }
