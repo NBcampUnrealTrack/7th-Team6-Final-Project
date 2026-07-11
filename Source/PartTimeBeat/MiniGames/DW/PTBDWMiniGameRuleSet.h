@@ -19,9 +19,13 @@ class PARTTIMEBEAT_API UPTBDWMiniGameRuleSet : public UPTBMiniGameRuleSet
 
 public:
 	// ── 장애물 ──────────────────────────────────────────────
-	/** 액션별 장애물 오프셋 α. */
+	/** 액션별 obstacle 선행 시간(ms). 노트보다 몇 ms 앞세울지. 실제 거리는 현재 속도로 역산 → 난이도(속도) 무관 일정. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW|Obstacle")
-	TMap<EPTBActionType, float> ObstacleOffsetByAction;
+	TMap<EPTBActionType, float> ObstacleLeadMsByAction;
+
+	/** 롱노트 전용 obstacle 선행 시간(ms). 미설정 시 ObstacleLeadMsByAction 폴백. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW|Obstacle")
+	TMap<EPTBActionType, float> ObstacleLongLeadMsByAction;
 
 	/** 액션별 장애물 색. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW|Obstacle")
@@ -51,6 +55,77 @@ public:
 	/** 두 조각이 좌우로 벌어지는 거리. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW|VFX")
 	float BreakSplitSpreadY = 40.0f;
+
+	/** broken 조각이 눕고 나서 땅에 파묻히면 위로 띄우는 양(cm). 파묻힘 보정용. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW|VFX")
+	float BreakBrokenGroundLiftZ = 0.0f;
+
+	// ===== 노트마커 (변경된 방식) — 진행중. =====
+
+	/** false=신(3D 음표 마커), true=구(현 레인형, 디버그 보존). 기본 true=기존 동작 유지. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW|Note")
+	bool bUseLegacyLaneMarker = true;
+
+	/** 액션별 음표 색. 미설정 액션은 MarkerColor로 폴백. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW|Note")
+	TMap<EPTBActionType, FLinearColor> NoteColorByAction;
+
+	/** 단일 노트(큰 음표) 스케일. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW|Note")
+	FVector NoteSingleScale = FVector(1.0f, 1.0f, 1.0f);
+
+	/** 롱 노트(작은 음표) 스케일. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW|Note")
+	FVector NoteLongScale = FVector(0.6f, 0.6f, 0.6f);
+
+	/** 도착점(끝) 오프셋 — JudgeActor 로컬. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW|Note")
+	FVector NoteTargetHeadOffset = FVector(0.0f, 0.0f, 120.0f);
+
+	/** 생성점(시작) 오프셋 — CueActor 로컬. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW|Note")
+	FVector NoteCueSpawnOffset = FVector(100.0f, 0.0f, 120.0f);
+
+	/** 예고 리드인(beat). 이 박자 전에 음표 생성. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW|Note", meta = (ClampMin = "1.0"))
+	float NoteLeadInBeats = 4.0f;
+
+	/** 음표 포물선 홉의 아치 높이. beat마다 튀어오르는 높이. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW|Note")
+	float NoteArcHeight = 120.0f;
+
+	/** 혜성 꼬리 메시(미설정 시 실린더 placeholder). */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW|Note")
+	TObjectPtr<UStaticMesh> NoteTailMesh;
+
+	/** 혜성 꼬리 두께(cm). */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW|Note")
+	float NoteTailThickness = 30.0f;
+
+	/** 꼬리 전용 머티리얼. 미설정 시 NoteMaterial/공용 폴백. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW|Note")
+	TObjectPtr<UMaterialInterface> NoteTailMaterial;
+
+	/** 꼬리 색(틴트). 무지개 머티리얼이 Color를 무시하면 영향 없음. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW|Note")
+	FLinearColor NoteTailColor = FLinearColor::White;
+
+	/** 롱 노트 음표 개수. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW|Note", meta = (ClampMin = "1"))
+	int32 NoteLongCount = 3;
+
+	/** 음표 메시(단일). 미설정 시 코드 placeholder. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW|Note")
+	TObjectPtr<UStaticMesh> NoteSingleMesh;
+
+	/** 음표 메시(롱용 작은 음표). 미설정 시 단일 메시/placeholder. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW|Note")
+	TObjectPtr<UStaticMesh> NoteLongMesh;
+
+	/** 음표 색용 베이스 머티리얼. 미설정 시 ObstacleMaterial 재사용. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW|Note")
+	TObjectPtr<UMaterialInterface> NoteMaterial;
+
 
 	/** 롱 노트 시각 길이 배율. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW|Obstacle", meta = (ClampMin = "0.05", ClampMax = "1.0"))
@@ -117,6 +192,14 @@ public:
 	FLinearColor JudgeTargetColor = FLinearColor(1.0f, 0.85f, 0.2f, 0.9f);
 
 	// ── 캐릭터(스켈레탈) ────────────────────────────────────
+	/** 판정 액터 스폰 오프셋. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW|Character")
+	FVector JudgeActorSpawnOffset = FVector(0.0f, 0.0f, 0.0f);
+
+	/** preview 액터 스폰 오프셋. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW|Character")
+	FVector PreviewActorSpawnOffset = FVector(600.0f, 180.0f, 0.0f);
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW|Character")
 	TObjectPtr<USkeletalMesh> ProtagonistMesh;
 
@@ -184,6 +267,38 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW|Audio")
 	FName FailReactionSFXKey = NAME_None;
 
+	/** 실패 리액션(애니) 지연 시간(ms). 부수는 타이밍 튜닝용. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW|VFX")
+	float FailReactionDelayMs = 0.0f;
+
+	/** 판정 텍스트 팝업 액터 클래스. BP로 글리프 메시·색 세팅. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW|Text")
+	TSubclassOf<AActor> JudgePopupClass;
+
+	/** 판정 텍스트 표시 여부. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW|Text")
+	bool bShowJudgeText = true;
+
+	/** 판정 주체 기준 팝업 위치 오프셋(월드). */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW|Text")
+	FVector JudgeTextOffset = FVector(0.0f, 0.0f, 200.0f);
+
+	/** 팝업 회전(카메라 정면 정렬용). */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW|Text")
+	FRotator JudgeTextRotation = FRotator::ZeroRotator;
+
+	/** hold 중 음표 mesh 맥동 발광 기본 강도. 머티리얼 스칼라 "EmissiveStrength". */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW|Note")
+	float NoteHoldEmissiveBase = 0.15f;
+
+	/** hold 맥동 진폭. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW|Note")
+	float NoteHoldEmissiveAmp = 0.1f;
+
+	/** hold 맥동 속도(rad/s). */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW|Note")
+	float NoteHoldEmissivePulseSpeed = 6.0f;
+
 	// ── 연출 VFX (Niagara) ──────────────────────────────────
 
 	/** 액션별 실패 파괴 VFX. */
@@ -211,6 +326,14 @@ public:
 	/** B 성공 시 슬라이드 먼지 VFX. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW|VFX")
 	TObjectPtr<UNiagaraSystem> SlideDustVFX;
+
+	/** 단일노트 성공 시 음표 토큰 위치에서 소멸 VFX(예: 하트 흩어짐). */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW|VFX")
+	TObjectPtr<UNiagaraSystem> NoteDespawnVFX;
+
+	/** 롱노트 혜성 꼬리 리본(Niagara). 머리에 attach되어 곡선 자취를 트레일. 미설정 시 실린더 placeholder. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW|VFX")
+	TObjectPtr<UNiagaraSystem> NoteTailRibbonVFX;
 
 	// ── D 발차기 런치 파라미터 ────────────────
 	/** 발차기 중력. */

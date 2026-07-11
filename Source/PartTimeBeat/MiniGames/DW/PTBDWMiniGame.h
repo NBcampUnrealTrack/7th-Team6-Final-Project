@@ -11,8 +11,11 @@ class APTBDWBackgroundScroller;
 class APTBDWCameraRig;
 class UNiagaraSystem;
 
+class APTBDWTextPopup;
+class UNiagaraComponent;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FDWOnComboChanged, int32, NewCombo);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FDWOnNoteResolved, bool, bSuccess, int32, Combo);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FDWOnNoteJudged, EPTBJudgementType, Grade, int32, Combo, int32, Score);
 
 /** 노트 비주얼 추적 + 음악 시간 보간 상태 (NoteId 기준) */
 USTRUCT()
@@ -54,6 +57,12 @@ struct FDWNoteView
 
 	/** 판정(성공·실패) 발생 여부. 롱노트는 꼬리 100% 후 이 결과로 연출. */
 	bool bJudged = false;
+
+	/** 최종 판정 등급(팝업용). 롱노트는 완료 시 이 등급으로 1회 표시. */
+	EPTBJudgementType JudgedGrade = EPTBJudgementType::Miss;
+
+	/** 롱노트 혜성 꼬리 리본 컴포넌트(머리에 attach). */
+	TObjectPtr<UNiagaraComponent> TailRibbon = nullptr;
 };
 
 /** 실패 시 분리되어 넘어지는 장애물. */
@@ -75,6 +84,8 @@ struct FDWResolvingObstacle
 	FVector BackDir = FVector::ZeroVector;
 	FVector RightAxis = FVector::ZeroVector;
 	bool bSplitPiece = false;
+	bool bBrokenPiece = false;
+	FVector HingeOffset = FVector::ZeroVector;
 
 	FRotator EndRot = FRotator::ZeroRotator;
 	float FallFrac = 0.65f;
@@ -103,6 +114,20 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "PTB|DW|Combo")
 	FDWOnNoteResolved OnDWNoteResolved;
 
+	/** 판정 순간: 등급 + 콤보 + 누적 점수. 3D 텍스트 팝업 등 표시 계층이 구독. */
+	UPROPERTY(BlueprintAssignable, Category = "PTB|DW|Combo")
+	FDWOnNoteJudged OnDWNoteJudged;
+
+	/** 판정 텍스트 팝업(3D 글자) 인스턴스. */
+	UPROPERTY()
+	TObjectPtr<APTBDWTextPopup> JudgePopup = nullptr;
+
+	/** 판정 팝업 지연 스폰. */
+	void EnsureJudgePopup();
+
+	/** 판정 등급 팝업 표시(위치 세팅 후 1회). */
+	void ShowJudgeGrade(EPTBJudgementType Grade);
+
 protected:
 	virtual void Tick(float DeltaTime) override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
@@ -117,6 +142,8 @@ protected:
 
 private:
 	void SpawnNoteView(const FPTBNoteEvent& Note);
+	/** 카운트다운 동안 초반 노트를 미리 생성해 정지 상태로 세워둔다. */
+	void PreSpawnIntroNotes();
 	void RecycleNoteView(int32 NoteId);
 	void ClearAllNoteViews();
 
@@ -124,14 +151,14 @@ private:
 	void ResolveObstacleFail(AActor* Obstacle, EPTBActionType Action);
 	/** 성공 시 obstacle을 부수지 않고 온전히 배경 속도로 뒤로 흘려보냄(A·B 허들 넘기). */
 	void ScrollObstacleAway(AActor* Obstacle);
-	/** 노트 접근 속도(cm/s) = MarkerSpawnDistance / LookAheadMs. 나가는 obstacle도 이 속도로(올 때=나갈 때 일치). */
+	/** 노트 접근 속도(cm/s). 나가는 obstacle도 이 속도로(올 때=나갈 때 일치). */
 	float GetNoteApproachSpeedCmS() const;
 	void LaunchKickBall(AActor* Ball, bool bSuccess, bool bIsLong);
 	void PlayNoteResultEffects(int32 NoteId, EPTBActionType Action, bool bSuccess, bool bIsLong);
 
 	/** 부서진 메시가 없을 때 placeholder. */
 	void SpawnSplitHalves(AActor* Obstacle, EPTBActionType Action);
-	/** 지정 좌/우 조각 2개를 피벗 기준으로 V자 갈라지게 넘어뜨리고 뒤로 흘림(A·B 실패). */
+	/** 지정 좌/우 조각 2개를 피벗 기준으로 V자 갈라지게 넘어뜨리고 뒤로 흘림. */
 	void SpawnBrokenPieces(AActor* Obstacle, EPTBActionType Action);
 
 	/** 판정선에 고정 타깃 바를 1회 생성. */
@@ -146,12 +173,19 @@ private:
 	/** 연출 VFX 요청(Niagara). */
 	void RequestDWVfx(UNiagaraSystem* System, const FVector& Location);
 
+	/** 위치에 VFX 스폰 + User Param "SpawnColor" 전달(파티클 색 지정용). */
+	void RequestDWVfxColored(UNiagaraSystem* System, const FVector& Location, const FLinearColor& Color);
+
 	/** 시작 시 DataAsset 설정 자가 점검. */
 	void ValidateDWConfig() const;
 
-	float GetObstacleOffset(EPTBActionType Action) const;
+	float GetObstacleLeadMs(EPTBActionType Action, bool bLong) const;
 	FLinearColor GetObstacleColor(EPTBActionType Action) const;
 	FVector GetObstacleScale(EPTBActionType Action) const;
+	FLinearColor GetNoteColor(EPTBActionType Action) const;
+	FVector GetNoteScale(bool bLong) const;
+	AActor* GetJudgeActor() const;
+	AActor* GetCueActor() const;
 	UStaticMesh* GetObstacleMesh(EPTBActionType Action);
 
 	UPROPERTY()
