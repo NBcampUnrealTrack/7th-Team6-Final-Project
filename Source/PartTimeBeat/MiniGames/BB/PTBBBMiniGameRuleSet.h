@@ -28,13 +28,15 @@ struct FPTBBBDifficultyConfig
 	float DamageTakenOnMiss = 15.f;
 
 	/**
-	 * bAutoScaleBossHP 사용 시 클리어에 필요한 패링 성공 비율.
-	 * 예) 0.667 → 전체 노트의 2/3를 성공하면 보스 HP가 정확히 0이 된다.
+	 * bAutoScaleBossHP 사용 시 클리어(보스 처치)에 필요한 패링 성공 비율.
+	 * 1.0(기본) → 채보의 모든 노트를 성공해야 마지막 노트에서 보스 HP가 정확히 0이 된다.
+	 * 즉, 보스는 노트가 모두 발행되는 시점 이전에는 처치될 수 없다.
+	 * 1.0 미만으로 낮추면 그만큼 더 적은 성공으로도 보스 HP가 중간에 0에 도달할 수 있다.
 	 * 범위: 0.01 ~ 1.0
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|BB|Damage",
 		meta = (ClampMin = "0.01", ClampMax = "1.0"))
-	float ClearRatio = 0.667f;
+	float ClearRatio = 1.0f;
 
 	/** 이 난이도의 목표 점수 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|BB|Score",
@@ -46,8 +48,9 @@ struct FPTBBBDifficultyConfig
  * BB(보스 잡기) 미니게임 RuleSet.
  *
  * 공통 RuleSet 위에 HP 시스템과 난이도별 데미지 설정을 추가한다.
- * 보스 HP가 0이 되어도 곡이 끝날 때까지 게임이 진행된다.
- * (bBossDefeated 플래그만 세우고 연출 이벤트를 발행)
+ * 보스 HP가 0이 되어도 곡이 끝날 때까지 게임이 진행되며, 처치(쓰러짐 연출) 확정은
+ * 모든 노트가 발행된 시점의 보스 체력으로 결정된다. 실패(Failed)는 플레이어 체력
+ * 0 도달(bFailOnPlayerHPDepleted) 시에만 발생한다.
  */
 UCLASS(BlueprintType)
 class PARTTIMEBEAT_API UPTBBBMiniGameRuleSet : public UPTBMiniGameRuleSet
@@ -75,10 +78,11 @@ public:
 
 	/**
 	 * 플레이어 HP가 0이 되면 라운드를 즉시 실패 처리할지 여부.
-	 * false(기본)이면 곡이 끝날 때까지 계속 진행한다.
+	 * true(기본)이면 플레이어 HP 0 도달 즉시 Failed 처리한다(BB의 유일한 실패 조건).
+	 * false이면 플레이어가 쓰러져도 곡이 끝날 때까지 계속 진행하며 Failed가 되지 않는다.
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|BB|Failure")
-	bool bFailOnPlayerHPDepleted = false;
+	bool bFailOnPlayerHPDepleted = true;
 
 	/** 난이도별 데미지/목표 점수 설정 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|BB|Difficulty")

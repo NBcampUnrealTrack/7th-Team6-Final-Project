@@ -154,7 +154,26 @@ void APTBBBBossActor::PlayDeathMontage_Implementation()
 
 	UAnimInstance* AnimInst = BossMesh->GetAnimInstance();
 	if (!AnimInst) { PTB_WARNING(LogPTBMiniGames, TEXT("[BBBossActor] PlayDeathMontage: AnimInstance 없음. AnimBP 확인 필요.")); return; }
+
 	AnimInst->Montage_Play(DeathMontage);
+
+	// 몽타주가 끝나며 자연스럽게 블렌드아웃되면 그 아래 AnimGraph(로코모션)가 다시 드러나
+	// "쓰러졌다가 일어나는" 것처럼 보인다. 블렌드아웃이 "시작되는" 순간(아직 포즈가
+	// 거의 그대로인 시점) 랙돌로 전환해서 그 자리에 쓰러진 채로 남게 한다.
+	FOnMontageBlendingOutStarted BlendingOutDelegate;
+	BlendingOutDelegate.BindUObject(this, &APTBBBBossActor::HandleDeathMontageBlendingOut);
+	AnimInst->Montage_SetBlendingOutDelegate(BlendingOutDelegate, DeathMontage);
+}
+
+void APTBBBBossActor::HandleDeathMontageBlendingOut(UAnimMontage* Montage, bool bInterrupted)
+{
+	if (!BossMesh) return;
+
+	BossMesh->SetCollisionProfileName(TEXT("Ragdoll"));
+	BossMesh->SetSimulatePhysics(true);
+	BossMesh->SetAllBodiesSimulatePhysics(true);
+	BossMesh->bBlendPhysics = true;
+	BossMesh->WakeAllRigidBodies();
 }
 
 void APTBBBBossActor::HandleBBNoteCue(FPTBNoteEvent Note)

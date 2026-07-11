@@ -78,6 +78,10 @@ void APTBBBMiniGame::OnAllNotesDispatched()
 		return;
 	}
 
+	// 주의: 이 시점에는 마지막 노트의 판정이 아직 확정되지 않았을 수 있다
+	// (막판 늦은 입력/오토 미스 판정 윈도우가 아직 열려 있을 수 있음).
+	// 따라서 보스 처치 확정은 여기서 하지 않고, 판정 윈도우가 확실히 닫힌
+	// OnFadeFinished(BGM 페이드 종료 시점)에서 수행한다.
 	AudioManager->StopBGM(BGMFadeDurationSec * 1000.0f);
 
 	GetWorldTimerManager().SetTimer(
@@ -92,15 +96,17 @@ void APTBBBMiniGame::OnFadeFinished()
 		return;
 	}
 
-	const int32 CurrentScore = ScoreCalculator ? ScoreCalculator->CurrentScore : 0;
-	if (CachedTargetScore > 0 && CurrentScore < CachedTargetScore)
+	// 마지막 노트까지 판정이 모두 끝난 시점 — 이때의 보스 체력으로 처치 여부를 최종 확정한다.
+	if (!bBossDefeated && BossCurrentHP <= 0.f)
 	{
-		bPendingRoundFailed = true;
+		bBossDefeated = true;
+		OnBBBossDefeated.Broadcast();
 	}
-	else
-	{
-		bPendingRoundFinish = true;
-	}
+
+	// Failed는 플레이어 체력 0(HandleJudgementResult)에서만 발생한다.
+	// 채보를 끝까지 마쳤다면 목표 점수/보스 체력과 무관하게 항상 정상 종료로 처리하고,
+	// 결과 등급은 아웃트로 화면에서 보스 잔여 체력으로 나눈다.
+	bPendingRoundFinish = true;
 }
 
 // ── 초기화 ───────────────────────────────────────────────────────
@@ -264,17 +270,12 @@ const UPTBBBMiniGameRuleSet* APTBBBMiniGame::GetBBRuleSet() const
 
 void APTBBBMiniGame::ApplyBossDamage(float Damage)
 {
-	const float PrevHP = BossCurrentHP;
 	BossCurrentHP = FMath::Max(0.f, BossCurrentHP - Damage);
-
 	OnBBBossHPChanged.Broadcast(BossCurrentHP, BossMaxHP);
 
-	// HP 0 최초 도달 시에만 이벤트 발행 (이후 추가 데미지에는 발행 안 함)
-	if (PrevHP > 0.f && BossCurrentHP <= 0.f)
-	{
-		bBossDefeated = true;
-		OnBBBossDefeated.Broadcast();
-	}
+	// 처치(쓰러짐 연출) 확정은 여기서 하지 않는다 — 곡 중간에 체력이 0이 되어도
+	// 노트가 남아있는 한 게임은 계속되므로, 최종 처치 여부는 모든 노트가
+	// 발행된 시점(OnAllNotesDispatched)에 확정한다.
 }
 
 void APTBBBMiniGame::ApplyPlayerDamage(float Damage)

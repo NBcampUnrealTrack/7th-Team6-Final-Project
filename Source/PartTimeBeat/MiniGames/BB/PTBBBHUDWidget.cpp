@@ -318,7 +318,7 @@ void UPTBBBHUDWidget::HandleBBOutroStarted(FPTBRoundResult Result, EPTBRoundEndR
 	// 1단계: "Finish!" 메시지를 단독으로 표시
 	ShowCenterMessage(FText::FromString(TEXT("Finish!")));
 
-	const int32 TierIndex = ResolveOutroTierIndex(Result);
+	const int32 TierIndex = ResolveOutroTierIndex(Result, EndReason);
 	UTexture2D* OutroTexture = OutroTexturesByStar.IsValidIndex(TierIndex) ? OutroTexturesByStar[TierIndex] : nullptr;
 
 	UWorld* World = GetWorld();
@@ -445,19 +445,21 @@ UPTBBBCueWidgetBase* UPTBBBHUDWidget::FindAndRemoveCue(int32 NoteId)
 	return nullptr;
 }
 
-int32 UPTBBBHUDWidget::ResolveOutroTierIndex(const FPTBRoundResult& Result) const
+int32 UPTBBBHUDWidget::ResolveOutroTierIndex(const FPTBRoundResult& Result, EPTBRoundEndReason EndReason) const
 {
-	const bool bBossDefeated = Result.MiniGamePayload.IntValues.FindRef(TEXT("BossDefeated")) != 0;
-	const float PlayerHPPercent = Result.MiniGamePayload.FloatValues.FindRef(TEXT("FinalPlayerHPPercent"));
-	const float BossHPPercent = Result.MiniGamePayload.FloatValues.FindRef(TEXT("FinalBossHPPercent"));
-
-	if (bBossDefeated)
+	// Failed(플레이어 체력 0)는 보스 체력과 무관하게 항상 최하위 등급
+	if (EndReason == EPTBRoundEndReason::Failed)
 	{
-		// 3 = 압승(체력 50%이상), 2 = 신승(체력 50%미만)
-		return (PlayerHPPercent >= 0.5f) ? 3 : 2;
+		return 0;
 	}
-	// 1 = 석패(보스 체력 50%이하로 깎음), 0 = 완패(보스 체력 50%초과 남음)
-	return (BossHPPercent <= 0.5f) ? 1 : 0;
+
+	// 채보를 끝까지 마쳤다면 보스 잔여 체력으로 등급을 나눈다.
+	const float BossHPPercent = Result.MiniGamePayload.FloatValues.FindRef(TEXT("FinalBossHPPercent"));
+	if (BossHPPercent <= 0.f)
+	{
+		return 3; // 보스 완전 처치
+	}
+	return (BossHPPercent <= 0.5f) ? 2 : 1;
 }
 
 void UPTBBBHUDWidget::ClearCenterMessageTimers()

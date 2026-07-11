@@ -32,7 +32,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FPTBBBOnParryFail,
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FPTBBBOnHPChanged,
 	float, NewHP, float, MaxHP);
 
-/** 보스 HP 0 도달 (곡이 끝날 때까지 게임 계속) */
+/** 채보의 모든 노트 판정이 끝난 시점, 그때의 보스 체력이 0이면 발행 (처치 연출 트리거) */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FPTBBBOnBossDefeated);
 
 // ─────────────────────────────────────────────────────────────────
@@ -41,8 +41,10 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE(FPTBBBOnBossDefeated);
  * BB(보스 잡기) 미니게임.
  *
  * 플레이어와 적 AI가 HP를 가지며, 채보에 맞춰 패링 성공/실패로 서로 데미지를 주고받는다.
- * 보스 HP 0 도달 시 게임이 끝나지 않고 곡이 끝날 때까지 계속 진행된다.
- * 최종 결과는 보스 HP 잔량, 플레이어 HP 잔량, 목표 점수 도달 여부로 결정된다.
+ * 보스는 곡 중간에 체력이 0이 되어도 쓰러지지 않고 곡이 끝날 때까지 계속 진행되며,
+ * 채보의 모든 노트 판정이 끝난 시점의 체력으로 최종 처치 여부가 확정된다(OnBBBossDefeated).
+ * 라운드 실패(Failed)는 플레이어 HP 0 도달 시에만 발생하며, 그 외의 경우 결과 등급은
+ * 보스 잔여 체력 비율로 결정된다.
  *
  * 입력 키 → Action 매핑: Z=ActionA  X=ActionB  C=ActionC  V=ActionD  B=ActionE
  */
@@ -75,7 +77,7 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "PTB|BB|Events")
 	FPTBBBOnHPChanged OnBBPlayerHPChanged;
 
-	/** 보스 HP가 처음 0이 되는 순간 발행 (이후 데미지에는 발행 안 함) */
+	/** 채보의 모든 노트 판정이 끝난 시점에 보스 체력이 0이었다면 발행 (최대 1회) */
 	UPROPERTY(BlueprintAssignable, Category = "PTB|BB|Events")
 	FPTBBBOnBossDefeated OnBBBossDefeated;
 
@@ -169,7 +171,7 @@ private:
 		meta = (AllowPrivateAccess = "true"))
 	float PlayerMaxHP = 100.f;
 
-	/** 보스 HP가 이미 0에 도달했는지 (중복 발행 방지) */
+	/** 모든 노트 판정이 끝난 시점 기준 보스 처치 확정 여부 (OnFadeFinished에서 설정, 중복 발행 방지) */
 	bool bBossDefeated = false;
 
 	/** 이 라운드의 목표 점수 (BuildRuntimeState에서 캐시) */

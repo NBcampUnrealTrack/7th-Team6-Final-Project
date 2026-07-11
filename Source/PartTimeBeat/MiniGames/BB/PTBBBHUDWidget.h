@@ -122,8 +122,8 @@ public:
 
 	/**
 	 * 결과 등급(0~3)에 따라 이어서 표시할 이미지. 인덱스 0=Outro1 ... 3=Outro4.
-	 * 등급 판정: 0=보스 미처치+보스 체력 50%초과, 1=보스 미처치+보스 체력 50%이하,
-	 *           2=보스 처치+플레이어 체력 50%미만, 3=보스 처치+플레이어 체력 50%이상
+	 * 등급 판정: 0=Failed(플레이어 체력 0), 1=채보 완주+보스 체력 50%초과 잔존,
+	 *           2=채보 완주+보스 체력 50%이하 잔존, 3=채보 완주+보스 완전 처치
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|BB|HUD|Outro")
 	TArray<TObjectPtr<UTexture2D>> OutroTexturesByStar;
@@ -241,8 +241,11 @@ private:
 	/** NoteId로 두 맵 중 해당 큐를 찾아 맵에서 제거하고 반환. 없으면 nullptr. */
 	UPTBBBCueWidgetBase* FindAndRemoveCue(int32 NoteId);
 
-	/** 보스 처치 여부 + 체력 비율로 OutroTexturesByStar의 인덱스(0~3)를 결정. */
-	int32 ResolveOutroTierIndex(const FPTBRoundResult& Result) const;
+	/**
+	 * EndReason(Failed=플레이어 체력 0)과 보스 잔여 체력 비율로
+	 * OutroTexturesByStar의 인덱스(0~3)를 결정.
+	 */
+	int32 ResolveOutroTierIndex(const FPTBRoundResult& Result, EPTBRoundEndReason EndReason) const;
 
 	void ClearCenterMessageTimers();
 	void QueueCenterMessage(float DelaySeconds, const FText& Message);
