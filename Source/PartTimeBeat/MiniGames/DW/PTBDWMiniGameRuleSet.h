@@ -19,11 +19,11 @@ class PARTTIMEBEAT_API UPTBDWMiniGameRuleSet : public UPTBMiniGameRuleSet
 
 public:
 	// ── 장애물 ──────────────────────────────────────────────
-	/** 액션별 obstacle 선행 시간(ms). 노트보다 몇 ms 앞세울지. 실제 거리는 현재 속도로 역산 → 난이도(속도) 무관 일정. */
+	/** 액션별 obstacle 선행 시간(ms). 노트보다 몇 ms 앞세울지. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW|Obstacle")
 	TMap<EPTBActionType, float> ObstacleLeadMsByAction;
 
-	/** 롱노트 전용 obstacle 선행 시간(ms). 미설정 시 ObstacleLeadMsByAction 폴백. */
+	/** 롱노트 전용 obstacle 선행 시간(ms). */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW|Obstacle")
 	TMap<EPTBActionType, float> ObstacleLongLeadMsByAction;
 
@@ -62,7 +62,7 @@ public:
 
 	// ===== 노트마커 (변경된 방식) — 진행중. =====
 
-	/** false=신(3D 음표 마커), true=구(현 레인형, 디버그 보존). 기본 true=기존 동작 유지. */
+	/** false=신(3D 음표 마커), true=구(현 레인형, 디버그 보존). */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW|Note")
 	bool bUseLegacyLaneMarker = true;
 
@@ -102,11 +102,11 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW|Note")
 	float NoteTailThickness = 30.0f;
 
-	/** 꼬리 전용 머티리얼. 미설정 시 NoteMaterial/공용 폴백. */
+	/** 꼬리 전용 머티리얼. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW|Note")
 	TObjectPtr<UMaterialInterface> NoteTailMaterial;
 
-	/** 꼬리 색(틴트). 무지개 머티리얼이 Color를 무시하면 영향 없음. */
+	/** 꼬리 색. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW|Note")
 	FLinearColor NoteTailColor = FLinearColor::White;
 
@@ -122,7 +122,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW|Note")
 	TObjectPtr<UStaticMesh> NoteLongMesh;
 
-	/** 음표 색용 베이스 머티리얼. 미설정 시 ObstacleMaterial 재사용. */
+	/** 음표 색용 베이스 머티리얼. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW|Note")
 	TObjectPtr<UMaterialInterface> NoteMaterial;
 
@@ -139,7 +139,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW|Obstacle")
 	TMap<EPTBActionType, FVector> ObstacleScaleByAction;
 
-	/** 액션별 장애물 피벗 보정. 메시 원점이 바닥중앙이 아닐 때 눈으로 맞춤. */
+	/** 액션별 장애물 피벗 보정. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW|Obstacle")
 	TMap<EPTBActionType, FVector> ObstaclePivotOffsetByAction;
 
@@ -229,13 +229,41 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW|Anim")
 	TObjectPtr<UAnimSequenceBase> ProtagonistJumpAnim;
 
+	/** Action A(점프) 애님 배속. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW|Anim", meta = (ClampMin = "0.01"))
+	float JumpAnimPlayRate = 1.0f;
+
 	/** Action B 성공. 없으면 placeholder. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW|Anim")
 	TObjectPtr<UAnimSequenceBase> ProtagonistSlideAnim;
 
+	/** Action B(큰점프) 애님 배속. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW|Anim", meta = (ClampMin = "0.01"))
+	float SlideAnimPlayRate = 1.0f;
+
 	/** 실패 리액션. 없으면 placeholder. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW|Anim")
 	TObjectPtr<UAnimSequenceBase> ProtagonistFailAnim;
+
+	/** 실패 리액션 애님 배속. 빌드 없이 튜닝. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW|Anim", meta = (ClampMin = "0.01"))
+	float FailAnimPlayRate = 1.0f;
+
+	/** Action D 공치기 — 성공/실패 모두 같은 애님. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW|Anim")
+	TObjectPtr<UAnimSequenceBase> KickAnim;
+
+	/** Action D 공치기 배속. 빌드 없이 튜닝. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW|Anim", meta = (ClampMin = "0.01"))
+	float KickAnimPlayRate = 1.0f;
+
+	/** 리액션 몽타주 blend-in(초). */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW|Anim", meta = (ClampMin = "0.0"))
+	float ReactionBlendIn = 0.06f;
+
+	/** 리액션 몽타주 blend-out(초). */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW|Anim", meta = (ClampMin = "0.0"))
+	float ReactionBlendOut = 0.06f;
 
 	/** 주인공 AnimBP. 비우면 싱글노드 폴백. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW|Anim")
@@ -244,6 +272,30 @@ public:
 	/** 개 달리기. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW|Anim")
 	TObjectPtr<UAnimSequenceBase> DogRunAnim;
+
+	/** preview(사람) 전용 AnimBP. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW|Anim")
+	TSubclassOf<UAnimInstance> DogAnimClass;
+
+	/** preview 상체 소리치기 애님(Cue마다 상체 슬롯 재생). */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW|Anim")
+	TObjectPtr<UAnimSequenceBase> PreviewShoutAnim;
+
+	/** 상체 소리치기가 재생될 Layered blend 슬롯명. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW|Anim")
+	FName PreviewShoutSlotName = FName(TEXT("UpperBody"));
+
+	/** 소리치기 blend-in 시간. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW|Anim", meta = (ClampMin = "0"))
+	float PreviewShoutBlendInSec = 0.2f;
+
+	/** 소리치기 blend-out 시간. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW|Anim", meta = (ClampMin = "0"))
+	float PreviewShoutBlendOutSec = 0.25f;
+
+	/** 소리치기 배속. insane 연속 Cue 대응. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW|Anim", meta = (ClampMin = "0.01"))
+	float PreviewShoutPlayRate = 1.0f;
 
 	// ── 연출 SFX 키 ──────────────────────────────
 
@@ -267,11 +319,23 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW|Audio")
 	FName FailReactionSFXKey = NAME_None;
 
-	/** 실패 리액션(애니) 지연 시간(ms). 부수는 타이밍 튜닝용. */
+	/** 실패 리액션 지연 시간. 부수는 타이밍 튜닝용. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW|VFX")
 	float FailReactionDelayMs = 0.0f;
 
-	/** 판정 텍스트 팝업 액터 클래스. BP로 글리프 메시·색 세팅. */
+	/** 실패 시 카메라 흔들림 강도. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW|Audio", meta = (ClampMin = "0"))
+	float FailCameraShakeIntensity = 1.5f;
+
+	/** 실패 시 카메라 흔들림 지속시간. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW|Audio", meta = (ClampMin = "0"))
+	float FailCameraShakeDuration = 0.25f;
+
+	/** 실패 시 카메라 흔들림 주파수. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW|Audio", meta = (ClampMin = "0.1"))
+	float FailCameraShakeFrequency = 30.0f;
+
+	/** 판정 텍스트 팝업 액터 클래스. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW|Text")
 	TSubclassOf<AActor> JudgePopupClass;
 
@@ -287,7 +351,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW|Text")
 	FRotator JudgeTextRotation = FRotator::ZeroRotator;
 
-	/** hold 중 음표 mesh 맥동 발광 기본 강도. 머티리얼 스칼라 "EmissiveStrength". */
+	/** hold 중 음표 mesh 맥동 발광 기본 강도. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW|Note")
 	float NoteHoldEmissiveBase = 0.15f;
 
@@ -327,13 +391,21 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW|VFX")
 	TObjectPtr<UNiagaraSystem> SlideDustVFX;
 
-	/** 단일노트 성공 시 음표 토큰 위치에서 소멸 VFX(예: 하트 흩어짐). */
+	/** 단일노트 성공 시 음표 토큰 위치에서 소멸 VFX. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW|VFX")
 	TObjectPtr<UNiagaraSystem> NoteDespawnVFX;
 
-	/** 롱노트 혜성 꼬리 리본(Niagara). 머리에 attach되어 곡선 자취를 트레일. 미설정 시 실린더 placeholder. */
+	/** 롱노트 혜성 꼬리 리본(Niagara). 미설정 시 실린더 placeholder. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW|VFX")
 	TObjectPtr<UNiagaraSystem> NoteTailRibbonVFX;
+
+	/** Action E obstacle(별) 성공 상호작용 VFX. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW|VFX")
+	TObjectPtr<UNiagaraSystem> StarSuccessVFX;
+
+	/** Action E obstacle(별) 실패 상호작용 VFX. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW|VFX")
+	TObjectPtr<UNiagaraSystem> StarFailVFX;
 
 	// ── D 발차기 런치 파라미터 ────────────────
 	/** 발차기 중력. */
@@ -386,7 +458,7 @@ public:
 	TMap<EPTBDifficulty, float> LookAheadBeatsByDifficulty;
 
 	// ── 난이도별 속도 동기화 ──
-	/** 스크롤 1배(기본 ScrollSpeed) 기준 LookAheadBeats. */
+	/** 스크롤 1배 기준 LookAheadBeats. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW")
 	float ScrollSyncBaseLookAheadBeats = 10.0f;
 	/** 배경 전용 속도 계수. 최종 배경속도. */

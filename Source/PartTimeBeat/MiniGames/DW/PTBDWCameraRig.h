@@ -25,6 +25,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "PTB|DW|Intro")
 	void StartIntroMove();
 
+	/** 실패 연출 카메라 흔들림. */
+	UFUNCTION(BlueprintCallable, Category = "PTB|DW")
+	void PlayFailShake(float Intensity, float Duration, float Frequency);
+
 	/** 카메라 거리. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW")
 	float ArmLength = 1000.0f;
@@ -82,4 +86,11 @@ private:
 	void ApplyPose(float InArm, float InPitch, float InYaw, float InFOV);
 	bool bIntroMoving = false;
 	float IntroElapsed = 0.0f;
+
+	// ── 실패 흔들림 상태 ──
+	float ShakeTimer = 0.0f;
+	float ShakeDuration = 0.0f;
+	float ShakeIntensity = 0.0f;
+	float ShakeFrequency = 30.0f;
+	float ShakePhase = 0.0f;
 };

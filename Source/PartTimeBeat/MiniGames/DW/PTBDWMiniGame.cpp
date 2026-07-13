@@ -3,6 +3,7 @@
 #include "Debug/PTBTeamLog.h"
 #include "Engine/StaticMesh.h"
 #include "Engine/SkeletalMesh.h"
+#include "Animation/AnimSequenceBase.h"
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraSystem.h"
 #include "NiagaraComponent.h"
@@ -467,7 +468,15 @@ void APTBDWMiniGame::HandleNoteCue(FPTBNoteEvent Note)
 		const float BeatSec  = (Bpm > 0.f) ? (60.0f / Bpm) : 0.5f;
 		const float CueSec   = FMath::Min(0.3f, MaxBeats * BeatSec);
 
-		Dog->PlayCue(Note.ActionType, CueSec);
+		UAnimSequenceBase* ShoutAnim = DWRule ? DWRule->PreviewShoutAnim.Get() : nullptr;
+		if (DWRule && DWRule->DogAnimClass && ShoutAnim)
+		{
+			Dog->PlayPreviewShout(ShoutAnim, DWRule->PreviewShoutSlotName, DWRule->PreviewShoutBlendInSec, DWRule->PreviewShoutBlendOutSec, DWRule->PreviewShoutPlayRate);
+		}
+		else
+		{
+			Dog->PlayCue(Note.ActionType, CueSec);
+		}
 		RequestDWSfx(DWRule ? DWRule->DogCueSFXKey : NAME_None, Dog);
 	}
 
@@ -537,6 +546,10 @@ void APTBDWMiniGame::PlayNoteResultEffects(int32 NoteId, EPTBActionType Action, 
 				Protagonist->PlayReaction(false, Action, bIsLong);
 			}
 			RequestDWSfx(DWRule ? DWRule->FailReactionSFXKey : NAME_None, Protagonist);
+			if (CameraRig && DWRule)
+			{
+				CameraRig->PlayFailShake(DWRule->FailCameraShakeIntensity, DWRule->FailCameraShakeDuration, DWRule->FailCameraShakeFrequency);
+			}
 		}
 	}
 
@@ -569,6 +582,35 @@ void APTBDWMiniGame::PlayNoteResultEffects(int32 NoteId, EPTBActionType Action, 
 			FailObstacle = nullptr;
 		}
 		if (Ball) { LaunchKickBall(Ball, bSuccess, bIsLong); }
+	}
+
+	if (Action == EPTBActionType::ActionE)
+	{
+		const UPTBDWMiniGameRuleSet* DWR = GetDWRuleSet();
+		if (bSuccess)
+		{
+			if (FDWNoteView* V = ActiveNoteViews.Find(NoteId))
+			{
+				if (V->Obstacle)
+				{
+					if (DWR && DWR->StarSuccessVFX)
+					{
+						RequestDWVfxColored(DWR->StarSuccessVFX.Get(), V->Obstacle->GetActorLocation(), GetObstacleColor(Action));
+					}
+					V->Obstacle->Destroy();
+					V->Obstacle = nullptr;
+				}
+			}
+		}
+		else if (FailObstacle)
+		{
+			if (DWR && DWR->StarFailVFX)
+			{
+				RequestDWVfxColored(DWR->StarFailVFX.Get(), FailObstacle->GetActorLocation(), GetObstacleColor(Action));
+			}
+			FailObstacle->Destroy();
+			FailObstacle = nullptr;
+		}
 	}
 
 	if (FailObstacle)
@@ -907,6 +949,15 @@ void APTBDWMiniGame::SpawnCharactersIfNeeded()
 				DWRule ? DWRule->ProtagonistSlideAnim.Get() : nullptr,
 				DWRule ? DWRule->ProtagonistFailAnim.Get() : nullptr,
 				DWRule ? DWRule->ProtagonistAnimClass : nullptr);
+			Protagonist->SetReactionRates(
+				DWRule ? DWRule->JumpAnimPlayRate   : 1.0f,
+				DWRule ? DWRule->SlideAnimPlayRate  : 1.0f,
+				DWRule ? DWRule->FailAnimPlayRate   : 1.0f,
+				DWRule ? DWRule->ReactionBlendIn   : 0.06f,
+				DWRule ? DWRule->ReactionBlendOut  : 0.06f);
+			Protagonist->SetKickAnim(
+				DWRule ? DWRule->KickAnim.Get() : nullptr,
+				DWRule ? DWRule->KickAnimPlayRate : 1.0f);
 		}
 	}
 
@@ -921,7 +972,7 @@ void APTBDWMiniGame::SpawnCharactersIfNeeded()
 			const FVector Scale = DWRule ? DWRule->DogScale : FVector(1.0f);
 			const float Yaw = DWRule ? DWRule->DogYaw : 0.f;
 			Dog->InitPlaceholder(Mesh, Scale, Yaw, FLinearColor::White, nullptr);
-			Dog->SetAnimations(DWRule ? DWRule->DogRunAnim.Get() : nullptr, nullptr, nullptr, nullptr, nullptr);
+			Dog->SetAnimations(DWRule ? DWRule->DogRunAnim.Get() : nullptr, nullptr, nullptr, nullptr, DWRule ? DWRule->DogAnimClass : nullptr);
 		}
 	}
 }

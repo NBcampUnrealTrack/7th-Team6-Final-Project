@@ -44,6 +44,18 @@ public:
 	/** 주인공 리액션 — 없으면 placeholder. */
 	void PlayReaction(bool bSuccess, EPTBActionType Action, bool bIsLong);
 
+	/** Action D 공치기(성공/실패 공용). */
+	void PlayKick();
+
+	/** preview 상체 소리치기 — Cue마다 상체 슬롯 몽타주 재생. */
+	void PlayPreviewShout(UAnimSequenceBase* Anim, FName SlotName, float BlendIn, float BlendOut, float Rate);
+
+	/** 리액션 애님 개별 배속 세팅. */
+	void SetReactionRates(float InJumpRate, float InSlideRate, float InFailRate, float InBlendIn = 0.06f, float InBlendOut = 0.06f);
+
+	/** Action D 공치기 애님 세팅(성공/실패 공용). */
+	void SetKickAnim(UAnimSequenceBase* Anim, float Rate);
+
 	UPROPERTY(VisibleAnywhere, Category = "PTB|DW")
 	TObjectPtr<USkeletalMeshComponent> Body;
 
@@ -53,7 +65,7 @@ private:
 	void PlayFail(EPTBActionType Action);
 
 	/** 전용 애니가 있으면 재생, 없으면 placeholder 모션. */
-	bool TryPlayReactionAnim(UAnimSequenceBase* Anim);
+	bool TryPlayReactionAnim(UAnimSequenceBase* Anim, float Rate = 1.0f);
 	void StartPlaceholderReaction(EDWReactionMotion Motion, float DurationSec, float Amplitude);
 
 	/** 개 예고 placeholder 타임라인 갱신. 실제 애니 도입 시 삭제. */
@@ -73,6 +85,18 @@ private:
 
 	UPROPERTY()
 	TObjectPtr<UAnimSequenceBase> FailAnim;
+
+	/** 리액션 개별 배속·blend. */
+	float JumpAnimRate    = 1.0f;
+	float SlideAnimRate   = 1.0f;
+	float FailAnimRate    = 1.0f;
+	float ReactionBlendIn  = 0.06f;
+	float ReactionBlendOut = 0.06f;
+
+	/** Action D 공치기(성공/실패 공용). */
+	UPROPERTY()
+	TObjectPtr<UAnimSequenceBase> KickAnim;
+	float KickAnimRate = 1.0f;
 
 	/** 모션 복귀 관련. */
 	float AnimReturnTimer = 0.f;
