@@ -48,7 +48,7 @@ public:
     virtual void Tick(float DeltaTime) override;
 
     UPROPERTY(EditAnywhere)
-    float MoveInterpSpeed = 20.f;
+    float MoveInterpSpeed = 50.f;
 
     // 박자 타이밍에 호출 - 레일 위 다음 지점으로 이동
     void MoveOneStep();
