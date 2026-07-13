@@ -99,7 +99,7 @@ void APTBLCJudgementDisplayActor::EndPlay(const EEndPlayReason::Type EndPlayReas
 
 void APTBLCJudgementDisplayActor::ApplyJudgementResult(const FPTBJudgementResult& Result)
 {
-	UE_LOG(LogPTBMiniGames, Log, TEXT("[LCJudgementDisplay] ApplyJudgement Actor=%s NoteId=%d Judgement=%d Reason=%d Light=%s Texture=%s"),
+	UE_LOG(LogPTBMiniGames, Verbose, TEXT("[LCJudgementDisplay] ApplyJudgement Actor=%s NoteId=%d Judgement=%d Reason=%d Light=%s Texture=%s"),
 		*GetNameSafe(this),
 		Result.NoteId,
 		static_cast<int32>(Result.JudgementType),
@@ -111,7 +111,7 @@ void APTBLCJudgementDisplayActor::ApplyJudgementResult(const FPTBJudgementResult
 	const FLinearColor AppliedColor = JudgementColor ? *JudgementColor : DefaultLightColor;
 	if (JudgementLightComponent)
 	{
-		UE_LOG(LogPTBMiniGames, Log, TEXT("[LCJudgementDisplay] ApplyLight Actor=%s Judgement=%d HasColor=%d Color=(%.3f, %.3f, %.3f, %.3f)"),
+		UE_LOG(LogPTBMiniGames, Verbose, TEXT("[LCJudgementDisplay] ApplyLight Actor=%s Judgement=%d HasColor=%d Color=(%.3f, %.3f, %.3f, %.3f)"),
 			*GetNameSafe(this),
 			static_cast<int32>(Result.JudgementType),
 			JudgementColor != nullptr,
@@ -131,7 +131,7 @@ void APTBLCJudgementDisplayActor::ApplyJudgementResult(const FPTBJudgementResult
 	{
 		TObjectPtr<UTexture2D>* JudgementTexture = JudgementTextures.Find(Result.JudgementType);
 		UTexture2D* AppliedTexture = JudgementTexture ? JudgementTexture->Get() : DefaultJudgementTexture.Get();
-		UE_LOG(LogPTBMiniGames, Log, TEXT("[LCJudgementDisplay] ApplyTexture Actor=%s Judgement=%d HasTexture=%d Texture=%s"),
+		UE_LOG(LogPTBMiniGames, Verbose, TEXT("[LCJudgementDisplay] ApplyTexture Actor=%s Judgement=%d HasTexture=%d Texture=%s"),
 			*GetNameSafe(this),
 			static_cast<int32>(Result.JudgementType),
 			JudgementTexture != nullptr && JudgementTexture->Get() != nullptr,
@@ -154,7 +154,7 @@ void APTBLCJudgementDisplayActor::ApplyJudgementResult(const FPTBJudgementResult
 
 void APTBLCJudgementDisplayActor::HandleMiniGameJudgement(FPTBJudgementResult Result)
 {
-	UE_LOG(LogPTBMiniGames, Log, TEXT("[LCJudgementDisplay] ReceiveJudgement Actor=%s SourceMiniGame=%s NoteId=%d Judgement=%d Reason=%d"),
+	UE_LOG(LogPTBMiniGames, Verbose, TEXT("[LCJudgementDisplay] ReceiveJudgement Actor=%s SourceMiniGame=%s NoteId=%d Judgement=%d Reason=%d"),
 		*GetNameSafe(this),
 		*GetNameSafe(SourceMiniGame.Get()),
 		Result.NoteId,

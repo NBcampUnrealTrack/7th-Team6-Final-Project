@@ -202,9 +202,30 @@ void APTBLCLogisticBox::InitializeFromNote(const FPTBNoteEvent& Note)
 
 void APTBLCLogisticBox::ActivateFromPool(const FPTBNoteEvent& Note)
 {
+	SetActorHiddenInGame(false);
+	SetActorEnableCollision(true);
+	SetActorTickEnabled(true);
 	SetActorRotation(FRotator::ZeroRotator);
+	bIsPackaged = false;
+	bIsPackagingSpinActive = false;
+	PackagingSpinElapsedSeconds = 0.0f;
+	PackagingSpinStartRotation = FRotator::ZeroRotator;
 	bIsMoving = true;
 	MovementDirection = GetActorRightVector();
+
+	if (BaseMeshComponent)
+	{
+		BaseMeshComponent->SetSimulatePhysics(false);
+		BaseMeshComponent->SetVisibility(true);
+		BaseMeshComponent->SetHiddenInGame(false);
+	}
+
+	if (BoxMeshComponent)
+	{
+		BoxMeshComponent->SetSimulatePhysics(false);
+		BoxMeshComponent->SetVisibility(false);
+		BoxMeshComponent->SetHiddenInGame(true);
+	}
 
 	InitializeFromNote(Note);
 }
@@ -250,9 +271,9 @@ void APTBLCLogisticBox::ResetForPool(const FVector& StandbyLocation)
 		BoxMeshComponent->SetHiddenInGame(true);
 	}
 
-	SetActorHiddenInGame(false);
-	SetActorEnableCollision(true);
-	SetActorTickEnabled(true);
+	SetActorHiddenInGame(true);
+	SetActorEnableCollision(false);
+	SetActorTickEnabled(false);
 }
 
 void APTBLCLogisticBox::PackageWithActionType(EPTBActionType ActionType)
