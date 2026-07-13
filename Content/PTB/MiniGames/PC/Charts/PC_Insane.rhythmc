@@ -1,0 +1,23 @@
+{
+  "chartVersion": 1,
+  "chartId": "PTB_PC_Insane",
+  "miniGameId": "PC",
+  "difficulty": "Insane",
+  "bpm": 144,
+  "offsetMs": 0,
+  "timeSignature": { "numerator": 4, "denominator": 4 },
+  "tempoEvents": [
+    { "beat": 0, "bpm": 144 }
+  ],
+  "timeSignatureEvents": [
+    { "beat": 0, "numerator": 4, "denominator": 4 }
+  ],
+  "wwise": {
+    "bankName": "PC",
+    "bgmEventName": "Play_PC_BGM"
+  },
+  "noteFormat": ["id", "timeMs", "beat", "action", "lane", "type"],
+  "notes": [
+    [1, 416.667, 1, "A", 0, "Tap"]
+  ]
+}
