@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Pawn.h"
 #include "MiniGames/PC/PCRailPath.h"
+#include "Core\PTBStructEnums.h"
 #include "PCRailCharacter.generated.h"
 
 
@@ -37,10 +38,6 @@ public:
     UPROPERTY(VisibleAnywhere)
     class UStaticMeshComponent* JudgementZone;
 
-    // 레일 참조 (에디터에서 연결)
-    UPROPERTY(EditAnywhere, BlueprintReadOnly)
-    APCRailPath* PCRailPath;
-
     // 한 박자당 이동 거리
     UPROPERTY(EditAnywhere)
     float StepDistance = 100.f;
@@ -52,6 +49,20 @@ public:
 
     // 박자 타이밍에 호출 - 레일 위 다음 지점으로 이동
     void MoveOneStep();
+
+    APCRailPath* PCRailPath;
+
+    UPROPERTY(EditAnywhere)
+    APCRailPath* EasyRailPath;
+
+    UPROPERTY(EditAnywhere)
+    APCRailPath* StandardRailPath;
+
+    UPROPERTY(EditAnywhere)
+    APCRailPath* InsaneRailPath;
+
+    UFUNCTION(BlueprintCallable)
+    void SelectRailByDifficulty(EPTBDifficulty Difficulty);
 
     // 스포너 참조
     UPROPERTY(EditAnywhere)

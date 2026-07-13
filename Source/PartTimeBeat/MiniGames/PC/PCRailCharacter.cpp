@@ -26,15 +26,6 @@ void APCRailCharacter::BeginPlay()
 {
     Super::BeginPlay();
 
-    if (PCRailPath)
-    {
-        FVector StartLocation = PCRailPath->Spline->GetLocationAtDistanceAlongSpline(0.f, ESplineCoordinateSpace::World);
-        FRotator StartRotation = PCRailPath->Spline->GetRotationAtDistanceAlongSpline(0.f, ESplineCoordinateSpace::World);
-        StartRotation.Pitch = -10.f;
-        StartRotation.Roll = 0.f;
-
-        SetActorLocationAndRotation(StartLocation, StartRotation);
-    }
 }
 
 void APCRailCharacter::PlayHandMontage(UAnimMontage* Montage)
@@ -85,4 +76,32 @@ void APCRailCharacter::MoveOneStep()
     TargetRotation.Roll = 0.f;
 
     bIsMoving = true;
+}
+
+void APCRailCharacter::SelectRailByDifficulty(EPTBDifficulty Difficulty)
+{
+    switch (Difficulty)
+    {
+    case EPTBDifficulty::Easy:
+        PCRailPath = EasyRailPath;
+        break;
+    case EPTBDifficulty::Insane:
+        PCRailPath = InsaneRailPath;
+        break;
+    default:
+        PCRailPath = StandardRailPath;
+        break;
+    }
+
+    CurrentSplineDistance = 0.f;
+
+    // 선택된 레일 시작점으로 순간이동
+    if (PCRailPath)
+    {
+        FVector StartLoc = PCRailPath->Spline->GetLocationAtDistanceAlongSpline(0.f, ESplineCoordinateSpace::World);
+        FRotator StartRot = PCRailPath->Spline->GetRotationAtDistanceAlongSpline(0.f, ESplineCoordinateSpace::World);
+        StartRot.Pitch = 0.f;
+        StartRot.Roll = 0.f;
+        SetActorLocationAndRotation(StartLoc, StartRot);
+    }
 }

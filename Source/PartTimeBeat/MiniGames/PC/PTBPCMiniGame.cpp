@@ -83,6 +83,11 @@ void APTBPCMiniGame::BuildRuntimeState()
 
     TileSpawner = Cast<APCTileSpawner>(
         UGameplayStatics::GetActorOfClass(GetWorld(), APCTileSpawner::StaticClass()));
+
+    if (RailCharacter)
+    {
+        RailCharacter->SelectRailByDifficulty(Difficulty);
+    }
 }
 
 
