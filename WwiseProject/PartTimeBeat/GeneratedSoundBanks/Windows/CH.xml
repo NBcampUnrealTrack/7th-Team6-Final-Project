@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<SoundBanksInfo Platform="Windows" BasePlatform="Windows" SchemaVersion="16" SoundBankVersion="150">
+	<SoundBanks>
+		<SoundBank Id="1853303388" Type="User" GUID="{3D864037-408A-4EF1-AA0D-207B660B3204}" Language="SFX" Hash="{99E8B0C8-7104-13AB-9AB8-631D37FEC6EE}">
+			<ObjectPath>\SoundBanks\Default Work Unit\CH</ObjectPath>
+			<ShortName>CH</ShortName>
+			<Path>CH.bnk</Path>
+			<Media>
+				<File Id="376987072" Language="SFX" Streaming="false" Location="Memory">
+					<ShortName>PTB_CH.wav</ShortName>
+					<CachePath>SFX/PTB_CH_818F3B66.wem</CachePath>
+				</File>
+			</Media>
+			<Events>
+				<Event Id="612211380" Name="Play_CH_BGM" ObjectPath="\Events\Default Work Unit\Play_CH_BGM" GUID="{111CF831-CA0A-4D06-A81E-8E82403B58B2}" DurationType="OneShot" DurationMin="163.75998" DurationMax="163.75998">
+					<MediaRefs>
+						<MediaRef Id="376987072"/>
+					</MediaRefs>
+				</Event>
+			</Events>
+		</SoundBank>
+	</SoundBanks>
+	<FileHash>{D76A3FC6-EF90-0D53-FF20-07D28C69DD88}</FileHash>
+</SoundBanksInfo>
