@@ -168,6 +168,12 @@ void APTBPCMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 
     GEngine->AddOnScreenDebugMessage(-1, 2.f, Color, Message);
 
+    if (RailCharacter)
+    {
+        RailCharacter->PlayHandMontage(Result.JudgementType == EPTBJudgementType::Miss
+            ? RailCharacter->HandFailMontage
+            : RailCharacter->HandSuccessMontage);
+    }
 
     if (Result.JudgementType == EPTBJudgementType::Miss) return;
 

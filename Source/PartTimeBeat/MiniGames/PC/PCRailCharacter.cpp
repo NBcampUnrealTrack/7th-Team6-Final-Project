@@ -37,6 +37,16 @@ void APCRailCharacter::BeginPlay()
     }
 }
 
+void APCRailCharacter::PlayHandMontage(UAnimMontage* Montage)
+{
+    if (!HandsMesh || !Montage) return;
+
+    if (UAnimInstance* AnimInst = HandsMesh->GetAnimInstance())
+    {
+        AnimInst->Montage_Play(Montage);
+    }
+}
+
 void APCRailCharacter::Tick(float DeltaTime)
 {
     Super::Tick(DeltaTime);

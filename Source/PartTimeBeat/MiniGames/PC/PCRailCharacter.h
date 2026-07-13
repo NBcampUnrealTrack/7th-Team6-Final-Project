@@ -25,6 +25,15 @@ public:
     UPROPERTY(VisibleAnywhere)
     class USkeletalMeshComponent* HandsMesh;
 
+    // 손 애니메이션 (성공/실패)
+    UPROPERTY(EditDefaultsOnly, Category = "Anim")
+    UAnimMontage* HandSuccessMontage;
+
+    UPROPERTY(EditDefaultsOnly, Category = "Anim")
+    UAnimMontage* HandFailMontage;
+
+    void PlayHandMontage(UAnimMontage* Montage);
+
     UPROPERTY(VisibleAnywhere)
     class UStaticMeshComponent* JudgementZone;
 
