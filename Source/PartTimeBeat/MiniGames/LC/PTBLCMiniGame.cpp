@@ -58,17 +58,9 @@ void APTBLCMiniGame::HandleNoteCue(FPTBNoteEvent Note)
 	
 		if (SpawnedActor)
 		{
-			SpawnedActor->ActivateFromPool(Note, BoxSpawnLocation);
+			SpawnedActor->ActivateFromPool(Note);
 			ApplyCueSpawnDelayCompensation(SpawnedActor, Note);
 			ActiveLogisticBoxes.Add(SpawnedActor);
-			SpawnedActor->OnDestroyed.AddDynamic(this, &APTBLCMiniGame::HandleLogisticBoxDestroyed);
-			PTB_RECORD(LogPTBMiniGames, TEXT("[LC] Logistic box activated. NoteId=%d Action=%d Location=(%.2f, %.2f, %.2f) Class=%s"),
-				Note.NoteId,
-				static_cast<int32>(Note.ActionType),
-				BoxSpawnLocation.X,
-				BoxSpawnLocation.Y,
-				BoxSpawnLocation.Z,
-				*GetNameSafe(SpawnedActor->GetClass()));
 		}
 		else
 		{
@@ -120,7 +112,7 @@ void APTBLCMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 					break;
 				}
 			}
-			
+
 			const bool bShouldPackage =
 				Result.Reason == EPTBJudgementReason::WrongInput ||
 				Result.JudgementType == EPTBJudgementType::Good ||
@@ -270,7 +262,8 @@ void APTBLCMiniGame::PrepareLogisticBoxPool()
 	SpawnParams.Instigator = GetInstigator();
 	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
-	const FTransform SpawnTransform(FRotator::ZeroRotator, BoxSpawnLocation);
+	const FVector StandbyLocation = GetLogisticBoxStandbyLocation();
+	const FTransform SpawnTransform(FRotator::ZeroRotator, StandbyLocation);
 	LogisticBoxPool.Reserve(RequiredPoolSize);
 	for (int32 Index = 0; Index < RequiredPoolSize; ++Index)
 	{
@@ -289,7 +282,8 @@ void APTBLCMiniGame::PrepareLogisticBoxPool()
 			continue;
 		}
 
-		LogisticBox->ResetForPool();
+		LogisticBox->ResetForPool(StandbyLocation);
+		LogisticBox->OnDestroyed.AddUniqueDynamic(this, &APTBLCMiniGame::HandleLogisticBoxDestroyed);
 		LogisticBoxPool.Add(LogisticBox);
 	}
 
@@ -307,6 +301,11 @@ APTBLCLogisticBox* APTBLCMiniGame::AcquireLogisticBoxFromPool()
 	}
 
 	return LogisticBoxPool[NextLogisticBoxPoolIndex++].Get();
+}
+
+FVector APTBLCMiniGame::GetLogisticBoxStandbyLocation() const
+{
+	return BoxSpawnLocation;
 }
 
 void APTBLCMiniGame::HandleLogisticBoxDestroyed(AActor* DestroyedActor)

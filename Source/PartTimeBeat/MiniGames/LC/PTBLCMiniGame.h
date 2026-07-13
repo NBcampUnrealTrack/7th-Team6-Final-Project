@@ -99,6 +99,8 @@ private:
 
 	APTBLCLogisticBox* AcquireLogisticBoxFromPool();
 
+	FVector GetLogisticBoxStandbyLocation() const;
+
 	TArray<TWeakObjectPtr<APTBLCLogisticBox>> ActiveLogisticBoxes;
 
 	UPROPERTY()
