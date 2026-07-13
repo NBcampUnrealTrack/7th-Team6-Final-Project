@@ -188,6 +188,11 @@ void APTBSRMiniGame::RefreshPreviewUI()
 void APTBSRMiniGame::HandleRhythmInput(EPTBActionType Action, float TimeMs)
 {
 	Super::HandleRhythmInput(Action, TimeMs);
+	// SR은 ActionA(Z)만 지원하므로, 그 외 키 입력은 무시
+	if (Action != EPTBActionType::ActionA)
+	{
+		return;
+	}
 
 	// 토핑(스시)은 키를 누를 때마다 스폰
 	if (ToppingQueue.IsValidIndex(CurrentNoteIndex))
