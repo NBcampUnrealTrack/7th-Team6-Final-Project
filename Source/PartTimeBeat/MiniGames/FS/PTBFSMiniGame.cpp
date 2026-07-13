@@ -108,9 +108,6 @@ void APTBFSMiniGame::BuildRuntimeState()
 
 	Character->SetFishLineTarget(FishActor);
 	Character->OnPlayCastAnimMontage();
-	GI->CachedSettings.RhythmKeys.ActionA = EKeys::Left;
-	GI->CachedSettings.RhythmKeys.ActionB = EKeys::Right;
-	GI->CachedSettings.RhythmKeys.ActionC = EKeys::Up;
 }
 
 void APTBFSMiniGame::HandleNoteCue(FPTBNoteEvent Note)
