@@ -80,6 +80,7 @@ void APCRailCharacter::MoveOneStep()
 
 void APCRailCharacter::SelectRailByDifficulty(EPTBDifficulty Difficulty)
 {
+
     switch (Difficulty)
     {
     case EPTBDifficulty::Easy:

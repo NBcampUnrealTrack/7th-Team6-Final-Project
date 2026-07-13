@@ -26,10 +26,9 @@ void APTBPCMiniGame::BuildRuntimeState()
     FString TextureFolderPath;
 
     int32 TileCount = ChartAsset ? ChartAsset->NoteEvents.Num() : 0;
+    EPTBDifficulty CurrentDifficulty = GameContext.SessionRequest.Difficulty;
 
-    UE_LOG(LogTemp, Warning, TEXT("현재 Difficulty: %d"), (int32)Difficulty);
-
-    switch (Difficulty)
+    switch (CurrentDifficulty)
     {
     case EPTBDifficulty::Easy:
         TilePrefix = TEXT("EasyTile");
@@ -47,7 +46,7 @@ void APTBPCMiniGame::BuildRuntimeState()
 
     for (int32 i = 1; i <= TileCount; i++)
     {
-        FString AssetName = FString::Printf(TEXT("%s__%d_"), *TilePrefix, i);
+        FString AssetName = FString::Printf(TEXT("%s_%d_"), *TilePrefix, i);
         FString Path = FString::Printf(TEXT("%s/%s.%s"), *TextureFolderPath, *AssetName, *AssetName);
 
         UTexture2D* Texture = LoadObject<UTexture2D>(nullptr, *Path);
@@ -69,7 +68,7 @@ void APTBPCMiniGame::BuildRuntimeState()
 
     if (RailCharacter)
     {
-        RailCharacter->SelectRailByDifficulty(Difficulty);
+        RailCharacter->SelectRailByDifficulty(CurrentDifficulty);
     }
 }
 
