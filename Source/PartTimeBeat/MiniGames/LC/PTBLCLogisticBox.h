@@ -62,10 +62,10 @@ public:
 	void InitializeFromNote(const FPTBNoteEvent& Note);
 
 	/** 풀에서 꺼낸 박스를 노트 기준으로 활성화 */
-	void ActivateFromPool(const FPTBNoteEvent& Note, const FVector& SpawnLocation);
+	void ActivateFromPool(const FPTBNoteEvent& Note);
 
 	/** 풀 대기 상태로 초기화 */
-	void ResetForPool();
+	void ResetForPool(const FVector& StandbyLocation);
 
 	/** 입력 액션 기준으로 박스 포장 처리 */
 	void PackageWithActionType(EPTBActionType ActionType);
@@ -112,9 +112,37 @@ protected:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "PTB|LC|Mesh")
 	TObjectPtr<UStaticMesh> BoxMeshAsset;
 
-	/** 포장 전 내용물 메시 */
+	/** 포장 후 박스 스케일 */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "PTB|LC|Mesh")
-	TObjectPtr<UStaticMesh> TriangleMeshAsset;
+	FVector BoxMeshScale = FVector::OneVector;
+
+	/** 포장 전 기본 내용물 메시. 색상별 메시가 없을 때 사용됩니다. */
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "PTB|LC|Mesh")
+	TObjectPtr<UStaticMesh> ContentMeshAsset;
+
+	/** Red 내용물 메시 */
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "PTB|LC|Mesh")
+	TObjectPtr<UStaticMesh> RedContentMeshAsset;
+
+	/** Blue 내용물 메시 */
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "PTB|LC|Mesh")
+	TObjectPtr<UStaticMesh> BlueContentMeshAsset;
+
+	/** Yellow 내용물 메시 */
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "PTB|LC|Mesh")
+	TObjectPtr<UStaticMesh> YellowContentMeshAsset;
+
+	/** Red 내용물 스케일 */
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "PTB|LC|Mesh")
+	FVector RedContentMeshScale = FVector::OneVector;
+
+	/** Blue 내용물 스케일 */
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "PTB|LC|Mesh")
+	FVector BlueContentMeshScale = FVector::OneVector;
+
+	/** Yellow 내용물 스케일 */
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "PTB|LC|Mesh")
+	FVector YellowContentMeshScale = FVector::OneVector;
 
 	/** Red 내용물 머터리얼 */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "PTB|LC|Mesh")
@@ -173,6 +201,15 @@ protected:
 	TObjectPtr<UMaterialInstanceDynamic> PackagedBoxDynamicMaterial;
 
 private:
+	/** 색 상태 기준 내용물 메시 */
+	UStaticMesh* GetContentMeshAssetForColor(EPTBLCColorState ColorState) const;
+
+	/** 색 상태 기준 내용물 스케일 */
+	FVector GetContentMeshScaleForColor(EPTBLCColorState ColorState) const;
+
+	/** 현재 내용물 색 상태에 맞는 메시와 스케일 적용 */
+	void ApplyContentMesh();
+
 	/** Beat 둠칫 효과 적용 가능 여부 */
 	bool ShouldApplyBeatPulse() const;
 
@@ -201,6 +238,12 @@ private:
 	/** Beat 둠칫 효과 기준 메시 스케일 */
 	FVector BaseMeshRelativeScale = FVector::OneVector;
 
+	/** 색상별 내용물 메시 기준 스케일 */
+	FVector ContentMeshRelativeScale = FVector::OneVector;
+
 	/** Beat 둠칫 효과 기준 박스 메시 스케일 */
 	FVector BoxMeshRelativeScale = FVector::OneVector;
+
+	/** 현재 Beat 둠칫 스케일 */
+	float CurrentBeatPulseScale = 1.0f;
 };
