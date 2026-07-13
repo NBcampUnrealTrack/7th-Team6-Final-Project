@@ -31,16 +31,53 @@ void APTBCHMiniGame::BuildRuntimeState()
     bReactionShownForCurrentCustomer = false;
     CustomerOrders.Reset();
 
-    // 손님 주문 고정 (채보에 맞춤)
-// 1: 빵→패티→빵
-    { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Patty, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
-    { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
-    { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Patty, EPTBCHIngredientType::Tomato, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
-    { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::Patty, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
-    { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Tomato, EPTBCHIngredientType::Patty, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
-    { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
-    { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Patty, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
-    { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
+    // 손님 주문 고정 (채보에 맞춤), 난이도별로 분기
+    if (GameContext.SessionRequest.Difficulty == EPTBDifficulty::Easy)
+    {
+        // Easy: 손님 10명, 손님마다 재료 구성 다르게 (CH_Easy.rhythmc 79노트에 맞춤, 총합 79)
+        { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::Patty, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::Tomato, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::Patty, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
+        { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::Tomato, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::Patty, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::Tomato, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
+        { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Patty, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::Tomato, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::Patty, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
+        { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Tomato, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::Patty, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::Tomato, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
+        { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::Tomato, EPTBCHIngredientType::Patty, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::Tomato, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
+        { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::Patty, EPTBCHIngredientType::Tomato, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::Patty, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
+        { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Tomato, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::Patty, EPTBCHIngredientType::Tomato, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
+        { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Patty, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::Tomato, EPTBCHIngredientType::Patty, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
+        { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::Tomato, EPTBCHIngredientType::Patty, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
+        { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Patty, EPTBCHIngredientType::Tomato, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::Patty, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
+    }
+    else
+    {
+        // Standard: 손님 28명, 재료 반복 허용 + 덜 규칙적인 순서로 재구성 (CH_Standard.rhythmc 184노트에 맞춤, 총합 184)
+        { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Patty, EPTBCHIngredientType::Tomato, EPTBCHIngredientType::Patty, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
+        { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::Tomato, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
+        { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::Patty, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::Tomato, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::Patty, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
+        { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Tomato, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::Tomato, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
+        { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Patty, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::Patty, EPTBCHIngredientType::Tomato, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
+        { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Tomato, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::Tomato, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
+        { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::Patty, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::Tomato, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
+        { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::Patty, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
+        { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Patty, EPTBCHIngredientType::Tomato, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::Patty, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
+        { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
+        { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Tomato, EPTBCHIngredientType::Patty, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::Tomato, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
+        { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::Tomato, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::Patty, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
+        { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Patty, EPTBCHIngredientType::Tomato, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::Patty, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
+        { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::Tomato, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::Patty, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
+        { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::Patty, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::Tomato, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
+        { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Tomato, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::Patty, EPTBCHIngredientType::Tomato, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
+        { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::Patty, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::Tomato, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
+        { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Patty, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::Tomato, EPTBCHIngredientType::Patty, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
+        { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Tomato, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::Tomato, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
+        { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Patty, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::Patty, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
+        { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::Tomato, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::Patty, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
+        { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::Patty, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::Tomato, EPTBCHIngredientType::Patty, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
+        { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::Tomato, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
+        { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Patty, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::Tomato, EPTBCHIngredientType::Patty, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
+        { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
+        { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Tomato, EPTBCHIngredientType::Patty, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::Tomato, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
+        { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::Patty, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::Tomato, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
+        { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Patty, EPTBCHIngredientType::Tomato, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::Patty, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
+    }
 
     NoteIdToIngredientAction.Reset();
     SlideGroups.Reset();
@@ -213,6 +250,8 @@ void APTBCHMiniGame::HandleNoteCue(FPTBNoteEvent Note)
 
     if (Mapped)
     {
+        // 같은 슬롯(ActionType)에 이미 판정 대기 중인 노트가 있어도 그냥 바로 브로드캐스트한다.
+        // HUD 쪽에서 슬롯당 게이지 2개(주/보조)를 받아 동시에 표시하도록 처리한다.
         FPTBNoteEvent ModifiedNote = Note;
         ModifiedNote.ActionType = *Mapped;
         OnCHNoteCue.Broadcast(ModifiedNote);
@@ -469,21 +508,10 @@ void APTBCHMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
         OnCHJudgement.Broadcast(BroadcastResult, JudgedNote);
         OnCHNoteCleared.Broadcast(Result.NoteId, Result.JudgementType);
 
-        // 같은 ActionType에 이미 Cue된 다음 노트가 있으면 다시 Cue 브로드캐스트
-        // (BreadTop 판정이 ActionA 슬롯을 끄면, 이미 Cue된 BreadBottom 슬롯이 같이 꺼지는 버그 방지)
-        for (const FPTBNoteEvent& CuedNote : CuedNotes)
-        {
-            if (const EPTBActionType* NextMapped = NoteIdToIngredientAction.Find(CuedNote.NoteId))
-            {
-                if (*NextMapped == RemappedActionType)
-                {
-                    FPTBNoteEvent ReCueNote = CuedNote;
-                    ReCueNote.ActionType = *NextMapped;
-                    OnCHNoteCue.Broadcast(ReCueNote);
-                    break;
-                }
-            }
-        }
+        // (예전 재큐 로직 제거됨) 이제 같은 슬롯의 노트 2개가 동시에 큐된 상태로 공존 가능하므로,
+        // HandleCHJudgement 쪽에서 "판정된 노트의 TimeMs"와 일치하는 슬롯(주/보조)만 골라서 꺼야 한다.
+        // OnCHJudgement 브로드캐스트에 JudgedNote(=이 노트의 TimeMs)가 이미 같이 전달되고 있으니
+        // WBP_CH_HUD의 HandleCHJudgement에서 이 값으로 어느 슬롯인지 구분한다.
     }
     else if (Result.Reason == EPTBJudgementReason::EmptyInput)
     {
