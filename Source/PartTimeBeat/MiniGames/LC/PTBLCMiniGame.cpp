@@ -7,6 +7,7 @@
 #include "Audio/PTBWwiseRhythmSyncComponent.h"
 #include "MiniGames/Common/PTBMiniGameRuleSet.h"
 #include "PTBLCLogisticBox.h"
+#include "Rhythm/PTBRhythmChartAsset.h"
 #include "Rhythm/PTBRhythmConductorComponent.h"
 
 
@@ -34,6 +35,7 @@ void APTBLCMiniGame::Tick(float DeltaTime)
 void APTBLCMiniGame::BuildRuntimeState()
 {
 	Super::BuildRuntimeState();
+	PrepareLogisticBoxPool();
 }
 
 void APTBLCMiniGame::HandleChartEvent(FPTBNoteEvent Note)
@@ -50,65 +52,23 @@ void APTBLCMiniGame::HandleNoteCue(FPTBNoteEvent Note)
 {
 	Super::HandleNoteCue(Note);
 
-	if (Note.ActionType == EPTBActionType::ActionA ||
-		Note.ActionType == EPTBActionType::ActionB ||
-		Note.ActionType == EPTBActionType::ActionC)
+	if (IsLogisticBoxAction(Note.ActionType))
 	{
-		if (!LogisticBoxClass)
-		{
-			PTB_WARNING(LogPTBMiniGames, TEXT("[LC] HandleNoteCue skipped: LogisticBoxClass is null. NoteId=%d Action=%d"),
-				Note.NoteId,
-				static_cast<int32>(Note.ActionType));
-			return;
-		}
-
-		UWorld* World = GetWorld();
-		if (!World)
-		{
-			PTB_WARNING(LogPTBMiniGames, TEXT("[LC] HandleNoteCue skipped: World is null. NoteId=%d Action=%d"),
-				Note.NoteId,
-				static_cast<int32>(Note.ActionType));
-			return;
-		}
-
-		FRotator SpawnRotation = FRotator::ZeroRotator;
-	
-		FActorSpawnParameters SpawnParams;
-		SpawnParams.Owner = this;
-		SpawnParams.Instigator = GetInstigator();
-		SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-	
-		FTransform SpawnTransform(SpawnRotation, BoxSpawnLocation);
-	
-		APTBLCLogisticBox* SpawnedActor = World->SpawnActor<APTBLCLogisticBox>(
-			LogisticBoxClass,
-			SpawnTransform,
-			SpawnParams
-		);
+		APTBLCLogisticBox* SpawnedActor = AcquireLogisticBoxFromPool();
 	
 		if (SpawnedActor)
 		{
-			SpawnedActor->InitializeFromNote(Note);
+			SpawnedActor->ActivateFromPool(Note);
 			ApplyCueSpawnDelayCompensation(SpawnedActor, Note);
 			ActiveLogisticBoxes.Add(SpawnedActor);
-			SpawnedActor->OnDestroyed.AddDynamic(this, &APTBLCMiniGame::HandleLogisticBoxDestroyed);
-			PTB_RECORD(LogPTBMiniGames, TEXT("[LC] Logistic box spawned. NoteId=%d Action=%d Location=(%.2f, %.2f, %.2f) Class=%s"),
-				Note.NoteId,
-				static_cast<int32>(Note.ActionType),
-				BoxSpawnLocation.X,
-				BoxSpawnLocation.Y,
-				BoxSpawnLocation.Z,
-				*GetNameSafe(SpawnedActor->GetClass()));
 		}
 		else
 		{
-			PTB_WARNING(LogPTBMiniGames, TEXT("[LC] Logistic box spawn failed. NoteId=%d Action=%d Location=(%.2f, %.2f, %.2f) Class=%s"),
+			PTB_WARNING(LogPTBMiniGames, TEXT("[LC] Logistic box pool exhausted. NoteId=%d Action=%d PoolSize=%d NextIndex=%d"),
 				Note.NoteId,
 				static_cast<int32>(Note.ActionType),
-				BoxSpawnLocation.X,
-				BoxSpawnLocation.Y,
-				BoxSpawnLocation.Z,
-				*GetNameSafe(LogisticBoxClass));
+				LogisticBoxPool.Num(),
+				NextLogisticBoxPoolIndex);
 		}
 	}
 	else PTB_WARNING(LogPTBMiniGames, TEXT("[LC] HandleNoteCue: Unsupported ActionType. NoteId=%d Action=%d"),
@@ -152,7 +112,7 @@ void APTBLCMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 					break;
 				}
 			}
-			
+
 			const bool bShouldPackage =
 				Result.Reason == EPTBJudgementReason::WrongInput ||
 				Result.JudgementType == EPTBJudgementType::Good ||
@@ -167,6 +127,13 @@ void APTBLCMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 			}
 		}
 	}
+}
+
+bool APTBLCMiniGame::IsLogisticBoxAction(EPTBActionType ActionType) const
+{
+	return ActionType == EPTBActionType::ActionA ||
+		ActionType == EPTBActionType::ActionB ||
+		ActionType == EPTBActionType::ActionC;
 }
 
 float APTBLCMiniGame::CalculateScheduledCueTimeMs(const FPTBNoteEvent& Note) const
@@ -244,6 +211,101 @@ void APTBLCMiniGame::ApplyBeatPulseToBoxes(float PulseScale)
 
 		LogisticBox->SetBeatPulseScale(PulseScale);
 	}
+}
+
+void APTBLCMiniGame::PrepareLogisticBoxPool()
+{
+	for (TObjectPtr<APTBLCLogisticBox>& LogisticBox : LogisticBoxPool)
+	{
+		if (LogisticBox)
+		{
+			LogisticBox->Destroy();
+		}
+	}
+
+	LogisticBoxPool.Reset();
+	ActiveLogisticBoxes.Reset();
+	NextLogisticBoxPoolIndex = 0;
+
+	if (!LogisticBoxClass)
+	{
+		PTB_WARNING(LogPTBMiniGames, TEXT("[LC] PrepareLogisticBoxPool skipped: LogisticBoxClass is null."));
+		return;
+	}
+
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		PTB_WARNING(LogPTBMiniGames, TEXT("[LC] PrepareLogisticBoxPool skipped: World is null."));
+		return;
+	}
+
+	int32 RequiredPoolSize = 0;
+	if (ChartAsset)
+	{
+		for (const FPTBNoteEvent& Note : ChartAsset->NoteEvents)
+		{
+			if (IsLogisticBoxAction(Note.ActionType))
+			{
+				++RequiredPoolSize;
+			}
+		}
+	}
+
+	if (RequiredPoolSize <= 0)
+	{
+		return;
+	}
+
+	FActorSpawnParameters SpawnParams;
+	SpawnParams.Owner = this;
+	SpawnParams.Instigator = GetInstigator();
+	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+	const FVector StandbyLocation = GetLogisticBoxStandbyLocation();
+	const FTransform SpawnTransform(FRotator::ZeroRotator, StandbyLocation);
+	LogisticBoxPool.Reserve(RequiredPoolSize);
+	for (int32 Index = 0; Index < RequiredPoolSize; ++Index)
+	{
+		APTBLCLogisticBox* LogisticBox = World->SpawnActor<APTBLCLogisticBox>(
+			LogisticBoxClass,
+			SpawnTransform,
+			SpawnParams
+		);
+
+		if (!LogisticBox)
+		{
+			PTB_WARNING(LogPTBMiniGames, TEXT("[LC] PrepareLogisticBoxPool spawn failed. Index=%d Required=%d Class=%s"),
+				Index,
+				RequiredPoolSize,
+				*GetNameSafe(LogisticBoxClass));
+			continue;
+		}
+
+		LogisticBox->ResetForPool(StandbyLocation);
+		LogisticBox->OnDestroyed.AddUniqueDynamic(this, &APTBLCMiniGame::HandleLogisticBoxDestroyed);
+		LogisticBoxPool.Add(LogisticBox);
+	}
+
+	PTB_RECORD(LogPTBMiniGames, TEXT("[LC] Logistic box pool prepared. Required=%d Created=%d Class=%s"),
+		RequiredPoolSize,
+		LogisticBoxPool.Num(),
+		*GetNameSafe(LogisticBoxClass));
+}
+
+APTBLCLogisticBox* APTBLCMiniGame::AcquireLogisticBoxFromPool()
+{
+	if (!LogisticBoxPool.IsValidIndex(NextLogisticBoxPoolIndex))
+	{
+		return nullptr;
+	}
+
+	return LogisticBoxPool[NextLogisticBoxPoolIndex++].Get();
+}
+
+FVector APTBLCMiniGame::GetLogisticBoxStandbyLocation() const
+{
+	return BoxSpawnLocation;
 }
 
 void APTBLCMiniGame::HandleLogisticBoxDestroyed(AActor* DestroyedActor)
