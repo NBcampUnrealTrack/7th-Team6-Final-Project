@@ -8,12 +8,16 @@
 class UPTBCHMiniGameRuleSet;
 class UWrapperWidget;
 class UUserWidget;
+class UCameraShakeBase;
+class UStaticMesh;
+class UMaterialInterface;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FPTBCHNoteEvent, FPTBNoteEvent, Note);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FPTBCHJudgementEvent, FPTBJudgementResult, Result, FPTBNoteEvent, Note);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FPTBCHNoteClearedEvent, int32, NoteId, EPTBJudgementType, JudgementType);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FPTBCHHoldStartedEvent, FPTBJudgementResult, Result, FPTBNoteEvent, Note);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FPTBCHCustomerChangedEvent, int32, CustomerNumber);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FPTBCHCustomerReactionEvent, ECHCustomerReactionType, ReactionType);
 
 /**
  * 커스텀 햄버거 미니게임 Actor입니다
@@ -54,6 +58,10 @@ public:
     UPROPERTY(BlueprintAssignable, Category = "PTB|CH")
     FPTBCHCustomerChangedEvent OnCHCustomerChanged;
 
+    /** 햄버거 완성 시, 실제 쌓인 재료 구성에 따른 손님 반응(대사) 이벤트 */
+    UPROPERTY(BlueprintAssignable, Category = "PTB|CH")
+    FPTBCHCustomerReactionEvent OnCHCustomerReaction;
+
     /** 오브젝트 / 상태 구성 */
     virtual void BuildRuntimeState() override;
 
@@ -73,6 +81,9 @@ public:
     virtual void HandleReadyToStart() override;
 
     virtual void HandleRhythmInput(EPTBActionType Action, float TimeMs = -1.0f) override;
+
+    /** 재도전/종료 시 이 인스턴스가 스폰한 접시·재료 액터를 전부 정리 (레벨에 남아 다음 판과 겹치는 것 방지) */
+    virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
     UPROPERTY()
     EPTBActionType LastPressedAction = EPTBActionType::None;
@@ -128,6 +139,22 @@ public:
     /** HUD 위젯 클래스 (에디터에서 설정) */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|CH")
     TSubclassOf<UUserWidget> HUDWidgetClass;
+
+    /** Miss 판정 시 재생할 카메라쉐이크 (에디터에서 설정) */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|CH|Camera")
+    TSubclassOf<UCameraShakeBase> MissCameraShakeClass;
+
+    /** 손님 주문 완벽 완성 시 표시할 후광 메쉬 (에디터에서 설정) */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|CH|VFX")
+    TObjectPtr<UStaticMesh> HaloEffectMesh;
+
+    /** 후광 메쉬에 적용할 머티리얼 (비워두면 메쉬 기본 머티리얼 사용) */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|CH|VFX")
+    TObjectPtr<UMaterialInterface> HaloEffectMaterial;
+
+    /** 후광이 화면에 유지되는 시간(초) */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|CH|VFX")
+    float HaloEffectDuration = 1.0f;
 
 protected:
     /** Hold 시작 입력 판정 */
@@ -206,6 +233,9 @@ protected:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PTB|CH")
     TArray<EPTBCHIngredientType> PlacedIngredients;
 
+    /** 현재 손님에 대해 즉시 반응(예: 빵 위에 빵)이 이미 표시됐는지 — 완성 시점 중복 표시 방지 */
+    bool bReactionShownForCurrentCustomer = false;
+
     /** 재료 Blueprint 클래스 (에디터에서 설정) */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|CH|Ingredients")
     TSubclassOf<AActor> IngredientClass_BreadBottom;
@@ -236,12 +266,32 @@ protected:
     /** 재료 스폰 함수 */
     void SpawnIngredient(EPTBCHIngredientType IngredientType, bool bIsLastBread = false);
 
+    /** 실제로 쌓인 재료 순서(PlacedIngredients)와 주문을 비교해 손님 반응 종류를 판별 */
+    ECHCustomerReactionType EvaluateCustomerReaction(const TArray<EPTBCHIngredientType>& Placed, const TArray<EPTBCHIngredientType>& Expected) const;
+
+    /** 빵(아랫빵/윗빵) 종류인지 여부 */
+    static bool IsBreadIngredient(EPTBCHIngredientType Type);
+
+    /** HUD Blueprint의 ShowCustomerReaction 함수 호출 (실제 대사 문구는 블루프린트에서 결정) */
+    void CallHUDShowCustomerReaction(ECHCustomerReactionType ReactionType);
+
+    /** HUD Blueprint의 UpdateCustomerResult 함수 호출 (완료된 손님 칸을 성공/실패 이미지로 교체) */
+    void CallHUDUpdateCustomerResult(int32 CustomerIndex, bool bSuccess);
+
     /** 완성된 햄버거 목록 (각 햄버거의 재료 Actor 배열) */
     TArray<TArray<TObjectPtr<AActor>>> CompletedHamburgers;
 
     /** 접시 Blueprint 클래스 (에디터에서 설정) */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|CH")
     TSubclassOf<AActor> PlateActorClass;
+
+    /** 접시 스폰 위치 (카운터 위 등, 에디터에서 조정) */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|CH|Spawn")
+    FVector PlateSpawnLocation = FVector(1240.0f, 0.0f, 360.0f);
+
+    /** 재료 스폰 위치 X/Y (Z는 StackHeight로 자동 계산, 에디터에서 조정) */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|CH|Spawn")
+    FVector2D IngredientSpawnLocationXY = FVector2D(840.0f, 0.0f);
 
     /** 완성된 햄버거의 접시 목록 */
     TArray<TObjectPtr<AActor>> CompletedPlates;
@@ -284,6 +334,9 @@ protected:
 
     /** HUD Blueprint의 ShowJudgement 함수 호출 */
     void CallHUDShowJudgement(EPTBJudgementType JudgementType);
+
+    /** HUD Blueprint의 UpdateStats 함수 호출 (점수/콤보/판정별 누적 수) */
+    void CallHUDUpdateStats(int32 Score, int32 Combo, int32 HighPerfectCount, int32 PerfectCount, int32 GoodCount, int32 MissCount);
 
     virtual void Tick(float DeltaTime) override;
 };

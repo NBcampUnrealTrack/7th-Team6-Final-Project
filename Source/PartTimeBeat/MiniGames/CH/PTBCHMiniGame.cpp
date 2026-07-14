@@ -7,7 +7,10 @@
 #include "Rhythm/PTBRhythmConductorComponent.h"
 #include "Rhythm/PTBScoreCalculator.h"
 #include "Blueprint/UserWidget.h"
+#include "Camera/CameraShakeBase.h"
 #include "Components/PrimitiveComponent.h"
+#include "Components/StaticMeshComponent.h"
+#include "Engine/StaticMeshActor.h"
 
 void APTBCHMiniGame::BuildRuntimeState()
 {
@@ -25,18 +28,56 @@ void APTBCHMiniGame::BuildRuntimeState()
     CurrentCursorIndex = 0;
     CurrentCustomerIndex = 0;
     PlacedIngredients.Reset();
+    bReactionShownForCurrentCustomer = false;
     CustomerOrders.Reset();
 
-    // 손님 주문 고정 (채보에 맞춤)
-// 1: 빵→패티→빵
-    { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Patty, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
-    { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
-    { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Patty, EPTBCHIngredientType::Tomato, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
-    { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::Patty, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
-    { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Tomato, EPTBCHIngredientType::Patty, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
-    { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::Tomato, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
-    { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Patty, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
-    { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
+    // 손님 주문 고정 (채보에 맞춤), 난이도별로 분기
+    if (GameContext.SessionRequest.Difficulty == EPTBDifficulty::Easy)
+    {
+        // Easy: 손님 10명, 손님마다 재료 구성 다르게 (CH_Easy.rhythmc 79노트에 맞춤, 총합 79)
+        { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::Patty, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::Tomato, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::Patty, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
+        { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::Tomato, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::Patty, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::Tomato, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
+        { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Patty, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::Tomato, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::Patty, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
+        { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Tomato, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::Patty, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::Tomato, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
+        { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::Tomato, EPTBCHIngredientType::Patty, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::Tomato, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
+        { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::Patty, EPTBCHIngredientType::Tomato, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::Patty, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
+        { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Tomato, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::Patty, EPTBCHIngredientType::Tomato, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
+        { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Patty, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::Tomato, EPTBCHIngredientType::Patty, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
+        { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::Tomato, EPTBCHIngredientType::Patty, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
+        { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Patty, EPTBCHIngredientType::Tomato, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::Patty, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
+    }
+    else
+    {
+        // Standard: 손님 28명, 재료 반복 허용 + 덜 규칙적인 순서로 재구성 (CH_Standard.rhythmc 184노트에 맞춤, 총합 184)
+        { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Patty, EPTBCHIngredientType::Tomato, EPTBCHIngredientType::Patty, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
+        { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::Tomato, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
+        { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::Patty, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::Tomato, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::Patty, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
+        { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Tomato, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::Tomato, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
+        { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Patty, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::Patty, EPTBCHIngredientType::Tomato, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
+        { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Tomato, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::Tomato, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
+        { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::Patty, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::Tomato, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
+        { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::Patty, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
+        { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Patty, EPTBCHIngredientType::Tomato, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::Patty, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
+        { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
+        { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Tomato, EPTBCHIngredientType::Patty, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::Tomato, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
+        { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::Tomato, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::Patty, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
+        { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Patty, EPTBCHIngredientType::Tomato, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::Patty, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
+        { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::Tomato, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::Patty, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
+        { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::Patty, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::Tomato, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
+        { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Tomato, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::Patty, EPTBCHIngredientType::Tomato, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
+        { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::Patty, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::Tomato, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
+        { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Patty, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::Tomato, EPTBCHIngredientType::Patty, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
+        { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Tomato, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::Tomato, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
+        { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Patty, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::Patty, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
+        { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::Tomato, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::Patty, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
+        { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::Patty, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::Tomato, EPTBCHIngredientType::Patty, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
+        { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::Tomato, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
+        { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Patty, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::Tomato, EPTBCHIngredientType::Patty, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
+        { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
+        { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Tomato, EPTBCHIngredientType::Patty, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::Tomato, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
+        { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::Patty, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::Tomato, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
+        { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Patty, EPTBCHIngredientType::Tomato, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::Patty, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
+    }
 
     NoteIdToIngredientAction.Reset();
     SlideGroups.Reset();
@@ -83,12 +124,12 @@ void APTBCHMiniGame::BuildRuntimeState()
     {
         FActorSpawnParameters SpawnParams;
         SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-        AActor* FirstPlate = GetWorld()->SpawnActor<AActor>(PlateActorClass, FVector(1240.0f, 0.0f, 5.0f), FRotator::ZeroRotator, SpawnParams);
+        AActor* FirstPlate = GetWorld()->SpawnActor<AActor>(PlateActorClass, PlateSpawnLocation, FRotator::ZeroRotator, SpawnParams);
         if (FirstPlate)
         {
             FCHSlideGroup Group;
             Group.Plate = FirstPlate;
-            Group.TargetX = 840.0f;
+            Group.TargetX = IngredientSpawnLocationXY.X;
             SlideGroups.Add(Group);
             CompletedPlates.Add(FirstPlate);
 
@@ -105,6 +146,36 @@ void APTBCHMiniGame::BuildRuntimeState()
         *GetNameSafe(this),
         *GetNameSafe(RuleSet.Get()),
         *GetNameSafe(ChartAsset.Get()));
+}
+
+void APTBCHMiniGame::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+    // 재도전 시 GameMode가 이 액터만 Destroy하고 스폰된 접시/재료는 정리하지 않아서,
+    // 다음 판 첫 접시가 이전 판에 남아있던 접시/재료와 같은 위치에서 겹쳐 보이는 문제 방지
+    for (AActor* Ingredient : SpawnedIngredients)
+    {
+        if (Ingredient) { Ingredient->Destroy(); }
+    }
+    SpawnedIngredients.Reset();
+
+    for (const TArray<TObjectPtr<AActor>>& Hamburger : CompletedHamburgers)
+    {
+        for (AActor* Ingredient : Hamburger)
+        {
+            if (Ingredient) { Ingredient->Destroy(); }
+        }
+    }
+    CompletedHamburgers.Reset();
+
+    for (AActor* Plate : CompletedPlates)
+    {
+        if (Plate) { Plate->Destroy(); }
+    }
+    CompletedPlates.Reset();
+
+    SlideGroups.Reset();
+
+    Super::EndPlay(EndPlayReason);
 }
 
 void APTBCHMiniGame::HandleChartEvent(FPTBNoteEvent Note)
@@ -179,6 +250,8 @@ void APTBCHMiniGame::HandleNoteCue(FPTBNoteEvent Note)
 
     if (Mapped)
     {
+        // 같은 슬롯(ActionType)에 이미 판정 대기 중인 노트가 있어도 그냥 바로 브로드캐스트한다.
+        // HUD 쪽에서 슬롯당 게이지 2개(주/보조)를 받아 동시에 표시하도록 처리한다.
         FPTBNoteEvent ModifiedNote = Note;
         ModifiedNote.ActionType = *Mapped;
         OnCHNoteCue.Broadcast(ModifiedNote);
@@ -217,15 +290,31 @@ void APTBCHMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
         && ExpectedIngredientAction == LastPressedAction);
 
     // 타이밍이 맞아도 틀린 키면 Miss 처리
+    bool bWrongKeyNotePress = false;
     if (Result.NoteId != 0 && Result.Reason == EPTBJudgementReason::Note && !bCorrectKey)
     {
         Result.JudgementType = EPTBJudgementType::Miss;
         Result.ScoreDelta = 0;
         Result.bBreaksCombo = true;
+        bWrongKeyNotePress = true;
+    }
+
+    if (Result.JudgementType == EPTBJudgementType::Miss && MissCameraShakeClass)
+    {
+        if (APlayerController* PC = GetWorld()->GetFirstPlayerController())
+        {
+            PC->ClientStartCameraShake(MissCameraShakeClass);
+        }
     }
 
     Super::HandleJudgementResult(Result);
     CallHUDShowJudgement(Result.JudgementType);
+    if (ScoreCalculator)
+    {
+        CallHUDUpdateStats(ScoreCalculator->CurrentScore, ScoreCalculator->ComboCount,
+            ScoreCalculator->HighPerfectCount, ScoreCalculator->PerfectCount,
+            ScoreCalculator->GoodCount, ScoreCalculator->MissCount);
+    }
     UE_LOG(LogPTBMiniGames, Log, TEXT("[CH] Result.ActionType=%d, NoteId=%d"),
         static_cast<int32>(Result.ActionType), Result.NoteId);
 
@@ -239,49 +328,135 @@ void APTBCHMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
             static_cast<int32>(LastPressedAction),
             bCorrectKey ? 1 : 0);
 
+        // 현재 자리가 주문의 마지막 재료 위치인지 (마지막 자리에서의 빵만 윗빵으로 취급)
+        const bool bIsLastIngredientSlot = CustomerOrders.IsValidIndex(CurrentCustomerIndex)
+            && CurrentIngredientIndex >= CustomerOrders[CurrentCustomerIndex].Ingredients.Num() - 1;
+
+        EPTBCHIngredientType IngredientType = EPTBCHIngredientType::None;
         if (bCorrectKey)
         {
-            EPTBCHIngredientType IngredientType = EPTBCHIngredientType::None;
             if (CustomerOrders.IsValidIndex(CurrentCustomerIndex) &&
                 CustomerOrders[CurrentCustomerIndex].Ingredients.IsValidIndex(CurrentIngredientIndex))
             {
                 IngredientType = CustomerOrders[CurrentCustomerIndex].Ingredients[CurrentIngredientIndex];
             }
-            if (IngredientType != EPTBCHIngredientType::None)
+        }
+        else if (bWrongKeyNotePress)
+        {
+            // 틀린 키를 눌러도 누른 키에 해당하는 재료를 그대로 스폰 → Miss 피드백용 (햄버거가 잘못 쌓임)
+            switch (LastPressedAction)
             {
-                bool bIsLastBread = (CurrentIngredientIndex >= CustomerOrders[CurrentCustomerIndex].Ingredients.Num() - 1);
-                SpawnIngredient(IngredientType, bIsLastBread);
+            case EPTBActionType::ActionA:
+                // 마지막 자리가 아니면 무조건 아랫빵으로 취급 (마지막 자리에서만 윗빵)
+                IngredientType = bIsLastIngredientSlot ? EPTBCHIngredientType::BreadTop : EPTBCHIngredientType::BreadBottom;
+                break;
+            case EPTBActionType::ActionB: IngredientType = EPTBCHIngredientType::Lettuce; break;
+            case EPTBActionType::ActionC: IngredientType = EPTBCHIngredientType::Patty; break;
+            case EPTBActionType::ActionD: IngredientType = EPTBCHIngredientType::Cheese; break;
+            case EPTBActionType::ActionE: IngredientType = EPTBCHIngredientType::Tomato; break;
+            default: break;
             }
+        }
+
+        if (IngredientType != EPTBCHIngredientType::None && CustomerOrders.IsValidIndex(CurrentCustomerIndex))
+        {
+            SpawnIngredient(IngredientType, bIsLastIngredientSlot);
         }
 
         // 맞든 틀리든 노트가 지나가면 다음 재료로 진행
         if (Result.Reason != EPTBJudgementReason::EmptyInput)
         {
+            // 실제로 쌓인 재료 기록 (스폰 안 됐으면 None = 재료 빠짐) → 손님 반응 판별에 사용
+            PlacedIngredients.Add(IngredientType);
+
+            // 그 순간 바로 알 수 있는 실수(빵 위에 빵 / 재료 빠짐)는
+            // 완성 시점까지 기다리지 않고 즉시 반응 표시 (재료 틀림/순서 뒤바뀜/완벽함은 전체 순서를 봐야 해서 완성 시점에 판정)
+            if (!bReactionShownForCurrentCustomer)
+            {
+                if (PlacedIngredients.Num() >= 2
+                    && IsBreadIngredient(PlacedIngredients.Last())
+                    && IsBreadIngredient(PlacedIngredients[PlacedIngredients.Num() - 2]))
+                {
+                    bReactionShownForCurrentCustomer = true;
+                    OnCHCustomerReaction.Broadcast(ECHCustomerReactionType::BreadOnBread);
+                    CallHUDShowCustomerReaction(ECHCustomerReactionType::BreadOnBread);
+                }
+                else if (IngredientType == EPTBCHIngredientType::None)
+                {
+                    bReactionShownForCurrentCustomer = true;
+                    OnCHCustomerReaction.Broadcast(ECHCustomerReactionType::MissingIngredient);
+                    CallHUDShowCustomerReaction(ECHCustomerReactionType::MissingIngredient);
+                }
+            }
+
             CurrentIngredientIndex++;
             if (CustomerOrders.IsValidIndex(CurrentCustomerIndex) &&
                 CurrentIngredientIndex >= CustomerOrders[CurrentCustomerIndex].Ingredients.Num())
             {
-                // 모든 그룹을 왼쪽으로 400 슬라이드
-                // 방금 완성된 접시(윗빵이 막 올라간 것)는 0.5초 딜레이 후 출발
-                AActor* JustCompletedPlate = CompletedPlates.Num() > 0 ? CompletedPlates.Last().Get() : nullptr;
-                for (FCHSlideGroup& Group : SlideGroups)
+                bool bCustomerOrderSucceeded = false;
+                if (!bReactionShownForCurrentCustomer)
                 {
-                    if (!Group.Plate) continue;
-                    Group.TargetX -= 400.0f;
-                    Group.Delay = (Group.Plate == JustCompletedPlate) ? 0.5f : 0.0f;
+                    const ECHCustomerReactionType ReactionType = EvaluateCustomerReaction(PlacedIngredients, CustomerOrders[CurrentCustomerIndex].Ingredients);
+                    OnCHCustomerReaction.Broadcast(ReactionType);
+                    CallHUDShowCustomerReaction(ReactionType);
+                    bCustomerOrderSucceeded = (ReactionType == ECHCustomerReactionType::Perfect);
                 }
 
-                // 새 접시 스폰
-                if (PlateActorClass && GetWorld())
+                if (bCustomerOrderSucceeded && HaloEffectMesh && GetWorld())
+                {
+                    FVector VfxLocation = PlateSpawnLocation;
+                    if (SpawnedIngredients.Num() > 0 && SpawnedIngredients.Last())
+                    {
+                        VfxLocation = SpawnedIngredients.Last()->GetActorLocation();
+                    }
+
+                    FActorSpawnParameters SpawnParams;
+                    SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+                    if (AStaticMeshActor* HaloActor = GetWorld()->SpawnActor<AStaticMeshActor>(VfxLocation, FRotator::ZeroRotator, SpawnParams))
+                    {
+                        if (UStaticMeshComponent* MeshComp = HaloActor->GetStaticMeshComponent())
+                        {
+                            MeshComp->SetMobility(EComponentMobility::Movable);
+                            MeshComp->SetStaticMesh(HaloEffectMesh);
+                            MeshComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+                            if (HaloEffectMaterial)
+                            {
+                                MeshComp->SetMaterial(0, HaloEffectMaterial);
+                            }
+                        }
+                        HaloActor->SetLifeSpan(HaloEffectDuration);
+                    }
+                }
+                CallHUDUpdateCustomerResult(CurrentCustomerIndex, bCustomerOrderSucceeded);
+                bReactionShownForCurrentCustomer = false;
+                PlacedIngredients.Reset();
+
+                const bool bHasNextCustomer = CustomerOrders.IsValidIndex(CurrentCustomerIndex + 1);
+
+                // 모든 그룹을 왼쪽으로 400 슬라이드 (다음 손님이 있을 때만 - 마지막 접시는 자리에 그대로 둠)
+                // 방금 완성된 접시(윗빵이 막 올라간 것)는 0.5초 딜레이 후 출발
+                if (bHasNextCustomer)
+                {
+                    AActor* JustCompletedPlate = CompletedPlates.Num() > 0 ? CompletedPlates.Last().Get() : nullptr;
+                    for (FCHSlideGroup& Group : SlideGroups)
+                    {
+                        if (!Group.Plate) continue;
+                        Group.TargetX -= 400.0f;
+                        Group.Delay = (Group.Plate == JustCompletedPlate) ? 0.5f : 0.0f;
+                    }
+                }
+
+                // 새 접시 스폰 (다음 손님이 있을 때만)
+                if (bHasNextCustomer && PlateActorClass && GetWorld())
                 {
                     FActorSpawnParameters SpawnParams;
                     SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-                    AActor* NewPlate = GetWorld()->SpawnActor<AActor>(PlateActorClass, FVector(1240.0f, 0.0f, 5.0f), FRotator::ZeroRotator, SpawnParams);
+                    AActor* NewPlate = GetWorld()->SpawnActor<AActor>(PlateActorClass, PlateSpawnLocation, FRotator::ZeroRotator, SpawnParams);
                     if (NewPlate)
                     {
                         FCHSlideGroup NewGroup;
                         NewGroup.Plate = NewPlate;
-                        NewGroup.TargetX = 840.0f;
+                        NewGroup.TargetX = IngredientSpawnLocationXY.X;
                         NewGroup.Delay = 0.5f;
                         SlideGroups.Add(NewGroup);
                         CompletedPlates.Add(NewPlate);
@@ -292,8 +467,12 @@ void APTBCHMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
                 SpawnedIngredients.Reset();
                 CurrentIngredientIndex = 0;
                 CurrentCustomerIndex++;
-                OnCHCustomerChanged.Broadcast(CurrentCustomerIndex + 1);
-                CallHUDUpdateCustomerNumber(CurrentCustomerIndex + 1);
+                // 완료된 주문 수로 표시 (0~8), 마지막 손님까지 완료되면 8/8까지 정상적으로 도달
+                CallHUDUpdateCustomerNumber(CurrentCustomerIndex);
+                if (bHasNextCustomer)
+                {
+                    OnCHCustomerChanged.Broadcast(CurrentCustomerIndex + 1);
+                }
 
                 // StackHeight: 새 접시 윗면 기준으로 리셋
                 if (CompletedPlates.Num() > 0 && CompletedPlates.Last())
@@ -329,21 +508,10 @@ void APTBCHMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
         OnCHJudgement.Broadcast(BroadcastResult, JudgedNote);
         OnCHNoteCleared.Broadcast(Result.NoteId, Result.JudgementType);
 
-        // 같은 ActionType에 이미 Cue된 다음 노트가 있으면 다시 Cue 브로드캐스트
-        // (BreadTop 판정이 ActionA 슬롯을 끄면, 이미 Cue된 BreadBottom 슬롯이 같이 꺼지는 버그 방지)
-        for (const FPTBNoteEvent& CuedNote : CuedNotes)
-        {
-            if (const EPTBActionType* NextMapped = NoteIdToIngredientAction.Find(CuedNote.NoteId))
-            {
-                if (*NextMapped == RemappedActionType)
-                {
-                    FPTBNoteEvent ReCueNote = CuedNote;
-                    ReCueNote.ActionType = *NextMapped;
-                    OnCHNoteCue.Broadcast(ReCueNote);
-                    break;
-                }
-            }
-        }
+        // (예전 재큐 로직 제거됨) 이제 같은 슬롯의 노트 2개가 동시에 큐된 상태로 공존 가능하므로,
+        // HandleCHJudgement 쪽에서 "판정된 노트의 TimeMs"와 일치하는 슬롯(주/보조)만 골라서 꺼야 한다.
+        // OnCHJudgement 브로드캐스트에 JudgedNote(=이 노트의 TimeMs)가 이미 같이 전달되고 있으니
+        // WBP_CH_HUD의 HandleCHJudgement에서 이 값으로 어느 슬롯인지 구분한다.
     }
     else if (Result.Reason == EPTBJudgementReason::EmptyInput)
     {
@@ -567,7 +735,7 @@ void APTBCHMiniGame::HandleReadyToStart()
     }
 
     OnCHCustomerChanged.Broadcast(1);
-    CallHUDUpdateCustomerNumber(1);
+    CallHUDUpdateCustomerNumber(0);
 }
 
 void APTBCHMiniGame::CallHUDShowJudgement(EPTBJudgementType JudgementType)
@@ -580,6 +748,17 @@ void APTBCHMiniGame::CallHUDShowJudgement(EPTBJudgementType JudgementType)
     }
 }
 
+void APTBCHMiniGame::CallHUDUpdateStats(int32 Score, int32 Combo, int32 HighPerfectCount, int32 PerfectCount, int32 GoodCount, int32 MissCount)
+{
+    if (!HUDWidget) return;
+    if (UFunction* Func = HUDWidget->FindFunction(TEXT("UpdateStats")))
+    {
+        struct { int32 InScore; int32 InCombo; int32 InHighPerfectCount; int32 InPerfectCount; int32 InGoodCount; int32 InMissCount; }
+            Params{ Score, Combo, HighPerfectCount, PerfectCount, GoodCount, MissCount };
+        HUDWidget->ProcessEvent(Func, &Params);
+    }
+}
+
 void APTBCHMiniGame::CallHUDUpdateCustomerNumber(int32 CustomerNumber)
 {
     if (!HUDWidget) return;
@@ -588,6 +767,66 @@ void APTBCHMiniGame::CallHUDUpdateCustomerNumber(int32 CustomerNumber)
         struct { int32 InCustomerNumber; } Params{ CustomerNumber };
         HUDWidget->ProcessEvent(Func, &Params);
     }
+}
+
+void APTBCHMiniGame::CallHUDShowCustomerReaction(ECHCustomerReactionType ReactionType)
+{
+    if (!HUDWidget) return;
+    if (UFunction* Func = HUDWidget->FindFunction(TEXT("ShowCustomerReaction")))
+    {
+        struct { ECHCustomerReactionType InReactionType; } Params{ ReactionType };
+        HUDWidget->ProcessEvent(Func, &Params);
+    }
+}
+
+void APTBCHMiniGame::CallHUDUpdateCustomerResult(int32 CustomerIndex, bool bSuccess)
+{
+    if (!HUDWidget) return;
+    if (UFunction* Func = HUDWidget->FindFunction(TEXT("UpdateCustomerResult")))
+    {
+        struct { int32 InCustomerIndex; bool bInSuccess; } Params{ CustomerIndex, bSuccess };
+        HUDWidget->ProcessEvent(Func, &Params);
+    }
+}
+
+bool APTBCHMiniGame::IsBreadIngredient(EPTBCHIngredientType Type)
+{
+    return Type == EPTBCHIngredientType::BreadBottom || Type == EPTBCHIngredientType::BreadTop;
+}
+
+ECHCustomerReactionType APTBCHMiniGame::EvaluateCustomerReaction(const TArray<EPTBCHIngredientType>& Placed, const TArray<EPTBCHIngredientType>& Expected) const
+{
+    if (Placed == Expected)
+    {
+        return ECHCustomerReactionType::Perfect;
+    }
+
+    // 빵 바로 위에 빵 (사이에 다른 재료 없이 연속으로 빵이 놓임)
+    for (int32 Index = 1; Index < Placed.Num(); ++Index)
+    {
+        if (IsBreadIngredient(Placed[Index - 1]) && IsBreadIngredient(Placed[Index]))
+        {
+            return ECHCustomerReactionType::BreadOnBread;
+        }
+    }
+
+    // 타이밍을 놓쳐서 재료가 아예 안 쌓인 자리가 있음
+    if (Placed.Contains(EPTBCHIngredientType::None))
+    {
+        return ECHCustomerReactionType::MissingIngredient;
+    }
+
+    // 들어간 재료 구성은 같은데 순서만 다른 경우
+    TArray<EPTBCHIngredientType> SortedPlaced = Placed;
+    TArray<EPTBCHIngredientType> SortedExpected = Expected;
+    SortedPlaced.Sort();
+    SortedExpected.Sort();
+    if (SortedPlaced == SortedExpected)
+    {
+        return ECHCustomerReactionType::OrderShuffled;
+    }
+
+    return ECHCustomerReactionType::WrongIngredient;
 }
 
 void APTBCHMiniGame::CreateAndAddHUD()
@@ -797,8 +1036,14 @@ void APTBCHMiniGame::SpawnIngredient(EPTBCHIngredientType IngredientType, bool b
         return;
     }
 
-    // SM_Plate X, Y 기준으로 스폰
-    FVector SpawnLocation(840.0f, 0.0f, StackHeight);
+    // SM_Plate X, Y 기준으로 스폰 (X/Y는 IngredientSpawnLocationXY로 에디터에서 조정 가능)
+    // 접시가 아직 슬라이드 중일 수 있으므로, 고정된 도착 지점이 아니라 접시의 현재 위치에 맞춰 스폰
+    float SpawnX = IngredientSpawnLocationXY.X;
+    if (SlideGroups.Num() > 0 && SlideGroups.Last().Plate)
+    {
+        SpawnX = SlideGroups.Last().Plate->GetActorLocation().X;
+    }
+    FVector SpawnLocation(SpawnX, IngredientSpawnLocationXY.Y, StackHeight);
     FRotator SpawnRotation = FRotator::ZeroRotator;
 
     FActorSpawnParameters SpawnParams;
@@ -827,10 +1072,14 @@ void APTBCHMiniGame::SpawnIngredient(EPTBCHIngredientType IngredientType, bool b
             SlideGroups.Last().Ingredients.Add(SpawnedActor);
         }
 
-        // TargetZ = 접시 윗면(StackHeight) + 재료 반높이 → 재료 바닥이 접시 위에 딱 닿도록
+        // TargetZ = 접시 윗면(StackHeight) + (피벗~메쉬 바닥 거리) → 재료 바닥이 접시 위에 딱 닿도록
+        // 피벗이 바운딩 박스 중앙이 아닌 에셋(예: 바닥 피벗)이 섞여 있어도 정확히 동작하도록,
+        // 피벗 위치를 가정하지 않고 스폰 시점의 실제 메쉬 바닥과의 오프셋을 직접 구한다.
         FVector Origin, BoxExtent;
         SpawnedActor->GetActorBounds(true, Origin, BoxExtent);
-        const float TargetZ = StackHeight + BoxExtent.Z;
+        const float MeshBottomZ = Origin.Z - BoxExtent.Z;
+        const float PivotToBottomOffset = SpawnLocation.Z - MeshBottomZ;
+        const float TargetZ = StackHeight + PivotToBottomOffset;
         StackHeight += BoxExtent.Z * 2.0f;
 
         // 드롭 시작 위치(TargetZ + 오프셋)로 배치 후 애니메이션 등록
