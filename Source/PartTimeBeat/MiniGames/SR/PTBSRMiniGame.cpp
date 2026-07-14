@@ -187,6 +187,8 @@ void APTBSRMiniGame::RefreshPreviewUI()
 
 void APTBSRMiniGame::HandleRhythmInput(EPTBActionType Action, float TimeMs)
 {
+	const int32 NoteIndexForThisInput = CurrentNoteIndex;
+
 	Super::HandleRhythmInput(Action, TimeMs);
 	// SR은 ActionA(Z)만 지원하므로, 그 외 키 입력은 무시
 	if (Action != EPTBActionType::ActionA)
@@ -194,11 +196,11 @@ void APTBSRMiniGame::HandleRhythmInput(EPTBActionType Action, float TimeMs)
 		return;
 	}
 
-	// 토핑(스시)은 키를 누를 때마다 스폰
-	if (ToppingQueue.IsValidIndex(CurrentNoteIndex))
+	// 토핑(스시)은 키를 누를 때마다 스폰 — 캡처해둔 인덱스를 그대로 사용
+	if (ToppingQueue.IsValidIndex(NoteIndexForThisInput))
 	{
-		int32 AssignedTopping = ToppingQueue[CurrentNoteIndex];
-		OnToppingDrop.Broadcast(AssignedTopping, CurrentNoteIndex); // 델리게이트 이름 변경
+		int32 AssignedTopping = ToppingQueue[NoteIndexForThisInput];
+		OnToppingDrop.Broadcast(AssignedTopping, NoteIndexForThisInput); // 델리게이트 이름 변경
 	}
 }
 
@@ -219,6 +221,16 @@ void APTBSRMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 {
 	Super::HandleJudgementResult(Result);
 	NoteJudgementResults.Add(Result.NoteId, Result.JudgementType); // 결과 저장
+
+	if (Result.JudgementType != EPTBJudgementType::Miss)
+	{
+		++SuccessSushiCount;
+		OnSushiSuccessDelegate.Broadcast(Result.NoteId, Result.JudgementType);
+	}
+	else
+	{
+		OnSushiMissDelegate.Broadcast(Result.NoteId);
+	}
 
 	CurrentNoteIndex++;
 	RefreshPreviewUI();
