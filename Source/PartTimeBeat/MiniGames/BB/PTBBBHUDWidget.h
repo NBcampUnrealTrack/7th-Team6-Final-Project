@@ -28,13 +28,6 @@ struct FPTBJudgementResult;
  *  - BossSpawnCanvasPosition       : 노트 스폰 시작점 (보스 이미지 중심 좌표)
  *  - GhostBarDecayDelay            : 피해 후 고스트 바 감소 시작까지의 지연(초)
  *  - GhostBarDecaySpeed            : 고스트 바 감소 속도(초당 비율)
- *
- * Designer 탭에서 반드시 만들어야 하는 위젯:
- *  - CueLayer (CanvasPanel, BindWidget)
- *
- * Designer 탭에서 선택적으로 만들 수 있는 위젯:
- *  - BossHPBar, PlayerHPBar (ProgressBar, BindWidgetOptional) — 메인 HP 바
- *  - BossHPGhostBar, PlayerHPGhostBar (ProgressBar, BindWidgetOptional) — 메인 바 뒤에 배치하는 잔상 바
  */
 UCLASS(Abstract)
 class PARTTIMEBEAT_API UPTBBBHUDWidget : public UUserWidget
@@ -122,13 +115,23 @@ public:
 
 	/**
 	 * 결과 등급(0~3)에 따라 이어서 표시할 이미지. 인덱스 0=Outro1 ... 3=Outro4.
-	 * 등급 판정: 0=Failed(플레이어 체력 0), 1=채보 완주+보스 체력 50%초과 잔존,
-	 *           2=채보 완주+보스 체력 50%이하 잔존, 3=채보 완주+보스 완전 처치
+	 * 등급 판정: 0=Failed(플레이어 체력 0),
+	 *           1=Good(채보 완주 + 보스 미처치 + 노트 정확도 GreatAccuracyThreshold 미만),
+	 *           2=Great(채보 완주 + (보스 미처치 + 정확도 GreatAccuracyThreshold 이상) 또는 (보스 완전 처치 + 미스가 PerfectClearMaxMissCount 초과)),
+	 *           3=Perfect Clear(보스 완전 처치 + 미스가 PerfectClearMaxMissCount 이하)
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|BB|HUD|Outro")
 	TArray<TObjectPtr<UTexture2D>> OutroTexturesByStar;
 
-	/** "Finish!" 중앙 메시지를 단독으로 보여주는 시간(초). 이후 결과 이미지로 전환. */
+	/** 보스 미처치 시 Great/Good을 가르는 노트 정확도(AccuracyRate, 0~1) 임계값 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|BB|HUD|Outro", meta = (ClampMin = "0.0", ClampMax = "1.0"))
+	float GreatAccuracyThreshold = 0.85f;
+
+	/** 보스 완전 처치 시 퍼펙트 클리어(3등급)로 인정할 최대 미스 허용 횟수 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|BB|HUD|Outro", meta = (ClampMin = "0"))
+	int32 PerfectClearMaxMissCount = 0;
+
+	/** "Finish!" 중앙 메시지를 단독으로 보여주는 시간(초). 이후 결과 이미지로 전환 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|BB|HUD|Outro", meta = (ClampMin = "0.0"))
 	float FinishMessageSeconds = 0.8f;
 
@@ -242,7 +245,7 @@ private:
 	UPTBBBCueWidgetBase* FindAndRemoveCue(int32 NoteId);
 
 	/**
-	 * EndReason(Failed=플레이어 체력 0)과 보스 잔여 체력 비율로
+	 * EndReason(Failed=플레이어 체력 0), 보스 잔여 체력, 노트 미스/정확도로
 	 * OutroTexturesByStar의 인덱스(0~3)를 결정.
 	 */
 	int32 ResolveOutroTierIndex(const FPTBRoundResult& Result, EPTBRoundEndReason EndReason) const;

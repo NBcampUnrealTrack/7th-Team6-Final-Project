@@ -97,11 +97,7 @@ void APTBBBMiniGame::OnFadeFinished()
 	}
 
 	// 마지막 노트까지 판정이 모두 끝난 시점 — 이때의 보스 체력으로 처치 여부를 최종 확정한다.
-	if (!bBossDefeated && BossCurrentHP <= 0.f)
-	{
-		bBossDefeated = true;
-		OnBBBossDefeated.Broadcast();
-	}
+	ConfirmBossDefeatIfNeeded();
 
 	// Failed는 플레이어 체력 0(HandleJudgementResult)에서만 발생한다.
 	// 채보를 끝까지 마쳤다면 목표 점수/보스 체력과 무관하게 항상 정상 종료로 처리하고,
@@ -114,6 +110,9 @@ void APTBBBMiniGame::OnFadeFinished()
 void APTBBBMiniGame::BuildRuntimeState()
 {
 	Super::BuildRuntimeState();
+
+	// 이전 라운드에서 남아있을 수 있는 페이드 타이머를 정리한다(액터 재사용 대비 방어 코드).
+	GetWorldTimerManager().ClearTimer(TimeLimitTimerHandle);
 
 	const UPTBBBMiniGameRuleSet* BBRuleSet = GetBBRuleSet();
 	if (!BBRuleSet)
@@ -261,11 +260,36 @@ FPTBMiniGameResultPayload APTBBBMiniGame::BuildResultPayload() const
 	return Payload;
 }
 
+// ── 라운드 종료 ──────────────────────────────────────────────────
+
+FPTBRoundResult APTBBBMiniGame::FinishMiniGame(EPTBRoundEndReason Reason)
+{
+	// OnFadeFinished(페이드 타이머)보다 BGM 종료 콜백(base의 HandleBGMFinished 등)이
+	// 먼저 도착해 라운드가 끝나는 경우에도, 결과(Payload)가 확정되기 전에 보스 처치
+	// 여부를 먼저 확인한다. bBossDefeated 가드가 있어 중복 호출은 안전하게 무시된다.
+	ConfirmBossDefeatIfNeeded();
+
+	// 남아 있을 수 있는 페이드 타이머를 확실히 취소한다. 정리되지 않은 채 남아있다가
+	// 다음 라운드(액터 재사용) 도중 잘못 발화하는 것을 막기 위한 방어 코드.
+	GetWorldTimerManager().ClearTimer(TimeLimitTimerHandle);
+
+	return Super::FinishMiniGame(Reason);
+}
+
 // ── 내부 헬퍼 ────────────────────────────────────────────────────
 
 const UPTBBBMiniGameRuleSet* APTBBBMiniGame::GetBBRuleSet() const
 {
 	return Cast<UPTBBBMiniGameRuleSet>(RuleSet.Get());
+}
+
+void APTBBBMiniGame::ConfirmBossDefeatIfNeeded()
+{
+	if (!bBossDefeated && BossCurrentHP <= 0.f)
+	{
+		bBossDefeated = true;
+		OnBBBossDefeated.Broadcast();
+	}
 }
 
 void APTBBBMiniGame::ApplyBossDamage(float Damage)

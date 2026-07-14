@@ -453,13 +453,15 @@ int32 UPTBBBHUDWidget::ResolveOutroTierIndex(const FPTBRoundResult& Result, EPTB
 		return 0;
 	}
 
-	// 채보를 끝까지 마쳤다면 보스 잔여 체력으로 등급을 나눈다.
+	// 채보를 끝까지 마쳤다면 보스 잔여 체력 + 노트 정확도로 등급을 나눈다.
 	const float BossHPPercent = Result.MiniGamePayload.FloatValues.FindRef(TEXT("FinalBossHPPercent"));
 	if (BossHPPercent <= 0.f)
 	{
-		return 3; // 보스 완전 처치
+		// 보스 완전 처치 + 미스가 허용치 이하일 때만 퍼펙트 클리어. 초과했다면 Great로 낮춘다.
+		return (Result.MissCount <= PerfectClearMaxMissCount) ? 3 : 2;
 	}
-	return (BossHPPercent <= 0.5f) ? 2 : 1;
+	// 보스를 완전히 처치하지 못했다면 노트 정확도로 Great/Good을 가른다.
+	return (Result.AccuracyRate >= GreatAccuracyThreshold) ? 2 : 1;
 }
 
 void UPTBBBHUDWidget::ClearCenterMessageTimers()

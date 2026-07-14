@@ -143,6 +143,14 @@ protected:
 	virtual FPTBMiniGameResultPayload BuildResultPayload() const      override;
 	virtual TMap<FKey, EPTBActionType> GetActionMapping() const       override;
 
+	/**
+	 * 라운드 종료 경로(Tick의 완료/실패 처리, 페이드 타이머 OnFadeFinished, BGM 종료 콜백 등)와
+	 * 무관하게 결과가 확정되기 전에 보스 처치 확정 및 페이드 타이머 정리를 보장한다.
+	 * (base의 HandleBGMFinished/HandleAllNotesPassed 등 다른 경로가 OnFadeFinished보다
+	 * 먼저 라운드를 끝내더라도, 이 함수가 유일한 공통 진입점이므로 여기서 안전하게 처리한다.)
+	 */
+	virtual FPTBRoundResult FinishMiniGame(EPTBRoundEndReason Reason)  override;
+
 private:
 	/** BBRuleSet 캐스팅 헬퍼 */
 	const UPTBBBMiniGameRuleSet* GetBBRuleSet() const;
@@ -152,6 +160,13 @@ private:
 
 	/** 플레이어 체력에 데미지 적용 및 델리게이트 발행 */
 	void ApplyPlayerDamage(float Damage);
+
+	/**
+	 * 보스 체력이 0인지 확인해 처치를 확정한다(bBossDefeated 가드로 중복 확정 방지).
+	 * OnFadeFinished와 FinishMiniGame 양쪽에서 호출되어, 어느 경로로 라운드가 먼저
+	 * 끝나든 결과가 확정되기 전에 반드시 처치 여부가 먼저 확정되도록 한다.
+	 */
+	void ConfirmBossDefeatIfNeeded();
 
 	// ── 런타임 상태 ──────────────────────────────────────────────
 
