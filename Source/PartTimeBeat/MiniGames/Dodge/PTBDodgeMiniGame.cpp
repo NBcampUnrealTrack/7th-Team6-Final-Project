@@ -52,8 +52,47 @@ void APTBDodgeMiniGame::HandleNoteArm(FPTBNoteEvent Note)
 
 void APTBDodgeMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 {
+    // 1. 먼저 피버 상태 업데이트
+    if (Result.JudgementType == EPTBJudgementType::Miss)
+    {
+        HighPerfectStreak = 0;
+        if (bFeverMode)
+        {
+            bFeverMode = false;
+            ScoreMultiplier = 1.0f;
+            OnFeverModeChanged(false);
+        }
+    }
+    else if (Result.JudgementType == EPTBJudgementType::HighPerfect)
+    {
+        HighPerfectStreak++;
+        if (HighPerfectStreak >= 5 && !bFeverMode)
+        {
+            bFeverMode = true;
+            ScoreMultiplier = 2.0f;
+            OnFeverModeChanged(true);
+        }
+    }
+    else if (Result.JudgementType == EPTBJudgementType::Good)
+    {
+        HighPerfectStreak = 0;
+        if (bFeverMode)
+        {
+            bFeverMode = false;
+            ScoreMultiplier = 1.0f;
+            OnFeverModeChanged(false);
+        }
+    }
+
+    // 2. 업데이트된 배율로 ScoreDelta 적용
+    if (Result.JudgementType != EPTBJudgementType::Miss)
+    {
+        Result.ScoreDelta = FMath::RoundToInt(Result.ScoreDelta * ScoreMultiplier * GetScoreMultiplier());
+    }
+
     Super::HandleJudgementResult(Result);
 
+    // 3. HP/DodgeCount 처리
     if (Result.JudgementType == EPTBJudgementType::Miss)
     {
         Health -= 10;
@@ -62,17 +101,12 @@ void APTBDodgeMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
         if (Health <= 0)
         {
             Health = 0;
-            UE_LOG(LogTemp, Log, TEXT("[DodgeMiniGame] 체력 소진! 게임 종료"));
             FinishMiniGame(EPTBRoundEndReason::Failed);
         }
     }
     else
     {
         DodgeCount++;
-        if (ScoreCalculator)
-        {
-            ScoreCalculator->ComboCount += GetScoreMultiplier();
-        }
         UE_LOG(LogTemp, Log, TEXT("[DodgeMiniGame] 장애물 피함! DodgeCount: %d"), DodgeCount);
     }
 

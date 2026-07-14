@@ -57,9 +57,11 @@ void APTBLCLogisticBox::BeginPlay()
 	
 	MovementDirection = GetActorRightVector();
 	BaseMeshRelativeScale = BaseMeshComponent->GetRelativeScale3D();
+	ContentMeshRelativeScale = BaseMeshRelativeScale;
 	if (BoxMeshComponent)
 	{
-		BoxMeshRelativeScale = BoxMeshComponent->GetRelativeScale3D();
+		BoxMeshRelativeScale = BoxMeshComponent->GetRelativeScale3D() * BoxMeshScale;
+		BoxMeshComponent->SetRelativeScale3D(BoxMeshRelativeScale);
 		BoxMeshComponent->SetStaticMesh(BoxMeshAsset);
 		if (PackagedBoxMaterial)
 		{
@@ -71,13 +73,13 @@ void APTBLCLogisticBox::BeginPlay()
 
 	if (!bIsPackaged)
 	{
-		if (TriangleMeshAsset)
+		if (ContentMeshAsset)
 		{
-			BaseMeshComponent->SetStaticMesh(TriangleMeshAsset);
+			BaseMeshComponent->SetStaticMesh(ContentMeshAsset);
 		}
 		else
 		{
-			PTB_WARNING(LogPTBMiniGames, TEXT("[LC] LogisticBox BeginPlay: TriangleMeshAsset is null on [%s]."),
+			PTB_WARNING(LogPTBMiniGames, TEXT("[LC] LogisticBox BeginPlay: ContentMeshAsset is null on [%s]."),
 			            *GetNameSafe(this));
 		}
 	}
@@ -171,6 +173,8 @@ void APTBLCLogisticBox::InitializeFromNote(const FPTBNoteEvent& Note)
 		return;
 	}
 
+	ApplyContentMesh();
+
 	switch (ContentColorState)
 	{
 	case EPTBLCColorState::Red:
@@ -194,6 +198,82 @@ void APTBLCLogisticBox::InitializeFromNote(const FPTBNoteEvent& Note)
 	default:
 		break;
 	}
+}
+
+void APTBLCLogisticBox::ActivateFromPool(const FPTBNoteEvent& Note)
+{
+	SetActorHiddenInGame(false);
+	SetActorEnableCollision(true);
+	SetActorTickEnabled(true);
+	SetActorRotation(FRotator::ZeroRotator);
+	bIsPackaged = false;
+	bIsPackagingSpinActive = false;
+	PackagingSpinElapsedSeconds = 0.0f;
+	PackagingSpinStartRotation = FRotator::ZeroRotator;
+	bIsMoving = true;
+	MovementDirection = GetActorRightVector();
+
+	if (BaseMeshComponent)
+	{
+		BaseMeshComponent->SetSimulatePhysics(false);
+		BaseMeshComponent->SetVisibility(true);
+		BaseMeshComponent->SetHiddenInGame(false);
+	}
+
+	if (BoxMeshComponent)
+	{
+		BoxMeshComponent->SetSimulatePhysics(false);
+		BoxMeshComponent->SetVisibility(false);
+		BoxMeshComponent->SetHiddenInGame(true);
+	}
+
+	InitializeFromNote(Note);
+}
+
+void APTBLCLogisticBox::ResetForPool(const FVector& StandbyLocation)
+{
+	NoteId = 0;
+	NoteTimeMs = 0.0f;
+	ContentColorState = EPTBLCColorState::None;
+	BoxColorState = EPTBLCColorState::None;
+	bIsMoving = false;
+	bIsPackaged = false;
+	bIsPackagingSpinActive = false;
+	PackagingSpinElapsedSeconds = 0.0f;
+	PackagingSpinStartRotation = FRotator::ZeroRotator;
+	MovementDirection = FVector::RightVector;
+	CurrentBeatPulseScale = 1.0f;
+	SetActorLocation(StandbyLocation);
+	SetActorRotation(FRotator::ZeroRotator);
+
+	if (BaseMeshComponent)
+	{
+		BaseMeshComponent->SetSimulatePhysics(false);
+		ContentMeshRelativeScale = BaseMeshRelativeScale;
+		BaseMeshComponent->SetRelativeScale3D(ContentMeshRelativeScale);
+		if (ContentMeshAsset && BaseMeshComponent->GetStaticMesh() != ContentMeshAsset)
+		{
+			BaseMeshComponent->SetStaticMesh(ContentMeshAsset);
+		}
+		BaseMeshComponent->SetVisibility(true);
+		BaseMeshComponent->SetHiddenInGame(false);
+	}
+
+	if (BoxMeshComponent)
+	{
+		BoxMeshComponent->SetSimulatePhysics(false);
+		BoxMeshComponent->SetRelativeScale3D(BoxMeshRelativeScale);
+		if (BoxMeshAsset && BoxMeshComponent->GetStaticMesh() != BoxMeshAsset)
+		{
+			BoxMeshComponent->SetStaticMesh(BoxMeshAsset);
+		}
+		BoxMeshComponent->SetVisibility(false);
+		BoxMeshComponent->SetHiddenInGame(true);
+	}
+
+	SetActorHiddenInGame(true);
+	SetActorEnableCollision(false);
+	SetActorTickEnabled(false);
 }
 
 void APTBLCLogisticBox::PackageWithActionType(EPTBActionType ActionType)
@@ -221,9 +301,17 @@ void APTBLCLogisticBox::SetBeatPulseScale(float NewScale)
 		return;
 	}
 
-	const float AppliedScale = ShouldApplyBeatPulse() ? FMath::Max(0.0f, NewScale) : 1.0f;
-	BaseMeshComponent->SetRelativeScale3D(BaseMeshRelativeScale * AppliedScale);
-	BoxMeshComponent->SetRelativeScale3D(BoxMeshRelativeScale * AppliedScale);
+	CurrentBeatPulseScale = FMath::Max(0.0f, NewScale);
+	const float AppliedScale = ShouldApplyBeatPulse() ? CurrentBeatPulseScale : 1.0f;
+	if (bIsPackaged)
+	{
+		BaseMeshComponent->SetRelativeScale3D(BaseMeshRelativeScale);
+		BoxMeshComponent->SetRelativeScale3D(BoxMeshRelativeScale * AppliedScale);
+		return;
+	}
+
+	BaseMeshComponent->SetRelativeScale3D(ContentMeshRelativeScale * AppliedScale);
+	BoxMeshComponent->SetRelativeScale3D(BoxMeshRelativeScale);
 }
 
 void APTBLCLogisticBox::StopMovingAndEnablePhysics()
@@ -262,6 +350,9 @@ void APTBLCLogisticBox::ChangeMeshToBox()
 	}
 
 	bIsPackaged = true;
+	const float AppliedScale = ShouldApplyBeatPulse() ? CurrentBeatPulseScale : 1.0f;
+	BaseMeshComponent->SetRelativeScale3D(BaseMeshRelativeScale);
+	BoxMeshComponent->SetRelativeScale3D(BoxMeshRelativeScale * AppliedScale);
 	BaseMeshComponent->SetVisibility(false);
 	BaseMeshComponent->SetHiddenInGame(true);
 	BoxMeshComponent->SetVisibility(true);
@@ -316,6 +407,53 @@ void APTBLCLogisticBox::StartPackagingSpin()
 	bIsPackagingSpinActive = true;
 	PackagingSpinElapsedSeconds = 0.0f;
 	PackagingSpinStartRotation = GetActorRotation();
+}
+
+UStaticMesh* APTBLCLogisticBox::GetContentMeshAssetForColor(EPTBLCColorState ColorState) const
+{
+	switch (ColorState)
+	{
+	case EPTBLCColorState::Red:
+		return RedContentMeshAsset ? RedContentMeshAsset.Get() : ContentMeshAsset.Get();
+	case EPTBLCColorState::Yellow:
+		return YellowContentMeshAsset ? YellowContentMeshAsset.Get() : ContentMeshAsset.Get();
+	case EPTBLCColorState::Blue:
+		return BlueContentMeshAsset ? BlueContentMeshAsset.Get() : ContentMeshAsset.Get();
+	default:
+		return ContentMeshAsset.Get();
+	}
+}
+
+FVector APTBLCLogisticBox::GetContentMeshScaleForColor(EPTBLCColorState ColorState) const
+{
+	switch (ColorState)
+	{
+	case EPTBLCColorState::Red:
+		return RedContentMeshScale;
+	case EPTBLCColorState::Yellow:
+		return YellowContentMeshScale;
+	case EPTBLCColorState::Blue:
+		return BlueContentMeshScale;
+	default:
+		return FVector::OneVector;
+	}
+}
+
+void APTBLCLogisticBox::ApplyContentMesh()
+{
+	if (!BaseMeshComponent)
+	{
+		return;
+	}
+
+	UStaticMesh* ContentMesh = GetContentMeshAssetForColor(ContentColorState);
+	if (ContentMesh && BaseMeshComponent->GetStaticMesh() != ContentMesh)
+	{
+		BaseMeshComponent->SetStaticMesh(ContentMesh);
+	}
+
+	ContentMeshRelativeScale = BaseMeshRelativeScale * GetContentMeshScaleForColor(ContentColorState);
+	BaseMeshComponent->SetRelativeScale3D(ContentMeshRelativeScale);
 }
 
 bool APTBLCLogisticBox::ShouldApplyBeatPulse() const

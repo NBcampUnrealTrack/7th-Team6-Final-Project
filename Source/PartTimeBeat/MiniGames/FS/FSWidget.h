@@ -9,6 +9,13 @@
 class UImage;
 class APTBFSMiniGame;
 
+struct FFSArrowState
+{
+	float TargetTimeMs = 0.0f;
+	float CueLeadTimeMs = 1.0f;
+	bool bIsActive = false;
+};
+
 UCLASS()
 class PARTTIMEBEAT_API UFSWidget : public UUserWidget
 {
@@ -16,23 +23,22 @@ class PARTTIMEBEAT_API UFSWidget : public UUserWidget
 
 protected:
 	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
-	
-	UPROPERTY(meta = (BindWidget),BlueprintReadOnly)
+
+	UPROPERTY(meta = (BindWidget), BlueprintReadOnly)
 	UImage* ArrowLeft;
 
-	UPROPERTY(meta = (BindWidget),BlueprintReadOnly)
+	UPROPERTY(meta = (BindWidget), BlueprintReadOnly)
 	UImage* ArrowRight;
 
-	UPROPERTY(meta = (BindWidget),BlueprintReadOnly)
+	UPROPERTY(meta = (BindWidget), BlueprintReadOnly)
 	UImage* ArrowUp;
 
 	UPROPERTY()
 	APTBFSMiniGame* FSMiniGame;
-
-	float TargetTimeMs;
-	float CueLeadTimeMs;
-	bool bIsActive = false;
-	EPTBActionType CurrentAction;
+	
+	FFSArrowState ArrowStateA;
+	FFSArrowState ArrowStateB;
+	FFSArrowState ArrowStateC;
 
 public:
 	void InitializeWidget(APTBFSMiniGame* InGame);

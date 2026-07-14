@@ -91,6 +91,17 @@
 						</Action>
 					</ChildrenList>
 				</Event>
+				<Event Name="Play_CH_BGM" ID="{111CF831-CA0A-4D06-A81E-8E82403B58B2}">
+					<ChildrenList>
+						<Action Name="" ID="{055B5E57-401D-42F8-AF62-8AFA7B96E60A}" ShortID="742787824">
+							<ReferenceList>
+								<Reference Name="Target">
+									<ObjectRef Name="PTB_CH" ID="{59602631-A51D-4052-95BD-63CAE3AA2CB5}" WorkUnitID="{F5D24078-9D37-4BE4-A65C-3162F7345B0C}"/>
+								</Reference>
+							</ReferenceList>
+						</Action>
+					</ChildrenList>
+				</Event>
 			</ChildrenList>
 		</WorkUnit>
 	</Events>

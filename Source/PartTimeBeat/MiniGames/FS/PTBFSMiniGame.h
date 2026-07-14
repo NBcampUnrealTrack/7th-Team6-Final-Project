@@ -9,9 +9,7 @@
 
 class AFishActor;
 class UPTBFSMiniGameRuleSet;
-class APTBRhythmCharacterBase;
 class APTBFSCharacter;
-class ACameraActor;
 class UFSWidget;
 
 UENUM(BlueprintType)
@@ -122,12 +120,6 @@ public:
  
 	UFUNCTION(BlueprintCallable, Category = "Fishing|Input")
 	void HandleActionCInput(); 
- 
-	UFUNCTION(BlueprintCallable, Category = "Fishing|Input")
-	void HandleActionDInput(); 
-	
-	UFUNCTION(BlueprintCallable, Category = "Fishing|Input")
-	void HandleActionEInput();
 	
 	UFUNCTION(BlueprintCallable, Category = "Fishing|Input")
 	void HandleActionAInputReleased();
@@ -137,15 +129,6 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Fishing|Input")
 	void HandleActionCInputReleased();
-
-	UFUNCTION(BlueprintCallable, Category = "Fishing|Input")
-	void HandleActionDInputReleased();
-
-	UFUNCTION(BlueprintCallable, Category = "Fishing|Input")
-	void HandleActionEInputReleased();
-	
-	UFUNCTION(BlueprintCallable, Category = "Fishing")
-	void SetFishActor(AFishActor* InFishActor) { FishActor = InFishActor; }
 	
 	TObjectPtr<UPTBWwiseRhythmSyncComponent> GetUPTBWwiseRhythmSyncComponent()
 	{
@@ -168,8 +151,6 @@ protected:
 	
 	UFUNCTION(BlueprintCallable, Category = "PTB|MiniGame")
 	virtual void InitializeMiniGame(const FPTBMiniGameContext& Context)override;
-
-	void PlaySuccessCameraSequence();
 	
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	
@@ -206,42 +187,11 @@ private:
 	UPROPERTY()
 	TObjectPtr<APTBFSCharacter> Character = nullptr;
 	
-	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category = "Fishing",meta = (AllowPrivateAccess = "true"))
-	float AutoDriftMultiplier = 0.3f;
-		
-	/**물고기 거리조정함수*/
 	void ApplyDistanceDelta(float Delta);
 	
 	EFishingLineState CalculateLineState(float Distance)const;
 	
 	FVector FishLateralOffset = FVector::ZeroVector;
-	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera",meta = (AllowPrivateAccess = "true"))
-	TObjectPtr<ACameraActor> SuccessCamera1;
-	
-	FVector Camera1StartLocation;
-	
-	FVector Camera1EndLocation;
-	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera",meta = (AllowPrivateAccess = "true"))
-	TObjectPtr<ACameraActor> SuccessCamera2;
-	
-	FVector Camera2StartLocation;
-	
-	FVector Camera2EndLocation;
-	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera",meta = (AllowPrivateAccess = "true"))
-	TObjectPtr<ACameraActor>  DefaultCamera;
-	
-	FTimerHandle CameraTimer;
-	
-	UPROPERTY()
-	bool bMovingCamera1 = false;
-
-	UPROPERTY()
-	bool bMovingCamera2 = false;
-
-	float CameraElapsedTime = 0.0f;
 	
 	FPTBRhythmKeyBindings OriginalKeyBindings;
 	
@@ -249,4 +199,16 @@ private:
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera", meta = (AllowPrivateAccess = "true"))
 	TSubclassOf<UCameraShakeBase> MissCameraShakeClass;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UAnimMontage> SuccessAnim; 
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UAnimMontage> FailAnim;; 
+	
+	UPROPERTY(EditAnywhere, Category = "Camera",meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<class ULevelSequence> SuccessCameraSequence;
+	
+	UPROPERTY(EditAnywhere, Category = "Camera",meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<class ULevelSequence> FailCameraSequence;
 };

@@ -18,17 +18,12 @@ APTBSRMiniGame::APTBSRMiniGame()
 void APTBSRMiniGame::BeginPlay()
 {
 	Super::BeginPlay();
-	FPTBMiniGameContext Context;
-	Context.SessionRequest.MiniGameId = FName("SR");
-	Context.SessionRequest.Difficulty = EPTBDifficulty::Easy;
-	InitializeMiniGame(Context);
-	StartMiniGame();
 }
 
 TMap<FKey, EPTBActionType> APTBSRMiniGame::GetActionMapping() const
 {
 	return {
-		{ EKeys::Down, EPTBActionType::ActionA }
+		{ GameContext.UserSettings.RhythmKeys.ActionA, EPTBActionType::ActionA }
 	};
 }
 
@@ -190,6 +185,27 @@ void APTBSRMiniGame::RefreshPreviewUI()
 	}
 }
 
+void APTBSRMiniGame::HandleRhythmInput(EPTBActionType Action, float TimeMs)
+{
+	const int32 NoteIndexForThisInput = CurrentNoteIndex;
+
+	Super::HandleRhythmInput(Action, TimeMs);
+	// SR은 ActionA(Z)만 지원하므로, 그 외 키 입력은 무시
+	if (Action != EPTBActionType::ActionA)
+	{
+		return;
+	}
+
+	// 토핑(스시)은 키를 누를 때마다 스폰 — 캡처해둔 인덱스를 그대로 사용
+	if (ToppingQueue.IsValidIndex(NoteIndexForThisInput))
+	{
+		int32 AssignedTopping = ToppingQueue[NoteIndexForThisInput];
+		OnToppingDrop.Broadcast(AssignedTopping, NoteIndexForThisInput); // 델리게이트 이름 변경
+	}
+}
+
+
+
 void APTBSRMiniGame::HandleNoteCue(FPTBNoteEvent Note)
 {
 	Super::HandleNoteCue(Note);
@@ -197,8 +213,6 @@ void APTBSRMiniGame::HandleNoteCue(FPTBNoteEvent Note)
 	if (Note.ActionType == EPTBActionType::ActionA)
 	{
 		int32 AssignedTopping = ToppingQueue.IsValidIndex(Note.NoteId) ? ToppingQueue[Note.NoteId] : 1;
-
-		// 이 신호가 정상 작동해야 블루프린트에서 접시가 다시 정상 스폰
 		OnSushiPlateSpawn.Broadcast(AssignedTopping, Note.NoteId);
 	}
 }
@@ -206,38 +220,18 @@ void APTBSRMiniGame::HandleNoteCue(FPTBNoteEvent Note)
 void APTBSRMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 {
 	Super::HandleJudgementResult(Result);
+	NoteJudgementResults.Add(Result.NoteId, Result.JudgementType); // 결과 저장
 
-	/* 💥 오버랩 테스트를 위해 C++ 스위칭 잠시 봉인!
 	if (Result.JudgementType != EPTBJudgementType::Miss)
 	{
-		if (ActivePlatesMap.Contains(Result.NoteId))
-		{
-			AActor* TargetPlate = ActivePlatesMap[Result.NoteId];
-			if (IsValid(TargetPlate))
-			{
-				FTransform SpawnTransform = TargetPlate->GetActorTransform();
-				int32 ToppingType = GetToppingTypeFromQueue(Result.NoteId);
-				FPTBToppingRow ToppingData = GetToppingData(ToppingType);
-
-				if (ToppingData.SR_SushiBP)
-				{
-					FActorSpawnParameters SpawnParams;
-					SpawnParams.Owner = this;
-					SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-					GetWorld()->SpawnActor<AActor>(ToppingData.SR_SushiBP, SpawnTransform, SpawnParams);
-				}
-				TargetPlate->Destroy();
-			}
-			ActivePlatesMap.Remove(Result.NoteId);
-		}
+		++SuccessSushiCount;
+		OnSushiSuccessDelegate.Broadcast(Result.NoteId, Result.JudgementType);
 	}
 	else
 	{
-		ActivePlatesMap.Remove(Result.NoteId);
+		OnSushiMissDelegate.Broadcast(Result.NoteId);
 	}
-	*/
 
-	// 리듬 UI 진행 흐름만 유지
 	CurrentNoteIndex++;
 	RefreshPreviewUI();
 }

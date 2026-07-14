@@ -9,7 +9,7 @@
 	</RootPaths>
 	<DialogueEvents/>
 	<SoundBanks>
-		<SoundBank Id="1083137560" Type="User" GUID="{C9EAC364-B816-484D-AF09-AFF3C8C71B0E}" Language="SFX" Hash="{039823B1-6E8E-45E2-E981-B0C43D64C06A}">
+		<SoundBank Id="1083137560" Type="User" GUID="{C9EAC364-B816-484D-AF09-AFF3C8C71B0E}" Language="SFX" Hash="{9782203F-2A8C-7A9B-392A-512D28CAFBE4}">
 			<ObjectPath>\SoundBanks\Default Work Unit\FOD</ObjectPath>
 			<ShortName>FOD</ShortName>
 			<Path>FOD.bnk</Path>
@@ -186,7 +186,7 @@
 				</AcousticTexture>
 			</AcousticTextures>
 		</SoundBank>
-		<SoundBank Id="1568083734" Type="User" GUID="{DDAE794D-61D4-451C-A316-2444772C90B7}" Language="SFX" Hash="{9AC6107F-53D1-34F7-1D3A-757D15CA6669}">
+		<SoundBank Id="1568083734" Type="User" GUID="{DDAE794D-61D4-451C-A316-2444772C90B7}" Language="SFX" Hash="{08B8D647-5B28-805D-5429-13CB5156650F}">
 			<ObjectPath>\SoundBanks\Default Work Unit\TG</ObjectPath>
 			<ShortName>TG</ShortName>
 			<Path>TG.bnk</Path>
@@ -204,7 +204,7 @@
 				</Event>
 			</Events>
 		</SoundBank>
-		<SoundBank Id="1584861558" Type="User" GUID="{B2938181-788B-4184-B2D3-331BB75588D1}" Language="SFX" Hash="{BE3B5109-D067-B92E-87F1-75FCD17B06B0}">
+		<SoundBank Id="1584861558" Type="User" GUID="{B2938181-788B-4184-B2D3-331BB75588D1}" Language="SFX" Hash="{86AFF293-EBE0-AFFA-E4C3-2C1890A2C7CF}">
 			<ObjectPath>\SoundBanks\Default Work Unit\SR</ObjectPath>
 			<ShortName>SR</ShortName>
 			<Path>SR.bnk</Path>
@@ -240,7 +240,7 @@
 				</Event>
 			</Events>
 		</SoundBank>
-		<SoundBank Id="1702304874" Type="User" GUID="{D05055ED-04AC-4E2F-BBCA-98E5CA21DED5}" Language="SFX" Hash="{C501F980-582F-20D0-F44C-C6F0FC05B6A6}">
+		<SoundBank Id="1702304874" Type="User" GUID="{D05055ED-04AC-4E2F-BBCA-98E5CA21DED5}" Language="SFX" Hash="{1105EE9B-3DB8-4B91-4504-D4D9FDF67F2D}">
 			<ObjectPath>\SoundBanks\Default Work Unit\LC</ObjectPath>
 			<ShortName>LC</ShortName>
 			<Path>LC.bnk</Path>
@@ -258,7 +258,7 @@
 				</Event>
 			</Events>
 		</SoundBank>
-		<SoundBank Id="1802970376" Type="User" GUID="{89F37B5D-ABCE-4EC8-89D4-4BF0B225ED9B}" Language="SFX" Hash="{A329CE8B-234D-5EDE-C11E-E87392FD9024}">
+		<SoundBank Id="1802970376" Type="User" GUID="{89F37B5D-ABCE-4EC8-89D4-4BF0B225ED9B}" Language="SFX" Hash="{974F24AD-F727-C4BE-07A6-47DCABF1FD24}">
 			<ObjectPath>\SoundBanks\Default Work Unit\FS</ObjectPath>
 			<ShortName>FS</ShortName>
 			<Path>FS.bnk</Path>
@@ -276,7 +276,7 @@
 				</Event>
 			</Events>
 		</SoundBank>
-		<SoundBank Id="1836525782" Type="User" GUID="{46BDD5DB-EE49-43BF-97DD-BCCF5D8B954C}" Language="SFX" Hash="{C97C4693-B527-9448-A57F-0FA11B47BE79}">
+		<SoundBank Id="1836525782" Type="User" GUID="{46BDD5DB-EE49-43BF-97DD-BCCF5D8B954C}" Language="SFX" Hash="{5E5BD467-A44D-82DF-8C28-18DB1B81E9ED}">
 			<ObjectPath>\SoundBanks\Default Work Unit\DW</ObjectPath>
 			<ShortName>DW</ShortName>
 			<Path>DW.bnk</Path>
@@ -294,7 +294,25 @@
 				</Event>
 			</Events>
 		</SoundBank>
-		<SoundBank Id="1870080933" Type="User" GUID="{02B8FCEF-1BD6-4305-BDDC-B8492AFD1A9E}" Language="SFX" Hash="{4E929160-69E2-D532-521C-43221D97E011}">
+		<SoundBank Id="1853303388" Type="User" GUID="{3D864037-408A-4EF1-AA0D-207B660B3204}" Language="SFX" Hash="{99E8B0C8-7104-13AB-9AB8-631D37FEC6EE}">
+			<ObjectPath>\SoundBanks\Default Work Unit\CH</ObjectPath>
+			<ShortName>CH</ShortName>
+			<Path>CH.bnk</Path>
+			<Media>
+				<File Id="376987072" Language="SFX" Streaming="false" Location="Memory">
+					<ShortName>PTB_CH.wav</ShortName>
+					<CachePath>SFX/PTB_CH_818F3B66.wem</CachePath>
+				</File>
+			</Media>
+			<Events>
+				<Event Id="612211380" Name="Play_CH_BGM" ObjectPath="\Events\Default Work Unit\Play_CH_BGM" GUID="{111CF831-CA0A-4D06-A81E-8E82403B58B2}" DurationType="OneShot" DurationMin="163.75998" DurationMax="163.75998">
+					<MediaRefs>
+						<MediaRef Id="376987072"/>
+					</MediaRefs>
+				</Event>
+			</Events>
+		</SoundBank>
+		<SoundBank Id="1870080933" Type="User" GUID="{02B8FCEF-1BD6-4305-BDDC-B8492AFD1A9E}" Language="SFX" Hash="{114F915E-605C-2B33-68F6-BF802521E3E8}">
 			<ObjectPath>\SoundBanks\Default Work Unit\BB</ObjectPath>
 			<ShortName>BB</ShortName>
 			<Path>BB.bnk</Path>
