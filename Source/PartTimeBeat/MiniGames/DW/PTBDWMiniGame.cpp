@@ -526,25 +526,7 @@ void APTBDWMiniGame::PlayNoteResultEffects(int32 NoteId, EPTBActionType Action, 
 		}
 		else
 		{
-			const float FailDelayMs = DWRule ? DWRule->FailReactionDelayMs : 0.0f;
-			if (FailDelayMs > 0.0f && GetWorld())
-			{
-				TWeakObjectPtr<APTBDWCharacter> WeakProt = Protagonist;
-				const EPTBActionType DelayAction = Action;
-				const bool bDelayLong = bIsLong;
-				FTimerHandle DelayHandle;
-				GetWorld()->GetTimerManager().SetTimer(DelayHandle, [WeakProt, DelayAction, bDelayLong]()
-				{
-					if (WeakProt.IsValid())
-					{
-						WeakProt->PlayReaction(false, DelayAction, bDelayLong);
-					}
-				}, FailDelayMs / 1000.0f, false);
-			}
-			else
-			{
-				Protagonist->PlayReaction(false, Action, bIsLong);
-			}
+			Protagonist->PlayReaction(false, Action, bIsLong);
 			RequestDWSfx(DWRule ? DWRule->FailReactionSFXKey : NAME_None, Protagonist);
 			if (CameraRig && DWRule)
 			{
@@ -563,6 +545,12 @@ void APTBDWMiniGame::PlayNoteResultEffects(int32 NoteId, EPTBActionType Action, 
 				V->Obstacle = nullptr;
 			}
 		}
+	}
+
+	if (Action == EPTBActionType::ActionB && !bSuccess && FailObstacle)
+	{
+		LaunchObstacleBFail(FailObstacle);
+		FailObstacle = nullptr;
 	}
 
 	if (Action == EPTBActionType::ActionD)
@@ -958,6 +946,10 @@ void APTBDWMiniGame::SpawnCharactersIfNeeded()
 			Protagonist->SetKickAnim(
 				DWRule ? DWRule->KickAnim.Get() : nullptr,
 				DWRule ? DWRule->KickAnimPlayRate : 1.0f);
+			Protagonist->SetEReaction(
+				DWRule ? DWRule->EReactionAnim.Get() : nullptr,
+				DWRule ? DWRule->EReactionAnimPlayRate : 1.0f,
+				DWRule ? DWRule->ReactionUpperSlotName : FName(TEXT("UpperBody")));
 		}
 	}
 
@@ -1125,6 +1117,32 @@ void APTBDWMiniGame::LaunchKickBall(AActor* Ball, bool bSuccess, bool bIsLong)
 	R.Timer         = R.Duration;
 	R.StartScale    = Ball->GetActorScale3D();
 	R.SpinDegPerSec = 720.f;
+	ResolvingObstacles.Add(R);
+}
+
+void APTBDWMiniGame::LaunchObstacleBFail(AActor* Obstacle)
+{
+	if (!Obstacle) { return; }
+
+	const UPTBDWMiniGameRuleSet* DWRule = GetDWRuleSet();
+	const FVector Fwd   = GetActorForwardVector();
+	const FVector Up    = GetActorUpVector();
+	const FVector Right = GetActorRightVector();
+
+	const FVector Dir = DWRule ? DWRule->ObstacleBFailLaunchDir : FVector(-1.0f, 0.0f, 0.3f);
+	const float   Spd = DWRule ? DWRule->ObstacleBFailLaunchSpeed : 700.0f;
+	const FVector Vel = (Fwd * Dir.X + Right * Dir.Y + Up * Dir.Z).GetSafeNormal() * Spd;
+
+	FDWResolvingObstacle R;
+	R.Obstacle      = Obstacle;
+	R.bLaunch       = true;
+	R.Vel           = Vel;
+	R.GroundZ       = Obstacle->GetActorLocation().Z;
+	R.Restitution   = DWRule ? DWRule->ObstacleBFailRestitution : 0.35f;
+	R.Duration      = DWRule ? DWRule->ObstacleBFailLifetime : 3.0f;
+	R.Timer         = R.Duration;
+	R.StartScale    = Obstacle->GetActorScale3D();
+	R.SpinDegPerSec = DWRule ? DWRule->ObstacleBFailSpinDegPerSec : 540.0f;
 	ResolvingObstacles.Add(R);
 }
 

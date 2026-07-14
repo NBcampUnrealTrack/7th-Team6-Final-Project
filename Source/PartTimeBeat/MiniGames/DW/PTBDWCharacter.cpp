@@ -142,6 +142,7 @@ void APTBDWCharacter::PlayReaction(bool bSuccess, EPTBActionType Action, bool bI
 		case EPTBActionType::ActionA: PlayJump(bIsLong);  break;
 		case EPTBActionType::ActionB: PlaySlide(bIsLong); break;
 		case EPTBActionType::ActionD: PlayKick();         break;
+		case EPTBActionType::ActionE: PlayEReaction();    break;
 		default: break;
 		}
 		return;
@@ -175,9 +176,37 @@ void APTBDWCharacter::SetKickAnim(UAnimSequenceBase* Anim, float Rate)
 	KickAnimRate = FMath::Max(0.01f, Rate);
 }
 
+void APTBDWCharacter::SetEReaction(UAnimSequenceBase* Anim, float Rate, FName UpperSlot)
+{
+	EReactionAnim = Anim;
+	EReactionRate = FMath::Max(0.01f, Rate);
+	if (!UpperSlot.IsNone())
+	{
+		UpperSlotName = UpperSlot;
+	}
+}
+
+void APTBDWCharacter::PlayEReaction()
+{
+	BeginUpperReact(EReactionAnim, EReactionRate);
+	TryPlayReactionAnim(EReactionAnim, EReactionRate, UpperSlotName);
+}
+
+void APTBDWCharacter::BeginUpperReact(UAnimSequenceBase* Anim, float Rate)
+{
+	if (!Anim)
+	{
+		return;
+	}
+	const float SafeRate = FMath::Max(0.01f, Rate);
+	UpperReactTimer  = Anim->GetPlayLength() / SafeRate;
+	bIsUpperReacting = (UpperReactTimer > 0.f);
+}
+
 void APTBDWCharacter::PlayKick()
 {
-	TryPlayReactionAnim(KickAnim, KickAnimRate);
+	BeginUpperReact(KickAnim, KickAnimRate);
+	TryPlayReactionAnim(KickAnim, KickAnimRate, UpperSlotName);
 }
 
 void APTBDWCharacter::PlayPreviewShout(UAnimSequenceBase* Anim, FName SlotName, float BlendIn, float BlendOut, float Rate)
@@ -192,7 +221,7 @@ void APTBDWCharacter::PlayPreviewShout(UAnimSequenceBase* Anim, FName SlotName, 
 	}
 }
 
-bool APTBDWCharacter::TryPlayReactionAnim(UAnimSequenceBase* Anim, float Rate)
+bool APTBDWCharacter::TryPlayReactionAnim(UAnimSequenceBase* Anim, float Rate, FName SlotName)
 {
 	if (!Anim || !Body)
 	{
@@ -208,7 +237,8 @@ bool APTBDWCharacter::TryPlayReactionAnim(UAnimSequenceBase* Anim, float Rate)
 	{
 		if (UAnimInstance* AnimInst = Body->GetAnimInstance())
 		{
-			AnimInst->PlaySlotAnimationAsDynamicMontage(Anim, TEXT("DefaultSlot"), ReactionBlendIn, ReactionBlendOut, SafeRate);
+			const FName UseSlot = SlotName.IsNone() ? FName(TEXT("DefaultSlot")) : SlotName;
+			AnimInst->PlaySlotAnimationAsDynamicMontage(Anim, UseSlot, ReactionBlendIn, ReactionBlendOut, SafeRate);
 			return true;
 		}
 	}
@@ -229,17 +259,22 @@ void APTBDWCharacter::StartPlaceholderReaction(EDWReactionMotion Motion, float D
 
 void APTBDWCharacter::PlayJump(bool bIsLong)
 {
-	TryPlayReactionAnim(JumpAnim, JumpAnimRate);
+	bIsUpperReacting = false;
+	UpperReactTimer  = 0.f;
+	TryPlayReactionAnim(JumpAnim, JumpAnimRate, FName(TEXT("DefaultSlot")));
 }
 
 void APTBDWCharacter::PlaySlide(bool bIsLong)
 {
-	TryPlayReactionAnim(SlideAnim, SlideAnimRate);
+	bIsUpperReacting = false;
+	UpperReactTimer  = 0.f;
+	TryPlayReactionAnim(SlideAnim, SlideAnimRate, FName(TEXT("DefaultSlot")));
 }
 
 void APTBDWCharacter::PlayFail(EPTBActionType Action)
 {
-	TryPlayReactionAnim(FailAnim, FailAnimRate);
+	BeginUpperReact(FailAnim, FailAnimRate);
+	TryPlayReactionAnim(FailAnim, FailAnimRate, UpperSlotName);
 }
 
 void APTBDWCharacter::UpdateReaction(float DeltaTime)
@@ -282,6 +317,15 @@ void APTBDWCharacter::Tick(float DeltaTime)
 
 	UpdateCue(DeltaTime);
 	UpdateReaction(DeltaTime);
+
+	if (UpperReactTimer > 0.f)
+	{
+		UpperReactTimer -= DeltaTime;
+		if (UpperReactTimer <= 0.f)
+		{
+			bIsUpperReacting = false;
+		}
+	}
 
 	if (AnimReturnTimer > 0.f)
 	{

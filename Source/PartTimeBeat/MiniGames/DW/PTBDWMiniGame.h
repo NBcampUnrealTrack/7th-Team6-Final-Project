@@ -142,18 +142,21 @@ protected:
 
 private:
 	void SpawnNoteView(const FPTBNoteEvent& Note);
-	/** 카운트다운 동안 초반 노트를 미리 생성해 정지 상태로 세워둔다. */
+	/** 카운트다운 동안 초반 노트를 미리 생성해 정지 상태로. */
 	void PreSpawnIntroNotes();
 	void RecycleNoteView(int32 NoteId);
 	void ClearAllNoteViews();
 
 	/** 실패 장애물을 분리해 부서진 메시 교체/placeholder. */
 	void ResolveObstacleFail(AActor* Obstacle, EPTBActionType Action);
-	/** 성공 시 obstacle을 부수지 않고 온전히 배경 속도로 뒤로 흘려보냄(A·B 허들 넘기). */
+	/** 성공 시 obstacle을 부수지 않고 온전히 배경 속도로 뒤로 흘려보냄. */
 	void ScrollObstacleAway(AActor* Obstacle);
-	/** 노트 접근 속도(cm/s). 나가는 obstacle도 이 속도로(올 때=나갈 때 일치). */
+	/** 노트 접근 속도(cm/s). 나가는 obstacle도 이 속도로. */
 	float GetNoteApproachSpeedCmS() const;
 	void LaunchKickBall(AActor* Ball, bool bSuccess, bool bIsLong);
+
+	/** B 실패 시 obstacle을 뒤+위로 런치(RuleSet 방향/속도). */
+	void LaunchObstacleBFail(AActor* Obstacle);
 	void PlayNoteResultEffects(int32 NoteId, EPTBActionType Action, bool bSuccess, bool bIsLong);
 
 	/** 부서진 메시가 없을 때 placeholder. */
@@ -191,9 +194,9 @@ private:
 	UPROPERTY()
 	TMap<int32, FDWNoteView> ActiveNoteViews;
 
-	/** 현재 난이도에서 확정된 LookAheadBeats (마커 정속 진입 계산용). BuildRuntimeState에서 설정. */
+	/** 현재 난이도에서 확정된 LookAheadBeats (마커 정속 진입 계산용). */
 	float ActiveLookAheadBeats = 2.0f;
-	/** 난이도 속도 배율(= 기준LookAhead / ActiveLookAhead). BuildRuntimeState에서 계산. */
+	/** 난이도 속도 배율(= 기준LookAhead / ActiveLookAhead). */
 	float ActiveSpeedScale = 1.0f;
 
 	UPROPERTY()
