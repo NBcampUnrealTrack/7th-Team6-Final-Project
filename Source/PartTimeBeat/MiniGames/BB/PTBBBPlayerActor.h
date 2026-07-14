@@ -171,4 +171,7 @@ private:
 
 	UFUNCTION()
 	void HandleBBParryFail(FPTBJudgementResult Result, float PlayerHPPercent);
+
+	/** DeathMontage 블렌드아웃이 시작되는 순간 호출. 랙돌로 전환해 쓰러진 자세를 유지시킨다. */
+	void HandleDeathMontageBlendingOut(UAnimMontage* Montage, bool bInterrupted);
 };

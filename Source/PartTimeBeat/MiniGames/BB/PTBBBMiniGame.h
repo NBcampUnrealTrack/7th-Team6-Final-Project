@@ -32,7 +32,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FPTBBBOnParryFail,
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FPTBBBOnHPChanged,
 	float, NewHP, float, MaxHP);
 
-/** 보스 HP 0 도달 (곡이 끝날 때까지 게임 계속) */
+/** 채보의 모든 노트 판정이 끝난 시점, 그때의 보스 체력이 0이면 발행 (처치 연출 트리거) */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FPTBBBOnBossDefeated);
 
 // ─────────────────────────────────────────────────────────────────
@@ -41,8 +41,10 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE(FPTBBBOnBossDefeated);
  * BB(보스 잡기) 미니게임.
  *
  * 플레이어와 적 AI가 HP를 가지며, 채보에 맞춰 패링 성공/실패로 서로 데미지를 주고받는다.
- * 보스 HP 0 도달 시 게임이 끝나지 않고 곡이 끝날 때까지 계속 진행된다.
- * 최종 결과는 보스 HP 잔량, 플레이어 HP 잔량, 목표 점수 도달 여부로 결정된다.
+ * 보스는 곡 중간에 체력이 0이 되어도 쓰러지지 않고 곡이 끝날 때까지 계속 진행되며,
+ * 채보의 모든 노트 판정이 끝난 시점의 체력으로 최종 처치 여부가 확정된다(OnBBBossDefeated).
+ * 라운드 실패(Failed)는 플레이어 HP 0 도달 시에만 발생하며, 그 외의 경우 결과 등급은
+ * 보스 잔여 체력 비율로 결정된다.
  *
  * 입력 키 → Action 매핑: Z=ActionA  X=ActionB  C=ActionC  V=ActionD  B=ActionE
  */
@@ -75,7 +77,7 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "PTB|BB|Events")
 	FPTBBBOnHPChanged OnBBPlayerHPChanged;
 
-	/** 보스 HP가 처음 0이 되는 순간 발행 (이후 데미지에는 발행 안 함) */
+	/** 채보의 모든 노트 판정이 끝난 시점에 보스 체력이 0이었다면 발행 (최대 1회) */
 	UPROPERTY(BlueprintAssignable, Category = "PTB|BB|Events")
 	FPTBBBOnBossDefeated OnBBBossDefeated;
 
@@ -141,6 +143,14 @@ protected:
 	virtual FPTBMiniGameResultPayload BuildResultPayload() const      override;
 	virtual TMap<FKey, EPTBActionType> GetActionMapping() const       override;
 
+	/**
+	 * 라운드 종료 경로(Tick의 완료/실패 처리, 페이드 타이머 OnFadeFinished, BGM 종료 콜백 등)와
+	 * 무관하게 결과가 확정되기 전에 보스 처치 확정 및 페이드 타이머 정리를 보장한다.
+	 * (base의 HandleBGMFinished/HandleAllNotesPassed 등 다른 경로가 OnFadeFinished보다
+	 * 먼저 라운드를 끝내더라도, 이 함수가 유일한 공통 진입점이므로 여기서 안전하게 처리한다.)
+	 */
+	virtual FPTBRoundResult FinishMiniGame(EPTBRoundEndReason Reason)  override;
+
 private:
 	/** BBRuleSet 캐스팅 헬퍼 */
 	const UPTBBBMiniGameRuleSet* GetBBRuleSet() const;
@@ -150,6 +160,13 @@ private:
 
 	/** 플레이어 체력에 데미지 적용 및 델리게이트 발행 */
 	void ApplyPlayerDamage(float Damage);
+
+	/**
+	 * 보스 체력이 0인지 확인해 처치를 확정한다(bBossDefeated 가드로 중복 확정 방지).
+	 * OnFadeFinished와 FinishMiniGame 양쪽에서 호출되어, 어느 경로로 라운드가 먼저
+	 * 끝나든 결과가 확정되기 전에 반드시 처치 여부가 먼저 확정되도록 한다.
+	 */
+	void ConfirmBossDefeatIfNeeded();
 
 	// ── 런타임 상태 ──────────────────────────────────────────────
 
@@ -169,7 +186,7 @@ private:
 		meta = (AllowPrivateAccess = "true"))
 	float PlayerMaxHP = 100.f;
 
-	/** 보스 HP가 이미 0에 도달했는지 (중복 발행 방지) */
+	/** 모든 노트 판정이 끝난 시점 기준 보스 처치 확정 여부 (OnFadeFinished에서 설정, 중복 발행 방지) */
 	bool bBossDefeated = false;
 
 	/** 이 라운드의 목표 점수 (BuildRuntimeState에서 캐시) */
@@ -180,6 +197,10 @@ private:
 
 	/** Miss 시 플레이어가 받는 데미지 (BuildRuntimeState에서 캐시) */
 	float CachedDamageTakenOnMiss = 15.f;
+
+	/** Miss 판정 시 재생할 카메라 쉐이크 (BP_BB_MiniGame 디테일 패널에서 설정) */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera", meta = (AllowPrivateAccess = "true"))
+	TSubclassOf<class UCameraShakeBase> MissCameraShakeClass;
 
 	// ── 시간 제한 / BGM 페이드 ───────────────────────────────────
 

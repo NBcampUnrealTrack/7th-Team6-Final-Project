@@ -5,6 +5,8 @@
 #include "Core/PTBStructEnums.h"
 #include "PTBBBCueWidgetBase.generated.h"
 
+class UTexture2D;
+
 /**
  * BB 미니게임 노트 큐 위젯 베이스.
  *
@@ -44,6 +46,24 @@ public:
 	/** 스폰 시 HUD가 설정하는 초기 X 오프셋. 양수면 보스가 오른쪽. */
 	UPROPERTY(BlueprintReadOnly, Category = "PTB|BB|Cue")
 	float ApproachStartTranslationX = 0.f;
+
+	// ── 판정 문구 이펙트 ─────────────────────────────────────────
+
+	/** JudgementType에 대응하는 판정 문구 텍스처 반환. OnJudgementResult(BP)에서 판정 이미지 표시에 사용. */
+	UFUNCTION(BlueprintPure, Category = "PTB|BB|Cue|Judgement")
+	UTexture2D* GetJudgementTexture(EPTBJudgementType JudgementType) const;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|BB|Cue|Judgement")
+	TObjectPtr<UTexture2D> HighPerfectTexture;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|BB|Cue|Judgement")
+	TObjectPtr<UTexture2D> PerfectTexture;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|BB|Cue|Judgement")
+	TObjectPtr<UTexture2D> GoodTexture;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|BB|Cue|Judgement")
+	TObjectPtr<UTexture2D> MissTexture;
 
 protected:
 	/** InitCue() 호출 후 BP에서 접근 애니메이션 시작 등 처리. */

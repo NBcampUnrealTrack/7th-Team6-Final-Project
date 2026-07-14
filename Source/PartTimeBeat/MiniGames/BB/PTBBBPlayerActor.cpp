@@ -167,10 +167,31 @@ void APTBBBPlayerActor::PlayDeathMontage_Implementation(const FPTBJudgementResul
 
 	if (!DeathMontage) { PTB_VERBOSE(LogPTBMiniGames, TEXT("[BBPlayerActor] DeathMontage 미설정")); return; }
 
-	if (UAnimInstance* AnimInst = GetPlayerAnimInstance())
+	UAnimInstance* AnimInst = GetPlayerAnimInstance();
+	if (!AnimInst)
 	{
-		AnimInst->Montage_Play(DeathMontage);
+		return;
 	}
+
+	AnimInst->Montage_Play(DeathMontage);
+
+	// 몽타주가 끝나며 자연스럽게 블렌드아웃되면 그 아래 AnimGraph(로코모션)가 다시 드러나
+	// "쓰러졌다가 일어나는" 것처럼 보인다. 블렌드아웃이 "시작되는" 순간(아직 포즈가
+	// 거의 그대로인 시점) 랙돌로 전환해서 그 자리에 쓰러진 채로 남게 한다.
+	FOnMontageBlendingOutStarted BlendingOutDelegate;
+	BlendingOutDelegate.BindUObject(this, &APTBBBPlayerActor::HandleDeathMontageBlendingOut);
+	AnimInst->Montage_SetBlendingOutDelegate(BlendingOutDelegate, DeathMontage);
+}
+
+void APTBBBPlayerActor::HandleDeathMontageBlendingOut(UAnimMontage* Montage, bool bInterrupted)
+{
+	if (!PlayerMesh) return;
+
+	PlayerMesh->SetCollisionProfileName(TEXT("Ragdoll"));
+	PlayerMesh->SetSimulatePhysics(true);
+	PlayerMesh->SetAllBodiesSimulatePhysics(true);
+	PlayerMesh->bBlendPhysics = true;
+	PlayerMesh->WakeAllRigidBodies();
 }
 
 void APTBBBPlayerActor::ApplyProfileCharacter_Implementation(const FPTBProfileData& Profile)

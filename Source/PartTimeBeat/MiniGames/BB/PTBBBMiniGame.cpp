@@ -1,6 +1,7 @@
 #include "MiniGames/BB/PTBBBMiniGame.h"
 #include "MiniGames/BB/PTBBBMiniGameRuleSet.h"
 #include "Audio/PTBWwiseAudioManager.h"
+#include "Camera/CameraShakeBase.h"
 #include "Debug/PTBTeamLog.h"
 #include "Rhythm/PTBScoreCalculator.h"
 #include "Rhythm/PTBRhythmChartAsset.h"
@@ -77,6 +78,10 @@ void APTBBBMiniGame::OnAllNotesDispatched()
 		return;
 	}
 
+	// 주의: 이 시점에는 마지막 노트의 판정이 아직 확정되지 않았을 수 있다
+	// (막판 늦은 입력/오토 미스 판정 윈도우가 아직 열려 있을 수 있음).
+	// 따라서 보스 처치 확정은 여기서 하지 않고, 판정 윈도우가 확실히 닫힌
+	// OnFadeFinished(BGM 페이드 종료 시점)에서 수행한다.
 	AudioManager->StopBGM(BGMFadeDurationSec * 1000.0f);
 
 	GetWorldTimerManager().SetTimer(
@@ -91,15 +96,13 @@ void APTBBBMiniGame::OnFadeFinished()
 		return;
 	}
 
-	const int32 CurrentScore = ScoreCalculator ? ScoreCalculator->CurrentScore : 0;
-	if (CachedTargetScore > 0 && CurrentScore < CachedTargetScore)
-	{
-		bPendingRoundFailed = true;
-	}
-	else
-	{
-		bPendingRoundFinish = true;
-	}
+	// 마지막 노트까지 판정이 모두 끝난 시점 — 이때의 보스 체력으로 처치 여부를 최종 확정한다.
+	ConfirmBossDefeatIfNeeded();
+
+	// Failed는 플레이어 체력 0(HandleJudgementResult)에서만 발생한다.
+	// 채보를 끝까지 마쳤다면 목표 점수/보스 체력과 무관하게 항상 정상 종료로 처리하고,
+	// 결과 등급은 아웃트로 화면에서 보스 잔여 체력으로 나눈다.
+	bPendingRoundFinish = true;
 }
 
 // ── 초기화 ───────────────────────────────────────────────────────
@@ -107,6 +110,9 @@ void APTBBBMiniGame::OnFadeFinished()
 void APTBBBMiniGame::BuildRuntimeState()
 {
 	Super::BuildRuntimeState();
+
+	// 이전 라운드에서 남아있을 수 있는 페이드 타이머를 정리한다(액터 재사용 대비 방어 코드).
+	GetWorldTimerManager().ClearTimer(TimeLimitTimerHandle);
 
 	const UPTBBBMiniGameRuleSet* BBRuleSet = GetBBRuleSet();
 	if (!BBRuleSet)
@@ -199,6 +205,14 @@ void APTBBBMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 		ApplyPlayerDamage(CachedDamageTakenOnMiss);
 		OnBBParryFail.Broadcast(Result, GetPlayerHPPercent());
 
+		if (MissCameraShakeClass)
+		{
+			if (APlayerController* PC = GetWorld()->GetFirstPlayerController())
+			{
+				PC->ClientStartCameraShake(MissCameraShakeClass);
+			}
+		}
+
 		// 플레이어 HP 0 실패 처리 (RuleSet 옵션이 켜져 있을 때만)
 		if (PlayerCurrentHP <= 0.f && !bPendingRoundFinish)
 		{
@@ -246,6 +260,22 @@ FPTBMiniGameResultPayload APTBBBMiniGame::BuildResultPayload() const
 	return Payload;
 }
 
+// ── 라운드 종료 ──────────────────────────────────────────────────
+
+FPTBRoundResult APTBBBMiniGame::FinishMiniGame(EPTBRoundEndReason Reason)
+{
+	// OnFadeFinished(페이드 타이머)보다 BGM 종료 콜백(base의 HandleBGMFinished 등)이
+	// 먼저 도착해 라운드가 끝나는 경우에도, 결과(Payload)가 확정되기 전에 보스 처치
+	// 여부를 먼저 확인한다. bBossDefeated 가드가 있어 중복 호출은 안전하게 무시된다.
+	ConfirmBossDefeatIfNeeded();
+
+	// 남아 있을 수 있는 페이드 타이머를 확실히 취소한다. 정리되지 않은 채 남아있다가
+	// 다음 라운드(액터 재사용) 도중 잘못 발화하는 것을 막기 위한 방어 코드.
+	GetWorldTimerManager().ClearTimer(TimeLimitTimerHandle);
+
+	return Super::FinishMiniGame(Reason);
+}
+
 // ── 내부 헬퍼 ────────────────────────────────────────────────────
 
 const UPTBBBMiniGameRuleSet* APTBBBMiniGame::GetBBRuleSet() const
@@ -253,19 +283,23 @@ const UPTBBBMiniGameRuleSet* APTBBBMiniGame::GetBBRuleSet() const
 	return Cast<UPTBBBMiniGameRuleSet>(RuleSet.Get());
 }
 
-void APTBBBMiniGame::ApplyBossDamage(float Damage)
+void APTBBBMiniGame::ConfirmBossDefeatIfNeeded()
 {
-	const float PrevHP = BossCurrentHP;
-	BossCurrentHP = FMath::Max(0.f, BossCurrentHP - Damage);
-
-	OnBBBossHPChanged.Broadcast(BossCurrentHP, BossMaxHP);
-
-	// HP 0 최초 도달 시에만 이벤트 발행 (이후 추가 데미지에는 발행 안 함)
-	if (PrevHP > 0.f && BossCurrentHP <= 0.f)
+	if (!bBossDefeated && BossCurrentHP <= 0.f)
 	{
 		bBossDefeated = true;
 		OnBBBossDefeated.Broadcast();
 	}
+}
+
+void APTBBBMiniGame::ApplyBossDamage(float Damage)
+{
+	BossCurrentHP = FMath::Max(0.f, BossCurrentHP - Damage);
+	OnBBBossHPChanged.Broadcast(BossCurrentHP, BossMaxHP);
+
+	// 처치(쓰러짐 연출) 확정은 여기서 하지 않는다 — 곡 중간에 체력이 0이 되어도
+	// 노트가 남아있는 한 게임은 계속되므로, 최종 처치 여부는 모든 노트가
+	// 발행된 시점(OnAllNotesDispatched)에 확정한다.
 }
 
 void APTBBBMiniGame::ApplyPlayerDamage(float Damage)
