@@ -36,6 +36,13 @@ void UPTBProfileSubsystem::Deinitialize()
     Super::Deinitialize();
 }
 
+EPTBGender UPTBProfileSubsystem::GetActiveProfileGender() const
+{
+    bool bHasActive = false;
+    FPTBProfileData ActiveProfile = GetActiveProfile(bHasActive);
+    return bHasActive ? ActiveProfile.Gender : EPTBGender::Unset;
+}
+
 
 FGuid UPTBProfileSubsystem::CreateProfile(
     const FString& Nickname,

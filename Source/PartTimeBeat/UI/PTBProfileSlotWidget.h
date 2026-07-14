@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
+#include "Core/PTBStructEnums.h"
 #include "PTBProfileSlotWidget.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnSlotClicked, int32, SlotIndex);
@@ -21,9 +22,13 @@ public:
 	/** 부모 화면에서 한 번에 데이터 세팅 + RefreshDisplay 자동 호출 */
 	UFUNCTION(BlueprintCallable, Category = "Profile|Slot")
 	void SetSlotData(bool bInHasProfile, int32 InSlotIndex,
+						EPTBGender InGender,
 					 const FString& InNickname = TEXT(""),
 					 int32 InMoney = 0, int32 InCleared = 0, int32 InTotal = 0);
 
+	UPROPERTY(BlueprintReadOnly, Category = "Profile|Slot")
+	EPTBGender Gender = EPTBGender::Unset;
+	
 	/** 블루프린트에서 실제 텍스트/이미지 갱신 구현 */
 	UFUNCTION(BlueprintImplementableEvent, Category = "Profile|Slot")
 	void RefreshDisplay();
@@ -55,5 +60,7 @@ protected:
 	virtual FReply NativeOnMouseButtonDown(
 		const FGeometry& InGeometry,
 		const FPointerEvent& InMouseEvent) override;
+	
+	
 
 };

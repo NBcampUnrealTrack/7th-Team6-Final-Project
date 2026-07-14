@@ -24,6 +24,9 @@ public:
     virtual void Initialize(FSubsystemCollectionBase& Collection) override;
     virtual void Deinitialize() override;
 
+    UFUNCTION(BlueprintCallable, Category = "Profile|Active")
+    EPTBGender GetActiveProfileGender() const;
+    
     /** 신규 프로필 생성 */
     UFUNCTION(BlueprintCallable, Category = "Profile")
     FGuid CreateProfile(const FString& Nickname, EPTBGender Gender, int32 SlotIndex, FDateTime Birthday);
@@ -59,7 +62,7 @@ public:
     /** 현재 활성화된 프로필 데이터 반환 */
     UFUNCTION(BlueprintCallable, Category = "Profile|Active")
     FPTBProfileData GetActiveProfile(bool& bOutHasActive) const;
-
+    
     /** 활성화 한 프로필이 있는지 여부. */
     UFUNCTION(BlueprintCallable, Category = "Profile|Active")
     bool HasActiveProfile() const;

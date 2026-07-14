@@ -25,7 +25,9 @@ public class PartTimeBeat : ModuleRules
 			"AkAudio",
 			"WwiseSoundEngine",
 			"CableComponent",
-			"Niagara"
+			"Niagara",
+			"LevelSequence",
+			"MovieScene" 
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] { });

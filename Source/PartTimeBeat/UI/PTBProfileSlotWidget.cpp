@@ -3,17 +3,18 @@
 #include "PTBProfileSlotWidget.h"
 
 void UPTBProfileSlotWidget::SetSlotData(
-	  bool bInHasProfile, int32 InSlotIndex,
+	  bool bInHasProfile, int32 InSlotIndex,EPTBGender InGender,
 	  const FString& InNickname, int32 InMoney,
 	  int32 InCleared, int32 InTotal)
 {
 	bHasProfile = bInHasProfile;
 	SlotIndex   = InSlotIndex;
+	Gender      = InGender;
 	Nickname    = InNickname;
 	Money       = InMoney;
 	ClearedStage = InCleared;
 	TotalStage   = InTotal;
-
+	
 	RefreshDisplay(); // Blueprint에서 구현한 시각 갱신 호출
 }
 
