@@ -48,10 +48,10 @@ void APTBSRToppingSpawner::TryBindMiniGame()
 
 void APTBSRToppingSpawner::HandleSushiPlateSpawn(int32 AssignedTopping, int32 NoteId)
 {
-	SpawnTopping(AssignedTopping);
+	SpawnTopping(AssignedTopping, NoteId);
 }
 
-void APTBSRToppingSpawner::SpawnTopping(int32 AssignedTopping)
+void APTBSRToppingSpawner::SpawnTopping(int32 AssignedTopping, int32 NoteId)
 {
 	if (!ToppingClass)
 	{
@@ -87,11 +87,10 @@ void APTBSRToppingSpawner::SpawnTopping(int32 AssignedTopping)
 	{
 		ToppingIdProp->SetPropertyValue_InContainer(SpawnedActor, AssignedTopping);
 	}
-	else
+	// NoteId도 같이 세팅
+	if (FIntProperty* NoteIdProp = FindFProperty<FIntProperty>(SpawnedActor->GetClass(), TEXT("NoteId")))
 	{
-		UE_LOG(LogPTBMiniGames, Warning,
-			TEXT("[%s] SpawnTopping: property '%s' not found on %s. ToppingID was not set."),
-			*GetNameSafe(this), *ToppingIdPropertyName.ToString(), *GetNameSafe(ToppingClass));
+		NoteIdProp->SetPropertyValue_InContainer(SpawnedActor, NoteId);
 	}
 
 	SpawnedActor->FinishSpawning(SpawnTransform);

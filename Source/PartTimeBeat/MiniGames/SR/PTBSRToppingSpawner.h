@@ -46,7 +46,7 @@ private:
 	void TryBindMiniGame();
 
 	/** 실제 토핑 액터를 스폰하고 ToppingID 프로퍼티를 세팅 */
-	void SpawnTopping(int32 AssignedTopping);
+	void SpawnTopping(int32 AssignedTopping, int32 NoteId);
 
 	UPROPERTY()
 	TObjectPtr<APTBSRMiniGame> BoundMiniGame = nullptr;
