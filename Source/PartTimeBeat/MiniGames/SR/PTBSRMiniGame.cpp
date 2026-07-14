@@ -218,6 +218,8 @@ void APTBSRMiniGame::HandleNoteCue(FPTBNoteEvent Note)
 void APTBSRMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 {
 	Super::HandleJudgementResult(Result);
+	NoteJudgementResults.Add(Result.NoteId, Result.JudgementType); // 결과 저장
+
 	CurrentNoteIndex++;
 	RefreshPreviewUI();
 }

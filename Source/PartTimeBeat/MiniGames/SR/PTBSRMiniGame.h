@@ -67,10 +67,21 @@ public:
 	class UUserWidget* WBP_SR_Preview;
 	UFUNCTION(BlueprintCallable, Category = "PTB|Sushi|UI")
 	void RefreshPreviewUI();
+
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "PTB|Sushi")
+	EPTBJudgementType GetJudgementForNote(int32 NoteId) const
+	{
+		if (const EPTBJudgementType* Found = NoteJudgementResults.Find(NoteId))
+		{
+			return *Found;
+		}
+		return EPTBJudgementType::Miss; // 기록이 없으면 기본값 Miss로 취급
+	}
 protected:
 	virtual void HandleRhythmInput(EPTBActionType Action, float TimeMs = -1.0f) override;
 
-
+	UPROPERTY() 
+	TMap<int32, EPTBJudgementType> NoteJudgementResults;
 	// 연결할 기획 데이터 테이블 에셋 (DT_SR_ToppingList)
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MiniGame|Setup") 
 	class UDataTable* ToppingDataTable;
