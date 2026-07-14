@@ -11,6 +11,7 @@ void APTBDWBackgroundScroller::BeginPlay()
 {
 	Super::BeginPlay();
 
+	BaseScrollSpeed = ScrollSpeed;
 	BaseLocation = GetActorLocation();
 	LaneDir = GetActorForwardVector();
 	SpawnChunks();
@@ -45,7 +46,7 @@ void APTBDWBackgroundScroller::SpawnChunks()
 
 	for (int32 i = 0; i < ChunkCount; ++i)
 	{
-		const float Offset = (i - 1) * ChunkLength;
+		const float Offset = (i - ChunksBehind) * ChunkLength;
 
 		TSubclassOf<AActor> Cls = PickChunkClass();
 		AActor* Chunk = Cls
@@ -79,7 +80,7 @@ void APTBDWBackgroundScroller::Tick(float DeltaTime)
 	}
 	for (int32 i = 0; i < ChunkOffsets.Num(); ++i)
 	{
-		if (ChunkOffsets[i] < -ChunkLength)
+		if (ChunkOffsets[i] < -(ChunksBehind + 1) * ChunkLength)
 		{
 			MaxOff += ChunkLength;
 			ChunkOffsets[i] = MaxOff;

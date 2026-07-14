@@ -23,6 +23,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW")
 	int32 ChunkCount = 5;
 
+	/** 캐릭터 뒤(-진행축)로 미리 깔 청크 수. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW")
+	int32 ChunksBehind = 2;
+
 	/** 스크롤 속도 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW")
 	float ScrollSpeed = 600.0f;
@@ -38,7 +42,17 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "PTB|DW")
 	void SetRunning(bool bInRunning) { bRunning = bInRunning; }
 
+	/** 난이도 배속 × 배경 계수 적용: ScrollSpeed = 기본 × Scale × Multiplier. */
+	UFUNCTION(BlueprintCallable, Category = "PTB|DW")
+	void SetSpeedScale(float Scale, float Multiplier = 1.0f) { ScrollSpeed = BaseScrollSpeed * FMath::Max(0.01f, Scale) * FMath::Max(0.0f, Multiplier); }
+
+	/** 현재 스크롤 속도(broken 메시 뒤로 흘려보내기 등에 공용). */
+	UFUNCTION(BlueprintPure, Category = "PTB|DW")
+	float GetScrollSpeed() const { return ScrollSpeed; }
+
 private:
+	/** 기본 스크롤 속도. */
+	float BaseScrollSpeed = 600.0f;
 	void SpawnChunks();
 	TSubclassOf<AActor> PickChunkClass() const;
 

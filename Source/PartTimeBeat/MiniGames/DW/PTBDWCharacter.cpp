@@ -8,7 +8,6 @@
 #include "Materials/MaterialInstanceDynamic.h"
 
 
-//에셋 구하기전 임시 placeholder
 namespace DWCueConstants
 {
 	constexpr float HopHeight = 40.0f;
@@ -74,6 +73,14 @@ void APTBDWCharacter::SetAnimations(UAnimSequenceBase* InRun, UAnimSequenceBase*
 	}
 }
 
+void APTBDWCharacter::SetMotionPlayRate(float Rate)
+{
+	if (Body)
+	{
+		Body->GlobalAnimRateScale = FMath::Max(0.01f, Rate);
+	}
+}
+
 void APTBDWCharacter::StartRunning()
 {
 	bRunning = true;
@@ -90,15 +97,8 @@ void APTBDWCharacter::StartRunning()
 
 void APTBDWCharacter::PlayCue(EPTBActionType Action, float DurationSec)
 {
-	if (DurationSec <= 0.f)
-	{
-		return;
-	}
-
-	bCueActive  = true;
-	CueAction   = Action;
-	CueDuration = DurationSec;
-	CueTimer    = DurationSec;
+	(void)Action;
+	(void)DurationSec;
 }
 
 void APTBDWCharacter::UpdateCue(float DeltaTime)
@@ -141,15 +141,87 @@ void APTBDWCharacter::PlayReaction(bool bSuccess, EPTBActionType Action, bool bI
 		{
 		case EPTBActionType::ActionA: PlayJump(bIsLong);  break;
 		case EPTBActionType::ActionB: PlaySlide(bIsLong); break;
+		case EPTBActionType::ActionD: PlayKick();         break;
+		case EPTBActionType::ActionE: PlayEReaction();    break;
 		default: break;
 		}
+		return;
+	}
+
+	if (Action == EPTBActionType::ActionA)
+	{
+		return;
+	}
+	if (Action == EPTBActionType::ActionD)
+	{
+		PlayKick();
 		return;
 	}
 
 	PlayFail(Action);
 }
 
-bool APTBDWCharacter::TryPlayReactionAnim(UAnimSequenceBase* Anim)
+void APTBDWCharacter::SetReactionRates(float InJumpRate, float InSlideRate, float InFailRate, float InBlendIn, float InBlendOut)
+{
+	JumpAnimRate    = FMath::Max(0.01f, InJumpRate);
+	SlideAnimRate   = FMath::Max(0.01f, InSlideRate);
+	FailAnimRate    = FMath::Max(0.01f, InFailRate);
+	ReactionBlendIn  = FMath::Max(0.0f,  InBlendIn);
+	ReactionBlendOut = FMath::Max(0.0f,  InBlendOut);
+}
+
+void APTBDWCharacter::SetKickAnim(UAnimSequenceBase* Anim, float Rate)
+{
+	KickAnim     = Anim;
+	KickAnimRate = FMath::Max(0.01f, Rate);
+}
+
+void APTBDWCharacter::SetEReaction(UAnimSequenceBase* Anim, float Rate, FName UpperSlot)
+{
+	EReactionAnim = Anim;
+	EReactionRate = FMath::Max(0.01f, Rate);
+	if (!UpperSlot.IsNone())
+	{
+		UpperSlotName = UpperSlot;
+	}
+}
+
+void APTBDWCharacter::PlayEReaction()
+{
+	BeginUpperReact(EReactionAnim, EReactionRate);
+	TryPlayReactionAnim(EReactionAnim, EReactionRate, UpperSlotName);
+}
+
+void APTBDWCharacter::BeginUpperReact(UAnimSequenceBase* Anim, float Rate)
+{
+	if (!Anim)
+	{
+		return;
+	}
+	const float SafeRate = FMath::Max(0.01f, Rate);
+	UpperReactTimer  = Anim->GetPlayLength() / SafeRate;
+	bIsUpperReacting = (UpperReactTimer > 0.f);
+}
+
+void APTBDWCharacter::PlayKick()
+{
+	BeginUpperReact(KickAnim, KickAnimRate);
+	TryPlayReactionAnim(KickAnim, KickAnimRate, UpperSlotName);
+}
+
+void APTBDWCharacter::PlayPreviewShout(UAnimSequenceBase* Anim, FName SlotName, float BlendIn, float BlendOut, float Rate)
+{
+	if (!Anim || !Body)
+	{
+		return;
+	}
+	if (UAnimInstance* AnimInst = Body->GetAnimInstance())
+	{
+		AnimInst->PlaySlotAnimationAsDynamicMontage(Anim, SlotName, FMath::Max(0.f, BlendIn), FMath::Max(0.f, BlendOut), FMath::Max(0.01f, Rate));
+	}
+}
+
+bool APTBDWCharacter::TryPlayReactionAnim(UAnimSequenceBase* Anim, float Rate, FName SlotName)
 {
 	if (!Anim || !Body)
 	{
@@ -160,17 +232,19 @@ bool APTBDWCharacter::TryPlayReactionAnim(UAnimSequenceBase* Anim)
 	Loc.Z = 0.f;
 	Body->SetRelativeLocation(Loc);
 
+	const float SafeRate = FMath::Max(0.01f, Rate);
 	if (bMontageMode)
 	{
 		if (UAnimInstance* AnimInst = Body->GetAnimInstance())
 		{
-			AnimInst->PlaySlotAnimationAsDynamicMontage(Anim, TEXT("DefaultSlot"), 0.15f, 0.15f);
+			const FName UseSlot = SlotName.IsNone() ? FName(TEXT("DefaultSlot")) : SlotName;
+			AnimInst->PlaySlotAnimationAsDynamicMontage(Anim, UseSlot, ReactionBlendIn, ReactionBlendOut, SafeRate);
 			return true;
 		}
 	}
 
 	Body->PlayAnimation(Anim, false);
-	AnimReturnTimer = Anim->GetPlayLength();
+	AnimReturnTimer = Anim->GetPlayLength() / SafeRate;
 	return true;
 }
 
@@ -185,38 +259,22 @@ void APTBDWCharacter::StartPlaceholderReaction(EDWReactionMotion Motion, float D
 
 void APTBDWCharacter::PlayJump(bool bIsLong)
 {
-	if (TryPlayReactionAnim(JumpAnim))
-	{
-		return;
-	}
-	const float Amp = bIsLong ? DWReactionConstants::JumpHeightLong : DWReactionConstants::JumpHeight;
-	StartPlaceholderReaction(EDWReactionMotion::JumpUp, DWReactionConstants::JumpDuration, Amp);
+	bIsUpperReacting = false;
+	UpperReactTimer  = 0.f;
+	TryPlayReactionAnim(JumpAnim, JumpAnimRate, FName(TEXT("DefaultSlot")));
 }
 
 void APTBDWCharacter::PlaySlide(bool bIsLong)
 {
-	if (TryPlayReactionAnim(SlideAnim))
-	{
-		return;
-	}
-	const float Dur = bIsLong ? DWReactionConstants::SlideDurLong : DWReactionConstants::SlideDuration;
-	StartPlaceholderReaction(EDWReactionMotion::SlideDown, Dur, DWReactionConstants::SlideDepth);
+	bIsUpperReacting = false;
+	UpperReactTimer  = 0.f;
+	TryPlayReactionAnim(SlideAnim, SlideAnimRate, FName(TEXT("DefaultSlot")));
 }
 
 void APTBDWCharacter::PlayFail(EPTBActionType Action)
 {
-	if (TryPlayReactionAnim(FailAnim))
-	{
-		return;
-	}
-	if (Action == EPTBActionType::ActionB)
-	{
-		StartPlaceholderReaction(EDWReactionMotion::FailHop, DWReactionConstants::FailDuration, DWReactionConstants::FailHop);
-	}
-	else
-	{
-		StartPlaceholderReaction(EDWReactionMotion::FailDip, DWReactionConstants::FailDuration, DWReactionConstants::FailDip);
-	}
+	BeginUpperReact(FailAnim, FailAnimRate);
+	TryPlayReactionAnim(FailAnim, FailAnimRate, UpperSlotName);
 }
 
 void APTBDWCharacter::UpdateReaction(float DeltaTime)
@@ -259,6 +317,15 @@ void APTBDWCharacter::Tick(float DeltaTime)
 
 	UpdateCue(DeltaTime);
 	UpdateReaction(DeltaTime);
+
+	if (UpperReactTimer > 0.f)
+	{
+		UpperReactTimer -= DeltaTime;
+		if (UpperReactTimer <= 0.f)
+		{
+			bIsUpperReacting = false;
+		}
+	}
 
 	if (AnimReturnTimer > 0.f)
 	{
