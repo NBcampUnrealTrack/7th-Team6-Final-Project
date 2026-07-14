@@ -222,7 +222,7 @@
 				</Event>
 			</Events>
 		</SoundBank>
-		<SoundBank Id="1635194334" Type="User" GUID="{007CA0E5-F67C-4DFA-B327-B8787A690CF7}" Language="SFX" Hash="{7E21B3E5-7FFC-F434-4880-E1693E3488B8}">
+		<SoundBank Id="1635194334" Type="User" GUID="{007CA0E5-F67C-4DFA-B327-B8787A690CF7}" Language="SFX" Hash="{08CF4901-4C52-2094-70F9-7C943B1035EA}">
 			<ObjectPath>\SoundBanks\Default Work Unit\PC</ObjectPath>
 			<ShortName>PC</ShortName>
 			<Path>PC.bnk</Path>
@@ -233,7 +233,7 @@
 				</File>
 			</Media>
 			<Events>
-				<Event Id="3036750162" Name="Play_PC_BGM" ObjectPath="\Events\Default Work Unit\Play_PC_BGM" GUID="{4F266B37-DD26-428D-9274-A538E999612B}" DurationType="OneShot" DurationMin="115.54877" DurationMax="115.54877">
+				<Event Id="3036750162" Name="Play_PC_BGM" ObjectPath="\Events\Default Work Unit\Play_PC_BGM" GUID="{4F266B37-DD26-428D-9274-A538E999612B}" DurationType="OneShot" DurationMin="110.043274" DurationMax="110.043274">
 					<MediaRefs>
 						<MediaRef Id="637371893"/>
 					</MediaRefs>
@@ -331,5 +331,5 @@
 			</Events>
 		</SoundBank>
 	</SoundBanks>
-	<FileHash>{8A117726-F0CF-5A88-8315-63BA251A8B85}</FileHash>
+	<FileHash>{3B2BCCE4-896D-1915-C249-E6F7365864B5}</FileHash>
 </SoundBanksInfo>

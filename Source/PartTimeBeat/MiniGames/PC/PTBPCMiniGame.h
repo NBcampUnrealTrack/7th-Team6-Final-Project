@@ -41,8 +41,6 @@ public:
     UPROPERTY(EditAnywhere)
     TSubclassOf<APCTileImageActor> TileImageClass;
 
-    UPROPERTY(EditAnywhere)
-    EPTBDifficulty Difficulty;
 
 protected:
 

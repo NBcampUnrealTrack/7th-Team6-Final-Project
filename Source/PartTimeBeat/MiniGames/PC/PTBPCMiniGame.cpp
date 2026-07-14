@@ -25,7 +25,10 @@ void APTBPCMiniGame::BuildRuntimeState()
     FString TilePrefix;
     FString TextureFolderPath;
 
-  /*  switch (Difficulty)
+    int32 TileCount = ChartAsset ? ChartAsset->NoteEvents.Num() : 0;
+    EPTBDifficulty CurrentDifficulty = GameContext.SessionRequest.Difficulty;
+
+    switch (CurrentDifficulty)
     {
     case EPTBDifficulty::Easy:
         TilePrefix = TEXT("EasyTile");
@@ -35,54 +38,38 @@ void APTBPCMiniGame::BuildRuntimeState()
         TilePrefix = TEXT("InsaneTile");
         TextureFolderPath = TEXT("/Game/FreeAssets/PC/PC_InsaneTiles");
         break;
-    default:
+    case EPTBDifficulty::Standard:
         TilePrefix = TEXT("StandardTile");
         TextureFolderPath = TEXT("/Game/FreeAssets/PC/PC_StandardTiles");
         break;
-    }*/
+    }
 
-    //for (int32 i = 1; i <= 108; i++)
-    //{
-    //    FString AssetName = FString::Printf(TEXT("%s__%d_"), *TilePrefix, i);
-    //    FString Path = FString::Printf(TEXT("%s/%s.%s"), *TextureFolderPath, *AssetName, *AssetName);
-
-    //    UTexture2D* Texture = LoadObject<UTexture2D>(nullptr, *Path);
-    //    TileTextures.Add(Texture);
-
-    //    if (!Texture)
-    //    {
-    //        UE_LOG(LogTemp, Warning, TEXT("텍스처 로드 실패: %s"), *Path);
-    //    }
-    //}
-
-        // 108개 텍스처 자동 로드
-    for (int32 i = 1; i <= 108; i++)
+    for (int32 i = 1; i <= TileCount; i++)
     {
-        FString Path = FString::Printf(
-            TEXT("/Game/FreeAssets/PC/PC_StandardTiles/StandardTile__%d_.StandardTile__%d_"), i, i);
+        FString AssetName = FString::Printf(TEXT("%s_%d_"), *TilePrefix, i);
+        FString Path = FString::Printf(TEXT("%s/%s.%s"), *TextureFolderPath, *AssetName, *AssetName);
 
         UTexture2D* Texture = LoadObject<UTexture2D>(nullptr, *Path);
+        TileTextures.Add(Texture);
 
-        if (Texture)
+        if (!Texture)
         {
-            TileTextures.Add(Texture);
-        }
-        else
-        {
-            // 로드 실패 시 빈 자리 유지
-            TileTextures.Add(nullptr);
             UE_LOG(LogTemp, Warning, TEXT("텍스처 로드 실패: %s"), *Path);
         }
     }
 
-    UE_LOG(LogTemp, Warning, TEXT("로드된 텍스처 수: %d"), TileTextures.Num());
-
+    UE_LOG(LogTemp, Warning, TEXT("로드된 텍스처 수: %d, 총 노트 수: %d"), TileTextures.Num(), TileCount);
    
     RailCharacter = Cast<APCRailCharacter>(
         UGameplayStatics::GetActorOfClass(GetWorld(), APCRailCharacter::StaticClass()));
 
     TileSpawner = Cast<APCTileSpawner>(
         UGameplayStatics::GetActorOfClass(GetWorld(), APCTileSpawner::StaticClass()));
+
+    if (RailCharacter)
+    {
+        RailCharacter->SelectRailByDifficulty(CurrentDifficulty);
+    }
 }
 
 
@@ -130,7 +117,7 @@ void APTBPCMiniGame::HandleChartEvent(FPTBNoteEvent Note)
         MoveDelayHandle,
         RailCharacter,
         &APCRailCharacter::MoveOneStep,
-        0.1f,  // 딜레이 초
+        0.02f,  // 딜레이 초
         false
     );
 }
@@ -168,6 +155,12 @@ void APTBPCMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 
     GEngine->AddOnScreenDebugMessage(-1, 2.f, Color, Message);
 
+    if (RailCharacter)
+    {
+        RailCharacter->PlayHandMontage(Result.JudgementType == EPTBJudgementType::Miss
+            ? RailCharacter->HandFailMontage
+            : RailCharacter->HandSuccessMontage);
+    }
 
     if (Result.JudgementType == EPTBJudgementType::Miss) return;
 

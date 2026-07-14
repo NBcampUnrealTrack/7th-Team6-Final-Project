@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Pawn.h"
 #include "MiniGames/PC/PCRailPath.h"
+#include "Core\PTBStructEnums.h"
 #include "PCRailCharacter.generated.h"
 
 
@@ -25,12 +26,17 @@ public:
     UPROPERTY(VisibleAnywhere)
     class USkeletalMeshComponent* HandsMesh;
 
+    // 손 애니메이션 (성공/실패)
+    UPROPERTY(EditDefaultsOnly, Category = "Anim")
+    UAnimMontage* HandSuccessMontage;
+
+    UPROPERTY(EditDefaultsOnly, Category = "Anim")
+    UAnimMontage* HandFailMontage;
+
+    void PlayHandMontage(UAnimMontage* Montage);
+
     UPROPERTY(VisibleAnywhere)
     class UStaticMeshComponent* JudgementZone;
-
-    // 레일 참조 (에디터에서 연결)
-    UPROPERTY(EditAnywhere, BlueprintReadOnly)
-    APCRailPath* PCRailPath;
 
     // 한 박자당 이동 거리
     UPROPERTY(EditAnywhere)
@@ -39,10 +45,24 @@ public:
     virtual void Tick(float DeltaTime) override;
 
     UPROPERTY(EditAnywhere)
-    float MoveInterpSpeed = 20.f;
+    float MoveInterpSpeed = 50.f;
 
     // 박자 타이밍에 호출 - 레일 위 다음 지점으로 이동
     void MoveOneStep();
+
+    APCRailPath* PCRailPath;
+
+    UPROPERTY(EditAnywhere)
+    APCRailPath* EasyRailPath;
+
+    UPROPERTY(EditAnywhere)
+    APCRailPath* StandardRailPath;
+
+    UPROPERTY(EditAnywhere)
+    APCRailPath* InsaneRailPath;
+
+    UFUNCTION(BlueprintCallable)
+    void SelectRailByDifficulty(EPTBDifficulty Difficulty);
 
     // 스포너 참조
     UPROPERTY(EditAnywhere)
