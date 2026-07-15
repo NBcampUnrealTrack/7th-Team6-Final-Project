@@ -24,7 +24,9 @@ struct FPTBProfileData;
  * 프로필 캐릭터 적용:
  *  BindToMiniGame() 호출 시 ProfileSubsystem에서 활성 프로필을 조회하고
  *  ApplyProfileCharacter()를 자동으로 호출한다.
- *  CharacterMeshByGender / AnimBlueprintByGender에 Gender별 에셋을 에디터에서 지정한다.
+ *  CharacterMeshByGender에 Gender별 메시를 에디터에서 지정한다(메시를 성별 무관하게
+ *  같은 것으로 쓴다면 Male/Female 항목에 같은 메시를 넣으면 된다).
+ *  AnimBP는 PlayerMesh 컴포넌트에 평소처럼 고정으로 설정해두면 된다.
  *
  * BP(BP_BB_Player)에서 이 클래스를 상속받아 에셋을 설정하고,
  * 각 BlueprintNativeEvent에서 추가 연출을 구현할 수 있다.
@@ -71,8 +73,8 @@ public:
 	virtual void PlayDeathMontage_Implementation(const FPTBJudgementResult& Result);
 
 	/**
-	 * 프로필 데이터를 기반으로 캐릭터 메시와 AnimBP를 적용한다.
-	 * 기본 구현: Profile.Gender로 CharacterMeshByGender / AnimBlueprintByGender를 조회.
+	 * 프로필 데이터를 기반으로 캐릭터 메시를 적용한다.
+	 * 기본 구현: Profile.Gender로 CharacterMeshByGender를 조회.
 	 * BP에서 재정의해 커스텀 로직 구현 가능.
 	 */
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "PTB|BB|Player")
@@ -137,13 +139,6 @@ public:
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|BB|Player|Character")
 	TMap<EPTBGender, TObjectPtr<USkeletalMesh>> CharacterMeshByGender;
-
-	/**
-	 * 성별별 애니메이션 블루프린트 클래스.
-	 * ApplyProfileCharacter 기본 구현이 Profile.Gender로 조회한다.
-	 */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|BB|Player|Character")
-	TMap<EPTBGender, TSubclassOf<UAnimInstance>> AnimBlueprintByGender;
 
 	/** 현재 바인딩된 미니게임 */
 	UPROPERTY(BlueprintReadOnly, Category = "PTB|BB|Player")

@@ -218,23 +218,6 @@ void APTBBBPlayerActor::ApplyProfileCharacter_Implementation(const FPTBProfileDa
 	{
 		PTB_VERBOSE(LogPTBMiniGames, TEXT("[BBPlayerActor] ApplyProfileCharacter: Gender=%d에 대한 메시가 설정되지 않았습니다."), static_cast<int32>(Profile.Gender));
 	}
-
-	// Gender에 맞는 AnimBP 클래스 적용
-	if (const TSubclassOf<UAnimInstance>* FoundAnimBP = AnimBlueprintByGender.Find(Profile.Gender))
-	{
-		if (*FoundAnimBP && PlayerMesh->GetAnimClass() != *FoundAnimBP)
-		{
-			PlayerMesh->SetAnimInstanceClass(*FoundAnimBP);
-		}
-		else
-		{
-			PTB_VERBOSE(LogPTBMiniGames, TEXT("[BBPlayerActor] ApplyProfileCharacter: Gender=%d에 대한 AnimBP가 null입니다."), static_cast<int32>(Profile.Gender));
-		}
-	}
-	else
-	{
-		PTB_VERBOSE(LogPTBMiniGames, TEXT("[BBPlayerActor] ApplyProfileCharacter: Gender=%d에 대한 AnimBP가 설정되지 않았습니다."), static_cast<int32>(Profile.Gender));
-	}
 }
 
 // ── 내부 헬퍼 ────────────────────────────────────────────────────

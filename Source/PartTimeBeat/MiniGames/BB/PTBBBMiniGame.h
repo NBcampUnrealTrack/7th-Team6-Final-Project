@@ -107,6 +107,10 @@ public:
 	UFUNCTION(BlueprintPure, Category = "PTB|BB")
 	int32 GetTargetScore() const { return CachedTargetScore; }
 
+	/** 현재 라운드의 난이도. 보스/HUD 등이 난이도별 연출(텍스처 등)을 적용할 때 사용한다. */
+	UFUNCTION(BlueprintPure, Category = "PTB|BB")
+	EPTBDifficulty GetDifficulty() const { return GameContext.SessionRequest.Difficulty; }
+
 	/**
 	 * 현재 라운드의 채보(ChartAsset)에 해당 액션을 쓰는 노트가 하나라도 있는지 여부.
 	 * 난이도마다 채보에 등장하는 액션 종류가 다를 수 있어(예: Easy는 ActionA~C만, Insane은 ActionA~E),
