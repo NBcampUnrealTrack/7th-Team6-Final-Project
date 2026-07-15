@@ -41,10 +41,10 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE(FPTBBBOnBossDefeated);
  * BB(보스 잡기) 미니게임.
  *
  * 플레이어와 적 AI가 HP를 가지며, 채보에 맞춰 패링 성공/실패로 서로 데미지를 주고받는다.
- * 보스는 곡 중간에 체력이 0이 되어도 쓰러지지 않고 곡이 끝날 때까지 계속 진행되며,
- * 채보의 모든 노트 판정이 끝난 시점의 체력으로 최종 처치 여부가 확정된다(OnBBBossDefeated).
+ * 보스 체력은 채보 전체 노트 수에 정확히 맞춰 깎이는 진행도 지표다 — 모든 노트를 성공해야만
+ * 마지막 노트에서 정확히 0이 되며(OnBBBossDefeated), 하나라도 놓치면 완전히 처치되지 않는다.
  * 라운드 실패(Failed)는 플레이어 HP 0 도달 시에만 발생하며, 그 외의 경우 결과 등급은
- * 보스 잔여 체력 비율로 결정된다.
+ * 보스 체력과 무관하게 노트 정확도·미스 수로 결정된다.
  *
  * 입력 키 → Action 매핑: Z=ActionA  X=ActionB  C=ActionC  V=ActionD  B=ActionE
  */
@@ -106,6 +106,14 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "PTB|BB")
 	int32 GetTargetScore() const { return CachedTargetScore; }
+
+	/**
+	 * 현재 라운드의 채보(ChartAsset)에 해당 액션을 쓰는 노트가 하나라도 있는지 여부.
+	 * 난이도마다 채보에 등장하는 액션 종류가 다를 수 있어(예: Easy는 ActionA~C만, Insane은 ActionA~E),
+	 * HUD가 히트존 마커를 난이도에 맞게 표시/숨김 처리할 때 사용한다. ChartAsset이 없으면 false.
+	 */
+	UFUNCTION(BlueprintPure, Category = "PTB|BB")
+	bool IsActionUsedInChart(EPTBActionType Action) const;
 
 	UFUNCTION(BlueprintPure, Category = "PTB|BB|Flow")
 	bool IsBBIntroSequenceActive() const { return bStartSequenceActive; }

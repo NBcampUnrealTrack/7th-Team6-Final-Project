@@ -6,6 +6,7 @@
 #include "Components/TextBlock.h"
 #include "MiniGames/BB/PTBBBMiniGame.h"
 #include "MiniGames/BB/PTBBBCueWidgetBase.h"
+#include "MiniGames/BB/PTBBBHitZoneWidgetBase.h"
 #include "Debug/PTBTeamLog.h"
 #include "TimerManager.h"
 #include "Kismet/GameplayStatics.h"
@@ -24,6 +25,7 @@ void UPTBBBHUDWidget::BindToMiniGame(APTBBBMiniGame* InMiniGame)
 	if (IsValid(BBMiniGame) && BBMiniGame != InMiniGame)
 	{
 		BBMiniGame->OnBBNoteCue.RemoveDynamic(this, &UPTBBBHUDWidget::HandleBBNoteCue);
+		BBMiniGame->OnBBNoteReached.RemoveDynamic(this, &UPTBBBHUDWidget::HandleBBNoteReached);
 		BBMiniGame->OnBBParrySuccess.RemoveDynamic(this, &UPTBBBHUDWidget::HandleBBParrySuccess);
 		BBMiniGame->OnBBParryFail.RemoveDynamic(this, &UPTBBBHUDWidget::HandleBBParryFail);
 		BBMiniGame->OnBBBossHPChanged.RemoveDynamic(this, &UPTBBBHUDWidget::HandleBBBossHPChanged);
@@ -38,6 +40,7 @@ void UPTBBBHUDWidget::BindToMiniGame(APTBBBMiniGame* InMiniGame)
 	BBMiniGame = InMiniGame;
 
 	InMiniGame->OnBBNoteCue.AddUniqueDynamic(this, &UPTBBBHUDWidget::HandleBBNoteCue);
+	InMiniGame->OnBBNoteReached.AddUniqueDynamic(this, &UPTBBBHUDWidget::HandleBBNoteReached);
 	InMiniGame->OnBBParrySuccess.AddUniqueDynamic(this, &UPTBBBHUDWidget::HandleBBParrySuccess);
 	InMiniGame->OnBBParryFail.AddUniqueDynamic(this, &UPTBBBHUDWidget::HandleBBParryFail);
 	InMiniGame->OnBBBossHPChanged.AddUniqueDynamic(this, &UPTBBBHUDWidget::HandleBBBossHPChanged);
@@ -50,6 +53,7 @@ void UPTBBBHUDWidget::BindToMiniGame(APTBBBMiniGame* InMiniGame)
 
 	// 바인딩 시점의 HP로 메인 바 및 고스트 바 초기 동기화
 	SyncBarsToMiniGame();
+	RefreshHitZoneVisibility();
 
 	if (InMiniGame->IsBBIntroSequenceActive())
 	{
@@ -71,6 +75,8 @@ void UPTBBBHUDWidget::NativeConstruct()
 
 	// Blueprint에 Event Tick 노드가 없어도 NativeTick이 호출되도록 강제 활성화
 	bHasScriptImplementedTick = true;
+
+	SpawnHitZoneMarkers();
 
 	// BindToMiniGame이 AddToViewport 이전에 호출된 경우를 대비한 초기 동기화
 	if (!IsValid(BBMiniGame))
@@ -102,6 +108,7 @@ void UPTBBBHUDWidget::NativeDestruct()
 	if (IsValid(BBMiniGame))
 	{
 		BBMiniGame->OnBBNoteCue.RemoveDynamic(this, &UPTBBBHUDWidget::HandleBBNoteCue);
+		BBMiniGame->OnBBNoteReached.RemoveDynamic(this, &UPTBBBHUDWidget::HandleBBNoteReached);
 		BBMiniGame->OnBBParrySuccess.RemoveDynamic(this, &UPTBBBHUDWidget::HandleBBParrySuccess);
 		BBMiniGame->OnBBParryFail.RemoveDynamic(this, &UPTBBBHUDWidget::HandleBBParryFail);
 		BBMiniGame->OnBBBossHPChanged.RemoveDynamic(this, &UPTBBBHUDWidget::HandleBBBossHPChanged);
@@ -164,18 +171,24 @@ void UPTBBBHUDWidget::HandleBBNoteCue(FPTBNoteEvent Note)
 {
 	if (!CueLayer) return;
 
-	const TSubclassOf<UPTBBBCueWidgetBase> CueClass =
-		Note.bIsLongNote ? HoldCueClass : TapCueClass;
-
-	UPTBBBCueWidgetBase* Cue = SpawnAndPlaceCue(CueClass, Note);
+	// BB 채보에는 롱노트가 없어 항상 TapCueClass를 사용한다.
+	UPTBBBCueWidgetBase* Cue = SpawnAndPlaceCue(TapCueClass, Note);
 	if (!Cue) return;
 
-	// 해당 맵에 등록
-	TMap<int32, TObjectPtr<UPTBBBCueWidgetBase>>& TargetMap =
-		Note.bIsLongNote ? HoldCueMap : TapCueMap;
-	TargetMap.Add(Note.NoteId, Cue);
+	TapCueMap.Add(Note.NoteId, Cue);
 
 	OnCueSpawned(Cue, Note);
+}
+
+void UPTBBBHUDWidget::HandleBBNoteReached(FPTBNoteEvent Note)
+{
+	if (TObjectPtr<UPTBBBHitZoneWidgetBase>* Found = HitZoneMarkers.Find(Note.ActionType))
+	{
+		if (UPTBBBHitZoneWidgetBase* Marker = Found->Get())
+		{
+			Marker->PulseHitZone();
+		}
+	}
 }
 
 void UPTBBBHUDWidget::HandleBBParrySuccess(FPTBJudgementResult Result, float BossHPPercent)
@@ -305,6 +318,7 @@ void UPTBBBHUDWidget::HandleBBGameplayStarted()
 {
 	ClearCenterMessageTimers();
 	HideCenterMessage();
+	RefreshHitZoneVisibility();
 }
 
 void UPTBBBHUDWidget::HandleBBOutroStarted(FPTBRoundResult Result, EPTBRoundEndReason EndReason)
@@ -387,6 +401,60 @@ void UPTBBBHUDWidget::SyncBarsToMiniGame()
 	PlayerGhostDecayTimer = 0.f;
 }
 
+void UPTBBBHUDWidget::SpawnHitZoneMarkers()
+{
+	if (!HitZoneClass || !CueLayer || !HitZoneMarkers.IsEmpty())
+	{
+		return;
+	}
+
+	APlayerController* PC = GetOwningPlayer();
+	if (!PC)
+	{
+		return;
+	}
+
+	for (const TPair<EPTBActionType, FVector2D>& AnchorPair : AnchorPositions)
+	{
+		UPTBBBHitZoneWidgetBase* Marker = CreateWidget<UPTBBBHitZoneWidgetBase>(PC, HitZoneClass);
+		if (!Marker)
+		{
+			continue;
+		}
+
+		// 노트 큐보다 먼저 CueLayer에 추가되어 항상 뒤쪽(아래)에 그려진다.
+		if (UCanvasPanelSlot* MarkerSlot = CueLayer->AddChildToCanvas(Marker))
+		{
+			MarkerSlot->SetPosition(AnchorPair.Value);
+		}
+
+		Marker->InitHitZone(AnchorPair.Key);
+		HitZoneMarkers.Add(AnchorPair.Key, Marker);
+	}
+}
+
+void UPTBBBHUDWidget::RefreshHitZoneVisibility()
+{
+	// ChartAsset이 아직 준비되지 않았으면(바인딩이 너무 이른 경우) 아무 것도 바꾸지 않는다.
+	// 잘못 판단해서 전부 숨겨버리면 다음 갱신 전까지 마커가 깜빡였다 다시 나타나는 것처럼 보인다.
+	if (!IsValid(BBMiniGame) || !BBMiniGame->ChartAsset)
+	{
+		return;
+	}
+
+	for (const TPair<EPTBActionType, TObjectPtr<UPTBBBHitZoneWidgetBase>>& MarkerPair : HitZoneMarkers)
+	{
+		UPTBBBHitZoneWidgetBase* Marker = MarkerPair.Value.Get();
+		if (!Marker)
+		{
+			continue;
+		}
+
+		const bool bUsedInChart = BBMiniGame->IsActionUsedInChart(MarkerPair.Key);
+		Marker->SetVisibility(bUsedInChart ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
+	}
+}
+
 UPTBBBCueWidgetBase* UPTBBBHUDWidget::SpawnAndPlaceCue(
 	TSubclassOf<UPTBBBCueWidgetBase> CueClass,
 	const FPTBNoteEvent& Note)
@@ -436,32 +504,25 @@ UPTBBBCueWidgetBase* UPTBBBHUDWidget::FindAndRemoveCue(int32 NoteId)
 		TapCueMap.Remove(NoteId);
 		return Cue;
 	}
-	if (TObjectPtr<UPTBBBCueWidgetBase>* Found = HoldCueMap.Find(NoteId))
-	{
-		UPTBBBCueWidgetBase* Cue = Found->Get();
-		HoldCueMap.Remove(NoteId);
-		return Cue;
-	}
 	return nullptr;
 }
 
 int32 UPTBBBHUDWidget::ResolveOutroTierIndex(const FPTBRoundResult& Result, EPTBRoundEndReason EndReason) const
 {
-	// Failed(플레이어 체력 0)는 보스 체력과 무관하게 항상 최하위 등급
+	// Failed(플레이어 체력 0)는 항상 최하위 등급
 	if (EndReason == EPTBRoundEndReason::Failed)
 	{
 		return 0;
 	}
 
-	// 채보를 끝까지 마쳤다면 보스 잔여 체력 + 노트 정확도로 등급을 나눈다.
-	const float BossHPPercent = Result.MiniGamePayload.FloatValues.FindRef(TEXT("FinalBossHPPercent"));
-	if (BossHPPercent <= 0.f)
+	// 채보를 끝까지 마쳤다면 정확도·미스 수만으로 등급을 나눈다.
+	// 보스 체력은 이제 채보 진행도 그 자체(모든 노트를 성공해야만 완전히 0이 됨)라서
+	// 등급 판정에는 쓰지 않는다.
+	if (Result.MissCount <= PerfectClearMaxMissCount)
 	{
-		// 보스 완전 처치 + 미스가 허용치 이하일 때만 퍼펙트 클리어. 초과했다면 Great로 낮춘다.
-		return (Result.MissCount <= PerfectClearMaxMissCount) ? 3 : 2;
+		return 3; // Perfect Clear
 	}
-	// 보스를 완전히 처치하지 못했다면 노트 정확도로 Great/Good을 가른다.
-	return (Result.AccuracyRate >= GreatAccuracyThreshold) ? 2 : 1;
+	return (Result.AccuracyRate >= GreatAccuracyThreshold) ? 2 : 1; // Great : Good
 }
 
 void UPTBBBHUDWidget::ClearCenterMessageTimers()
