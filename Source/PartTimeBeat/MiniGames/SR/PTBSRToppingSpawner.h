@@ -6,14 +6,7 @@
 
 class APTBSRMiniGame;
 
-/**
- * SR(초밥) 미니게임에서 APTBSRMiniGame::OnSushiPlateSpawn 델리게이트를 구독하여
- * 토핑(BP_SR_Topping 등) 액터를 스폰하는 전용 스포너입니다.
- *
- * 기존 Blueprint(BP_SR_ToppingSpawner)의 EventGraph 배선을 C++로 대체하기 위한 클래스입니다.
- * 이 클래스를 부모로 하는 Blueprint를 만들거나, 기존 BP_SR_ToppingSpawner의
- * 부모 클래스(Reparent)를 이 클래스로 바꿔서 사용하세요.
- */
+
 UCLASS()
 class PARTTIMEBEAT_API APTBSRToppingSpawner : public AActor
 {

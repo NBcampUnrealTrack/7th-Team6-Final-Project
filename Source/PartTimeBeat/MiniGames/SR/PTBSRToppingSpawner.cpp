@@ -94,4 +94,10 @@ void APTBSRToppingSpawner::SpawnTopping(int32 AssignedTopping, int32 NoteId)
 	}
 
 	SpawnedActor->FinishSpawning(SpawnTransform);
+
+	// ★ 판정 성공 시 물리적 접시 접촉과 무관하게 이 토핑을 바로 완성 처리할 수 있도록 등록
+	if (BoundMiniGame)
+	{
+		BoundMiniGame->RegisterActiveTopping(NoteId, SpawnedActor);
+	}
 }
