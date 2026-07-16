@@ -252,28 +252,34 @@ void UPTBWwiseAudioManager::StopBGM(float FadeOutMs)
 
 void UPTBWwiseAudioManager::PauseBGM()
 {
-	if (CurrentBGMPlayingId != 0)
+	if (CurrentBGMPlayingId == 0)
 	{
-		AK::SoundEngine::ExecuteActionOnPlayingID(AK::SoundEngine::AkActionOnEventType_Pause, static_cast<AkPlayingID>(CurrentBGMPlayingId));
+		return;
 	}
 
-	if (CurrentBGMEvent)
+	if (CurrentBGMEvent && MainAkComponent && MainAkComponent->GetOwner())
 	{
-		CurrentBGMEvent->ExecuteAction(AkActionOnEventType::Pause, nullptr, 0);
+		CurrentBGMEvent->ExecuteAction(AkActionOnEventType::Pause, MainAkComponent->GetOwner(), CurrentBGMPlayingId);
+		return;
 	}
+
+	AK::SoundEngine::ExecuteActionOnPlayingID(AK::SoundEngine::AkActionOnEventType_Pause, static_cast<AkPlayingID>(CurrentBGMPlayingId));
 }
 
 void UPTBWwiseAudioManager::ResumeBGM()
 {
-	if (CurrentBGMEvent)
+	if (CurrentBGMPlayingId == 0)
 	{
-		CurrentBGMEvent->ExecuteAction(AkActionOnEventType::Resume, nullptr, 0);
+		return;
 	}
 
-	if (CurrentBGMPlayingId != 0)
+	if (CurrentBGMEvent && MainAkComponent && MainAkComponent->GetOwner())
 	{
-		AK::SoundEngine::ExecuteActionOnPlayingID(AK::SoundEngine::AkActionOnEventType_Resume, static_cast<AkPlayingID>(CurrentBGMPlayingId));
+		CurrentBGMEvent->ExecuteAction(AkActionOnEventType::Resume, MainAkComponent->GetOwner(), CurrentBGMPlayingId);
+		return;
 	}
+
+	AK::SoundEngine::ExecuteActionOnPlayingID(AK::SoundEngine::AkActionOnEventType_Resume, static_cast<AkPlayingID>(CurrentBGMPlayingId));
 }
 
 
