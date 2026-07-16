@@ -3,6 +3,7 @@
 #include "MiniGames/BB/PTBBBMiniGame.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Animation/AnimInstance.h"
+#include "Materials/MaterialInterface.h"
 #include "AkAudioEvent.h"
 #include "AkGameplayStatics.h"
 #include "Debug/PTBTeamLog.h"
@@ -43,6 +44,8 @@ void APTBBBBossActor::BindToMiniGame(APTBBBMiniGame* InMiniGame)
 	InMiniGame->OnBBNoteCue.AddUniqueDynamic(this, &APTBBBBossActor::HandleBBNoteCue);
 	InMiniGame->OnBBParrySuccess.AddUniqueDynamic(this, &APTBBBBossActor::HandleBBParrySuccess);
 	InMiniGame->OnBBBossDefeated.AddUniqueDynamic(this, &APTBBBBossActor::HandleBBBossDefeated);
+
+	ApplyDifficultyMaterial(InMiniGame->GetDifficulty());
 }
 
 void APTBBBBossActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -163,6 +166,42 @@ void APTBBBBossActor::PlayDeathMontage_Implementation()
 	FOnMontageBlendingOutStarted BlendingOutDelegate;
 	BlendingOutDelegate.BindUObject(this, &APTBBBBossActor::HandleDeathMontageBlendingOut);
 	AnimInst->Montage_SetBlendingOutDelegate(BlendingOutDelegate, DeathMontage);
+}
+
+void APTBBBBossActor::ApplyDifficultyMaterial_Implementation(EPTBDifficulty Difficulty)
+{
+	if (!BossMesh)
+	{
+		PTB_WARNING(LogPTBMiniGames, TEXT("[BBBossActor] ApplyDifficultyMaterial: BossMesh가 없습니다."));
+		return;
+	}
+
+	const TObjectPtr<UMaterialInterface>* FoundMaterial = BossMaterialByDifficulty.Find(Difficulty);
+	if (!FoundMaterial && Difficulty != EPTBDifficulty::Standard)
+	{
+		FoundMaterial = BossMaterialByDifficulty.Find(EPTBDifficulty::Standard);
+	}
+
+	if (!FoundMaterial || !FoundMaterial->Get())
+	{
+		PTB_VERBOSE(LogPTBMiniGames, TEXT("[BBBossActor] ApplyDifficultyMaterial: Difficulty=%d에 대한 머티리얼이 설정되지 않았습니다."), static_cast<int32>(Difficulty));
+		return;
+	}
+
+	const int32 NumMaterials = BossMesh->GetNumMaterials();
+	if (NumMaterials <= 0)
+	{
+		PTB_WARNING(LogPTBMiniGames, TEXT("[BBBossActor] ApplyDifficultyMaterial: BossMesh에 머티리얼 슬롯이 없습니다."));
+		return;
+	}
+
+	if (MaterialSlotIndex < 0 || MaterialSlotIndex >= NumMaterials)
+	{
+		PTB_WARNING(LogPTBMiniGames, TEXT("[BBBossActor] ApplyDifficultyMaterial: MaterialSlotIndex=%d가 유효 범위(0~%d)를 벗어났습니다."), MaterialSlotIndex, NumMaterials - 1);
+		return;
+	}
+
+	BossMesh->SetMaterial(MaterialSlotIndex, FoundMaterial->Get());
 }
 
 void APTBBBBossActor::HandleDeathMontageBlendingOut(UAnimMontage* Montage, bool bInterrupted)

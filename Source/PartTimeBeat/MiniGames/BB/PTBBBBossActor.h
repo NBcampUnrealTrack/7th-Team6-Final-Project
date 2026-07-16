@@ -9,6 +9,7 @@ class APTBBBMiniGame;
 class USkeletalMeshComponent;
 class UAnimMontage;
 class UAkAudioEvent;
+class UMaterialInterface;
 struct FPTBNoteEvent;
 struct FPTBJudgementResult;
 
@@ -65,6 +66,16 @@ public:
 	void PlayDeathMontage();
 	virtual void PlayDeathMontage_Implementation();
 
+	/**
+	 * 난이도에 맞는 보스 머티리얼을 적용한다.
+	 * 기본 구현: Difficulty로 BossMaterialByDifficulty를 조회해 BossMesh의
+	 * MaterialSlotIndex 슬롯에 해당 머티리얼을 통째로 세팅한다.
+	 * BP에서 재정의해 커스텀 로직 구현 가능.
+	 */
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "PTB|BB|Boss")
+	void ApplyDifficultyMaterial(EPTBDifficulty Difficulty);
+	virtual void ApplyDifficultyMaterial_Implementation(EPTBDifficulty Difficulty);
+
 	// ── 컴포넌트 ─────────────────────────────────────────────────
 
 	/** 보스 스켈레탈 메시. BP에서 메시·애니메이션 BP를 지정한다. */
@@ -106,6 +117,19 @@ public:
 	/** 패링 성공 시 재생할 피격 효과음 Wwise 이벤트 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|BB|Boss|Audio")
 	TObjectPtr<UAkAudioEvent> HitReactSFX;
+
+	// ── 에디터 설정 : 난이도별 머티리얼 ─────────────────────────────
+
+	/**
+	 * 난이도별 보스 머티리얼. BindToMiniGame 시 현재 라운드 난이도에 맞춰 자동 적용된다.
+	 * 해당 난이도 항목이 없으면 Standard로, 그마저 없으면 아무 것도 바꾸지 않는다.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|BB|Boss|Material")
+	TMap<EPTBDifficulty, TObjectPtr<UMaterialInterface>> BossMaterialByDifficulty;
+
+	/** BossMaterialByDifficulty의 머티리얼을 적용할 BossMesh의 머티리얼 슬롯 인덱스 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|BB|Boss|Material")
+	int32 MaterialSlotIndex = 0;
 
 	/** 현재 바인딩된 미니게임 */
 	UPROPERTY(BlueprintReadOnly, Category = "PTB|BB|Boss")
