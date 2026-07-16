@@ -77,6 +77,7 @@ void UPTBBBHUDWidget::NativeConstruct()
 	bHasScriptImplementedTick = true;
 
 	SpawnHitZoneMarkers();
+	RefreshHitZoneVisibility();
 
 	// BindToMiniGame이 AddToViewport 이전에 호출된 경우를 대비한 초기 동기화
 	if (!IsValid(BBMiniGame))
