@@ -34,7 +34,7 @@ void APCRailCharacter::PlayHandMontage(UAnimMontage* Montage)
 
     if (UAnimInstance* AnimInst = HandsMesh->GetAnimInstance())
     {
-        AnimInst->Montage_Play(Montage);
+        AnimInst->Montage_Play(Montage, 0.7f);
     }
 }
 
