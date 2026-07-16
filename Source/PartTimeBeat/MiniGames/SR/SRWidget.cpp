@@ -42,15 +42,16 @@ void USRWidget::UpdateJudgementText(EPTBJudgementType JudgementType, float Delta
         break;
     }
 
-    // ★ Good/Miss일 때만 몇 ms 빠르거나(음수) 늦었는지(양수) 같이 표시합니다.
-    //   bHasTimingInfo는 EmptyInput(헛입력, 매칭된 노트 자체가 없어 ms가 의미 없음)일 때 false로 넘어옵니다.
+    // ★ Good/Miss일 때만 빠른지(Early) 늦은지(Late) 같이 표시합니다. 정확한 ms 숫자 대신
+    //   간단한 단어로만 보여줍니다. bHasTimingInfo는 EmptyInput(헛입력, 매칭된 노트 자체가
+    //   없어 방향 자체가 의미 없음)일 때 false로 넘어옵니다.
     const bool bShouldShowTiming = bHasTimingInfo
         && (JudgementType == EPTBJudgementType::Good || JudgementType == EPTBJudgementType::Miss);
 
     FString DisplayText = Label;
     if (bShouldShowTiming)
     {
-        DisplayText += FString::Printf(TEXT(" (%s%.0fms)"), DeltaMs >= 0.0f ? TEXT("+") : TEXT(""), DeltaMs);
+        DisplayText += DeltaMs < 0.0f ? TEXT(" (Early)") : TEXT(" (Late)");
     }
 
     Txt_Judgement->SetText(FText::FromString(DisplayText));

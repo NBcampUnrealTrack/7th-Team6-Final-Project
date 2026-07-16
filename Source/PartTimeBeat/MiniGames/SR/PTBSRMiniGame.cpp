@@ -215,12 +215,7 @@ void APTBSRMiniGame::ResolveSuccessVisual(int32 NoteId)
 		CompletionRotation = Topping->GetActorRotation();
 	}
 
-	// [진단용] 완성 위치를 화면에 직접 표시 + 로그. 완성된 스시 메시가 이 구체와
-	// 정확히 겹치는지, 아니면 옆으로 떨어져 나타나는지 눈으로 바로 비교할 수 있습니다.
-	if (UWorld* DebugWorld = GetWorld())
-	{
-		DrawDebugSphere(DebugWorld, CompletionLocation, 20.0f, 12, FColor::Green, false, 5.0f, 0, 2.0f);
-	}
+	// [진단용] 완성 위치 로그 — 튜닝이 끝났으니 구체 표시는 더 이상 안 함
 	PTB_RECORD(LogPTBMiniGames, TEXT("[완성위치 확인] NoteId=%d CompletionLocation=%s"),
 		NoteId, *CompletionLocation.ToString());
 
