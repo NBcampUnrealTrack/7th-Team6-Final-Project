@@ -26,6 +26,7 @@ UPTBWwiseAudioManager::UPTBWwiseAudioManager()
 	MainAkComponent = nullptr;
 	MasterBusID = 0;
 	CurrentBGMPlayingId = 0;
+	CurrentBGMEvent = nullptr;
 	bIsBGMPlaying = false;
 }
 
@@ -199,6 +200,7 @@ int32 UPTBWwiseAudioManager::PostBGMEvent(FName EventKey)
 	Callback.BindDynamic(this, &UPTBWwiseAudioManager::HandleBGMPostEventCallback);
 
 	const int32 CallbackMask = AK_EndOfEvent | AK_EnableGetSourcePlayPosition;
+	CurrentBGMEvent = Event;
 	CurrentBGMPlayingId = MainAkComponent->PostAkEvent(Event, CallbackMask, Callback);
 	bIsBGMPlaying = CurrentBGMPlayingId != 0;
 
@@ -245,6 +247,7 @@ void UPTBWwiseAudioManager::StopBGM(float FadeOutMs)
 
 	bIsBGMPlaying = false;
 	CurrentBGMPlayingId = 0;
+	CurrentBGMEvent = nullptr;
 }
 
 void UPTBWwiseAudioManager::PauseBGM()
@@ -253,10 +256,20 @@ void UPTBWwiseAudioManager::PauseBGM()
 	{
 		AK::SoundEngine::ExecuteActionOnPlayingID(AK::SoundEngine::AkActionOnEventType_Pause, static_cast<AkPlayingID>(CurrentBGMPlayingId));
 	}
+
+	if (CurrentBGMEvent)
+	{
+		CurrentBGMEvent->ExecuteAction(AkActionOnEventType::Pause, nullptr, 0);
+	}
 }
 
 void UPTBWwiseAudioManager::ResumeBGM()
 {
+	if (CurrentBGMEvent)
+	{
+		CurrentBGMEvent->ExecuteAction(AkActionOnEventType::Resume, nullptr, 0);
+	}
+
 	if (CurrentBGMPlayingId != 0)
 	{
 		AK::SoundEngine::ExecuteActionOnPlayingID(AK::SoundEngine::AkActionOnEventType_Resume, static_cast<AkPlayingID>(CurrentBGMPlayingId));
@@ -348,5 +361,6 @@ void UPTBWwiseAudioManager::HandleBGMPostEventCallback(EAkCallbackType CallbackT
 
 	bIsBGMPlaying = false;
 	CurrentBGMPlayingId = 0;
+	CurrentBGMEvent = nullptr;
 	OnBGMFinished.Broadcast(FinishedPlayingId);
 }
