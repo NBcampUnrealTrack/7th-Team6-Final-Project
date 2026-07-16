@@ -9,6 +9,7 @@
 #include "NiagaraSystem.h"
 #include "TimerManager.h"
 #include "PTBSRPlate.h"
+#include "DrawDebugHelpers.h"
 
 APTBSRMiniGame::APTBSRMiniGame()
 {
@@ -117,30 +118,42 @@ void APTBSRMiniGame::RegisterActiveTopping(int32 NoteId, AActor* ToppingActor)
 	if (ToppingActor)
 	{
 		ActiveToppingsMap.Add(NoteId, ToppingActor);
+
+		// [낙하 시간 측정용] 이 토핑이 지금 스폰됐다는 걸 기록해둡니다.
+		if (const UWorld* World = GetWorld())
+		{
+			ToppingSpawnTimeMap.Add(NoteId, World->GetTimeSeconds());
+		}
 	}
 }
 
 bool APTBSRMiniGame::NotifyToppingReachedConveyor(int32 NoteId)
 {
-	if (!PendingSuccessNoteIds.Contains(NoteId))
+	// [낙하 시간 측정용] 스폰부터 지금(컨베이어 도달)까지 실제로 몇 초 걸렸는지 로그로 남깁니다.
+	// 판정 성공/실패와 무관하게, 물리적으로 접시에 닿는 모든 토핑에 대해 찍힙니다.
+	if (const float* SpawnTimeSeconds = ToppingSpawnTimeMap.Find(NoteId))
 	{
-		// 이 NoteId는 성공 대기 중이 아니었습니다 (Miss였거나 이미 처리됨) — 호출한 쪽에서 정리하면 됩니다.
-		return false;
+		if (const UWorld* World = GetWorld())
+		{
+			const float FallDurationSeconds = World->GetTimeSeconds() - *SpawnTimeSeconds;
+			PTB_RECORD(LogPTBMiniGames, TEXT("[낙하시간 측정] NoteId=%d 토핑이 스폰된 뒤 %.3f초(%.0fms) 만에 컨베이어에 도달했습니다."),
+				NoteId, FallDurationSeconds, FallDurationSeconds * 1000.0f);
+		}
+		ToppingSpawnTimeMap.Remove(NoteId);
 	}
 
-	PendingSuccessNoteIds.Remove(NoteId);
-	ResolveSuccessVisual(NoteId); // 지금(=닿는 순간) 완성 처리
-	return true;
+	// ★ 완성 처리는 더 이상 물리적 접촉이 트리거하지 않습니다 (토핑이 튕겨서 낙하 시간이
+	//   불안정하기 때문에, 완성은 오직 FixedCompletionDelaySeconds 타이머로만 실행됩니다).
+	//   여기서는 그저 "이 토핑이 아직 완성 타이머를 기다리는 중"이면 파괴하지 말라고
+	//   Plate에게 알려주는 역할만 합니다 (true 반환 = 건드리지 마라).
+	return PendingSuccessNoteIds.Contains(NoteId);
 }
 
 void APTBSRMiniGame::ResolveSuccessVisualIfStillPending(int32 NoteId)
 {
-	// 이미 NotifyToppingReachedConveyor로 처리됐다면 여기서는 아무것도 안 합니다.
 	if (PendingSuccessNoteIds.Contains(NoteId))
 	{
 		PendingSuccessNoteIds.Remove(NoteId);
-		PTB_WARNING(LogPTBMiniGames, TEXT("[%s] NoteId=%d 가 최대 대기 시간 동안 접시에 닿지 않아 강제로 완성 처리합니다."),
-			*GetNameSafe(this), NoteId);
 		ResolveSuccessVisual(NoteId);
 	}
 }
@@ -168,10 +181,12 @@ void APTBSRMiniGame::ResolveSuccessVisual(int32 NoteId)
 		SushiClass = TSubclassOf<AActor>(Cast<UClass>(ClassProp->GetPropertyValue_InContainer(Topping)));
 	}
 
-	// ★ 완성 위치 결정 우선순위:
-	//   1) 이 노트를 담당하며 화면에 다가오고 있던 "바로 그 접시"의 현재 위치 (가장 정확함)
-	//   2) 레벨에 배치해둔 고정 위치(CompletionSpawnPoint) — 접시 등록이 안 됐을 때의 대비책
-	//   3) 토핑의 현재 위치 — 최후의 수단, 판정이 물리적 낙하보다 먼저 끝나므로 부정확할 수 있음
+	// ★ 완성 위치는 "지금 이 순간" 접시가 실제로 있는 자리를 한 번만 조회해서 씁니다.
+	//   접시는 여기까지 계속 화면에 보이며 정상적으로 이동해왔고, 스폰과 파괴를 같은
+	//   조회 결과로 처리하므로 "사라지는 위치"와 "나타나는 위치"가 항상 일치합니다.
+	//   1) 담당 접시의 지금 위치 (가장 정확함)
+	//   2) 레벨에 배치해둔 고정 위치(CompletionSpawnPoint) — 접시를 못 찾았을 때의 대비책
+	//   3) 토핑의 현재 위치 — 최후의 수단
 	AActor* Plate = nullptr;
 	if (AActor** FoundPlate = ActivePlatesMap.Find(NoteId))
 	{
@@ -200,6 +215,15 @@ void APTBSRMiniGame::ResolveSuccessVisual(int32 NoteId)
 		CompletionRotation = Topping->GetActorRotation();
 	}
 
+	// [진단용] 완성 위치를 화면에 직접 표시 + 로그. 완성된 스시 메시가 이 구체와
+	// 정확히 겹치는지, 아니면 옆으로 떨어져 나타나는지 눈으로 바로 비교할 수 있습니다.
+	if (UWorld* DebugWorld = GetWorld())
+	{
+		DrawDebugSphere(DebugWorld, CompletionLocation, 20.0f, 12, FColor::Green, false, 5.0f, 0, 2.0f);
+	}
+	PTB_RECORD(LogPTBMiniGames, TEXT("[완성위치 확인] NoteId=%d CompletionLocation=%s"),
+		NoteId, *CompletionLocation.ToString());
+
 	if (CompletionVFX)
 	{
 		UNiagaraFunctionLibrary::SpawnSystemAtLocation(
@@ -214,7 +238,23 @@ void APTBSRMiniGame::ResolveSuccessVisual(int32 NoteId)
 		{
 			FActorSpawnParameters SpawnParams;
 			SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-			World->SpawnActor<AActor>(SushiClass, FTransform(CompletionRotation, CompletionLocation), SpawnParams);
+			AActor* SpawnedSushi = World->SpawnActor<AActor>(SushiClass, FTransform(CompletionRotation, CompletionLocation), SpawnParams);
+
+			// ★ BP_SR_CompletedSushi(및 자식들)는 자기만의 독립적인 MoveSpeed 변수로 움직입니다.
+			//   그동안 튜닝해온 접시(PlateMoveSpeed)와 따로 놀고 있었으므로, 완성되는 순간
+			//   속도가 뚝 떨어지는 것처럼 보였습니다. 여기서 접시와 같은 속도로 맞춰줍니다.
+			if (SpawnedSushi)
+			{
+				if (FDoubleProperty* MoveSpeedProp = FindFProperty<FDoubleProperty>(SpawnedSushi->GetClass(), TEXT("MoveSpeed")))
+				{
+					MoveSpeedProp->SetPropertyValue_InContainer(SpawnedSushi, static_cast<double>(PlateMoveSpeed));
+				}
+				else
+				{
+					PTB_WARNING(LogPTBMiniGames, TEXT("[%s] ResolveSuccessVisual: NoteId=%d 완성 스시에서 MoveSpeed 프로퍼티를 찾지 못했습니다."),
+						*GetNameSafe(this), NoteId);
+				}
+			}
 		}
 	}
 	else
@@ -228,6 +268,8 @@ void APTBSRMiniGame::ResolveSuccessVisual(int32 NoteId)
 	ActiveToppingsMap.Remove(NoteId);
 
 	// 담당하던 접시도 역할을 다했으니 제거 (완성 스시가 그 자리를 대신함)
+	// ★ 위에서 위치를 구할 때 조회했던 바로 그 Plate를 그대로 파괴합니다 (다시 조회하지 않음) —
+	//   그래야 스폰 위치와 파괴 대상이 항상 같은 순간의 같은 접시를 가리킵니다.
 	if (IsValid(Plate))
 	{
 		Plate->Destroy();
@@ -352,6 +394,27 @@ void APTBSRMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 	Super::HandleJudgementResult(Result);
 	NoteJudgementResults.Add(Result.NoteId, Result.JudgementType); // 결과 저장
 
+	// ★ 판정 결과(HighPerfect/Perfect/Good/Miss) + 빠름/느림 ms를 UI에 표시
+	if (USRWidget* MySushiUI = Cast<USRWidget>(WBP_SR_Preview))
+	{
+		const bool bHasTimingInfo = Result.Reason != EPTBJudgementReason::EmptyInput;
+		MySushiUI->UpdateJudgementText(Result.JudgementType, Result.DeltaMs, bHasTimingInfo);
+	}
+
+	// [힌트존 참고용] HighPerfect로 판정된 순간, 그 노트를 담당하던 접시가 실제로 어디 있었는지
+	// 로그로 남깁니다. 이 좌표에 마커(Cube 등)를 놓으면 "여기서 누르면 된다"는 기준점이 됩니다.
+	if (Result.JudgementType == EPTBJudgementType::HighPerfect)
+	{
+		if (AActor** FoundPlateForHint = ActivePlatesMap.Find(Result.NoteId))
+		{
+			if (IsValid(*FoundPlateForHint))
+			{
+				PTB_RECORD(LogPTBMiniGames, TEXT("[HitZone 참고] HighPerfect 판정 시 접시 위치: %s"),
+					*(*FoundPlateForHint)->GetActorLocation().ToString());
+			}
+		}
+	}
+
 	// ★ 토핑은 이미 HandleRhythmInput에서 (판정 결과와 무관하게) 스폰되어 임시 키로
 	//   등록되어 있습니다. 이번 판정이 진짜 노트에 대한 것이었다면(Reason=Note), 그 토핑을
 	//   임시 키에서 진짜 Result.NoteId로 다시 등록해서, 완성 로직이 정확히 이 토핑을 찾을 수 있게 합니다.
@@ -375,27 +438,51 @@ void APTBSRMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 				ActiveToppingsMap.Add(Result.NoteId, Topping);
 			}
 		}
+		else
+		{
+			// [진단용] 방금 스폰했어야 할 토핑을 임시 키로 못 찾았습니다 — 스포너 바인딩 지연 등
+			// 레이스 컨디션 가능성이 있습니다. Result.NoteId=%d 판정 자체는 정상 진행되지만,
+			// 이 노트는 완성 비주얼을 못 띄우게 됩니다.
+			PTB_WARNING(LogPTBMiniGames, TEXT("[%s] HandleJudgementResult: PendingInputToppingKey=%d 로 등록된 토핑을 찾지 못했습니다 (Result.NoteId=%d). 토핑 스포너 바인딩 타이밍 문제일 수 있습니다."),
+				*GetNameSafe(this), PendingInputToppingKey, Result.NoteId);
+		}
+
+		// [낙하 시간 측정용] 스폰 시각 기록도 임시 키에서 진짜 NoteId로 같이 옮겨줍니다.
+		if (const float* FoundSpawnTime = ToppingSpawnTimeMap.Find(PendingInputToppingKey))
+		{
+			const float SpawnTimeSeconds = *FoundSpawnTime;
+			ToppingSpawnTimeMap.Remove(PendingInputToppingKey);
+			ToppingSpawnTimeMap.Add(Result.NoteId, SpawnTimeSeconds);
+		}
 	}
 
 	// ★ 판정이 Miss가 아니면, 점수는 지금 이 순간 바로 확정합니다. 완성 비주얼(VFX/모델 스폰)은
-	//   토핑이 실제로 접시(컨베이어)에 물리적으로 닿는 순간에 트리거됩니다
-	//   (PTBSRPlate::HandleBoxBeginOverlap → NotifyToppingReachedConveyor). 그래야 "완전히
-	//   떨어지고 나서 완성되는" 자연스러운 낙하 연출이 됩니다. 혹시 끝까지 아무 접시에도
-	//   안 닿는 예외 상황을 대비해 MaxSuccessVisualWaitSeconds 뒤에는 강제로라도 완성 처리합니다.
+	//   물리적 접촉과 무관하게, 지금 캡처해둔 위치에서 FixedCompletionDelaySeconds 뒤에
+	//   무조건 재생됩니다 (토핑이 물리적으로 튕겨서 낙하 시간이 불안정하기 때문에,
+	//   더 이상 실제 접촉 타이밍에 의존하지 않습니다).
 	if (Result.JudgementType != EPTBJudgementType::Miss)
 	{
 		++SuccessSushiCount;
 		OnSushiSuccessDelegate.Broadcast(Result.NoteId, Result.JudgementType);
 
+		// ★ 여기서는 위치를 미리 캡처하거나 접시를 숨기지 않습니다. 접시는 토핑이 떨어지는
+		//   동안 계속 화면에 보이면서 정상적으로 컨베이어를 타고 이동해야 합니다.
+		//   완성 위치는 ResolveSuccessVisual이 실행되는 "바로 그 순간"에 접시가 실제로
+		//   있는 자리를 즉석에서 조회해서 쓰고, 그 즉시 그 자리에서 접시를 치웁니다.
+		//   그래야 접시가 사라지는 위치와 스시가 나타나는 위치가 항상 정확히 같습니다.
 		PendingSuccessNoteIds.Add(Result.NoteId);
 
-		if (MaxSuccessVisualWaitSeconds > 0.0f)
+		if (FixedCompletionDelaySeconds > 0.0f)
 		{
-			FTimerDelegate FallbackResolve;
-			FallbackResolve.BindUObject(this, &APTBSRMiniGame::ResolveSuccessVisualIfStillPending, Result.NoteId);
+			FTimerDelegate DelayedResolve;
+			DelayedResolve.BindUObject(this, &APTBSRMiniGame::ResolveSuccessVisualIfStillPending, Result.NoteId);
 
 			FTimerHandle TempHandle;
-			GetWorldTimerManager().SetTimer(TempHandle, FallbackResolve, MaxSuccessVisualWaitSeconds, false);
+			GetWorldTimerManager().SetTimer(TempHandle, DelayedResolve, FixedCompletionDelaySeconds, false);
+		}
+		else
+		{
+			ResolveSuccessVisualIfStillPending(Result.NoteId);
 		}
 	}
 	else

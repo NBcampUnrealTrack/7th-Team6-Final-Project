@@ -122,13 +122,12 @@ protected:
 	UPROPERTY(EditInstanceOnly, BlueprintReadWrite, Category = "PTB|Sushi|VFX")
 	AActor* CompletionSpawnPoint = nullptr;
 
-	/** 판정 성공 시 완성 비주얼은 원래 "토핑이 실제로 접시(컨베이어)에 닿는 순간"에 재생됩니다
-	 *  (PTBSRPlate::HandleBoxBeginOverlap → NotifyToppingReachedConveyor). 혹시 토핑이 끝까지
-	 *  아무 접시에도 안 닿는 예외 상황(레벨 밖으로 벗어나는 등)을 대비한 최대 대기 시간(초)입니다.
-	 *  이 시간이 지나면 접촉 여부와 무관하게 강제로 완성 처리합니다. 판정 자체(점수)는 이 값과
-	 *  무관하게 항상 즉시 확정됩니다. 0으로 두면 이 안전장치를 끕니다(닿을 때까지 무한정 대기). */
+	/** 판정 성공 시, 그 순간 접시(컨베이어) 위치를 캡처해두고 이 시간(초) 뒤에 무조건
+	 *  완성 비주얼(VFX/모델 스폰)을 재생합니다. 토핑이 물리적으로 어디에 튕겨나가든,
+	 *  접시가 그 사이 얼마나 더 이동했든 상관없이 항상 "판정 순간의 위치"에서 완성됩니다.
+	 *  판정 자체(점수)는 이 값과 무관하게 항상 즉시 확정됩니다. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|Sushi|VFX")
-	float MaxSuccessVisualWaitSeconds = 3.0f;
+	float FixedCompletionDelaySeconds = 1.1f;
 
 	/** BP_SR_Topping 쪽 완성 스시 클래스 변수명 (리플렉션으로 읽음, 이름이 정확히 일치해야 함) */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|Sushi|VFX")
@@ -154,8 +153,14 @@ private:
 	UPROPERTY() TMap<int32, AActor*> ActivePlatesMap;
 	UPROPERTY() TMap<int32, AActor*> ActiveToppingsMap;
 
-	/** 판정은 성공했지만 아직 완성 비주얼(VFX/모델 스폰)을 안 띄운, "토핑이 컨베이어에
-	 *  닿기를 기다리는 중"인 NoteId 목록입니다. */
+	/** 토핑이 스폰된 시각(초, GetWorld()->GetTimeSeconds() 기준)을 NoteId(또는 임시 키)별로 기록합니다.
+	 *  나중에 그 토핑이 실제로 컨베이어에 닿는 순간(NotifyToppingReachedConveyor) 이 값과 비교해서
+	 *  "낙하 시간"을 실측 로그로 남기는 데 씁니다. */
+	UPROPERTY() TMap<int32, float> ToppingSpawnTimeMap;
+
+	/** 판정은 성공했지만 아직 완성 비주얼(VFX/모델 스폰)을 안 띄운, "완성 타이머 대기 중"인
+	 *  NoteId 목록입니다. 이 목록에 있는 동안은 PTBSRPlate가 물리적으로 겹쳐도 토핑을
+	 *  파괴하지 않고 그냥 둡니다 (완성 타이머가 알아서 처리할 것이므로). */
 	UPROPERTY() TSet<int32> PendingSuccessNoteIds;
 
 	/** 모든 키 입력마다 토핑을 무조건 스폰하기 위한 임시 키 발급용 카운터.
@@ -167,7 +172,7 @@ private:
 	 *  이 키로 방금 스폰한 토핑을 찾아 진짜 NoteId로 다시 태깅합니다. */
 	int32 PendingInputToppingKey = INDEX_NONE;
 
-	/** MaxSuccessVisualWaitSeconds가 지나도 여전히 대기 중이면 강제로 완성 처리하는 안전장치 */
+	/** FixedCompletionDelaySeconds 뒤에 호출되어, 캡처해둔 위치에서 완성 처리를 실행합니다 */
 	void ResolveSuccessVisualIfStillPending(int32 NoteId);
 
 	/** 판정 성공 시, 등록된 토핑을 찾아 완성 VFX + 완성 스시 모델 스폰 후 토핑을 제거합니다.
