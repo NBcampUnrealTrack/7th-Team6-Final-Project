@@ -188,6 +188,19 @@ void APTBBBBossActor::ApplyDifficultyMaterial_Implementation(EPTBDifficulty Diff
 		return;
 	}
 
+	const int32 NumMaterials = BossMesh->GetNumMaterials();
+	if (NumMaterials <= 0)
+	{
+		PTB_WARNING(LogPTBMiniGames, TEXT("[BBBossActor] ApplyDifficultyMaterial: BossMesh에 머티리얼 슬롯이 없습니다."));
+		return;
+	}
+
+	if (MaterialSlotIndex < 0 || MaterialSlotIndex >= NumMaterials)
+	{
+		PTB_WARNING(LogPTBMiniGames, TEXT("[BBBossActor] ApplyDifficultyMaterial: MaterialSlotIndex=%d가 유효 범위(0~%d)를 벗어났습니다."), MaterialSlotIndex, NumMaterials - 1);
+		return;
+	}
+
 	BossMesh->SetMaterial(MaterialSlotIndex, FoundMaterial->Get());
 }
 
