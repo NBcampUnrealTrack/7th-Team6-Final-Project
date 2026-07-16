@@ -339,6 +339,32 @@ void UPTBGameFlowSubsystem::ReturnToMiniGameSelect()
 	UGameplayStatics::OpenLevel(this, MiniGameSelectLevelName);
 }
 
+void UPTBGameFlowSubsystem::GoToMainMenu()
+{
+	PTB_RECORD(LogPTBFlow, TEXT("[PTBFlow] 메인 타이틀 화면으로 돌아갑니다."));
+
+	ClearRetryTarget();
+
+	SetFlowState(EGameFlowState::MainMenu);
+
+	if (MainMenuLevelName.IsNone())
+	{
+		PTB_WARNING(LogPTBFlow,
+			TEXT("[PTBFlow] GoToMainMenu 실패: 메인 타이틀 맵 이름이 없습니다."));
+		return;
+	}
+
+	const FString CurrentLevelName = UGameplayStatics::GetCurrentLevelName(this, true);
+	if (CurrentLevelName.Equals(MainMenuLevelName.ToString(), ESearchCase::CaseSensitive))
+	{
+		PTB_VERBOSE(LogPTBFlow,
+			TEXT("[PTBFlow] GoToMainMenu 무시: 이미 메인 타이틀 맵입니다."));
+		return;
+	}
+
+	UGameplayStatics::OpenLevel(this, MainMenuLevelName);
+}
+
 bool UPTBGameFlowSubsystem::RetryLastGame()
 {
 	if (LastSessionRequest.MiniGameId.IsNone())
