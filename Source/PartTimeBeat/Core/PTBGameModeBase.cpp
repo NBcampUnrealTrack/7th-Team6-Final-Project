@@ -394,6 +394,8 @@ void APTBGameModeBase::PauseGame()
 		ActiveMiniGame->PauseMiniGame();
 	}
 
+	UGameplayStatics::SetGamePaused(this, true);
+
 	// FlowState 갱신
 	UPTBGameInstance* GI = Cast<UPTBGameInstance>(GetGameInstance());
 	if (GI)
@@ -410,6 +412,8 @@ void APTBGameModeBase::PauseGame()
 void APTBGameModeBase::ResumeGame()
 {
 	if (!bIsPaused) { return; }
+
+	UGameplayStatics::SetGamePaused(this, false);
 
 	bIsPaused = false;
 
@@ -537,6 +541,8 @@ void APTBGameModeBase::SubmitRoundResult(const FPTBRoundResult& Result)
 
 void APTBGameModeBase::RetryGame_Implementation()
 {
+	UGameplayStatics::SetGamePaused(this, false);
+
 	HidePauseMenu();
 
 	// 기존 미니게임 정리
@@ -558,6 +564,8 @@ void APTBGameModeBase::RetryGame_Implementation()
 
 void APTBGameModeBase::ExitToMenu_Implementation()
 {
+	UGameplayStatics::SetGamePaused(this, false);
+
 	HidePauseMenu();
 
 	// 미니게임 정리

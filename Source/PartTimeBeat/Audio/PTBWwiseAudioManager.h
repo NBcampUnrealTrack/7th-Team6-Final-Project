@@ -53,6 +53,10 @@ public:
 	/** 현재 BGM PlayingId */
 	int32 CurrentBGMPlayingId = 0;
 
+	/** 현재 BGM 이벤트 */
+	UPROPERTY()
+	TObjectPtr<UAkAudioEvent> CurrentBGMEvent = nullptr;
+
 	/** BGM 재생 중 여부 */
 	bool bIsBGMPlaying = false;
 
