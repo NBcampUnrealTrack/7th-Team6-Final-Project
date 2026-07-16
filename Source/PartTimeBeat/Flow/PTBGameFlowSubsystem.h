@@ -67,6 +67,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "PTB|Flow")
 	void ReturnToMiniGameSelect();
 
+	/** 메인 타이틀 화면으로 복귀 */
+	UFUNCTION(BlueprintCallable, Category = "PTB|Flow")
+	void GoToMainMenu();
+
 	/** 결과 화면에서 마지막 플레이를 다시 시작 */
 	UFUNCTION(BlueprintCallable, Category = "PTB|Flow")
 	bool RetryLastGame();
@@ -124,4 +128,7 @@ public:
 	/** 미니게임 선택 화면 레벨 이름 */
 	UPROPERTY(BlueprintReadOnly, Category = "PTB|Flow")
 	FName MiniGameSelectLevelName = TEXT("L_GameMap");
+	/** 메인 타이틀 화면 레벨 이름 */
+	UPROPERTY(BlueprintReadOnly, Category = "PTB|Flow")
+	FName MainMenuLevelName = TEXT("L_MainTitle");
 };

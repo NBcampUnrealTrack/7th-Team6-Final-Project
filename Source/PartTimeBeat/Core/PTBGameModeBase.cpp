@@ -591,3 +591,37 @@ void APTBGameModeBase::ExitToMenu_Implementation()
 	}
 
 }
+
+void APTBGameModeBase::GoToMainMenu_Implementation()
+{
+	HidePauseMenu();
+
+	// 미니게임 정리
+	if (ActiveMiniGame)
+	{
+		ActiveMiniGame->OnMiniGameStarted.RemoveDynamic(this, &APTBGameModeBase::HandleMiniGameStarted);
+		ActiveMiniGame->OnMiniGameFinished.RemoveDynamic(this, &APTBGameModeBase::HandleMiniGameFinished);
+		if (bIsGameActive)
+		{
+			ActiveMiniGame->FinishMiniGame(EPTBRoundEndReason::Aborted);
+		}
+		ActiveMiniGame->Destroy();
+		ActiveMiniGame = nullptr;
+	}
+
+	bIsGameActive = false;
+	bIsPaused = false;
+
+	UPTBGameInstance* GI = Cast<UPTBGameInstance>(GetGameInstance());
+	if (GI)
+	{
+		if (UPTBGameFlowSubsystem* FlowSubsystem = GI->GetSubsystem<UPTBGameFlowSubsystem>())
+		{
+			FlowSubsystem->GoToMainMenu();
+			return;
+		}
+
+		GI->CurrentFlowState = EGameFlowState::MainMenu;
+		GI->OnFlowStateChanged.Broadcast(EGameFlowState::MainMenu);
+	}
+}
