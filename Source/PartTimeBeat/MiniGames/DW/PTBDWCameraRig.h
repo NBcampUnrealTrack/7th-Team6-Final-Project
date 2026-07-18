@@ -52,7 +52,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW")
 	float BlendTime = 0.0f;
 
-	// ── 인트로 카메라 이동 (시작 포즈→현재 플레이 포즈) ──
+	// ── 인트로 카메라 이동 ──
 	/** 인트로 시작 포즈. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW|Intro")
 	float IntroArmLength = 1400.0f;
@@ -62,7 +62,7 @@ public:
 	float IntroYaw = -90.0f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW|Intro")
 	float IntroFieldOfView = 60.0f;
-	/** 이동 시간(초). */
+	/** 이동 시간. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW|Intro")
 	float IntroMoveDuration = 2.0f;
 	/** ease-in-out 강도. */
@@ -72,7 +72,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW|Intro")
 	bool bStartAtIntroPose = true;
 
-	/** 인트로 이동 완료(카운트다운 연결용). */
+	/** 인트로 이동 완료. */
 	UPROPERTY(BlueprintAssignable, Category = "PTB|DW|Intro")
 	FDWOnIntroMoveFinished OnIntroMoveFinished;
 

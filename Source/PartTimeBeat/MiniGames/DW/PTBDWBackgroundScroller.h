@@ -23,7 +23,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW")
 	int32 ChunkCount = 5;
 
-	/** 캐릭터 뒤(-진행축)로 미리 깔 청크 수. */
+	/** 캐릭터 뒤로 미리 깔 청크 수. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW")
 	int32 ChunksBehind = 2;
 
@@ -46,7 +46,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "PTB|DW")
 	void SetSpeedScale(float Scale, float Multiplier = 1.0f) { ScrollSpeed = BaseScrollSpeed * FMath::Max(0.01f, Scale) * FMath::Max(0.0f, Multiplier); }
 
-	/** 현재 스크롤 속도(broken 메시 뒤로 흘려보내기 등에 공용). */
+	/** 현재 스크롤 속도. */
 	UFUNCTION(BlueprintPure, Category = "PTB|DW")
 	float GetScrollSpeed() const { return ScrollSpeed; }
 
