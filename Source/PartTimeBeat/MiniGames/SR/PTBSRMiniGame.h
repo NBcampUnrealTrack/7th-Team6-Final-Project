@@ -66,6 +66,11 @@ public:
 	UFUNCTION(BlueprintPure, Category = "PTB|Sushi")
 	float GetPlateMoveSpeed() const { return PlateMoveSpeed; }
 
+	/** 이번 라운드(선택된 난이도의 채보 기준) 전체 토핑 개수. ToppingSpawner가 "남은 토핑" UI를
+	 *  올바른 난이도 기준으로 초기화하는 데 사용합니다. BuildRuntimeState 완료 후에만 유효합니다. */
+	UFUNCTION(BlueprintPure, Category = "PTB|Sushi")
+	int32 GetTotalToppingCount() const { return ToppingQueue.Num(); }
+
 	/** PTBSRPlate가 토핑과 물리적으로 겹쳤을 때(=바닥/컨베이어에 닿았을 때) 호출합니다.
 	 *  이 NoteId가 "판정은 이미 성공했지만 아직 완성 비주얼을 안 띄운" 대기 상태라면,
 	 *  바로 지금(=닿는 순간) 완성 처리를 하고 true를 반환합니다. 대기 상태가 아니었다면
