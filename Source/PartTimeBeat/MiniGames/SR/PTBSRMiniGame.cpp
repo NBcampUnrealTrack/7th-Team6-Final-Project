@@ -35,8 +35,6 @@ void APTBSRMiniGame::InitializeMiniGame(const FPTBMiniGameContext& Context)
 
 FPTBRoundResult APTBSRMiniGame::FinishMiniGame(EPTBRoundEndReason Reason)
 {
-	//return Super::FinishMiniGame(Reason);
-
 	FPTBRoundResult FinalResult = Super::FinishMiniGame(Reason);
 
 	FinalResult.MiniGameId = FName("SR");
@@ -98,14 +96,6 @@ void APTBSRMiniGame::BuildRuntimeState()
 	}
 
 	UE_LOG(LogRhythm, Log, TEXT("[%s] 데이터 테이블 기반 총 %d개의 초밥 채보 토핑 무작위 셔플 완료!"), *GetNameSafe(this), ToppingQueue.Num());
-}
-
-void APTBSRMiniGame::RegisterActivePlate(int32 NoteId, AActor* PlateActor)
-{
-	if (PlateActor)
-	{
-		ActivePlatesMap.Add(NoteId, PlateActor);
-	}
 }
 
 int32 APTBSRMiniGame::GetToppingTypeFromQueue(int32 NoteId) const

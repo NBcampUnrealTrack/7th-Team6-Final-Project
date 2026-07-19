@@ -1,5 +1,6 @@
 #include "PTBSRToppingSpawner.h"
 #include "PTBSRMiniGame.h"
+#include "Core/PTBGameModeBase.h"
 #include "Kismet/GameplayStatics.h"
 #include "TimerManager.h"
 #include "Debug/PTBLogChannels.h"
@@ -13,6 +14,27 @@ void APTBSRToppingSpawner::BeginPlay()
 {
 	Super::BeginPlay();
 
+	TryBindMiniGame();
+
+	if (APTBGameModeBase* GameMode = Cast<APTBGameModeBase>(UGameplayStatics::GetGameMode(this)))
+	{
+		GameMode->OnGameStarted.AddUniqueDynamic(this, &APTBSRToppingSpawner::HandleGameStarted);
+	}
+}
+
+void APTBSRToppingSpawner::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	if (APTBGameModeBase* GameMode = Cast<APTBGameModeBase>(UGameplayStatics::GetGameMode(this)))
+	{
+		GameMode->OnGameStarted.RemoveDynamic(this, &APTBSRToppingSpawner::HandleGameStarted);
+	}
+
+	Super::EndPlay(EndPlayReason);
+}
+
+void APTBSRToppingSpawner::HandleGameStarted()
+{
+	BoundMiniGame = nullptr;
 	TryBindMiniGame();
 }
 
@@ -81,6 +103,12 @@ void APTBSRToppingSpawner::SpawnTopping(int32 AssignedTopping, int32 NoteId)
 		UE_LOG(LogPTBMiniGames, Error, TEXT("[%s] SpawnTopping failed to spawn %s"),
 			*GetNameSafe(this), *GetNameSafe(ToppingClass));
 		return;
+	}
+
+	// Retry 시 정리되도록 등록
+	if (IsValid(BoundMiniGame))
+	{
+		BoundMiniGame->RegisterSpawnedRoundActor(SpawnedActor);
 	}
 
 	if (FIntProperty* ToppingIdProp = FindFProperty<FIntProperty>(SpawnedActor->GetClass(), ToppingIdPropertyName))

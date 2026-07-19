@@ -52,10 +52,8 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category = "PTB|Sushi") 
 	FOnSushiSuccessSignature OnSushiSuccessDelegate;
-	UPROPERTY(BlueprintAssignable, Category = "PTB|Sushi") 
+	UPROPERTY(BlueprintAssignable, Category = "PTB|Sushi")
 	FOnSushiMissSignature OnSushiMissDelegate;
-	UFUNCTION(BlueprintCallable, Category = "PTB|Sushi") 
-	void RegisterActivePlate(int32 NoteId, AActor* PlateActor);
 
 	// 블루프린트에서 노트 번호만 주면 셔플된 대기열에서 몇 번 토핑인지 안전하게 꺼내줍니다. (Pure 함수라 실행선 불필요)
 	UFUNCTION(BlueprintPure, Category = "PTB|Sushi") 
@@ -107,9 +105,6 @@ protected:
 	UPROPERTY(BlueprintReadWrite, Category = "PTB|Sushi") 
 	int32 CurrentNoteIndex = 0;
 
-	UPROPERTY(BlueprintReadOnly, Category = "PTB|Sushi") 
+	UPROPERTY(BlueprintReadOnly, Category = "PTB|Sushi")
 	TArray<int32> ToppingQueue;
-private:
-	
-	UPROPERTY() TMap<int32, AActor*> ActivePlatesMap;
 };
