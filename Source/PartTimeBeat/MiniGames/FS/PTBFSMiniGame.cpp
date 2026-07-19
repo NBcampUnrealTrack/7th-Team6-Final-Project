@@ -35,6 +35,9 @@ void APTBFSMiniGame::BeginPlay()
 	}
 	if (WidgetClass)
 	{
+		// Retry로 이 미니게임 Actor가 교체될 때, 이전 라운드의 HUD가 뷰포트에 남지 않도록 정리.
+		RemoveExistingWidgetsOfClass(WidgetClass);
+
 		ActiveFSWidget = CreateWidget<UFSWidget>(GetWorld(), WidgetClass);
 
 		if (ActiveFSWidget)
