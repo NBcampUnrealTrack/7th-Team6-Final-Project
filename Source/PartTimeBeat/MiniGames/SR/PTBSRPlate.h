@@ -19,6 +19,13 @@ public:
 	APTBSRPlate();
 
 	virtual void Tick(float DeltaTime) override;
+	
+	/** 접시 컨베이어 이동 속도 (기존 BP의 MoveSpeed 변수 대체, 로컬 Y축 기준) */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|SR|Plate")
+	float MoveSpeed = -100.0f;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|SR|Plate")
+	int32 AssignedNoteId;
 
 protected:
 	virtual void BeginPlay() override;
@@ -28,9 +35,7 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PTB|SR|Plate")
 	TObjectPtr<UBoxComponent> Box;
 
-	/** 접시 컨베이어 이동 속도 (기존 BP의 MoveSpeed 변수 대체, 로컬 Y축 기준) */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|SR|Plate")
-	float MoveSpeed = -100.0f;
+
 
 	/** 완성 판정(Miss가 아닐 때) 시 재생할 VFX */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|SR|Plate|VFX")

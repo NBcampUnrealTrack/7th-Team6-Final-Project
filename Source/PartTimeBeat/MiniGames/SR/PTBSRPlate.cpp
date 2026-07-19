@@ -1,7 +1,11 @@
 #include "PTBSRPlate.h"
+#include "PTBSRMiniGame.h"
 #include "Components/BoxComponent.h"
 #include "Kismet/GameplayStatics.h"
-#include "PTBSRMiniGame.h"
+#include "NiagaraFunctionLibrary.h"
+#include "NiagaraSystem.h"
+#include "Debug/PTBLogChannels.h"
+#include "Debug/PTBTeamLog.h"
 
 APTBSRPlate::APTBSRPlate()
 {
@@ -37,14 +41,92 @@ void APTBSRPlate::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	if (bMovementFrozen)
-	{
-		return;
-	}
-
 	// 기존 BP: MakeVector(0, MoveSpeed * DeltaSeconds, 0) → AddActorLocalOffset
 	const FVector DeltaLocation(0.0f, MoveSpeed * DeltaTime, 0.0f);
 	AddActorLocalOffset(DeltaLocation, false);
+}
+
+bool APTBSRPlate::TryGetNoteIdFromTopping(AActor* ToppingActor, int32& OutNoteId) const
+{
+	if (!ToppingActor)
+	{
+		return false;
+	}
+
+	if (const FIntProperty* NoteIdProp = FindFProperty<FIntProperty>(ToppingActor->GetClass(), ToppingNoteIdPropertyName))
+	{
+		OutNoteId = NoteIdProp->GetPropertyValue_InContainer(ToppingActor);
+		return true;
+	}
+
+	PTB_WARNING(LogPTBMiniGames, TEXT("[%s] TryGetNoteIdFromTopping: [%s]에서 [%s] 프로퍼티를 찾지 못했습니다."),
+		*GetNameSafe(this), *GetNameSafe(ToppingActor), *ToppingNoteIdPropertyName.ToString());
+	return false;
+}
+
+TSubclassOf<AActor> APTBSRPlate::GetSushiClassFromTopping(AActor* ToppingActor) const
+{
+	if (!ToppingActor)
+	{
+		return nullptr;
+	}
+
+	// class 타입 핀(TSubclassOf<AActor> 등)은 FClassProperty로 저장됩니다.
+	if (const FClassProperty* ClassProp = FindFProperty<FClassProperty>(ToppingActor->GetClass(), ToppingSushiClassPropertyName))
+	{
+		UObject* ClassValue = ClassProp->GetPropertyValue_InContainer(ToppingActor);
+		return TSubclassOf<AActor>(Cast<UClass>(ClassValue));
+	}
+
+	PTB_WARNING(LogPTBMiniGames, TEXT("[%s] GetSushiClassFromTopping: [%s]에서 [%s] 프로퍼티를 찾지 못했습니다."),
+		*GetNameSafe(this), *GetNameSafe(ToppingActor), *ToppingSushiClassPropertyName.ToString());
+	return nullptr;
+}
+
+APTBSRMiniGame* APTBSRPlate::FindMiniGame() const
+{
+	return Cast<APTBSRMiniGame>(UGameplayStatics::GetActorOfClass(GetWorld(), APTBSRMiniGame::StaticClass()));
+}
+
+void APTBSRPlate::PlayCompletionEffects(TSubclassOf<AActor> SushiClass)
+{
+	if (CompletionVFX)
+	{
+		UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+			this,
+			CompletionVFX,
+			GetActorLocation(),
+			GetActorRotation(),
+			FVector(1.0f),
+			/*bAutoDestroy=*/true,
+			/*bAutoActivate=*/true,
+			ENCPoolMethod::None,
+			/*bPreCullCheck=*/true);
+	}
+
+	if (SushiClass)
+	{
+		if (UWorld* World = GetWorld())
+		{
+			FActorSpawnParameters SpawnParams;
+			SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+			AActor* CompletedSushi = World->SpawnActor<AActor>(SushiClass, GetActorTransform(), SpawnParams);
+
+			// Retry 시 정리되도록 등록
+			if (CompletedSushi)
+			{
+				if (APTBSRMiniGame* MiniGame = FindMiniGame())
+				{
+					MiniGame->RegisterSpawnedRoundActor(CompletedSushi);
+				}
+			}
+		}
+	}
+	else
+	{
+		PTB_WARNING(LogPTBMiniGames, TEXT("[%s] PlayCompletionEffects: SushiClass가 유효하지 않아 완성 스시 모델을 스폰하지 못했습니다."),
+			*GetNameSafe(this));
+	}
 }
 
 void APTBSRPlate::HandleBoxBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
