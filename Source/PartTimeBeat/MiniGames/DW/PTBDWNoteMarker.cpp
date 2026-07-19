@@ -6,7 +6,6 @@
 #include "Materials/MaterialInstanceDynamic.h"
 #include "UObject/ConstructorHelpers.h"
 
-//마커 placeholder
 APTBDWNoteMarker::APTBDWNoteMarker()
 {
 	PrimaryActorTick.bCanEverTick = false;

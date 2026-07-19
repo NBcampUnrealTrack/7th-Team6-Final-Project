@@ -11,7 +11,7 @@ class UStaticMesh;
 class UMaterialInterface;
 class UMaterialInstanceDynamic;
 
-/** 판정 등급 3D 글자 팝업(PERFECT/GOOD/MISS).미설정 시 큐브 placeholder. */
+/** 판정 등급 3D 글자 팝업(PERFECT/GOOD/MISS). */
 UCLASS()
 class PARTTIMEBEAT_API APTBDWTextPopup : public AActor
 {
@@ -26,7 +26,7 @@ public:
 	/** 임의 단어 표시(대문자 글리프). */
 	void ShowWord(const FString& Word, const FLinearColor& Color);
 
-	/** 글리프 문자 -> 메시. 미설정 문자는 큐브 placeholder. */
+	/** 글리프 문자 -> 메시. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|DW|Text")
 	TMap<FString, TObjectPtr<UStaticMesh>> GlyphMeshes;
 
@@ -37,7 +37,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|DW|Text")
 	FVector GlyphScale = FVector(0.5f, 0.5f, 0.5f);
 
-	/** 글자 간 X 간격(모노스페이스, cm). */
+	/** 글자 간 X 간격. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|DW|Text")
 	float GlyphAdvance = 60.0f;
 
@@ -49,7 +49,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|DW|Text")
 	FLinearColor ColorMiss = FLinearColor(1.0f, 0.3f, 0.3f);
 
-	/** 팝 애니(초): 스케일 인 / 유지 / 상승·페이드. */
+	/** 팝 애니: 스케일 인 / 유지 / 상승·페이드. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|DW|Text")
 	float PopInSec = 0.12f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|DW|Text")
@@ -57,7 +57,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|DW|Text")
 	float RiseSec = 0.25f;
 
-	/** 페이드 동안 위로 뜨는 높이(cm). */
+	/** 페이드 동안 위로 뜨는 높이. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|DW|Text")
 	float RiseZ = 40.0f;
 
