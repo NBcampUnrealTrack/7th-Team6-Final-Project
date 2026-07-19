@@ -41,6 +41,20 @@ void APTBSRToppingSpawner::TryBindMiniGame()
 
 	BoundMiniGame = MiniGame;
 	MiniGame->OnToppingDrop.AddDynamic(this, &APTBSRToppingSpawner::HandleSushiPlateSpawn);
+	MiniGame->OnSushiSuccessDelegate.AddDynamic(this, &APTBSRToppingSpawner::HandleSushiSuccess);
+
+	// ★ "남은 토핑" 카운트를 여기서(=바인딩이 성공한, 즉 채보/ToppingQueue가 이미 구성된 시점에)
+	//   초기화합니다. 난이도에 따라 실제로 다른 값이 들어갑니다 (기존에는 위젯의 PreConstruct가
+	//   너무 이른 시점에 세팅해서 항상 예전 값(26)으로 고정되어 있었습니다).
+	if (FIntProperty* CountProp = FindFProperty<FIntProperty>(GetClass(), TEXT("count")))
+	{
+		CountProp->SetPropertyValue_InContainer(this, MiniGame->GetTotalToppingCount());
+	}
+	else
+	{
+		UE_LOG(LogPTBMiniGames, Warning, TEXT("[%s] TryBindMiniGame: 'count' 프로퍼티를 찾지 못해 남은 토핑 초기화를 못 했습니다."),
+			*GetNameSafe(this));
+	}
 
 	UE_LOG(LogPTBMiniGames, Log, TEXT("[%s] OnSushiPlateSpawn bound to %s"),
 		*GetNameSafe(this), *GetNameSafe(MiniGame));
@@ -99,5 +113,21 @@ void APTBSRToppingSpawner::SpawnTopping(int32 AssignedTopping, int32 NoteId)
 	if (BoundMiniGame)
 	{
 		BoundMiniGame->RegisterActiveTopping(NoteId, SpawnedActor);
+	}
+}
+
+void APTBSRToppingSpawner::HandleSushiSuccess(int32 NoteId, EPTBJudgementType JudgementType)
+{
+	// ★ "남은 토핑" 카운트는 판정이 성공했을 때만 감소합니다 (틀리면 토핑은 소모됐어도
+	//   재료 자체는 낭비되지 않은 것으로 취급 — 게임 디자인 의도에 맞춰 조정 가능).
+	if (FIntProperty* CountProp = FindFProperty<FIntProperty>(GetClass(), TEXT("count")))
+	{
+		const int32 CurrentCount = CountProp->GetPropertyValue_InContainer(this);
+		CountProp->SetPropertyValue_InContainer(this, FMath::Max(0, CurrentCount - 1));
+	}
+	else
+	{
+		UE_LOG(LogPTBMiniGames, Warning, TEXT("[%s] HandleSushiSuccess: 'count' 프로퍼티를 찾지 못해 남은 토핑 표시가 갱신되지 않습니다."),
+			*GetNameSafe(this));
 	}
 }
