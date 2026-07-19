@@ -51,7 +51,7 @@ void USRWidget::UpdateJudgementText(EPTBJudgementType JudgementType, float Delta
     FString DisplayText = Label;
     if (bShouldShowTiming)
     {
-        DisplayText += DeltaMs < 0.0f ? TEXT(" (Early)") : TEXT(" (Late)");
+        //DisplayText += DeltaMs < 0.0f ? TEXT(" (Early)") : TEXT(" (Late)");
     }
 
     Txt_Judgement->SetText(FText::FromString(DisplayText));
