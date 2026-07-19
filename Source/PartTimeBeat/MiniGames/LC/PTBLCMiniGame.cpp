@@ -7,6 +7,7 @@
 #include "Audio/PTBWwiseRhythmSyncComponent.h"
 #include "MiniGames/Common/PTBMiniGameRuleSet.h"
 #include "PTBLCLogisticBox.h"
+#include "Rhythm/PTBJudgementSystem.h"
 #include "Rhythm/PTBRhythmChartAsset.h"
 #include "Rhythm/PTBRhythmConductorComponent.h"
 
@@ -76,6 +77,51 @@ void APTBLCMiniGame::HandleNoteCue(FPTBNoteEvent Note)
 		static_cast<int32>(Note.ActionType));
 }
 
+void APTBLCMiniGame::HandleRhythmInput(EPTBActionType Action, float TimeMs)
+{
+	if (!CanAcceptInput())
+	{
+		return;
+	}
+
+	if (RuleSet && !RuleSet->SupportsAction(Action))
+	{
+		return;
+	}
+
+	const float ResolvedTimeMs = TimeMs >= 0.0f ? TimeMs : GetCurrentInputJudgeTimeMs();
+	if (const float* LockUntilTimeMs = EmptyInputActionLockUntilTimeMs.Find(Action))
+	{
+		if (ResolvedTimeMs < *LockUntilTimeMs)
+		{
+			UE_LOG(LogRhythm, Verbose, TEXT("[%s] Input action locked. Action=%d TimeMs=%.2f UnlockMs=%.2f"),
+				*GetNameSafe(this),
+				static_cast<int32>(Action),
+				ResolvedTimeMs,
+				*LockUntilTimeMs);
+			return;
+		}
+
+		EmptyInputActionLockUntilTimeMs.Remove(Action);
+	}
+
+	APTBLCLogisticBox* TargetLogisticBox = FindTargetLogisticBox();
+	if (!TargetLogisticBox || !JudgementSystem)
+	{
+		Super::HandleRhythmInput(Action, ResolvedTimeMs);
+		return;
+	}
+
+	const FPTBJudgementResult Result = JudgementSystem->EvaluateInputForNoteId(
+		TargetLogisticBox->GetNoteId(),
+		Action,
+		ResolvedTimeMs);
+	if (Result.Reason == EPTBJudgementReason::EmptyInput && RuleSet && RuleSet->ShouldLockActionOnEmptyInput())
+	{
+		EmptyInputActionLockUntilTimeMs.Add(Action, ResolvedTimeMs + RuleSet->EmptyInputActionLockMs);
+	}
+}
+
 void APTBLCMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 {
 	Super::HandleJudgementResult(Result);
@@ -134,6 +180,38 @@ bool APTBLCMiniGame::IsLogisticBoxAction(EPTBActionType ActionType) const
 	return ActionType == EPTBActionType::ActionA ||
 		ActionType == EPTBActionType::ActionB ||
 		ActionType == EPTBActionType::ActionC;
+}
+
+APTBLCLogisticBox* APTBLCMiniGame::FindTargetLogisticBox() const
+{
+	if (!CollisionBox)
+	{
+		return nullptr;
+	}
+
+	TArray<AActor*> OverlappingActors;
+	CollisionBox->GetOverlappingActors(OverlappingActors);
+
+	APTBLCLogisticBox* TargetLogisticBox = nullptr;
+	float BestDistanceSquared = TNumericLimits<float>::Max();
+	const FVector JudgementCenter = CollisionBox->GetComponentLocation();
+	for (AActor* OverlappingActor : OverlappingActors)
+	{
+		APTBLCLogisticBox* LogisticBox = Cast<APTBLCLogisticBox>(OverlappingActor);
+		if (!LogisticBox || LogisticBox->GetIsPackaged() || LogisticBox->GetNoteId() == 0)
+		{
+			continue;
+		}
+
+		const float DistanceSquared = FVector::DistSquared(LogisticBox->GetActorLocation(), JudgementCenter);
+		if (!TargetLogisticBox || DistanceSquared < BestDistanceSquared)
+		{
+			TargetLogisticBox = LogisticBox;
+			BestDistanceSquared = DistanceSquared;
+		}
+	}
+
+	return TargetLogisticBox;
 }
 
 float APTBLCMiniGame::CalculateScheduledCueTimeMs(const FPTBNoteEvent& Note) const

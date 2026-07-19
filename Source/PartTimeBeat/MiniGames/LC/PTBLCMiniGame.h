@@ -31,6 +31,9 @@ public:
 	/** 선행 비주얼 큐 */
 	virtual void HandleNoteCue(FPTBNoteEvent Note) override;
 
+	/** 입력을 현재 판정 박스에 겹친 물류 박스 기준으로 처리 */
+	virtual void HandleRhythmInput(EPTBActionType Action, float TimeMs = -1.0f) override;
+
 	/** 점수 / HUD / SFX 반영 */
 	virtual void HandleJudgementResult(FPTBJudgementResult Result) override;
 	
@@ -83,6 +86,8 @@ protected:
 
 private:
 	bool IsLogisticBoxAction(EPTBActionType ActionType) const;
+
+	APTBLCLogisticBox* FindTargetLogisticBox() const;
 
 	float CalculateScheduledCueTimeMs(const FPTBNoteEvent& Note) const;
 	
