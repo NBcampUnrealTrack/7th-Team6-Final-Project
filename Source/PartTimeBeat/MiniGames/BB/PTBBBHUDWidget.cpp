@@ -10,6 +10,7 @@
 #include "Debug/PTBTeamLog.h"
 #include "TimerManager.h"
 #include "Kismet/GameplayStatics.h"
+#include "Blueprint/WidgetBlueprintLibrary.h"
 
 // ── 연결 / 해제 ──────────────────────────────────────────────────
 
@@ -73,6 +74,17 @@ void UPTBBBHUDWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
 
+	// Level BP가 Retry마다 새 HUD 인스턴스를 만들면서 이전 걸 제거하지 않아 직접 정리한다
+	TArray<UUserWidget*> ExistingHUDWidgets;
+	UWidgetBlueprintLibrary::GetAllWidgetsOfClass(this, ExistingHUDWidgets, UPTBBBHUDWidget::StaticClass(), false);
+	for (UUserWidget* ExistingWidget : ExistingHUDWidgets)
+	{
+		if (ExistingWidget && ExistingWidget != this && ExistingWidget->IsInViewport())
+		{
+			ExistingWidget->RemoveFromParent();
+		}
+	}
+	
 	// Blueprint에 Event Tick 노드가 없어도 NativeTick이 호출되도록 강제 활성화
 	bHasScriptImplementedTick = true;
 

@@ -277,13 +277,13 @@ FPTBMiniGameResultPayload APTBBBMiniGame::BuildResultPayload() const
 
 FPTBRoundResult APTBBBMiniGame::FinishMiniGame(EPTBRoundEndReason Reason)
 {
-	// OnFadeFinished(페이드 타이머)보다 BGM 종료 콜백(base의 HandleBGMFinished 등)이
-	// 먼저 도착해 라운드가 끝나는 경우에도, 결과(Payload)가 확정되기 전에 보스 처치
-	// 여부를 먼저 확인한다. bBossDefeated 가드가 있어 중복 호출은 안전하게 무시된다.
-	ConfirmBossDefeatIfNeeded();
+	// Aborted(재시작 등 중도 종료)는 채보를 끝까지 마친 게 아니므로 보스 처치 판정을 하지 않는다 —
+	// 안 그러면 미스 관용치 안에서 재시작할 때마다 보스가 처치 연출(랙돌)로 전환돼 버린다.
+	if (Reason != EPTBRoundEndReason::Aborted)
+	{
+		ConfirmBossDefeatIfNeeded();
+	}
 
-	// 남아 있을 수 있는 페이드 타이머를 확실히 취소한다. 정리되지 않은 채 남아있다가
-	// 다음 라운드(액터 재사용) 도중 잘못 발화하는 것을 막기 위한 방어 코드.
 	GetWorldTimerManager().ClearTimer(TimeLimitTimerHandle);
 
 	return Super::FinishMiniGame(Reason);
