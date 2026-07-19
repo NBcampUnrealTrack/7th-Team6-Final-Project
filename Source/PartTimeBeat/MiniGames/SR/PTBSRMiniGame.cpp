@@ -368,7 +368,6 @@ void APTBSRMiniGame::HandleRhythmInput(EPTBActionType Action, float TimeMs)
 	// 그때 이 임시 키로 방금 스폰한 토핑을 찾아 실제 매칭 여부를 반영할 수 있도록 기억해둡니다.
 	PendingInputToppingKey = SpawnedTempKey;
 	Super::HandleRhythmInput(Action, TimeMs);
-	PendingInputToppingKey = INDEX_NONE;
 }
 
 

@@ -170,7 +170,13 @@ private:
 
 	/** 모든 키 입력마다 토핑을 무조건 스폰하기 위한 임시 키 발급용 카운터.
 	 *  실제 채보 NoteId(0 이상)와 절대 겹치지 않도록 음수만 사용합니다. */
-	int32 NextTempToppingKey = -1;
+	 /** 모든 키 입력마다 토핑을 무조건 스폰하기 위한 임시 키 발급용 카운터.
+	  *  실제 채보 NoteId(0 이상)와 절대 겹치지 않도록 음수만 사용합니다.
+	  *  ★ -1이 아니라 -2부터 시작합니다 — INDEX_NONE도 -1이라서, -1부터 시작하면
+	  *    "첫 번째로 발급된 진짜 임시 키"와 "키가 없다는 뜻의 센티널 값"이 우연히 같아져서,
+	  *    PendingInputToppingKey != INDEX_NONE 체크가 첫 토핑에서만 거짓으로 잘못 평가되는
+	  *    버그가 있었습니다. */
+	int32 NextTempToppingKey = -2;
 
 	/** 이번 HandleRhythmInput 호출에서 방금 스폰한 토핑의 (아직 판정 전) 임시 키.
 	 *  Super::HandleRhythmInput 안에서 동기적으로 HandleJudgementResult가 호출될 때,
