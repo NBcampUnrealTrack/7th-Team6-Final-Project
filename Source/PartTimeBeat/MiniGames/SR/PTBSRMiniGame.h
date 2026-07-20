@@ -90,6 +90,12 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "PTB|Sushi|UI")
 	void RefreshPreviewUI();
 
+	/** WBP_SR_Preview로 쓸 위젯 클래스 (BP_PTBSRMiniGame 클래스 디폴트에서 WBP_SR_Preview로 지정).
+	 *  BeginPlay마다(최초 시작+재시작 전부) 여기서 직접 생성/재사용하므로, 레벨 블루프린트에서
+	 *  따로 위젯을 만들어 대입해줄 필요가 없습니다. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "PTB|Sushi|UI")
+	TSubclassOf<class UUserWidget> PreviewWidgetClass;
+
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "PTB|Sushi")
 	EPTBJudgementType GetJudgementForNote(int32 NoteId) const
 	{
@@ -101,6 +107,11 @@ public:
 	}
 protected:
 	virtual void HandleRhythmInput(EPTBActionType Action, float TimeMs = -1.0f) override;
+
+	/** 판정 미리보기 위젯(WBP_SR_Preview)을 생성/재사용하고 화면에 띄웁니다.
+	 *  BeginPlay마다(최초 시작+재시작 전부) 호출되어, 레벨 블루프린트에 의존하지 않고
+	 *  매 라운드 항상 올바른 위젯 참조를 갖도록 합니다. */
+	void SetupPreviewWidget();
 
 	UPROPERTY()
 	TMap<int32, EPTBJudgementType> NoteJudgementResults;
