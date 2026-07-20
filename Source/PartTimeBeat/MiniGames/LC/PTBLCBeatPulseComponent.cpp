@@ -30,6 +30,11 @@ void UPTBLCBeatPulseComponent::TickComponent(float DeltaTime, ELevelTick TickTyp
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
+	if (!IsValid(SourceMiniGame) && bAutoFindSourceMiniGame)
+	{
+		SourceMiniGame = FindSourceMiniGame();
+	}
+
 	USceneComponent* ResolvedTargetComponent = ResolveTargetComponent();
 	if (!ResolvedTargetComponent)
 	{
@@ -95,7 +100,7 @@ float UPTBLCBeatPulseComponent::CalculateBeatPulseScale(float BeatPhase) const
 
 bool UPTBLCBeatPulseComponent::TryGetBeatPhase(float& OutBeatPhase) const
 {
-	if (!SourceMiniGame || !SourceMiniGame->ChartAsset || SourceMiniGame->ChartAsset->ChartData.BPM <= 0.0f)
+	if (!IsValid(SourceMiniGame) || !SourceMiniGame->ChartAsset || SourceMiniGame->ChartAsset->ChartData.BPM <= 0.0f)
 	{
 		return false;
 	}

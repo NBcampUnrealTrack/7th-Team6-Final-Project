@@ -143,6 +143,7 @@ namespace PTBJudgementSystemInternal
 
 		return false;
 	}
+
 }
 
 UPTBJudgementSystem::UPTBJudgementSystem()
@@ -309,6 +310,102 @@ FPTBJudgementResult UPTBJudgementSystem::EvaluateInput(EPTBActionType Action, fl
 		MatchedNote,
 		JudgementType,
 		BestSignedDeltaMs);
+
+	if (bBroadcastResult)
+	{
+		OnJudgementResult.Broadcast(Result);
+	}
+	return Result;
+}
+
+FPTBJudgementResult UPTBJudgementSystem::EvaluateInputForNoteId(int32 NoteId, EPTBActionType InputAction, float InputTimeMs, bool bBroadcastResult)
+{
+	const float CorrectedInputTimeMs = InputTimeMs + JudgementOffsetMs;
+	if (NoteId == 0 || InputAction == EPTBActionType::None)
+	{
+		const FPTBJudgementResult Result = PTBJudgementSystemInternal::MakeMissResult(
+			InputAction,
+			EPTBJudgementReason::EmptyInput,
+			0,
+			0.0f,
+			0.0f,
+			CorrectedInputTimeMs);
+		if (bBroadcastResult)
+		{
+			OnJudgementResult.Broadcast(Result);
+		}
+		return Result;
+	}
+
+	int32 TargetNoteIndex = INDEX_NONE;
+	for (int32 Index = 0; Index < PendingNotes.Num(); ++Index)
+	{
+		if (PendingNotes[Index].NoteId == NoteId)
+		{
+			TargetNoteIndex = Index;
+			break;
+		}
+	}
+
+	if (TargetNoteIndex == INDEX_NONE)
+	{
+		const FPTBJudgementResult Result = PTBJudgementSystemInternal::MakeMissResult(
+			InputAction,
+			EPTBJudgementReason::EmptyInput,
+			0,
+			0.0f,
+			0.0f,
+			CorrectedInputTimeMs);
+		if (bBroadcastResult)
+		{
+			OnJudgementResult.Broadcast(Result);
+		}
+		return Result;
+	}
+
+	const FPTBNoteEvent TargetNote = PendingNotes[TargetNoteIndex];
+	const float SignedDeltaMs = CorrectedInputTimeMs - TargetNote.TimeMs;
+	const float AbsDeltaMs = FMath::Abs(SignedDeltaMs);
+	if (AbsDeltaMs > HitWindowMissMs)
+	{
+		const FPTBJudgementResult Result = PTBJudgementSystemInternal::MakeMissResult(
+			InputAction,
+			EPTBJudgementReason::EmptyInput,
+			0,
+			0.0f,
+			0.0f,
+			CorrectedInputTimeMs);
+		if (bBroadcastResult)
+		{
+			OnJudgementResult.Broadcast(Result);
+		}
+		return Result;
+	}
+
+	PendingNotes.RemoveAt(TargetNoteIndex);
+	FPTBJudgementResult Result;
+	if (TargetNote.ActionType == InputAction)
+	{
+		Result = PTBJudgementSystemInternal::MakeJudgementResult(
+			TargetNote,
+			PTBJudgementSystemInternal::ResolveJudgementType(
+				AbsDeltaMs,
+				HitWindowHighPerfectMs,
+				HitWindowPerfectMs,
+				HitWindowGoodMs),
+			SignedDeltaMs);
+	}
+	else
+	{
+		Result = PTBJudgementSystemInternal::MakeMissResult(
+			TargetNote.ActionType,
+			EPTBJudgementReason::WrongInput,
+			TargetNote.NoteId,
+			SignedDeltaMs,
+			TargetNote.TimeMs,
+			CorrectedInputTimeMs,
+			InputAction);
+	}
 
 	if (bBroadcastResult)
 	{

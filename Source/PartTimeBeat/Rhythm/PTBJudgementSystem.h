@@ -42,6 +42,9 @@ public:
 	/** 입력 액션과 입력 시간 기준 판정 */
 	FPTBJudgementResult EvaluateInput(EPTBActionType Action, float InputTimeMs, bool bBroadcastResult);
 
+	/** 특정 노트 ID를 대상으로 입력 액션과 입력 시간 기준 판정 */
+	FPTBJudgementResult EvaluateInputForNoteId(int32 NoteId, EPTBActionType InputAction, float InputTimeMs, bool bBroadcastResult = true);
+
 	/** 입력 시간 기준 가장 가까운 대기 노트 조회 */
 	bool FindBestPendingNote(EPTBActionType Action, float InputTimeMs, FPTBNoteEvent& OutNote) const;
 	
