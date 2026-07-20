@@ -6,7 +6,7 @@
 
 class APTBSRMiniGame;
 
-/** SR 미니게임의 OnSushiPlateSpawn 델리게이트를 구독해 토핑 액터를 스폰하는 스포너 */
+/** SR 미니게임의 OnToppingDrop 델리게이트를 구독해 토핑 액터를 스폰하는 스포너 */
 UCLASS()
 class PARTTIMEBEAT_API APTBSRToppingSpawner : public AActor
 {
