@@ -1,11 +1,7 @@
 #include "PTBSRPlate.h"
-#include "PTBSRMiniGame.h"
 #include "Components/BoxComponent.h"
 #include "Kismet/GameplayStatics.h"
-#include "NiagaraFunctionLibrary.h"
-#include "NiagaraSystem.h"
-#include "Debug/PTBLogChannels.h"
-#include "Debug/PTBTeamLog.h"
+#include "PTBSRMiniGame.h"
 
 APTBSRPlate::APTBSRPlate()
 {
@@ -41,92 +37,14 @@ void APTBSRPlate::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	if (bMovementFrozen)
+	{
+		return;
+	}
+
 	// 기존 BP: MakeVector(0, MoveSpeed * DeltaSeconds, 0) → AddActorLocalOffset
 	const FVector DeltaLocation(0.0f, MoveSpeed * DeltaTime, 0.0f);
 	AddActorLocalOffset(DeltaLocation, false);
-}
-
-bool APTBSRPlate::TryGetNoteIdFromTopping(AActor* ToppingActor, int32& OutNoteId) const
-{
-	if (!ToppingActor)
-	{
-		return false;
-	}
-
-	if (const FIntProperty* NoteIdProp = FindFProperty<FIntProperty>(ToppingActor->GetClass(), ToppingNoteIdPropertyName))
-	{
-		OutNoteId = NoteIdProp->GetPropertyValue_InContainer(ToppingActor);
-		return true;
-	}
-
-	PTB_WARNING(LogPTBMiniGames, TEXT("[%s] TryGetNoteIdFromTopping: [%s]에서 [%s] 프로퍼티를 찾지 못했습니다."),
-		*GetNameSafe(this), *GetNameSafe(ToppingActor), *ToppingNoteIdPropertyName.ToString());
-	return false;
-}
-
-TSubclassOf<AActor> APTBSRPlate::GetSushiClassFromTopping(AActor* ToppingActor) const
-{
-	if (!ToppingActor)
-	{
-		return nullptr;
-	}
-
-	// class 타입 핀(TSubclassOf<AActor> 등)은 FClassProperty로 저장됩니다.
-	if (const FClassProperty* ClassProp = FindFProperty<FClassProperty>(ToppingActor->GetClass(), ToppingSushiClassPropertyName))
-	{
-		UObject* ClassValue = ClassProp->GetPropertyValue_InContainer(ToppingActor);
-		return TSubclassOf<AActor>(Cast<UClass>(ClassValue));
-	}
-
-	PTB_WARNING(LogPTBMiniGames, TEXT("[%s] GetSushiClassFromTopping: [%s]에서 [%s] 프로퍼티를 찾지 못했습니다."),
-		*GetNameSafe(this), *GetNameSafe(ToppingActor), *ToppingSushiClassPropertyName.ToString());
-	return nullptr;
-}
-
-APTBSRMiniGame* APTBSRPlate::FindMiniGame() const
-{
-	return Cast<APTBSRMiniGame>(UGameplayStatics::GetActorOfClass(GetWorld(), APTBSRMiniGame::StaticClass()));
-}
-
-void APTBSRPlate::PlayCompletionEffects(TSubclassOf<AActor> SushiClass)
-{
-	if (CompletionVFX)
-	{
-		UNiagaraFunctionLibrary::SpawnSystemAtLocation(
-			this,
-			CompletionVFX,
-			GetActorLocation(),
-			GetActorRotation(),
-			FVector(1.0f),
-			/*bAutoDestroy=*/true,
-			/*bAutoActivate=*/true,
-			ENCPoolMethod::None,
-			/*bPreCullCheck=*/true);
-	}
-
-	if (SushiClass)
-	{
-		if (UWorld* World = GetWorld())
-		{
-			FActorSpawnParameters SpawnParams;
-			SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-			AActor* CompletedSushi = World->SpawnActor<AActor>(SushiClass, GetActorTransform(), SpawnParams);
-
-			// Retry 시 정리되도록 등록
-			if (CompletedSushi)
-			{
-				if (APTBSRMiniGame* MiniGame = FindMiniGame())
-				{
-					MiniGame->RegisterSpawnedRoundActor(CompletedSushi);
-				}
-			}
-		}
-	}
-	else
-	{
-		PTB_WARNING(LogPTBMiniGames, TEXT("[%s] PlayCompletionEffects: SushiClass가 유효하지 않아 완성 스시 모델을 스폰하지 못했습니다."),
-			*GetNameSafe(this));
-	}
 }
 
 void APTBSRPlate::HandleBoxBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
@@ -137,31 +55,26 @@ void APTBSRPlate::HandleBoxBeginOverlap(UPrimitiveComponent* OverlappedComponent
 		return;
 	}
 
-	int32 NoteId = INDEX_NONE;
-	if (!TryGetNoteIdFromTopping(OtherActor, NoteId))
+	// ToppingNoteIdPropertyName을 가진 액터(=토핑)인지 확인
+	const FIntProperty* NoteIdProp = FindFProperty<FIntProperty>(OtherActor->GetClass(), ToppingNoteIdPropertyName);
+	if (!NoteIdProp)
 	{
-		// BP_SR_Topping이 아니거나 NoteId 프로퍼티가 없는 액터는 무시
 		return;
 	}
 
-	// ★ 점수/성공 확정은 이미 입력 판정 시점(APTBSRMiniGame::HandleJudgementResult)에 끝나 있습니다.
-	//    여기서는 그 결과를 "조회"만 해서 어떤 완성 비주얼을 보여줄지 결정합니다.
-	APTBSRMiniGame* MiniGame = FindMiniGame();
-	const EPTBJudgementType Judgement = MiniGame ? MiniGame->GetJudgementForNote(NoteId) : EPTBJudgementType::Miss;
+	const int32 ToppingNoteId = NoteIdProp->GetPropertyValue_InContainer(OtherActor);
 
-	if (Judgement != EPTBJudgementType::Miss)
+	// ★ 이 토핑이 "판정 성공, 완성 대기 중"이었다면 지금(=실제로 컨베이어에 닿는 순간)
+	//   완성 비주얼이 트리거됩니다. 그렇지 않다면(Miss였거나 이미 처리됨) 그냥 치워줍니다.
+	bool bHandledByMiniGame = false;
+	if (APTBSRMiniGame* MiniGame = Cast<APTBSRMiniGame>(
+		UGameplayStatics::GetActorOfClass(GetWorld(), APTBSRMiniGame::StaticClass())))
 	{
-		// 겹친 순간 토핑에서 곧바로 클래스를 읽어서 곧바로 사용 (stale 변수 경유 없음)
-		const TSubclassOf<AActor> SushiClass = GetSushiClassFromTopping(OtherActor);
-		PlayCompletionEffects(SushiClass);
-
-		// 완성 접시는 역할을 다했으니 컨베이어에서 제거
-		OtherActor->Destroy();
-		Destroy();
+		bHandledByMiniGame = MiniGame->NotifyToppingReachedConveyor(ToppingNoteId);
 	}
-	else
+
+	if (!bHandledByMiniGame)
 	{
-		// 실패한 토핑만 정리하고, 접시는 컨베이어를 계속 이동
 		OtherActor->Destroy();
 	}
 }

@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "Core/PTBStructEnums.h"
 #include "PTBSRToppingSpawner.generated.h"
 
 class APTBSRMiniGame;
@@ -34,6 +35,11 @@ protected:
 	/** OnSushiPlateSpawn 델리게이트가 브로드캐스트될 때 호출됩니다 */
 	UFUNCTION()
 	void HandleSushiPlateSpawn(int32 AssignedTopping, int32 NoteId);
+
+	/** MiniGame의 OnSushiSuccessDelegate가 브로드캐스트될 때 호출됩니다 — 성공한 경우에만
+	 *  "남은 토핑" 카운트(count)를 1 감소시킵니다. */
+	UFUNCTION()
+	void HandleSushiSuccess(int32 NoteId, EPTBJudgementType JudgementType);
 
 private:
 	/** GameMode::OnGameStarted 수신. Retry로 미니게임이 교체될 때마다 재바인딩한다 */
