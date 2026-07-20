@@ -98,6 +98,7 @@ void APTBPCMiniGame::HandleNoteCue(FPTBNoteEvent Note)
     if (Tile)
     {
         ActiveTiles.Add(Note.NoteId, Tile);
+        RegisterSpawnedRoundActor(Tile);
     }
 }
 
@@ -179,6 +180,7 @@ void APTBPCMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
     if (ImageActor)
     {
         ImageActor->SetTexture(TileTextures[PointIndex - 1]);
+        RegisterSpawnedRoundActor(ImageActor);
     }
 
 }

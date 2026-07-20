@@ -76,6 +76,11 @@ void APTBLCJudgementDisplayActor::BeginPlay()
 
 	ResetJudgementDisplay();
 	TryBindSourceMiniGame();
+
+	if (APTBGameModeBase* GameMode = Cast<APTBGameModeBase>(UGameplayStatics::GetGameMode(this)))
+	{
+		GameMode->OnGameStarted.AddUniqueDynamic(this, &APTBLCJudgementDisplayActor::HandleGameStarted);
+	}
 }
 
 void APTBLCJudgementDisplayActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -94,7 +99,25 @@ void APTBLCJudgementDisplayActor::EndPlay(const EEndPlayReason::Type EndPlayReas
 		SourceMiniGame->OnMiniGameJudgement.RemoveDynamic(this, &APTBLCJudgementDisplayActor::HandleMiniGameJudgement);
 	}
 
+	if (APTBGameModeBase* GameMode = Cast<APTBGameModeBase>(UGameplayStatics::GetGameMode(this)))
+	{
+		GameMode->OnGameStarted.RemoveDynamic(this, &APTBLCJudgementDisplayActor::HandleGameStarted);
+	}
+
 	Super::EndPlay(EndPlayReason);
+}
+
+void APTBLCJudgementDisplayActor::HandleGameStarted()
+{
+	// 이전(파괴된) 미니게임 바인딩을 정리하고 새 ActiveMiniGame을 다시 조회한다
+	if (SourceMiniGame)
+	{
+		SourceMiniGame->OnMiniGameJudgement.RemoveDynamic(this, &APTBLCJudgementDisplayActor::HandleMiniGameJudgement);
+	}
+	SourceMiniGame = nullptr;
+
+	ResetJudgementDisplay();
+	TryBindSourceMiniGame();
 }
 
 void APTBLCJudgementDisplayActor::ApplyJudgementResult(const FPTBJudgementResult& Result)

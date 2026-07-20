@@ -29,6 +29,12 @@ void APTBSRPlate::BeginPlay()
 	{
 		Box->OnComponentBeginOverlap.AddDynamic(this, &APTBSRPlate::HandleBoxBeginOverlap);
 	}
+
+	// Retry로 미니게임 Actor가 교체돼도 정리되지 않는 걸 막기 위해 스폰 시점에 자기 자신을 등록
+	if (APTBSRMiniGame* MiniGame = FindMiniGame())
+	{
+		MiniGame->RegisterSpawnedRoundActor(this);
+	}
 }
 
 void APTBSRPlate::Tick(float DeltaTime)
@@ -104,7 +110,16 @@ void APTBSRPlate::PlayCompletionEffects(TSubclassOf<AActor> SushiClass)
 		{
 			FActorSpawnParameters SpawnParams;
 			SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-			World->SpawnActor<AActor>(SushiClass, GetActorTransform(), SpawnParams);
+			AActor* CompletedSushi = World->SpawnActor<AActor>(SushiClass, GetActorTransform(), SpawnParams);
+
+			// Retry 시 정리되도록 등록
+			if (CompletedSushi)
+			{
+				if (APTBSRMiniGame* MiniGame = FindMiniGame())
+				{
+					MiniGame->RegisterSpawnedRoundActor(CompletedSushi);
+				}
+			}
 		}
 	}
 	else

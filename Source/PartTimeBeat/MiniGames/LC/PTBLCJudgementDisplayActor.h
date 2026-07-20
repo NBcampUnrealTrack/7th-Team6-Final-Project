@@ -96,6 +96,10 @@ private:
 	UFUNCTION()
 	void HandleMiniGameJudgement(FPTBJudgementResult Result);
 
+	/** GameMode::OnGameStarted 수신. Retry로 미니게임이 교체될 때마다 재바인딩한다 */
+	UFUNCTION()
+	void HandleGameStarted();
+
 	void TryBindSourceMiniGame();
 
 	APTBBaseMiniGame* ResolveSourceMiniGame() const;

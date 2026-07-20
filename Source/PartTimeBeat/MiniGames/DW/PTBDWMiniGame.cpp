@@ -551,6 +551,10 @@ void APTBDWMiniGame::EnsureJudgePopup()
 	FActorSpawnParameters Params;
 	Params.Owner = this;
 	JudgePopup = W->SpawnActor<APTBDWTextPopup>(Cls, FTransform::Identity, Params);
+	if (JudgePopup)
+	{
+		RegisterSpawnedRoundActor(JudgePopup);
+	}
 }
 
 void APTBDWMiniGame::ShowJudgeGrade(EPTBJudgementType Grade)
@@ -805,6 +809,8 @@ void APTBDWMiniGame::SpawnCharactersIfNeeded()
 		JudgeActor = World->SpawnActor<APTBDWCharacter>(JudgeLoc, FRotator::ZeroRotator, Params);
 		if (JudgeActor)
 		{
+			RegisterSpawnedRoundActor(JudgeActor);
+
 			USkeletalMesh* Mesh = DWRule ? DWRule->JudgeMesh.Get() : nullptr;
 			const FVector Scale = DWRule ? DWRule->JudgeScale : FVector(1.0f);
 			const float Yaw = DWRule ? DWRule->JudgeYaw : 0.f;
@@ -838,6 +844,8 @@ void APTBDWMiniGame::SpawnCharactersIfNeeded()
 		PreviewActor = World->SpawnActor<APTBDWCharacter>(DogLoc, FRotator::ZeroRotator, Params);
 		if (PreviewActor)
 		{
+			RegisterSpawnedRoundActor(PreviewActor);
+
 			USkeletalMesh* Mesh = GetPreviewMeshForActiveProfile();
 			const FVector Scale = DWRule ? DWRule->PreviewScale : FVector(1.0f);
 			const float Yaw = DWRule ? DWRule->PreviewYaw : 0.f;
@@ -1162,6 +1170,9 @@ void APTBDWMiniGame::SpawnSplitHalves(AActor* Obstacle, EPTBActionType Action)
 
 void APTBDWMiniGame::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+	// 기존엔 BuildRuntimeState(새 라운드 시작)에서만 호출돼 Retry 시 정리가 안 됐다
+	ClearAllNoteViews();
+
 	Super::EndPlay(EndPlayReason);
 }
 
