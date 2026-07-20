@@ -110,7 +110,7 @@ FPTBRoundResult UPTBScoreCalculator::BuildRoundResult(const FString& ProfileId, 
 		MissCount);
 	Result.Grade = CalculateGrade();
 	Result.StarCount = CalculateStarRating(CurrentScore);
-	Result.EarnedMoney = 0;
+	Result.EarnedMoney = CurrentScore;
 	Result.IsNewHighScore = false;
 	Result.MiniGamePayload = Payload;
 
