@@ -24,6 +24,14 @@ void APTBSRToppingSpawner::BeginPlay()
 
 void APTBSRToppingSpawner::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+	GetWorldTimerManager().ClearTimer(BindRetryTimerHandle);
+
+	if (IsValid(BoundMiniGame))
+	{
+		BoundMiniGame->OnToppingDrop.RemoveDynamic(this, &APTBSRToppingSpawner::HandleSushiPlateSpawn);
+		BoundMiniGame = nullptr;
+	}
+
 	if (APTBGameModeBase* GameMode = Cast<APTBGameModeBase>(UGameplayStatics::GetGameMode(this)))
 	{
 		GameMode->OnGameStarted.RemoveDynamic(this, &APTBSRToppingSpawner::HandleGameStarted);
