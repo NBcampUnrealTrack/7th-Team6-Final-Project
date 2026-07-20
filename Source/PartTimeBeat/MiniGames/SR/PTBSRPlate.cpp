@@ -25,6 +25,12 @@ void APTBSRPlate::BeginPlay()
 	{
 		Box->OnComponentBeginOverlap.AddDynamic(this, &APTBSRPlate::HandleBoxBeginOverlap);
 	}
+
+	// Retry로 미니게임 Actor가 교체돼도 정리되지 않는 걸 막기 위해 스폰 시점에 자기 자신을 등록
+	if (APTBSRMiniGame* MiniGame = FindMiniGame())
+	{
+		MiniGame->RegisterSpawnedRoundActor(this);
+	}
 }
 
 void APTBSRPlate::Tick(float DeltaTime)

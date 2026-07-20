@@ -40,8 +40,6 @@ void APTBSRMiniGame::InitializeMiniGame(const FPTBMiniGameContext& Context)
 
 FPTBRoundResult APTBSRMiniGame::FinishMiniGame(EPTBRoundEndReason Reason)
 {
-	//return Super::FinishMiniGame(Reason);
-
 	FPTBRoundResult FinalResult = Super::FinishMiniGame(Reason);
 
 	FinalResult.MiniGameId = FName("SR");

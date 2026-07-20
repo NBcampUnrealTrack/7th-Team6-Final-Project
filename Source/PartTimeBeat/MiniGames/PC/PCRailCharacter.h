@@ -18,15 +18,12 @@ public:
 	// Sets default values for this pawn's properties
 	APCRailCharacter();
 
-    // 카메라
     UPROPERTY(VisibleAnywhere)
     class UCameraComponent* Camera;
 
-    // 손 메시 붙일 컴포넌트
     UPROPERTY(VisibleAnywhere)
     class USkeletalMeshComponent* HandsMesh;
 
-    // 손 애니메이션 (성공/실패)
     UPROPERTY(EditDefaultsOnly, Category = "Anim")
     UAnimMontage* HandSuccessMontage;
 
@@ -38,7 +35,7 @@ public:
     UPROPERTY(VisibleAnywhere)
     class UStaticMeshComponent* JudgementZone;
 
-    // 한 박자당 이동 거리
+
     UPROPERTY(EditAnywhere)
     float StepDistance = 100.f;
 
@@ -47,7 +44,7 @@ public:
     UPROPERTY(EditAnywhere)
     float MoveInterpSpeed = 50.f;
 
-    // 박자 타이밍에 호출 - 레일 위 다음 지점으로 이동
+ 
     void MoveOneStep();
 
     APCRailPath* PCRailPath;
@@ -64,7 +61,9 @@ public:
     UFUNCTION(BlueprintCallable)
     void SelectRailByDifficulty(EPTBDifficulty Difficulty);
 
-    // 스포너 참조
+    UFUNCTION(BlueprintCallable)
+    void UpdateGridVisibility();
+ 
     UPROPERTY(EditAnywhere)
     APCTileSpawner* TileSpawner;
 

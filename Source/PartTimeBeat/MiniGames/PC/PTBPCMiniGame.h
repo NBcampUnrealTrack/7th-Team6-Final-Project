@@ -5,6 +5,7 @@
 #include "MiniGames/PC/PCRailCharacter.h"
 #include "MiniGames/PC/PCTileSpawner.h"
 #include "MiniGames/PC/PCTileImageActor.h"
+#include "MiniGames/PC/PTBPCJudgementPopupWidget.h"
 #include "PTBPCMiniGame.generated.h"
 
 class UPTBPCMiniGameRuleSet;
@@ -41,6 +42,9 @@ public:
     UPROPERTY(EditAnywhere)
     TSubclassOf<APCTileImageActor> TileImageClass;
 
+   
+    UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Judgement")
+    UPTBPCJudgementPopupWidget* JudgementPopupWidget;
 
 protected:
 

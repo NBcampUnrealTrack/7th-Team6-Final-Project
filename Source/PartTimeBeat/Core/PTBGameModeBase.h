@@ -56,6 +56,9 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "PTB|Game")
 	void ExitToMenu();
 
+	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "PTB|Game")
+	void GoToMainMenu();
+
 	/** 일시정지 메뉴 위젯 클래스 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|UI")
 	TSubclassOf<UPTBPauseMenuWidget> PauseMenuClass;

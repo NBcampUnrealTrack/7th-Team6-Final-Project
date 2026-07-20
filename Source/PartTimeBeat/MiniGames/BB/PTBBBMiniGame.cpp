@@ -19,6 +19,24 @@ float APTBBBMiniGame::GetPlayerHPPercent() const
 	return (PlayerMaxHP > 0.f) ? (PlayerCurrentHP / PlayerMaxHP) : 0.f;
 }
 
+bool APTBBBMiniGame::IsActionUsedInChart(EPTBActionType Action) const
+{
+	if (!ChartAsset)
+	{
+		return false;
+	}
+
+	for (const FPTBNoteEvent& Note : ChartAsset->NoteEvents)
+	{
+		if (Note.ActionType == Action)
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
 // ── 입력 편의 함수 ───────────────────────────────────────────────
 
 void APTBBBMiniGame::HandleActionAInput(float TimeMs)
@@ -101,7 +119,7 @@ void APTBBBMiniGame::OnFadeFinished()
 
 	// Failed는 플레이어 체력 0(HandleJudgementResult)에서만 발생한다.
 	// 채보를 끝까지 마쳤다면 목표 점수/보스 체력과 무관하게 항상 정상 종료로 처리하고,
-	// 결과 등급은 아웃트로 화면에서 보스 잔여 체력으로 나눈다.
+	// 결과 등급은 아웃트로 화면에서 정확도·미스 수로 나눈다.
 	bPendingRoundFinish = true;
 }
 
@@ -133,14 +151,15 @@ void APTBBBMiniGame::BuildRuntimeState()
 	PlayerCurrentHP = PlayerMaxHP;
 	bBossDefeated   = false;
 
-	// 보스 MaxHP 및 패링 데미지 계산
-	BossMaxHP = BBRuleSet ? BBRuleSet->BossMaxHP : 100.f;
+	// 보스 MaxHP는 % 환산을 위한 고정값일 뿐 실제 밸런스에 영향을 주지 않는다(DamagePerParry가
+	// 이 값을 채보 노트 수로 나눠 역산되므로, HP 백분율은 항상 노트 진행도와 1:1로 일치한다).
+	BossMaxHP = 100.f;
 
-	// bAutoScaleBossHP: BossMaxHP는 고정, ClearRatio를 만족하도록 DamagePerParry를 역산
-	// → ClearRatio만이 실질적인 난이도 변수가 됨
-	if (BBRuleSet && BBRuleSet->bAutoScaleBossHP && ChartAsset)
+	// 채보의 전체 노트 수에 정확히 1:1로 맞춰 DamagePerParry를 역산한다.
+	// 모든 노트를 성공해야 마지막 노트에서 보스 HP가 정확히 0이 된다(보스 체력 == 게임 진행도).
+	int32 HittableCount = 0;
+	if (ChartAsset)
 	{
-		int32 HittableCount = 0;
 		for (const FPTBNoteEvent& Note : ChartAsset->NoteEvents)
 		{
 			if (Note.NoteType != EPTBNoteType::Release)
@@ -148,17 +167,11 @@ void APTBBBMiniGame::BuildRuntimeState()
 				++HittableCount;
 			}
 		}
-		const float ClearRatio = FMath::Clamp(Config.ClearRatio, 0.01f, 1.f);
-		const float RequiredParries = FMath::CeilToFloat(HittableCount * ClearRatio);
-		CachedDamagePerParry = FMath::Max(0.01f, BossMaxHP / RequiredParries);
-		PTB_WARNING(LogPTBMiniGames, TEXT("[BBMiniGame] AutoScaleBossHP: %d 노트 x %.2f(ratio) = %.0f회 패링 필요, DamagePerParry=%.2f BossMaxHP=%.1f"),
-			HittableCount, ClearRatio, RequiredParries, CachedDamagePerParry, BossMaxHP);
 	}
-	else
-	{
-		// bAutoScaleBossHP = false: DamagePerParry를 직접 설정값으로 사용
-		CachedDamagePerParry = Config.DamagePerParry;
-	}
+	CachedDamagePerParry = (HittableCount > 0) ? (BossMaxHP / HittableCount) : BossMaxHP;
+	PTB_WARNING(LogPTBMiniGames, TEXT("[BBMiniGame] %d 노트 → DamagePerParry=%.2f BossMaxHP=%.1f"),
+		HittableCount, CachedDamagePerParry, BossMaxHP);
+
 	BossCurrentHP = BossMaxHP;
 }
 
@@ -264,13 +277,13 @@ FPTBMiniGameResultPayload APTBBBMiniGame::BuildResultPayload() const
 
 FPTBRoundResult APTBBBMiniGame::FinishMiniGame(EPTBRoundEndReason Reason)
 {
-	// OnFadeFinished(페이드 타이머)보다 BGM 종료 콜백(base의 HandleBGMFinished 등)이
-	// 먼저 도착해 라운드가 끝나는 경우에도, 결과(Payload)가 확정되기 전에 보스 처치
-	// 여부를 먼저 확인한다. bBossDefeated 가드가 있어 중복 호출은 안전하게 무시된다.
-	ConfirmBossDefeatIfNeeded();
+	// Aborted(재시작 등 중도 종료)는 채보를 끝까지 마친 게 아니므로 보스 처치 판정을 하지 않는다 —
+	// 안 그러면 미스 관용치 안에서 재시작할 때마다 보스가 처치 연출(랙돌)로 전환돼 버린다.
+	if (Reason != EPTBRoundEndReason::Aborted)
+	{
+		ConfirmBossDefeatIfNeeded();
+	}
 
-	// 남아 있을 수 있는 페이드 타이머를 확실히 취소한다. 정리되지 않은 채 남아있다가
-	// 다음 라운드(액터 재사용) 도중 잘못 발화하는 것을 막기 위한 방어 코드.
 	GetWorldTimerManager().ClearTimer(TimeLimitTimerHandle);
 
 	return Super::FinishMiniGame(Reason);
@@ -285,11 +298,29 @@ const UPTBBBMiniGameRuleSet* APTBBBMiniGame::GetBBRuleSet() const
 
 void APTBBBMiniGame::ConfirmBossDefeatIfNeeded()
 {
-	if (!bBossDefeated && BossCurrentHP <= 0.f)
+	if (bBossDefeated)
 	{
-		bBossDefeated = true;
-		OnBBBossDefeated.Broadcast();
+		return;
 	}
+
+	// 보스 체력은 채보 노트 수에 정확히 1:1로 맞춰 깎이므로, 미스가 하나라도 있으면
+	// 마지막 노트에서도 체력이 정확히 0에 도달하지 않는다. 그래서 체력이 남아있어도
+	// 미스 수가 BossDefeatMaxMissCount 이하면 처치로 인정한다(모든 난이도 공통 관용치).
+	const UPTBBBMiniGameRuleSet* BBRuleSet = GetBBRuleSet();
+	const int32 MaxMissForDefeat = BBRuleSet ? BBRuleSet->BossDefeatMaxMissCount : 0;
+	const int32 CurrentMissCount = ScoreCalculator ? ScoreCalculator->MissCount : 0;
+
+	if (BossCurrentHP > 0.f && CurrentMissCount > MaxMissForDefeat)
+	{
+		return;
+	}
+
+	// 미스 관용치 안에서 처치로 인정되는 경우, HP 바도 완전히 비워서 보여준다.
+	BossCurrentHP = 0.f;
+	OnBBBossHPChanged.Broadcast(BossCurrentHP, BossMaxHP);
+
+	bBossDefeated = true;
+	OnBBBossDefeated.Broadcast();
 }
 
 void APTBBBMiniGame::ApplyBossDamage(float Damage)

@@ -6,6 +6,7 @@
 
 class UPTBDWMiniGameRuleSet;
 class UStaticMesh;
+class USkeletalMesh;
 class APTBDWCharacter;
 class APTBDWBackgroundScroller;
 class APTBDWCameraRig;
@@ -13,6 +14,7 @@ class UNiagaraSystem;
 
 class APTBDWTextPopup;
 class UNiagaraComponent;
+class APTBDWNoteToken;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FDWOnComboChanged, int32, NewCombo);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FDWOnNoteResolved, bool, bSuccess, int32, Combo);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FDWOnNoteJudged, EPTBJudgementType, Grade, int32, Combo, int32, Score);
@@ -24,13 +26,10 @@ struct FDWNoteView
 	GENERATED_BODY()
 
 	UPROPERTY()
-	TObjectPtr<AActor> Marker = nullptr;
+	TObjectPtr<APTBDWNoteToken> Marker = nullptr;
 
 	UPROPERTY()
 	TObjectPtr<AActor> Obstacle = nullptr;
-
-	UPROPERTY()
-	TObjectPtr<AActor> TailMarker = nullptr;
 
 	float SpawnVisualMs = 0.f;
 	float TargetMs      = 0.f;
@@ -41,9 +40,6 @@ struct FDWNoteView
 	FVector ObstacleOffsetVec = FVector::ZeroVector;
 	FVector ObstaclePivotWorld = FVector::ZeroVector;
 
-	float MarkerSquareSize = 0.6f;
-	float MarkerThinX      = 0.08f;
-	float MarkerFlatZ      = 0.05f;
 	float TailLengthCm     = 0.f;
 
 	/** 판정 결과 연출 분기용. */
@@ -97,6 +93,10 @@ struct FDWResolvingObstacle
 	float GroundZ = 0.f;
 	float Restitution = 0.4f;
 	float SpinDegPerSec = 0.f;
+
+	// 지연 깨짐(롱 실패): 딜레이 동안 접근 지속 후 접촉 지점에서 깨뜨림.
+	bool bDelayedFail = false;
+	EPTBActionType PendingFailAction = EPTBActionType::None;
 };
 
 
@@ -106,11 +106,11 @@ class PARTTIMEBEAT_API APTBDWMiniGame : public APTBBaseMiniGame
 	GENERATED_BODY()
 
 public:
-	/** 콤보 숫자 갱신(판정 즉시). BP 위젯이 바인드해 숫자 표시. */
+	/** 콤보 숫자 갱신(판정 즉시). DW는 안씀 */
 	UPROPERTY(BlueprintAssignable, Category = "PTB|DW|Combo")
 	FDWOnComboChanged OnDWComboChanged;
 
-	/** 노트 해결 시(탭=즉시, 롱=꼬리 100%). 콤보 연출용(bSuccess, 현재콤보). */
+	/** 노트 해결 시. 콤보 연출용. DW는 안씀 */
 	UPROPERTY(BlueprintAssignable, Category = "PTB|DW|Combo")
 	FDWOnNoteResolved OnDWNoteResolved;
 
@@ -125,7 +125,7 @@ public:
 	/** 판정 팝업 지연 스폰. */
 	void EnsureJudgePopup();
 
-	/** 판정 등급 팝업 표시(위치 세팅 후 1회). */
+	/** 판정 등급 팝업 표시. */
 	void ShowJudgeGrade(EPTBJudgementType Grade);
 
 protected:
@@ -137,8 +137,10 @@ protected:
 	virtual void HandleJudgementResult(FPTBJudgementResult Result) override;
 	virtual void ReceiveGameplayStarted_Implementation() override;
 	virtual void ReceiveIntroStarted_Implementation() override;
+	virtual float ResolveVisualOffsetMs(const FPTBMiniGameContext& Context) const override;
 
 	const UPTBDWMiniGameRuleSet* GetDWRuleSet() const;
+	USkeletalMesh* GetPreviewMeshForActiveProfile() const;
 
 private:
 	void SpawnNoteView(const FPTBNoteEvent& Note);
@@ -147,36 +149,33 @@ private:
 	void RecycleNoteView(int32 NoteId);
 	void ClearAllNoteViews();
 
-	/** 실패 장애물을 분리해 부서진 메시 교체/placeholder. */
+	/** 실패 장애물을 분리해 부서진 메시로 교체. */
 	void ResolveObstacleFail(AActor* Obstacle, EPTBActionType Action);
-	/** 성공 시 obstacle을 부수지 않고 온전히 배경 속도로 뒤로 흘려보냄. */
+	void StartObstacleFail(AActor* Obstacle, EPTBActionType Action, bool bIsLong);
+	void ResolveFailNow(AActor* Obstacle, EPTBActionType Action, bool bIsLong);
+	float GetLongFailDelayMs(EPTBActionType Action, bool bIsLong) const;
+	void TriggerFailReaction(EPTBActionType Action, bool bIsLong);
+	/** 성공 시 장애물을 부수지 않고 온전히 배경 속도로 뒤로 흘려보냄. */
 	void ScrollObstacleAway(AActor* Obstacle);
-	/** 노트 접근 속도(cm/s). 나가는 obstacle도 이 속도로. */
+	/** 노트 접근 속도(cm/s). 나가는 장애물도 이 속도로. */
 	float GetNoteApproachSpeedCmS() const;
 	void LaunchKickBall(AActor* Ball, bool bSuccess, bool bIsLong);
 
-	/** B 실패 시 obstacle을 뒤+위로 런치(RuleSet 방향/속도). */
+	/** B 실패 시 장애물을 뒤+위로 런치. */
 	void LaunchObstacleBFail(AActor* Obstacle);
+	/** 장애물 퇴장 — 액션×결과 단일 분기. */
+	void DisposeObstacle(AActor* Obstacle, EPTBActionType Action, bool bSuccess, bool bIsLong);
 	void PlayNoteResultEffects(int32 NoteId, EPTBActionType Action, bool bSuccess, bool bIsLong);
 
 	/** 부서진 메시가 없을 때 placeholder. */
 	void SpawnSplitHalves(AActor* Obstacle, EPTBActionType Action);
-	/** 지정 좌/우 조각 2개를 피벗 기준으로 V자 갈라지게 넘어뜨리고 뒤로 흘림. */
+	/** 좌/우 조각 2개를 갈라지게 하고 넘어뜨리고 뒤로 흘림. */
 	void SpawnBrokenPieces(AActor* Obstacle, EPTBActionType Action);
-
-	/** 판정선에 고정 타깃 바를 1회 생성. */
-	void SpawnJudgeTargetIfNeeded();
 
 	void SpawnCharactersIfNeeded();
 	bool IsSupportedAction(EPTBActionType Action) const;
 
-	/** 연출 SFX 요청(다이제틱). 판정 등급음은 베이스가 처리. */
-	void RequestDWSfx(FName Key, AActor* Target);
-
-	/** 연출 VFX 요청(Niagara). */
-	void RequestDWVfx(UNiagaraSystem* System, const FVector& Location);
-
-	/** 위치에 VFX 스폰 + User Param "SpawnColor" 전달(파티클 색 지정용). */
+	/** 위치에 VFX 스폰 + User Param "SpawnColor" 전달. */
 	void RequestDWVfxColored(UNiagaraSystem* System, const FVector& Location, const FLinearColor& Color);
 
 	/** 시작 시 DataAsset 설정 자가 점검. */
@@ -188,13 +187,13 @@ private:
 	FLinearColor GetNoteColor(EPTBActionType Action) const;
 	FVector GetNoteScale(bool bLong) const;
 	AActor* GetJudgeActor() const;
-	AActor* GetCueActor() const;
+	AActor* GetPreviewActor() const;
 	UStaticMesh* GetObstacleMesh(EPTBActionType Action);
 
 	UPROPERTY()
 	TMap<int32, FDWNoteView> ActiveNoteViews;
 
-	/** 현재 난이도에서 확정된 LookAheadBeats (마커 정속 진입 계산용). */
+	/** 현재 난이도에서 확정된 LookAheadBeats. */
 	float ActiveLookAheadBeats = 2.0f;
 	/** 난이도 속도 배율(= 기준LookAhead / ActiveLookAhead). */
 	float ActiveSpeedScale = 1.0f;
@@ -203,16 +202,13 @@ private:
 	TArray<FDWResolvingObstacle> ResolvingObstacles;
 
 	UPROPERTY()
-	TObjectPtr<AActor> JudgeTargetBar = nullptr;
-
-	UPROPERTY()
 	TObjectPtr<UStaticMesh> CachedObstacleMesh = nullptr;
 
 	UPROPERTY()
-	TObjectPtr<APTBDWCharacter> Dog = nullptr;
+	TObjectPtr<APTBDWCharacter> PreviewActor = nullptr;
 
 	UPROPERTY()
-	TObjectPtr<APTBDWCharacter> Protagonist = nullptr;
+	TObjectPtr<APTBDWCharacter> JudgeActor = nullptr;
 
 	/** DW 전용 배경 스크롤러. StartMiniGame에서 탐색·캐시, 게임플레이 시작 시 SetRunning(true). */
 	UPROPERTY()

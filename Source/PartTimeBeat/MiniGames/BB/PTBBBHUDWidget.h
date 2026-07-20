@@ -7,6 +7,7 @@
 
 class APTBBBMiniGame;
 class UPTBBBCueWidgetBase;
+class UPTBBBHitZoneWidgetBase;
 class UCanvasPanel;
 class UProgressBar;
 class UTextBlock;
@@ -21,9 +22,12 @@ struct FPTBJudgementResult;
  *  - 판정(OnBBParrySuccess/Fail) → 큐에 판정 피드백 전달 → TMap에서 제거
  *  - HP 변경(OnBBBossHPChanged/PlayerHPChanged) → ProgressBar 자동 업데이트
  *  - 고스트 바(BossHPGhostBar/PlayerHPGhostBar): 피해 직후 잔상이 남고 GhostBarDecayDelay 후 선형 감소
+ *  - 히트존 마커(HitZoneClass): AnchorPositions의 각 위치에 고정 배치되어 입력 타이밍을 안내.
+ *    노트가 판정선(OnBBNoteReached)에 도달하면 해당 마커의 PulseHitZone()이 호출된다.
  *
  * 에디터에서 설정해야 하는 항목:
- *  - TapCueClass / HoldCueClass    : 스폰할 큐 위젯 클래스
+ *  - TapCueClass                   : 스폰할 큐 위젯 클래스 (BB 채보에는 롱노트가 없어 탭 큐만 사용)
+ *  - HitZoneClass                  : 각 앵커에 고정 배치할 히트존 마커 위젯 클래스 (미설정 시 스폰 안 함)
  *  - AnchorPositions               : ActionType별 캔버스 좌표 (Z→ActionA … B→ActionE)
  *  - BossSpawnCanvasPosition       : 노트 스폰 시작점 (보스 이미지 중심 좌표)
  *  - GhostBarDecayDelay            : 피해 후 고스트 바 감소 시작까지의 지연(초)
@@ -55,13 +59,16 @@ public:
 
 	// ── 에디터 설정 ──────────────────────────────────────────────
 
-	/** 탭 노트에 사용할 큐 위젯 클래스 */
+	/** 탭 노트에 사용할 큐 위젯 클래스 (BB 채보에는 롱노트가 없어 탭 큐만 사용) */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|BB|HUD|Cue")
 	TSubclassOf<UPTBBBCueWidgetBase> TapCueClass;
 
-	/** 홀드 노트에 사용할 큐 위젯 클래스 */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|BB|HUD|Cue")
-	TSubclassOf<UPTBBBCueWidgetBase> HoldCueClass;
+	/**
+	 * 각 액션 앵커 위치에 고정 배치할 히트존 마커 위젯 클래스.
+	 * 미설정(nullptr) 시 히트존 마커를 스폰하지 않는다(기존 동작과 동일).
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|BB|HUD|HitZone")
+	TSubclassOf<UPTBBBHitZoneWidgetBase> HitZoneClass;
 
 	/** ActionType별 캔버스 배치 좌표. 에디터 Details 패널에서 각 키(ActionA~E)마다 입력한다. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|BB|HUD|Cue")
@@ -115,19 +122,20 @@ public:
 
 	/**
 	 * 결과 등급(0~3)에 따라 이어서 표시할 이미지. 인덱스 0=Outro1 ... 3=Outro4.
-	 * 등급 판정: 0=Failed(플레이어 체력 0),
-	 *           1=Good(채보 완주 + 보스 미처치 + 노트 정확도 GreatAccuracyThreshold 미만),
-	 *           2=Great(채보 완주 + (보스 미처치 + 정확도 GreatAccuracyThreshold 이상) 또는 (보스 완전 처치 + 미스가 PerfectClearMaxMissCount 초과)),
-	 *           3=Perfect Clear(보스 완전 처치 + 미스가 PerfectClearMaxMissCount 이하)
+	 * 등급 판정(보스 잔여 체력과 무관 — 정확도·미스 수만으로 결정):
+	 *           0=Failed(플레이어 체력 0),
+	 *           1=Good(채보 완주 + 노트 정확도 GreatAccuracyThreshold 미만),
+	 *           2=Great(채보 완주 + 정확도 GreatAccuracyThreshold 이상, 단 미스가 PerfectClearMaxMissCount 초과),
+	 *           3=Perfect Clear(채보 완주 + 미스가 PerfectClearMaxMissCount 이하)
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|BB|HUD|Outro")
 	TArray<TObjectPtr<UTexture2D>> OutroTexturesByStar;
 
-	/** 보스 미처치 시 Great/Good을 가르는 노트 정확도(AccuracyRate, 0~1) 임계값 */
+	/** Great/Good을 가르는 노트 정확도(AccuracyRate, 0~1) 임계값 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|BB|HUD|Outro", meta = (ClampMin = "0.0", ClampMax = "1.0"))
 	float GreatAccuracyThreshold = 0.85f;
 
-	/** 보스 완전 처치 시 퍼펙트 클리어(3등급)로 인정할 최대 미스 허용 횟수 */
+	/** 퍼펙트 클리어(3등급)로 인정할 최대 미스 허용 횟수 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|BB|HUD|Outro", meta = (ClampMin = "0"))
 	int32 PerfectClearMaxMissCount = 0;
 
@@ -195,17 +203,35 @@ private:
 	float PlayerGhostDecayTimer = 0.0f;
 
 	// ── 큐 추적 맵 ───────────────────────────────────────────────
+	// BB 채보에는 롱노트가 없어 탭 큐만 추적한다.
 
 	UPROPERTY()
 	TMap<int32, TObjectPtr<UPTBBBCueWidgetBase>> TapCueMap;
 
+	// ── 히트존 마커 ──────────────────────────────────────────────
+
+	/** ActionType별 고정 히트존 마커. HitZoneClass가 설정된 경우에만 채워진다. */
 	UPROPERTY()
-	TMap<int32, TObjectPtr<UPTBBBCueWidgetBase>> HoldCueMap;
+	TMap<EPTBActionType, TObjectPtr<UPTBBBHitZoneWidgetBase>> HitZoneMarkers;
+
+	/** AnchorPositions의 각 ActionType에 대해 히트존 마커를 스폰·배치한다. HitZoneClass 미설정 시 아무 것도 하지 않는다. */
+	void SpawnHitZoneMarkers();
+
+	/**
+	 * 현재 라운드의 채보에서 실제로 쓰이는 액션만 히트존 마커를 보이게 하고, 나머지는 숨긴다.
+	 * 난이도마다 채보에 등장하는 액션 종류가 다르므로(Easy=A~C, Standard=A~D, Insane=A~E 등),
+	 * 채보와 무관하게 항상 전체 마커를 보여주는 걸 방지한다. ChartAsset이 아직 로드되지 않았으면
+	 * (예: 바인딩 시점이 너무 이르면) 아무 것도 바꾸지 않고 다음 호출(HandleBBGameplayStarted)을 기다린다.
+	 */
+	void RefreshHitZoneVisibility();
 
 	// ── 델리게이트 핸들러 ────────────────────────────────────────
 
 	UFUNCTION()
 	void HandleBBNoteCue(FPTBNoteEvent Note);
+
+	UFUNCTION()
+	void HandleBBNoteReached(FPTBNoteEvent Note);
 
 	UFUNCTION()
 	void HandleBBParrySuccess(FPTBJudgementResult Result, float BossHPPercent);
@@ -241,12 +267,13 @@ private:
 		TSubclassOf<UPTBBBCueWidgetBase> CueClass,
 		const FPTBNoteEvent& Note);
 
-	/** NoteId로 두 맵 중 해당 큐를 찾아 맵에서 제거하고 반환. 없으면 nullptr. */
+	/** NoteId로 TapCueMap에서 해당 큐를 찾아 맵에서 제거하고 반환. 없으면 nullptr. */
 	UPTBBBCueWidgetBase* FindAndRemoveCue(int32 NoteId);
 
 	/**
-	 * EndReason(Failed=플레이어 체력 0), 보스 잔여 체력, 노트 미스/정확도로
-	 * OutroTexturesByStar의 인덱스(0~3)를 결정.
+	 * EndReason(Failed=플레이어 체력 0)과 노트 정확도·미스 수로 OutroTexturesByStar의 인덱스(0~3)를 결정.
+	 * 보스 잔여 체력은 쓰지 않는다 — 보스 체력은 이제 채보 진행도(정확도 100%가 아니면 완전히
+	 * 처치되지 않을 뿐인 진행 지표)라서, 등급은 정확도/미스 수만으로 판단한다.
 	 */
 	int32 ResolveOutroTierIndex(const FPTBRoundResult& Result, EPTBRoundEndReason EndReason) const;
 

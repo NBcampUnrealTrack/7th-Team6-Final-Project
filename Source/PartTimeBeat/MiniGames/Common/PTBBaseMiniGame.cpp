@@ -18,6 +18,8 @@
 #include "GameFramework/PlayerController.h"
 #include "InputCoreTypes.h"
 #include "TimerManager.h"
+#include "Blueprint/UserWidget.h"
+#include "Blueprint/WidgetBlueprintLibrary.h"
 
 namespace PTBBaseMiniGameInternal
 {
@@ -499,7 +501,43 @@ void APTBBaseMiniGame::PreloadAudioAssets()
 
 void APTBBaseMiniGame::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+	// Owner 관계만으로는 자동 파괴되지 않으므로 등록된 스폰 Actor를 직접 정리
+	for (const TObjectPtr<AActor>& Actor : SpawnedRoundActors)
+	{
+		if (IsValid(Actor))
+		{
+			Actor->Destroy();
+		}
+	}
+	SpawnedRoundActors.Reset();
+
 	Super::EndPlay(EndPlayReason);
+}
+
+void APTBBaseMiniGame::RegisterSpawnedRoundActor(AActor* Actor)
+{
+	if (Actor)
+	{
+		SpawnedRoundActors.AddUnique(Actor);
+	}
+}
+
+void APTBBaseMiniGame::RemoveExistingWidgetsOfClass(TSubclassOf<UUserWidget> WidgetClass, UUserWidget* WidgetToKeep) const
+{
+	if (!WidgetClass)
+	{
+		return;
+	}
+
+	TArray<UUserWidget*> ExistingWidgets;
+	UWidgetBlueprintLibrary::GetAllWidgetsOfClass(GetWorld(), ExistingWidgets, WidgetClass, false);
+	for (UUserWidget* ExistingWidget : ExistingWidgets)
+	{
+		if (ExistingWidget && ExistingWidget != WidgetToKeep && ExistingWidget->IsInViewport())
+		{
+			ExistingWidget->RemoveFromParent();
+		}
+	}
 }
 
 void APTBBaseMiniGame::ApplyRuleSet()
@@ -783,6 +821,9 @@ FPTBRoundResult APTBBaseMiniGame::FinishMiniGame(EPTBRoundEndReason Reason)
 	GetWorldTimerManager().ClearTimer(CuePreRollTimerHandle);
 	ApplyGameAndUIInputMode();
 
+	// Aborted(재시작 등 중도 종료)에서는 판정 대기 중이던 노트를 Miss로 흘려보내지 않는다.
+	// 예전에 여기서 흘려보냈다가 Retry 중 판정 델리게이트가 처음으로 실행되면서
+	// 몇몇 미니게임 Blueprint(중단 상황을 가정 안 함)가 터지는 문제가 있었다.
 	if (Reason != EPTBRoundEndReason::Aborted && JudgementSystem)
 	{
 		JudgementSystem->ForceMissExpiredNotes(GetRoundEndChartTimeMs());

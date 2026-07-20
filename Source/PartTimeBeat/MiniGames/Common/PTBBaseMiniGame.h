@@ -16,6 +16,7 @@ class UPTBJudgementSystem;
 class UPTBScoreCalculator;
 class UPTBMiniGameLoadingWidget;
 class UAkComponent;
+class UUserWidget;
 struct FStreamableHandle;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FPTBOnMiniGameFinished, FPTBRoundResult, Result);
@@ -124,6 +125,18 @@ public:
 
 	/** 컨텍스트 주입 */
 	virtual void InitializeMiniGame(const FPTBMiniGameContext& Context);
+
+	/** 라운드 중 스폰한 Actor를 등록한다. Retry로 이 미니게임이 파괴될 때(EndPlay) 함께 자동 Destroy된다 */
+	UFUNCTION(BlueprintCallable, Category = "PTB|MiniGame")
+	void RegisterSpawnedRoundActor(AActor* Actor);
+
+	/**
+	 * 지정한 클래스의 위젯이 이미 뷰포트에 떠 있다면 제거한다(Retry로 HUD가 중복 생성되는 것 방지).
+	 * WidgetToKeep을 넘기면 그 위젯은 제외 — 위젯 자신의 Construct(이미 AddToViewport된 이후)에서
+	 * 자기 클래스를 정리할 때는 Self를 넘겨야 새로 추가된 위젯까지 같이 지워지지 않는다.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "PTB|MiniGame")
+	void RemoveExistingWidgetsOfClass(TSubclassOf<UUserWidget> WidgetClass, UUserWidget* WidgetToKeep = nullptr) const;
 
 	/** BGM + Conductor 시작, 입력 허용 */
 	virtual void StartMiniGame();
@@ -310,6 +323,10 @@ protected:
 	/** 사전 로드된 에셋 */
 	UPROPERTY()
 	TArray<TObjectPtr<UObject>> PreloadedAssets;
+
+	/** RegisterSpawnedRoundActor()로 등록된, 라운드 중 스폰된 Actor 목록. EndPlay에서 자동 정리된다. */
+	UPROPERTY()
+	TArray<TObjectPtr<AActor>> SpawnedRoundActors;
 
 	/** 유지 중인 Hold 노트 */
 	TArray<FPTBActiveHoldState> ActiveHoldStates;
