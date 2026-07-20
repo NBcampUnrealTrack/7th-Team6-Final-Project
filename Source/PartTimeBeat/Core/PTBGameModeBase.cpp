@@ -35,6 +35,18 @@ void APTBGameModeBase::BeginPlay()
 		}
 	}
 
+	// HandleMiniGameStarted가 건 GameOnly 모드가 OpenLevel 후에도 남아있어 허브 UI가 클릭을 못 받던 문제 방지
+	if (FlowSubsystem && FlowSubsystem->CurrentFlowState == EGameFlowState::MiniGameSelect)
+	{
+		if (APlayerController* PC = GetWorld() ? GetWorld()->GetFirstPlayerController() : nullptr)
+		{
+			FInputModeGameAndUI InputMode;
+			InputMode.SetHideCursorDuringCapture(false);
+			PC->SetInputMode(InputMode);
+			PC->SetShowMouseCursor(true);
+		}
+	}
+
 	UWorld* World = GetWorld();
 	if (!World || World->WorldType != EWorldType::PIE)
 	{
