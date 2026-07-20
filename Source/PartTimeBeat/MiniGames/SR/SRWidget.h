@@ -24,4 +24,11 @@ public:
 	/** 판정 결과(HighPerfect/Perfect/Good/Miss)와, Good/Miss일 때는 몇 ms 빠르거나 늦었는지도 같이 표시합니다.
 	 *  DeltaMs는 음수면 빠르게 침(Early), 양수면 늦게 침(Late)을 의미합니다. */
 	UFUNCTION(BlueprintCallable, Category = "SushiUI") void UpdateJudgementText(EPTBJudgementType JudgementType, float DeltaMs, bool bHasTimingInfo);
+
+protected:
+	/** UpdateJudgementText가 텍스트를 세팅한 직후 호출됩니다. BP에서 이 이벤트를 받아
+	 *  (Txt_Judgement가 이미 새 텍스트로 갱신된 상태이므로) 팝업/페이드아웃 애니메이션만
+	 *  재생하면 됩니다 — PTBJJJudgementWidgetBase::OnJudgementShown과 동일한 패턴입니다. */
+	UFUNCTION(BlueprintImplementableEvent, Category = "SushiUI")
+	void OnJudgementTextShown(EPTBJudgementType JudgementType);
 };

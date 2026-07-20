@@ -55,4 +55,8 @@ void USRWidget::UpdateJudgementText(EPTBJudgementType JudgementType, float Delta
     }
 
     Txt_Judgement->SetText(FText::FromString(DisplayText));
+
+    // ★ 텍스트를 이미 세팅한 뒤에 호출합니다. BP는 여기서 팝업/페이드아웃 애니메이션만
+    //   재생하면 됩니다 (JJ의 OnJudgementShown과 동일한 역할).
+    OnJudgementTextShown(JudgementType);
 }
