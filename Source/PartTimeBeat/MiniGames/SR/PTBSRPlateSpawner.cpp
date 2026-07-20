@@ -1,6 +1,7 @@
 #include "PTBSRPlateSpawner.h"
 #include "PTBSRMiniGame.h"
 #include "PTBSRPlate.h"
+#include "Core/PTBGameModeBase.h"
 #include "Kismet/GameplayStatics.h"
 #include "TimerManager.h"
 #include "Debug/PTBLogChannels.h"
@@ -14,6 +15,41 @@ void APTBSRPlateSpawner::BeginPlay()
 {
 	Super::BeginPlay();
 
+	TryBindMiniGame();
+
+	if (APTBGameModeBase* GameMode = Cast<APTBGameModeBase>(UGameplayStatics::GetGameMode(this)))
+	{
+		GameMode->OnGameStarted.AddUniqueDynamic(this, &APTBSRPlateSpawner::HandleGameStarted);
+	}
+}
+
+void APTBSRPlateSpawner::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	GetWorldTimerManager().ClearTimer(BindRetryTimerHandle);
+
+	if (IsValid(BoundMiniGame))
+	{
+		BoundMiniGame->OnSushiPlateSpawn.RemoveDynamic(this, &APTBSRPlateSpawner::HandleSushiPlateSpawn);
+		BoundMiniGame = nullptr;
+	}
+
+	if (APTBGameModeBase* GameMode = Cast<APTBGameModeBase>(UGameplayStatics::GetGameMode(this)))
+	{
+		GameMode->OnGameStarted.RemoveDynamic(this, &APTBSRPlateSpawner::HandleGameStarted);
+	}
+
+	Super::EndPlay(EndPlayReason);
+}
+
+void APTBSRPlateSpawner::HandleGameStarted()
+{
+	// ★ 여기서 BoundMiniGame을 강제로 nullptr로 초기화하면 안 됩니다.
+	//   OnGameStarted는 재시작뿐 아니라 최초 시작 때도 발생하는데, 그 시점엔 이미
+	//   BeginPlay에서 정상적으로 바인딩되어 있는 상태입니다. 여기서 nullptr로 밀어버리면
+	//   TryBindMiniGame()의 "이미 바인딩됨" 체크가 무력화되어 같은 MiniGame에 델리게이트가
+	//   두 번 등록되고, 그 결과 노트 하나당 접시/토핑이 2개씩 스폰되는 문제가 있었습니다.
+	//   TryBindMiniGame()이 자체적으로 BoundMiniGame == MiniGame 비교로 중복을 막아주므로
+	//   여기서는 그냥 호출만 하면 됩니다 (재시작 시엔 새 MiniGame이라 자연스럽게 재바인딩됨).
 	TryBindMiniGame();
 }
 
@@ -78,6 +114,12 @@ void APTBSRPlateSpawner::SpawnPlate(int32 ToppingType, int32 NoteId)
 		UE_LOG(LogPTBMiniGames, Error, TEXT("[%s] SpawnPlate failed to spawn %s"),
 			*GetNameSafe(this), *GetNameSafe(PlateClass));
 		return;
+	}
+
+	// Retry 시 정리되도록 등록 (ToppingSpawner와 동일한 패턴)
+	if (IsValid(BoundMiniGame))
+	{
+		BoundMiniGame->RegisterSpawnedRoundActor(SpawnedPlate);
 	}
 
 	// PTBSRPlate는 우리 C++ 클래스이므로 리플렉션 없이 바로 세팅 가능

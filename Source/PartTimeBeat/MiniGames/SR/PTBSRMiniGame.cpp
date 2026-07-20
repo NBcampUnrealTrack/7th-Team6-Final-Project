@@ -23,6 +23,38 @@ APTBSRMiniGame::APTBSRMiniGame()
 void APTBSRMiniGame::BeginPlay()
 {
 	Super::BeginPlay();
+	SetupPreviewWidget();
+}
+
+void APTBSRMiniGame::SetupPreviewWidget()
+{
+	if (!PreviewWidgetClass)
+	{
+		// 클래스가 지정 안 됐으면(레벨 블루프린트 등 다른 방식으로 관리 중이라면) 건드리지 않습니다.
+		return;
+	}
+
+	APlayerController* PC = GetWorld() ? GetWorld()->GetFirstPlayerController() : nullptr;
+	if (!PC)
+	{
+		return;
+	}
+
+	// ★ 재시작으로 이전 라운드의 미리보기 위젯이 화면에 남아있을 수 있으니 먼저 정리합니다
+	//   (base의 RemoveExistingWidgetsOfClass가 Retry로 인한 HUD 중복 생성을 막아줍니다).
+	RemoveExistingWidgetsOfClass(PreviewWidgetClass);
+
+	WBP_SR_Preview = CreateWidget<UUserWidget>(PC, PreviewWidgetClass);
+	if (WBP_SR_Preview)
+	{
+		WBP_SR_Preview->AddToPlayerScreen();
+		RefreshPreviewUI();
+	}
+	else
+	{
+		PTB_WARNING(LogPTBMiniGames, TEXT("[%s] SetupPreviewWidget: 위젯 생성 실패 (PreviewWidgetClass=%s)"),
+			*GetNameSafe(this), *GetNameSafe(PreviewWidgetClass));
+	}
 }
 
 TMap<FKey, EPTBActionType> APTBSRMiniGame::GetActionMapping() const
@@ -391,6 +423,12 @@ void APTBSRMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 	{
 		const bool bHasTimingInfo = Result.Reason != EPTBJudgementReason::EmptyInput;
 		MySushiUI->UpdateJudgementText(Result.JudgementType, Result.DeltaMs, bHasTimingInfo);
+	}
+	else
+	{
+		// [진단용] 재시작 후 판정 텍스트가 안 바뀌는 문제 확인용
+		PTB_WARNING(LogPTBMiniGames, TEXT("[%s] HandleJudgementResult: WBP_SR_Preview가 유효하지 않거나 USRWidget으로 캐스트 실패 (WBP_SR_Preview=%s)"),
+			*GetNameSafe(this), *GetNameSafe(WBP_SR_Preview));
 	}
 
 	// [힌트존 참고용] HighPerfect로 판정된 순간, 그 노트를 담당하던 접시가 실제로 어디 있었는지
