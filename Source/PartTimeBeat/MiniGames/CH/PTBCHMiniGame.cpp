@@ -210,6 +210,7 @@ void APTBCHMiniGame::BuildRuntimeState()
             Group.TargetX = IngredientSpawnLocationXY.X;
             SlideGroups.Add(Group);
             CompletedPlates.Add(FirstPlate);
+            RegisterSpawnedRoundActor(FirstPlate);
 
             // StackHeight: 접시 윗면 기준
             FVector PlateOrigin, PlateExtent;
@@ -228,29 +229,10 @@ void APTBCHMiniGame::BuildRuntimeState()
 
 void APTBCHMiniGame::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
-    // 재도전 시 GameMode가 이 액터만 Destroy하고 스폰된 접시/재료는 정리하지 않아서,
-    // 다음 판 첫 접시가 이전 판에 남아있던 접시/재료와 같은 위치에서 겹쳐 보이는 문제 방지
-    for (AActor* Ingredient : SpawnedIngredients)
-    {
-        if (Ingredient) { Ingredient->Destroy(); }
-    }
+    // 스폰된 Actor 자체는 base(RegisterSpawnedRoundActor)가 정리하므로 추적용 배열만 비운다
     SpawnedIngredients.Reset();
-
-    for (const TArray<TObjectPtr<AActor>>& Hamburger : CompletedHamburgers)
-    {
-        for (AActor* Ingredient : Hamburger)
-        {
-            if (Ingredient) { Ingredient->Destroy(); }
-        }
-    }
     CompletedHamburgers.Reset();
-
-    for (AActor* Plate : CompletedPlates)
-    {
-        if (Plate) { Plate->Destroy(); }
-    }
     CompletedPlates.Reset();
-
     SlideGroups.Reset();
 
     Super::EndPlay(EndPlayReason);
@@ -538,6 +520,7 @@ void APTBCHMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
                         NewGroup.Delay = 0.5f;
                         SlideGroups.Add(NewGroup);
                         CompletedPlates.Add(NewPlate);
+                        RegisterSpawnedRoundActor(NewPlate);
                     }
                 }
 
@@ -921,6 +904,9 @@ void APTBCHMiniGame::CreateAndAddHUD()
         return;
     }
 
+    // Retry로 이 미니게임 Actor가 교체될 때, 이전 라운드의 HUD가 뷰포트에 남지 않도록 정리.
+    RemoveExistingWidgetsOfClass(HUDWidgetClass);
+
     HUDWidget = CreateWidget<UUserWidget>(PC, HUDWidgetClass);
     if (HUDWidget)
     {
@@ -1145,6 +1131,7 @@ void APTBCHMiniGame::SpawnIngredient(EPTBCHIngredientType IngredientType, bool b
         }
 
         SpawnedIngredients.Add(SpawnedActor);
+        RegisterSpawnedRoundActor(SpawnedActor);
         if (SlideGroups.Num() > 0)
         {
             SlideGroups.Last().Ingredients.Add(SpawnedActor);

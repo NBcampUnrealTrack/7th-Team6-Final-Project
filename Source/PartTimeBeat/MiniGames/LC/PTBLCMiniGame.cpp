@@ -363,6 +363,7 @@ void APTBLCMiniGame::PrepareLogisticBoxPool()
 		LogisticBox->ResetForPool(StandbyLocation);
 		LogisticBox->OnDestroyed.AddUniqueDynamic(this, &APTBLCMiniGame::HandleLogisticBoxDestroyed);
 		LogisticBoxPool.Add(LogisticBox);
+		RegisterSpawnedRoundActor(LogisticBox);
 	}
 
 	PTB_RECORD(LogPTBMiniGames, TEXT("[LC] Logistic box pool prepared. Required=%d Created=%d Class=%s"),

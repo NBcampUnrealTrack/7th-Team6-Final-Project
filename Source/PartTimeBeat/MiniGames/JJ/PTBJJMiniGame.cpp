@@ -19,6 +19,23 @@ APTBJJMiniGame::APTBJJMiniGame()
 	JumpSpawnTransforms.Add(FTransform(FVector(0.0f, 200.0f, 0.0f))); // 2: 우
 }
 
+void APTBJJMiniGame::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	// 스폰된 Actor 자체는 base(RegisterSpawnedRoundActor)가 정리하므로 추적용 배열과 타이머만 비운다
+	JumpActors.Reset();
+
+	if (UWorld* World = GetWorld())
+	{
+		for (FTimerHandle& TimerHandle : PendingJumpTimers)
+		{
+			World->GetTimerManager().ClearTimer(TimerHandle);
+		}
+	}
+	PendingJumpTimers.Reset();
+
+	Super::EndPlay(EndPlayReason);
+}
+
 void APTBJJMiniGame::BuildRuntimeState()
 {
 	Super::BuildRuntimeState();
@@ -168,19 +185,6 @@ void APTBJJMiniGame::BeginPlay()
 {
 	Super::BeginPlay();
 }
-
-//void APTBJJMiniGame::PlayJudgementFeedback(const FPTBJudgementResult& Result)
-//{
-//	Super::PlayJudgementFeedback(Result);
-//
-//	// 착지 연출은 여기서만 호출 (Super::HandleJudgementResult 경로로 1회 보장)
-//	FPTBNoteEvent JudgedNote;
-//	const int32 CharacterIndex = FindTrackedNote(Result.NoteId, JudgedNote)
-//		? ResolveCharacterIndex(JudgedNote.ActionType)
-//		: ResolveCharacterIndex(Result.ActionType);
-//
-//	PlayLandingFeedback(CharacterIndex, Result);
-//}
 
 FPTBMiniGameResultPayload APTBJJMiniGame::BuildResultPayload() const
 {
@@ -435,6 +439,7 @@ void APTBJJMiniGame::SpawnJumpActors()
 		if (Spawned)
 		{
 			SetJumpActor(Index, Spawned);
+			RegisterSpawnedRoundActor(Spawned);
 			UE_LOG(LogPTBMiniGames, Warning, TEXT("SpawnJumpActors: spawned idx=%d at %s"),
 				Index, *Spawned->GetActorLocation().ToString());
 		}

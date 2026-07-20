@@ -34,7 +34,7 @@ void APCRailCharacter::PlayHandMontage(UAnimMontage* Montage)
 
     if (UAnimInstance* AnimInst = HandsMesh->GetAnimInstance())
     {
-        AnimInst->Montage_Play(Montage);
+        AnimInst->Montage_Play(Montage, 0.7f);
     }
 }
 
@@ -96,7 +96,6 @@ void APCRailCharacter::SelectRailByDifficulty(EPTBDifficulty Difficulty)
 
     CurrentSplineDistance = 0.f;
 
-    // 선택된 레일 시작점으로 순간이동
     if (PCRailPath)
     {
         FVector StartLoc = PCRailPath->Spline->GetLocationAtDistanceAlongSpline(0.f, ESplineCoordinateSpace::World);
@@ -105,4 +104,19 @@ void APCRailCharacter::SelectRailByDifficulty(EPTBDifficulty Difficulty)
         StartRot.Roll = 0.f;
         SetActorLocationAndRotation(StartLoc, StartRot);
     }
+
+    UpdateGridVisibility();
+
+}
+
+void APCRailCharacter::UpdateGridVisibility()
+{
+    if (EasyRailPath && EasyRailPath->GridMeshActor)
+        EasyRailPath->GridMeshActor->SetActorHiddenInGame(PCRailPath != EasyRailPath);
+
+    if (StandardRailPath && StandardRailPath->GridMeshActor)
+        StandardRailPath->GridMeshActor->SetActorHiddenInGame(PCRailPath != StandardRailPath);
+
+    if (InsaneRailPath && InsaneRailPath->GridMeshActor)
+        InsaneRailPath->GridMeshActor->SetActorHiddenInGame(PCRailPath != InsaneRailPath);
 }
