@@ -347,9 +347,46 @@ void APTBDWMiniGame::StartMiniGame()
 	}
 }
 
+APTBDWBackgroundScroller* APTBDWMiniGame::GetBackgroundScroller()
+{
+	if (!BackgroundScroller)
+	{
+		for (TActorIterator<APTBDWBackgroundScroller> It(GetWorld()); It; ++It)
+		{
+			BackgroundScroller = *It;
+			break;
+		}
+	}
+	return BackgroundScroller;
+}
+
+APTBDWCameraRig* APTBDWMiniGame::GetCameraRig()
+{
+	if (!CameraRig)
+	{
+		for (TActorIterator<APTBDWCameraRig> It(GetWorld()); It; ++It)
+		{
+			CameraRig = *It;
+			break;
+		}
+	}
+	return CameraRig;
+}
+
+void APTBDWMiniGame::HandleReadyToStart()
+{
+	Super::HandleReadyToStart();
+
+	if (APTBDWBackgroundScroller* Scroller = GetBackgroundScroller()) { Scroller->ResetToStart(); }
+
+	if (APTBDWCameraRig* Rig = GetCameraRig()) { Rig->SnapToIntroPose(); }
+}
+
 void APTBDWMiniGame::ReceiveIntroStarted_Implementation()
 {
 	Super::ReceiveIntroStarted_Implementation();
+
+	if (APTBDWBackgroundScroller* Scroller = GetBackgroundScroller()) { Scroller->SetRunning(false); }
 
 	if (!CameraRig)
 	{
@@ -1170,7 +1207,6 @@ void APTBDWMiniGame::SpawnSplitHalves(AActor* Obstacle, EPTBActionType Action)
 
 void APTBDWMiniGame::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
-	// 기존엔 BuildRuntimeState(새 라운드 시작)에서만 호출돼 Retry 시 정리가 안 됐다
 	ClearAllNoteViews();
 
 	Super::EndPlay(EndPlayReason);

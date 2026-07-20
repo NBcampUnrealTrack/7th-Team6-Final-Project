@@ -58,6 +58,19 @@ void APTBDWBackgroundScroller::SpawnChunks()
 	}
 }
 
+void APTBDWBackgroundScroller::ResetToStart()
+{
+	bRunning = false;
+	for (int32 i = 0; i < ChunkOffsets.Num(); ++i)
+	{
+		ChunkOffsets[i] = (i - ChunksBehind) * ChunkLength;
+		if (ActiveChunks.IsValidIndex(i) && ActiveChunks[i])
+		{
+			ActiveChunks[i]->SetActorLocation(BaseLocation + LaneDir * ChunkOffsets[i]);
+		}
+	}
+}
+
 void APTBDWBackgroundScroller::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
