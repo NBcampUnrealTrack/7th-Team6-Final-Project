@@ -17,6 +17,9 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	USplineComponent* Spline;
 
+	UPROPERTY(EditAnywhere)
+	AActor* GridMeshActor; 
+
 	UFUNCTION()
 	FVector GetPointLocation(int32 Index);
 };
