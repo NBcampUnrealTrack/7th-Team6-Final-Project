@@ -42,7 +42,13 @@ void APTBSRToppingSpawner::EndPlay(const EEndPlayReason::Type EndPlayReason)
 
 void APTBSRToppingSpawner::HandleGameStarted()
 {
-	BoundMiniGame = nullptr;
+	// ★ 여기서 BoundMiniGame을 강제로 nullptr로 초기화하면 안 됩니다.
+	//   OnGameStarted는 재시작뿐 아니라 최초 시작 때도 발생하는데, 그 시점엔 이미
+	//   BeginPlay에서 정상적으로 바인딩되어 있는 상태입니다. 여기서 nullptr로 밀어버리면
+	//   TryBindMiniGame()의 "이미 바인딩됨" 체크가 무력화되어 같은 MiniGame에 델리게이트가
+	//   두 번 등록되고, 그 결과 노트 하나당 토핑이 2개씩 스폰되는 문제가 있었습니다.
+	//   TryBindMiniGame()이 자체적으로 BoundMiniGame == MiniGame 비교로 중복을 막아주므로
+	//   여기서는 그냥 호출만 하면 됩니다 (재시작 시엔 새 MiniGame이라 자연스럽게 재바인딩됨).
 	TryBindMiniGame();
 }
 
