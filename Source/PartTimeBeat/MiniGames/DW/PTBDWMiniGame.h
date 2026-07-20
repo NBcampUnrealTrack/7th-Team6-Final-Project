@@ -137,10 +137,13 @@ protected:
 	virtual void HandleJudgementResult(FPTBJudgementResult Result) override;
 	virtual void ReceiveGameplayStarted_Implementation() override;
 	virtual void ReceiveIntroStarted_Implementation() override;
+	virtual void HandleReadyToStart() override;
 	virtual float ResolveVisualOffsetMs(const FPTBMiniGameContext& Context) const override;
 
 	const UPTBDWMiniGameRuleSet* GetDWRuleSet() const;
 	USkeletalMesh* GetPreviewMeshForActiveProfile() const;
+	APTBDWBackgroundScroller* GetBackgroundScroller();
+	APTBDWCameraRig* GetCameraRig();
 
 private:
 	void SpawnNoteView(const FPTBNoteEvent& Note);

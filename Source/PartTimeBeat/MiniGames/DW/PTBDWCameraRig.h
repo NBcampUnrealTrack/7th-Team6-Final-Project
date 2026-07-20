@@ -25,6 +25,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "PTB|DW|Intro")
 	void StartIntroMove();
 
+	/** 이동 없이 인트로 포즈(하늘 뷰)로 즉시 스냅. 대기 화면용. */
+	void SnapToIntroPose();
+
 	/** 실패 연출 카메라 흔들림. */
 	UFUNCTION(BlueprintCallable, Category = "PTB|DW")
 	void PlayFailShake(float Intensity, float Duration, float Frequency);

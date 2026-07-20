@@ -37,10 +37,13 @@ public:
 
 	/** BeginPlay에 자동 스크롤 시작 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW")
-	bool bAutoStart = true;
+	bool bAutoStart = false;
 
 	UFUNCTION(BlueprintCallable, Category = "PTB|DW")
 	void SetRunning(bool bInRunning) { bRunning = bInRunning; }
+
+	/** 시작 배치로 위치 초기화 + 정지 (재시작 시 배경 리셋). */
+	void ResetToStart();
 
 	/** 난이도 배속 × 배경 계수 적용: ScrollSpeed = 기본 × Scale × Multiplier. */
 	UFUNCTION(BlueprintCallable, Category = "PTB|DW")
