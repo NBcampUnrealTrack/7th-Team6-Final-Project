@@ -20,6 +20,10 @@ class APTBSRPlate;
  * 기존 Blueprint(BP_SR_PlateSpawner)의 EventGraph 배선을 C++로 대체하기 위한 클래스입니다.
  * 이 클래스를 부모로 하는 Blueprint를 만들거나, 기존 BP_SR_PlateSpawner의
  * 부모 클래스(Reparent)를 이 클래스로 바꿔서 사용하세요.
+ *
+ * 이 스포너는 레벨에 고정 배치되어 재시작(Retry)해도 파괴되지 않지만, MiniGame 액터는
+ * 재시작마다 파괴되고 새로 스폰됩니다. 그래서 GameMode::OnGameStarted를 구독해서
+ * 재시작마다 새 MiniGame을 다시 찾아 재바인딩합니다.
  */
 UCLASS()
 class PARTTIMEBEAT_API APTBSRPlateSpawner : public AActor
@@ -30,6 +34,7 @@ public:
 	APTBSRPlateSpawner();
 
 	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 protected:
 	/** 스폰할 접시 액터 클래스 (BP_SR_Plate 등, 디테일 패널에서 지정) */
@@ -45,6 +50,10 @@ protected:
 	void HandleSushiPlateSpawn(int32 ToppingType, int32 NoteId);
 
 private:
+	/** GameMode::OnGameStarted 수신. Retry로 미니게임이 교체될 때마다 재바인딩한다 */
+	UFUNCTION()
+	void HandleGameStarted();
+
 	/** 씬에서 APTBSRMiniGame을 찾아 델리게이트 바인딩을 시도. 실패 시 타이머로 재시도 */
 	void TryBindMiniGame();
 

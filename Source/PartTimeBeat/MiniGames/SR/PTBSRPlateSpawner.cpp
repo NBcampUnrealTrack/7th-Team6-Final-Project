@@ -1,6 +1,7 @@
 #include "PTBSRPlateSpawner.h"
 #include "PTBSRMiniGame.h"
 #include "PTBSRPlate.h"
+#include "Core/PTBGameModeBase.h"
 #include "Kismet/GameplayStatics.h"
 #include "TimerManager.h"
 #include "Debug/PTBLogChannels.h"
@@ -14,6 +15,35 @@ void APTBSRPlateSpawner::BeginPlay()
 {
 	Super::BeginPlay();
 
+	TryBindMiniGame();
+
+	if (APTBGameModeBase* GameMode = Cast<APTBGameModeBase>(UGameplayStatics::GetGameMode(this)))
+	{
+		GameMode->OnGameStarted.AddUniqueDynamic(this, &APTBSRPlateSpawner::HandleGameStarted);
+	}
+}
+
+void APTBSRPlateSpawner::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	GetWorldTimerManager().ClearTimer(BindRetryTimerHandle);
+
+	if (IsValid(BoundMiniGame))
+	{
+		BoundMiniGame->OnSushiPlateSpawn.RemoveDynamic(this, &APTBSRPlateSpawner::HandleSushiPlateSpawn);
+		BoundMiniGame = nullptr;
+	}
+
+	if (APTBGameModeBase* GameMode = Cast<APTBGameModeBase>(UGameplayStatics::GetGameMode(this)))
+	{
+		GameMode->OnGameStarted.RemoveDynamic(this, &APTBSRPlateSpawner::HandleGameStarted);
+	}
+
+	Super::EndPlay(EndPlayReason);
+}
+
+void APTBSRPlateSpawner::HandleGameStarted()
+{
+	BoundMiniGame = nullptr;
 	TryBindMiniGame();
 }
 
@@ -78,6 +108,12 @@ void APTBSRPlateSpawner::SpawnPlate(int32 ToppingType, int32 NoteId)
 		UE_LOG(LogPTBMiniGames, Error, TEXT("[%s] SpawnPlate failed to spawn %s"),
 			*GetNameSafe(this), *GetNameSafe(PlateClass));
 		return;
+	}
+
+	// Retry 시 정리되도록 등록 (ToppingSpawner와 동일한 패턴)
+	if (IsValid(BoundMiniGame))
+	{
+		BoundMiniGame->RegisterSpawnedRoundActor(SpawnedPlate);
 	}
 
 	// PTBSRPlate는 우리 C++ 클래스이므로 리플렉션 없이 바로 세팅 가능
