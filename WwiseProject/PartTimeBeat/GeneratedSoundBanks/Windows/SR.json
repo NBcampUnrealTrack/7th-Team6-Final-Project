@@ -1,0 +1,47 @@
+{
+ "SoundBanksInfo": {
+  "Platform": "Windows",
+  "BasePlatform": "Windows",
+  "SchemaVersion": "16",
+  "SoundBankVersion": "150",
+  "SoundBanks": [
+   {
+    "Id": "1584861558",
+    "Type": "User",
+    "GUID": "{B2938181-788B-4184-B2D3-331BB75588D1}",
+    "Language": "SFX",
+    "Hash": "{BE3B5109-D067-B92E-87F1-75FCD17B06B0}",
+    "ObjectPath": "\\SoundBanks\\Default Work Unit\\SR",
+    "ShortName": "SR",
+    "Path": "SR.bnk",
+    "Media": [
+     {
+      "Id": "537188782",
+      "Language": "SFX",
+      "Streaming": "false",
+      "Location": "Memory",
+      "ShortName": "SR_BGM.wav",
+      "CachePath": "SFX/SR_BGM_818F3B66.wem"
+     }
+    ],
+    "Events": [
+     {
+      "Id": "3396216486",
+      "Name": "Play_SR_BGM",
+      "ObjectPath": "\\Events\\Default Work Unit\\Play_SR_BGM",
+      "GUID": "{EEEE5619-46CE-4444-ACE4-16CF74858FF0}",
+      "DurationType": "OneShot",
+      "DurationMin": "56.1039",
+      "DurationMax": "56.1039",
+      "MediaRefs": [
+       {
+        "Id": "537188782"
+       }
+      ]
+     }
+    ]
+   }
+  ],
+  "FileHash": "{493251F6-0DED-400F-E7E7-3F51CD059BC7}"
+ }
+}

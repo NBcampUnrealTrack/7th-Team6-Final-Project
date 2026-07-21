@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<WwiseDocument Type="WorkUnit" ID="{AF87CFE4-158F-4FAA-9D45-8EA7897C62C8}" SchemaVersion="119">
+	<AudioObjects>
+		<WorkUnit Name="DW" ID="{AF87CFE4-158F-4FAA-9D45-8EA7897C62C8}" PersistMode="Standalone">
+			<ChildrenList>
+				<Sound Name="DW_Cheery Monday" ID="{A37B51E3-327A-4AB9-AB44-8B8FFC21BCA1}" ShortID="1072616206">
+					<PropertyList>
+						<Property Name="ListenerRelativeRouting" Type="bool" Value="False"/>
+					</PropertyList>
+					<ReferenceList>
+						<Reference Name="Conversion">
+							<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{01EA0F64-0215-4D91-8B1B-BBF638BBC5DC}"/>
+						</Reference>
+						<Reference Name="OutputBus">
+							<ObjectRef Name="Master Audio Bus" ID="{1514A4D8-1DA6-412A-A17E-75CA0C2149F3}" WorkUnitID="{95FF6337-5249-4E55-B0BA-291C12594EA3}"/>
+						</Reference>
+					</ReferenceList>
+					<ChildrenList>
+						<AudioFileSource Name="DW_Cheery Monday" ID="{38C87091-D6F3-4687-BAA4-5C0B801EEAA9}">
+							<Language>SFX</Language>
+							<AudioFile>DW_Cheery Monday.wav</AudioFile>
+							<MediaIDList>
+								<MediaID ID="888168674"/>
+							</MediaIDList>
+						</AudioFileSource>
+					</ChildrenList>
+					<ActiveSourceList>
+						<ActiveSource Name="DW_Cheery Monday" ID="{38C87091-D6F3-4687-BAA4-5C0B801EEAA9}" Platform="Linked"/>
+					</ActiveSourceList>
+				</Sound>
+			</ChildrenList>
+		</WorkUnit>
+	</AudioObjects>
+</WwiseDocument>

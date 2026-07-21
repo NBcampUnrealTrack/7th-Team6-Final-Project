@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ProjectInfo>
+	<Project Name="PartTimeBeat" GUID="{A21EC574-520B-4E3E-A171-6FFC30C40182}" Generator="2023.1.7.8574"/>
+	<CacheRoot>../../WwiseProject/PartTimeBeat/.cache</CacheRoot>
+	<Platforms>
+		<Platform Name="Windows" GUID="{1C8C341D-35A2-46A9-BD49-499114B09E4D}" BasePlatform="Windows" BasePlatformGUID="{6E0CB257-C6C8-4C5C-8366-2740DFC441EB}" Path="../../WwiseProject/PartTimeBeat/GeneratedSoundBanks/Windows"/>
+	</Platforms>
+	<Languages>
+		<Language Name="English(US)" Id="684519430" GUID="{72974E96-D48E-4D13-88F2-A7DA9707E828}" Default="true" UseAsStandIn="true"/>
+	</Languages>
+	<FileHash>{8B03E510-2E4F-89FD-A4A6-191C3C9CABD2}</FileHash>
+</ProjectInfo>

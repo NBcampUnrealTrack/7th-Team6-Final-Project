@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<WwiseDocument Type="WorkUnit" ID="{0E58517D-B72C-492D-B7CF-4F8B282A7699}" SchemaVersion="119">
+	<AudioObjects>
+		<WorkUnit Name="SR" ID="{0E58517D-B72C-492D-B7CF-4F8B282A7699}" PersistMode="Standalone">
+			<ChildrenList>
+				<Sound Name="SR_BGM" ID="{6FB6796B-518D-4965-BD9A-D269A686EBAC}" ShortID="94520353">
+					<PropertyList>
+						<Property Name="ListenerRelativeRouting" Type="bool" Value="False"/>
+					</PropertyList>
+					<ReferenceList>
+						<Reference Name="Conversion">
+							<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{01EA0F64-0215-4D91-8B1B-BBF638BBC5DC}"/>
+						</Reference>
+						<Reference Name="OutputBus">
+							<ObjectRef Name="Master Audio Bus" ID="{1514A4D8-1DA6-412A-A17E-75CA0C2149F3}" WorkUnitID="{95FF6337-5249-4E55-B0BA-291C12594EA3}"/>
+						</Reference>
+					</ReferenceList>
+					<ChildrenList>
+						<AudioFileSource Name="SR_BGM" ID="{3135AF0C-1569-4B29-8118-D7D93275B654}">
+							<Language>SFX</Language>
+							<AudioFile>SR_BGM.wav</AudioFile>
+							<MediaIDList>
+								<MediaID ID="537188782"/>
+							</MediaIDList>
+						</AudioFileSource>
+					</ChildrenList>
+					<ActiveSourceList>
+						<ActiveSource Name="SR_BGM" ID="{3135AF0C-1569-4B29-8118-D7D93275B654}" Platform="Linked"/>
+					</ActiveSourceList>
+				</Sound>
+			</ChildrenList>
+		</WorkUnit>
+	</AudioObjects>
+</WwiseDocument>

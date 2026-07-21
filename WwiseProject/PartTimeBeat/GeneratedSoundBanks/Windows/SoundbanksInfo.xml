@@ -1,0 +1,335 @@
+<?xml version="1.0" encoding="utf-8"?>
+<SoundBanksInfo Platform="Windows" BasePlatform="Windows" SchemaVersion="16" SoundBankVersion="150">
+	<RootPaths>
+		<ProjectRoot>../..</ProjectRoot>
+		<SourceFilesRoot>../../.cache/Windows</SourceFilesRoot>
+		<SoundBanksRoot>.</SoundBanksRoot>
+		<ExternalSourcesInputFile></ExternalSourcesInputFile>
+		<ExternalSourcesOutputRoot>.</ExternalSourcesOutputRoot>
+	</RootPaths>
+	<DialogueEvents/>
+	<SoundBanks>
+		<SoundBank Id="1083137560" Type="User" GUID="{C9EAC364-B816-484D-AF09-AFF3C8C71B0E}" Language="SFX" Hash="{9782203F-2A8C-7A9B-392A-512D28CAFBE4}">
+			<ObjectPath>\SoundBanks\Default Work Unit\FOD</ObjectPath>
+			<ShortName>FOD</ShortName>
+			<Path>FOD.bnk</Path>
+			<Media>
+				<File Id="223210039" Language="SFX" Streaming="false" Location="Memory">
+					<ShortName>Music\FOD\FOD.wav</ShortName>
+					<CachePath>SFX/Music/FOD/FOD_818F3B66.wem</CachePath>
+				</File>
+			</Media>
+			<Events>
+				<Event Id="3026035594" Name="Play_FOD_BGM" ObjectPath="\Events\Default Work Unit\Play_FOD_BGM" GUID="{07A7D93E-C822-4EE4-B21B-3920E999B0A5}" DurationType="OneShot" DurationMin="106.22803" DurationMax="106.22803">
+					<MediaRefs>
+						<MediaRef Id="223210039"/>
+					</MediaRefs>
+				</Event>
+			</Events>
+		</SoundBank>
+		<SoundBank Id="1355168291" Type="User" GUID="{701ECBBD-9C7B-4030-8CDB-749EE5D1C7B9}" Language="SFX" Hash="{B467C134-D627-F295-7EC8-28ECC8D344F5}">
+			<ObjectPath>Init</ObjectPath>
+			<ShortName>Init</ShortName>
+			<Path>Init.bnk</Path>
+			<Plugins>
+				<AudioDevices>
+					<Plugin Id="2317455096" Name="No_Output" ObjectPath="\Audio Devices\Default Work Unit\No_Output" GUID="{012A2E62-6036-48E8-B115-B7B9CDD39A11}" LibName="No Output" LibId="11862023"/>
+					<Plugin Id="3859886410" Name="System" ObjectPath="\Audio Devices\Default Work Unit\System" GUID="{9ED6E86C-F849-47D9-B65E-2EF354F4C470}" LibName="System" LibId="11403271"/>
+				</AudioDevices>
+			</Plugins>
+			<Busses>
+				<Bus Id="213475909" Name="SFX_Bus" ObjectPath="\Master-Mixer Hierarchy\Default Work Unit\Master Audio Bus\SFX_Bus" GUID="{95A35F26-D1E1-451C-BAD8-08EA056CE99B}"/>
+				<Bus Id="2060214130" Name="BGM_Bus" ObjectPath="\Master-Mixer Hierarchy\Default Work Unit\Master Audio Bus\BGM_Bus" GUID="{311698EB-E40F-46BD-8F0E-74A93390FBD8}"/>
+				<Bus Id="3803692087" Name="Master Audio Bus" ObjectPath="\Master-Mixer Hierarchy\Default Work Unit\Master Audio Bus" GUID="{1514A4D8-1DA6-412A-A17E-75CA0C2149F3}"/>
+			</Busses>
+			<GameParameters>
+				<GameParameter Id="822163944" Name="SS_Air_RPM" ObjectPath="\Game Parameters\Factory Soundseed Air Game Syncs\SS_Air_RPM" GUID="{A34890AB-B9D5-4526-A64D-5290C43EF2DC}"/>
+				<GameParameter Id="988953028" Name="SFXVolume" ObjectPath="\Game Parameters\Default Work Unit\SFXVolume" GUID="{C695A944-599A-4EEA-A805-8D128D3EDA8B}"/>
+				<GameParameter Id="1029930033" Name="SS_Air_Fury" ObjectPath="\Game Parameters\Factory Soundseed Air Game Syncs\SS_Air_Fury" GUID="{A2AE79DC-CA3A-46BA-9652-9986C322A87B}"/>
+				<GameParameter Id="1351367891" Name="SS_Air_Fear" ObjectPath="\Game Parameters\Factory Soundseed Air Game Syncs\SS_Air_Fear" GUID="{F72E0659-4346-4E1C-A1B1-DAB46A05101E}"/>
+				<GameParameter Id="2648548617" Name="SS_Air_Month" ObjectPath="\Game Parameters\Factory Soundseed Air Game Syncs\SS_Air_Month" GUID="{09E2B445-C4A3-447F-B3CA-818A1D925EF7}"/>
+				<GameParameter Id="2918011349" Name="MasterVolume" ObjectPath="\Game Parameters\Default Work Unit\MasterVolume" GUID="{0691878C-6D1A-444C-B364-6D231D75FEB7}"/>
+				<GameParameter Id="3002758120" Name="SS_Air_Freefall" ObjectPath="\Game Parameters\Factory Soundseed Air Game Syncs\SS_Air_Freefall" GUID="{2F2DFE37-4F9E-4D94-83D8-53CCA39781AD}"/>
+				<GameParameter Id="3043206523" Name="BGMVolume" ObjectPath="\Game Parameters\Default Work Unit\BGMVolume" GUID="{B95BA24B-294A-4DAC-994B-60B523F4EA2B}"/>
+				<GameParameter Id="3074696722" Name="SS_Air_Size" ObjectPath="\Game Parameters\Factory Soundseed Air Game Syncs\SS_Air_Size" GUID="{1329EBEF-A193-472E-A38C-64668B494879}"/>
+				<GameParameter Id="3203397129" Name="SS_Air_TimeOfDay" ObjectPath="\Game Parameters\Factory Soundseed Air Game Syncs\SS_Air_TimeOfDay" GUID="{536FA72C-8C7E-4C8B-AE03-EF34FDADC314}"/>
+				<GameParameter Id="3715662592" Name="SS_Air_Storm" ObjectPath="\Game Parameters\Factory Soundseed Air Game Syncs\SS_Air_Storm" GUID="{E93F8CDB-06D1-4737-ACAF-7CD44BBED783}"/>
+				<GameParameter Id="3847924954" Name="SS_Air_Presence" ObjectPath="\Game Parameters\Factory Soundseed Air Game Syncs\SS_Air_Presence" GUID="{E3B7811A-7B2F-490F-B44F-5FE51B468041}"/>
+				<GameParameter Id="4160247818" Name="SS_Air_Turbulence" ObjectPath="\Game Parameters\Factory Soundseed Air Game Syncs\SS_Air_Turbulence" GUID="{EDA87B19-73AA-40A0-9F19-2073606DB710}"/>
+			</GameParameters>
+			<AcousticTextures>
+				<AcousticTexture Id="504532776" Name="Brick" ObjectPath="\Virtual Acoustics\Factory Acoustic Textures\Textures\Brick" GUID="{B086A5A9-F204-4C53-A838-BDB18B18F6D6}">
+					<Properties>
+						<Property Name="AbsorptionLow" Type="Real32" Value="12"/>
+						<Property Name="AbsorptionMidLow" Type="Real32" Value="18"/>
+						<Property Name="AbsorptionMidHigh" Type="Real32" Value="23"/>
+						<Property Name="AbsorptionHigh" Type="Real32" Value="35"/>
+						<Property Name="Scattering" Type="Real32" Value="0"/>
+					</Properties>
+				</AcousticTexture>
+				<AcousticTexture Id="513139656" Name="Mountain" ObjectPath="\Virtual Acoustics\Factory Acoustic Textures\Textures\Mountain" GUID="{C5933731-001A-4AB4-98DD-9B033A8C8EAB}">
+					<Properties>
+						<Property Name="AbsorptionLow" Type="Real32" Value="0"/>
+						<Property Name="AbsorptionMidLow" Type="Real32" Value="0"/>
+						<Property Name="AbsorptionMidHigh" Type="Real32" Value="0"/>
+						<Property Name="AbsorptionHigh" Type="Real32" Value="0"/>
+						<Property Name="Scattering" Type="Real32" Value="0"/>
+					</Properties>
+				</AcousticTexture>
+				<AcousticTexture Id="841620460" Name="Concrete" ObjectPath="\Virtual Acoustics\Factory Acoustic Textures\Textures\Concrete" GUID="{5CF81C00-2896-4AE0-AF7C-3080BDABA682}">
+					<Properties>
+						<Property Name="AbsorptionLow" Type="Real32" Value="6"/>
+						<Property Name="AbsorptionMidLow" Type="Real32" Value="6"/>
+						<Property Name="AbsorptionMidHigh" Type="Real32" Value="6"/>
+						<Property Name="AbsorptionHigh" Type="Real32" Value="14"/>
+						<Property Name="Scattering" Type="Real32" Value="0"/>
+					</Properties>
+				</AcousticTexture>
+				<AcousticTexture Id="1755085759" Name="Wood_Deep" ObjectPath="\Virtual Acoustics\Factory Acoustic Textures\Textures\Wood_Deep" GUID="{5246478E-C5DA-4E0C-A0DE-C98D1479529A}">
+					<Properties>
+						<Property Name="AbsorptionLow" Type="Real32" Value="1"/>
+						<Property Name="AbsorptionMidLow" Type="Real32" Value="8"/>
+						<Property Name="AbsorptionMidHigh" Type="Real32" Value="20"/>
+						<Property Name="AbsorptionHigh" Type="Real32" Value="35"/>
+						<Property Name="Scattering" Type="Real32" Value="0"/>
+					</Properties>
+				</AcousticTexture>
+				<AcousticTexture Id="1873957695" Name="Anechoic" ObjectPath="\Virtual Acoustics\Factory Acoustic Textures\Textures\Anechoic" GUID="{8B0AC232-02E2-4EDE-BEAC-FDD1A900E3ED}">
+					<Properties>
+						<Property Name="AbsorptionLow" Type="Real32" Value="100"/>
+						<Property Name="AbsorptionMidLow" Type="Real32" Value="100"/>
+						<Property Name="AbsorptionMidHigh" Type="Real32" Value="100"/>
+						<Property Name="AbsorptionHigh" Type="Real32" Value="100"/>
+						<Property Name="Scattering" Type="Real32" Value="0"/>
+					</Properties>
+				</AcousticTexture>
+				<AcousticTexture Id="1970351858" Name="Fabric" ObjectPath="\Virtual Acoustics\Factory Acoustic Textures\Textures\Fabric" GUID="{8381D532-DB6E-4EED-A7A3-BC7B0A0B8BA8}">
+					<Properties>
+						<Property Name="AbsorptionLow" Type="Real32" Value="3"/>
+						<Property Name="AbsorptionMidLow" Type="Real32" Value="13"/>
+						<Property Name="AbsorptionMidHigh" Type="Real32" Value="48"/>
+						<Property Name="AbsorptionHigh" Type="Real32" Value="72"/>
+						<Property Name="Scattering" Type="Real32" Value="0"/>
+					</Properties>
+				</AcousticTexture>
+				<AcousticTexture Id="2058049674" Name="Wood" ObjectPath="\Virtual Acoustics\Factory Acoustic Textures\Textures\Wood" GUID="{1FFFBC96-6FE7-489E-BA6C-7C14A71391AE}">
+					<Properties>
+						<Property Name="AbsorptionLow" Type="Real32" Value="32"/>
+						<Property Name="AbsorptionMidLow" Type="Real32" Value="25"/>
+						<Property Name="AbsorptionMidHigh" Type="Real32" Value="20"/>
+						<Property Name="AbsorptionHigh" Type="Real32" Value="35"/>
+						<Property Name="Scattering" Type="Real32" Value="0"/>
+					</Properties>
+				</AcousticTexture>
+				<AcousticTexture Id="2412606308" Name="Carpet" ObjectPath="\Virtual Acoustics\Factory Acoustic Textures\Textures\Carpet" GUID="{34227589-DC56-4260-96C4-B9F4B669092B}">
+					<Properties>
+						<Property Name="AbsorptionLow" Type="Real32" Value="46"/>
+						<Property Name="AbsorptionMidLow" Type="Real32" Value="45"/>
+						<Property Name="AbsorptionMidHigh" Type="Real32" Value="76"/>
+						<Property Name="AbsorptionHigh" Type="Real32" Value="100"/>
+						<Property Name="Scattering" Type="Real32" Value="0"/>
+					</Properties>
+				</AcousticTexture>
+				<AcousticTexture Id="2637588553" Name="Tile" ObjectPath="\Virtual Acoustics\Factory Acoustic Textures\Textures\Tile" GUID="{A882DAC4-132A-47B7-BA9D-B9907BA29CC0}">
+					<Properties>
+						<Property Name="AbsorptionLow" Type="Real32" Value="67"/>
+						<Property Name="AbsorptionMidLow" Type="Real32" Value="41"/>
+						<Property Name="AbsorptionMidHigh" Type="Real32" Value="12"/>
+						<Property Name="AbsorptionHigh" Type="Real32" Value="0"/>
+						<Property Name="Scattering" Type="Real32" Value="0"/>
+					</Properties>
+				</AcousticTexture>
+				<AcousticTexture Id="2928161104" Name="Curtains" ObjectPath="\Virtual Acoustics\Factory Acoustic Textures\Textures\Curtains" GUID="{F8E69E33-5C97-4968-B508-A1535F2D66E8}">
+					<Properties>
+						<Property Name="AbsorptionLow" Type="Real32" Value="7"/>
+						<Property Name="AbsorptionMidLow" Type="Real32" Value="60"/>
+						<Property Name="AbsorptionMidHigh" Type="Real32" Value="0"/>
+						<Property Name="AbsorptionHigh" Type="Real32" Value="84"/>
+						<Property Name="Scattering" Type="Real32" Value="0"/>
+					</Properties>
+				</AcousticTexture>
+				<AcousticTexture Id="3195498748" Name="Cork_Tiles" ObjectPath="\Virtual Acoustics\Factory Acoustic Textures\Textures\Cork_Tiles" GUID="{30D2C919-925F-4143-8906-3DBB3C4AE5E2}">
+					<Properties>
+						<Property Name="AbsorptionLow" Type="Real32" Value="14"/>
+						<Property Name="AbsorptionMidLow" Type="Real32" Value="30"/>
+						<Property Name="AbsorptionMidHigh" Type="Real32" Value="73"/>
+						<Property Name="AbsorptionHigh" Type="Real32" Value="100"/>
+						<Property Name="Scattering" Type="Real32" Value="0"/>
+					</Properties>
+				</AcousticTexture>
+				<AcousticTexture Id="3670307564" Name="Drywall" ObjectPath="\Virtual Acoustics\Factory Acoustic Textures\Textures\Drywall" GUID="{68A4E3F4-4C0B-4687-A8B8-A84DB93DBC8F}">
+					<Properties>
+						<Property Name="AbsorptionLow" Type="Real32" Value="2"/>
+						<Property Name="AbsorptionMidLow" Type="Real32" Value="2"/>
+						<Property Name="AbsorptionMidHigh" Type="Real32" Value="2"/>
+						<Property Name="AbsorptionHigh" Type="Real32" Value="2"/>
+						<Property Name="Scattering" Type="Real32" Value="0"/>
+					</Properties>
+				</AcousticTexture>
+				<AcousticTexture Id="4168643977" Name="Acoustic_Banner" ObjectPath="\Virtual Acoustics\Factory Acoustic Textures\Textures\Acoustic_Banner" GUID="{2F2D53F2-DACC-408E-8B88-98B1B52A26D6}">
+					<Properties>
+						<Property Name="AbsorptionLow" Type="Real32" Value="37"/>
+						<Property Name="AbsorptionMidLow" Type="Real32" Value="100"/>
+						<Property Name="AbsorptionMidHigh" Type="Real32" Value="100"/>
+						<Property Name="AbsorptionHigh" Type="Real32" Value="100"/>
+						<Property Name="Scattering" Type="Real32" Value="0"/>
+					</Properties>
+				</AcousticTexture>
+				<AcousticTexture Id="4262522749" Name="Wood_Bright" ObjectPath="\Virtual Acoustics\Factory Acoustic Textures\Textures\Wood_Bright" GUID="{7B85D1E5-C1A2-4E63-9A13-CEC54B641ADC}">
+					<Properties>
+						<Property Name="AbsorptionLow" Type="Real32" Value="32"/>
+						<Property Name="AbsorptionMidLow" Type="Real32" Value="25"/>
+						<Property Name="AbsorptionMidHigh" Type="Real32" Value="10"/>
+						<Property Name="AbsorptionHigh" Type="Real32" Value="9"/>
+						<Property Name="Scattering" Type="Real32" Value="0"/>
+					</Properties>
+				</AcousticTexture>
+			</AcousticTextures>
+		</SoundBank>
+		<SoundBank Id="1568083734" Type="User" GUID="{DDAE794D-61D4-451C-A316-2444772C90B7}" Language="SFX" Hash="{08B8D647-5B28-805D-5429-13CB5156650F}">
+			<ObjectPath>\SoundBanks\Default Work Unit\TG</ObjectPath>
+			<ShortName>TG</ShortName>
+			<Path>TG.bnk</Path>
+			<Media>
+				<File Id="467031385" Language="SFX" Streaming="false" Location="Memory">
+					<ShortName>PTB_JJ_Easy_260527.wav</ShortName>
+					<CachePath>SFX/PTB_JJ_Easy_260527_818F3B66.wem</CachePath>
+				</File>
+			</Media>
+			<Events>
+				<Event Id="3508531682" Name="Play_TG_BGM" ObjectPath="\Events\Default Work Unit\Play_TG_BGM" GUID="{459599A4-86D7-476F-8F53-2F5881A6B8BA}" DurationType="OneShot" DurationMin="59.99327" DurationMax="59.99327">
+					<MediaRefs>
+						<MediaRef Id="467031385"/>
+					</MediaRefs>
+				</Event>
+			</Events>
+		</SoundBank>
+		<SoundBank Id="1584861558" Type="User" GUID="{B2938181-788B-4184-B2D3-331BB75588D1}" Language="SFX" Hash="{86AFF293-EBE0-AFFA-E4C3-2C1890A2C7CF}">
+			<ObjectPath>\SoundBanks\Default Work Unit\SR</ObjectPath>
+			<ShortName>SR</ShortName>
+			<Path>SR.bnk</Path>
+			<Media>
+				<File Id="537188782" Language="SFX" Streaming="false" Location="Memory">
+					<ShortName>SR_BGM.wav</ShortName>
+					<CachePath>SFX/SR_BGM_818F3B66.wem</CachePath>
+				</File>
+			</Media>
+			<Events>
+				<Event Id="3396216486" Name="Play_SR_BGM" ObjectPath="\Events\Default Work Unit\Play_SR_BGM" GUID="{EEEE5619-46CE-4444-ACE4-16CF74858FF0}" DurationType="OneShot" DurationMin="56.1039" DurationMax="56.1039">
+					<MediaRefs>
+						<MediaRef Id="537188782"/>
+					</MediaRefs>
+				</Event>
+			</Events>
+		</SoundBank>
+		<SoundBank Id="1635194334" Type="User" GUID="{007CA0E5-F67C-4DFA-B327-B8787A690CF7}" Language="SFX" Hash="{08CF4901-4C52-2094-70F9-7C943B1035EA}">
+			<ObjectPath>\SoundBanks\Default Work Unit\PC</ObjectPath>
+			<ShortName>PC</ShortName>
+			<Path>PC.bnk</Path>
+			<Media>
+				<File Id="637371893" Language="SFX" Streaming="false" Location="Memory">
+					<ShortName>Play_PC_BGM.wav</ShortName>
+					<CachePath>SFX/Play_PC_BGM_818F3B66.wem</CachePath>
+				</File>
+			</Media>
+			<Events>
+				<Event Id="3036750162" Name="Play_PC_BGM" ObjectPath="\Events\Default Work Unit\Play_PC_BGM" GUID="{4F266B37-DD26-428D-9274-A538E999612B}" DurationType="OneShot" DurationMin="110.043274" DurationMax="110.043274">
+					<MediaRefs>
+						<MediaRef Id="637371893"/>
+					</MediaRefs>
+				</Event>
+			</Events>
+		</SoundBank>
+		<SoundBank Id="1702304874" Type="User" GUID="{D05055ED-04AC-4E2F-BBCA-98E5CA21DED5}" Language="SFX" Hash="{1105EE9B-3DB8-4B91-4504-D4D9FDF67F2D}">
+			<ObjectPath>\SoundBanks\Default Work Unit\LC</ObjectPath>
+			<ShortName>LC</ShortName>
+			<Path>LC.bnk</Path>
+			<Media>
+				<File Id="902210420" Language="SFX" Streaming="false" Location="Memory">
+					<ShortName>Music\LC\Logistic Center.wav</ShortName>
+					<CachePath>SFX/Music/LC/Logistic Center_818F3B66.wem</CachePath>
+				</File>
+			</Media>
+			<Events>
+				<Event Id="2620029126" Name="Play_LC_BGM" ObjectPath="\Events\Default Work Unit\Play_LC_BGM" GUID="{17044A03-13EB-419B-A7B4-33819DC2E145}" DurationType="OneShot" DurationMin="127.536" DurationMax="127.536">
+					<MediaRefs>
+						<MediaRef Id="902210420"/>
+					</MediaRefs>
+				</Event>
+			</Events>
+		</SoundBank>
+		<SoundBank Id="1802970376" Type="User" GUID="{89F37B5D-ABCE-4EC8-89D4-4BF0B225ED9B}" Language="SFX" Hash="{974F24AD-F727-C4BE-07A6-47DCABF1FD24}">
+			<ObjectPath>\SoundBanks\Default Work Unit\FS</ObjectPath>
+			<ShortName>FS</ShortName>
+			<Path>FS.bnk</Path>
+			<Media>
+				<File Id="756648171" Language="SFX" Streaming="false" Location="Memory">
+					<ShortName>PTB_FS_Easy_260616.wav</ShortName>
+					<CachePath>SFX/PTB_FS_Easy_260616_818F3B66.wem</CachePath>
+				</File>
+			</Media>
+			<Events>
+				<Event Id="3869860664" Name="Play_FS_BGM" ObjectPath="\Events\Default Work Unit\Play_FS_BGM" GUID="{AB532AAF-AF25-4491-B8C9-BF51C894F09A}" DurationType="OneShot" DurationMin="127.39998" DurationMax="127.39998">
+					<MediaRefs>
+						<MediaRef Id="756648171"/>
+					</MediaRefs>
+				</Event>
+			</Events>
+		</SoundBank>
+		<SoundBank Id="1836525782" Type="User" GUID="{46BDD5DB-EE49-43BF-97DD-BCCF5D8B954C}" Language="SFX" Hash="{5E5BD467-A44D-82DF-8C28-18DB1B81E9ED}">
+			<ObjectPath>\SoundBanks\Default Work Unit\DW</ObjectPath>
+			<ShortName>DW</ShortName>
+			<Path>DW.bnk</Path>
+			<Media>
+				<File Id="888168674" Language="SFX" Streaming="false" Location="Memory">
+					<ShortName>DW_Cheery Monday.wav</ShortName>
+					<CachePath>SFX/DW_Cheery Monday_818F3B66.wem</CachePath>
+				</File>
+			</Media>
+			<Events>
+				<Event Id="277636275" Name="Play_DW_Cheery_Monday" ObjectPath="\Events\Default Work Unit\Play_DW_Cheery_Monday" GUID="{87F5C698-8113-472E-A758-7D3D9541E911}" DurationType="OneShot" DurationMin="80.22204" DurationMax="80.22204">
+					<MediaRefs>
+						<MediaRef Id="888168674"/>
+					</MediaRefs>
+				</Event>
+			</Events>
+		</SoundBank>
+		<SoundBank Id="1853303388" Type="User" GUID="{3D864037-408A-4EF1-AA0D-207B660B3204}" Language="SFX" Hash="{99E8B0C8-7104-13AB-9AB8-631D37FEC6EE}">
+			<ObjectPath>\SoundBanks\Default Work Unit\CH</ObjectPath>
+			<ShortName>CH</ShortName>
+			<Path>CH.bnk</Path>
+			<Media>
+				<File Id="376987072" Language="SFX" Streaming="false" Location="Memory">
+					<ShortName>PTB_CH.wav</ShortName>
+					<CachePath>SFX/PTB_CH_818F3B66.wem</CachePath>
+				</File>
+			</Media>
+			<Events>
+				<Event Id="612211380" Name="Play_CH_BGM" ObjectPath="\Events\Default Work Unit\Play_CH_BGM" GUID="{111CF831-CA0A-4D06-A81E-8E82403B58B2}" DurationType="OneShot" DurationMin="163.75998" DurationMax="163.75998">
+					<MediaRefs>
+						<MediaRef Id="376987072"/>
+					</MediaRefs>
+				</Event>
+			</Events>
+		</SoundBank>
+		<SoundBank Id="1870080933" Type="User" GUID="{02B8FCEF-1BD6-4305-BDDC-B8492AFD1A9E}" Language="SFX" Hash="{114F915E-605C-2B33-68F6-BF802521E3E8}">
+			<ObjectPath>\SoundBanks\Default Work Unit\BB</ObjectPath>
+			<ShortName>BB</ShortName>
+			<Path>BB.bnk</Path>
+			<Media>
+				<File Id="744081046" Language="SFX" Streaming="false" Location="Memory">
+					<ShortName>PTB_BB.wav</ShortName>
+					<CachePath>SFX/PTB_BB_818F3B66.wem</CachePath>
+				</File>
+			</Media>
+			<Events>
+				<Event Id="3299595693" Name="Play_BB_BGM" ObjectPath="\Events\Default Work Unit\Play_BB_BGM" GUID="{3088C6FD-EB7C-4A3F-B026-3BE268479C9F}" DurationType="OneShot" DurationMin="156.87006" DurationMax="156.87006">
+					<MediaRefs>
+						<MediaRef Id="744081046"/>
+					</MediaRefs>
+				</Event>
+			</Events>
+		</SoundBank>
+	</SoundBanks>
+	<FileHash>{3B2BCCE4-896D-1915-C249-E6F7365864B5}</FileHash>
+</SoundBanksInfo>

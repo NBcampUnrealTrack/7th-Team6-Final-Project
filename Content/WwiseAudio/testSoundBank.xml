@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<SoundBanksInfo Platform="Windows" BasePlatform="Windows" SchemaVersion="16" SoundBankVersion="150">
+	<SoundBanks>
+		<SoundBank Id="1831431028" Type="User" GUID="{D2017E67-0CC6-4319-9032-8F4A2B46ABB6}" Language="SFX" Hash="{C6E532A8-2C30-07AD-A6B2-A0BF9D80C97E}">
+			<ObjectPath>\SoundBanks\Default Work Unit\testSoundBank</ObjectPath>
+			<ShortName>testSoundBank</ShortName>
+			<Path>testSoundBank.bnk</Path>
+			<Media>
+				<File Id="166282579" Language="SFX" Streaming="false" Location="Memory">
+					<ShortName>766542__mrgungus__bat-swoosh.wav</ShortName>
+					<CachePath>SFX/766542__mrgungus__bat-swoosh_818F3B66.wem</CachePath>
+				</File>
+			</Media>
+			<Events>
+				<Event Id="1097980931" Name="testevent" ObjectPath="\Events\Default Work Unit\testevent" GUID="{ADDC300C-B194-4C2B-B47E-56BA41EA2F36}" DurationType="OneShot" DurationMin="0.92904764" DurationMax="0.92904764">
+					<MediaRefs>
+						<MediaRef Id="166282579"/>
+					</MediaRefs>
+				</Event>
+			</Events>
+		</SoundBank>
+	</SoundBanks>
+	<FileHash>{B6E335EE-5B15-1C92-80B6-D16441023B03}</FileHash>
+</SoundBanksInfo>

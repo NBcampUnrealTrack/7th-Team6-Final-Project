@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<SoundBanksInfo Platform="Windows" BasePlatform="Windows" SchemaVersion="16" SoundBankVersion="150">
+	<SoundBanks>
+		<SoundBank Id="1802970376" Type="User" GUID="{89F37B5D-ABCE-4EC8-89D4-4BF0B225ED9B}" Language="SFX" Hash="{A329CE8B-234D-5EDE-C11E-E87392FD9024}">
+			<ObjectPath>\SoundBanks\Default Work Unit\FS</ObjectPath>
+			<ShortName>FS</ShortName>
+			<Path>FS.bnk</Path>
+			<Media>
+				<File Id="756648171" Language="SFX" Streaming="false" Location="Memory">
+					<ShortName>PTB_FS_Easy_260616.wav</ShortName>
+					<CachePath>SFX/PTB_FS_Easy_260616_818F3B66.wem</CachePath>
+				</File>
+			</Media>
+			<Events>
+				<Event Id="3869860664" Name="Play_FS_BGM" ObjectPath="\Events\Default Work Unit\Play_FS_BGM" GUID="{AB532AAF-AF25-4491-B8C9-BF51C894F09A}" DurationType="OneShot" DurationMin="127.39998" DurationMax="127.39998">
+					<MediaRefs>
+						<MediaRef Id="756648171"/>
+					</MediaRefs>
+				</Event>
+			</Events>
+		</SoundBank>
+	</SoundBanks>
+	<FileHash>{4ABF4EA9-1451-CEE9-054B-B0FEA579EF4B}</FileHash>
+</SoundBanksInfo>

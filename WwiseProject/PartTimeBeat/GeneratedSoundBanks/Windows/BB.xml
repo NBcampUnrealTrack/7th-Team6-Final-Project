@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<SoundBanksInfo Platform="Windows" BasePlatform="Windows" SchemaVersion="16" SoundBankVersion="150">
+	<SoundBanks>
+		<SoundBank Id="1870080933" Type="User" GUID="{02B8FCEF-1BD6-4305-BDDC-B8492AFD1A9E}" Language="SFX" Hash="{4E929160-69E2-D532-521C-43221D97E011}">
+			<ObjectPath>\SoundBanks\Default Work Unit\BB</ObjectPath>
+			<ShortName>BB</ShortName>
+			<Path>BB.bnk</Path>
+			<Media>
+				<File Id="744081046" Language="SFX" Streaming="false" Location="Memory">
+					<ShortName>PTB_BB.wav</ShortName>
+					<CachePath>SFX/PTB_BB_818F3B66.wem</CachePath>
+				</File>
+			</Media>
+			<Events>
+				<Event Id="3299595693" Name="Play_BB_BGM" ObjectPath="\Events\Default Work Unit\Play_BB_BGM" GUID="{3088C6FD-EB7C-4A3F-B026-3BE268479C9F}" DurationType="OneShot" DurationMin="156.87006" DurationMax="156.87006">
+					<MediaRefs>
+						<MediaRef Id="744081046"/>
+					</MediaRefs>
+				</Event>
+			</Events>
+		</SoundBank>
+	</SoundBanks>
+	<FileHash>{D3A6C760-AD02-37E3-9146-5FF3E6412FBF}</FileHash>
+</SoundBanksInfo>

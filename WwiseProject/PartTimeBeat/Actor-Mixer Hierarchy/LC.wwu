@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<WwiseDocument Type="WorkUnit" ID="{0A2A8B12-D1DA-4CCB-8ABA-9AFD53D3E6E8}" SchemaVersion="119">
+	<AudioObjects>
+		<WorkUnit Name="LC" ID="{0A2A8B12-D1DA-4CCB-8ABA-9AFD53D3E6E8}" PersistMode="Standalone">
+			<ChildrenList>
+				<Sound Name="Logistic Center" ID="{CCEB14D1-8ADB-4E47-BD70-87DA257FD62D}" ShortID="728017323">
+					<ReferenceList>
+						<Reference Name="Conversion">
+							<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{01EA0F64-0215-4D91-8B1B-BBF638BBC5DC}"/>
+						</Reference>
+						<Reference Name="OutputBus">
+							<ObjectRef Name="Master Audio Bus" ID="{1514A4D8-1DA6-412A-A17E-75CA0C2149F3}" WorkUnitID="{95FF6337-5249-4E55-B0BA-291C12594EA3}"/>
+						</Reference>
+					</ReferenceList>
+					<ChildrenList>
+						<AudioFileSource Name="Logistic Center" ID="{FBFDB7A6-4357-4188-A8F0-5A4C87B9FE6B}">
+							<Language>SFX</Language>
+							<AudioFile>Music\LC\Logistic Center.wav</AudioFile>
+							<MediaIDList>
+								<MediaID ID="902210420"/>
+							</MediaIDList>
+						</AudioFileSource>
+					</ChildrenList>
+					<ActiveSourceList>
+						<ActiveSource Name="Logistic Center" ID="{FBFDB7A6-4357-4188-A8F0-5A4C87B9FE6B}" Platform="Linked"/>
+					</ActiveSourceList>
+				</Sound>
+			</ChildrenList>
+		</WorkUnit>
+	</AudioObjects>
+</WwiseDocument>

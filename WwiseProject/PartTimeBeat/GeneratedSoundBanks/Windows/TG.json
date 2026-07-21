@@ -1,0 +1,47 @@
+{
+ "SoundBanksInfo": {
+  "Platform": "Windows",
+  "BasePlatform": "Windows",
+  "SchemaVersion": "16",
+  "SoundBankVersion": "150",
+  "SoundBanks": [
+   {
+    "Id": "1568083734",
+    "Type": "User",
+    "GUID": "{DDAE794D-61D4-451C-A316-2444772C90B7}",
+    "Language": "SFX",
+    "Hash": "{9AC6107F-53D1-34F7-1D3A-757D15CA6669}",
+    "ObjectPath": "\\SoundBanks\\Default Work Unit\\TG",
+    "ShortName": "TG",
+    "Path": "TG.bnk",
+    "Media": [
+     {
+      "Id": "467031385",
+      "Language": "SFX",
+      "Streaming": "false",
+      "Location": "Memory",
+      "ShortName": "PTB_JJ_Easy_260527.wav",
+      "CachePath": "SFX/PTB_JJ_Easy_260527_818F3B66.wem"
+     }
+    ],
+    "Events": [
+     {
+      "Id": "3508531682",
+      "Name": "Play_TG_BGM",
+      "ObjectPath": "\\Events\\Default Work Unit\\Play_TG_BGM",
+      "GUID": "{459599A4-86D7-476F-8F53-2F5881A6B8BA}",
+      "DurationType": "OneShot",
+      "DurationMin": "59.99327",
+      "DurationMax": "59.99327",
+      "MediaRefs": [
+       {
+        "Id": "467031385"
+       }
+      ]
+     }
+    ]
+   }
+  ],
+  "FileHash": "{60766F0C-932C-7AC0-72E7-2C25D31706D1}"
+ }
+}

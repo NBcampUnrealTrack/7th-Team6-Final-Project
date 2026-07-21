@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<WwiseDocument Type="WorkUnit" ID="{F5D24078-9D37-4BE4-A65C-3162F7345B0C}" SchemaVersion="119">
+	<AudioObjects>
+		<WorkUnit Name="CH" ID="{F5D24078-9D37-4BE4-A65C-3162F7345B0C}" PersistMode="Standalone">
+			<ChildrenList>
+				<Sound Name="PTB_CH" ID="{59602631-A51D-4052-95BD-63CAE3AA2CB5}" ShortID="287816889">
+					<ReferenceList>
+						<Reference Name="Conversion">
+							<ObjectRef Name="Default Conversion Settings" ID="{6D1B890C-9826-4384-BF07-C15223E9FB56}" WorkUnitID="{01EA0F64-0215-4D91-8B1B-BBF638BBC5DC}"/>
+						</Reference>
+						<Reference Name="OutputBus">
+							<ObjectRef Name="Master Audio Bus" ID="{1514A4D8-1DA6-412A-A17E-75CA0C2149F3}" WorkUnitID="{95FF6337-5249-4E55-B0BA-291C12594EA3}"/>
+						</Reference>
+					</ReferenceList>
+					<ChildrenList>
+						<AudioFileSource Name="PTB_CH" ID="{32CEAB25-F92A-44D1-88B7-52FC3DE2C44E}">
+							<Language>SFX</Language>
+							<AudioFile>PTB_CH.wav</AudioFile>
+							<MediaIDList>
+								<MediaID ID="376987072"/>
+							</MediaIDList>
+						</AudioFileSource>
+					</ChildrenList>
+					<ActiveSourceList>
+						<ActiveSource Name="PTB_CH" ID="{32CEAB25-F92A-44D1-88B7-52FC3DE2C44E}" Platform="Linked"/>
+					</ActiveSourceList>
+				</Sound>
+			</ChildrenList>
+		</WorkUnit>
+	</AudioObjects>
+</WwiseDocument>

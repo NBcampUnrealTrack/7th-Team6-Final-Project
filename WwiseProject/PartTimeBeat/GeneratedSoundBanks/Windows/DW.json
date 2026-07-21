@@ -1,0 +1,47 @@
+{
+ "SoundBanksInfo": {
+  "Platform": "Windows",
+  "BasePlatform": "Windows",
+  "SchemaVersion": "16",
+  "SoundBankVersion": "150",
+  "SoundBanks": [
+   {
+    "Id": "1836525782",
+    "Type": "User",
+    "GUID": "{46BDD5DB-EE49-43BF-97DD-BCCF5D8B954C}",
+    "Language": "SFX",
+    "Hash": "{C97C4693-B527-9448-A57F-0FA11B47BE79}",
+    "ObjectPath": "\\SoundBanks\\Default Work Unit\\DW",
+    "ShortName": "DW",
+    "Path": "DW.bnk",
+    "Media": [
+     {
+      "Id": "888168674",
+      "Language": "SFX",
+      "Streaming": "false",
+      "Location": "Memory",
+      "ShortName": "DW_Cheery Monday.wav",
+      "CachePath": "SFX/DW_Cheery Monday_818F3B66.wem"
+     }
+    ],
+    "Events": [
+     {
+      "Id": "277636275",
+      "Name": "Play_DW_Cheery_Monday",
+      "ObjectPath": "\\Events\\Default Work Unit\\Play_DW_Cheery_Monday",
+      "GUID": "{87F5C698-8113-472E-A758-7D3D9541E911}",
+      "DurationType": "OneShot",
+      "DurationMin": "80.22204",
+      "DurationMax": "80.22204",
+      "MediaRefs": [
+       {
+        "Id": "888168674"
+       }
+      ]
+     }
+    ]
+   }
+  ],
+  "FileHash": "{ACFF531F-0081-5F1D-8C23-460395EE3397}"
+ }
+}

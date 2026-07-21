@@ -1,0 +1,47 @@
+{
+ "SoundBanksInfo": {
+  "Platform": "Windows",
+  "BasePlatform": "Windows",
+  "SchemaVersion": "16",
+  "SoundBankVersion": "150",
+  "SoundBanks": [
+   {
+    "Id": "1702304874",
+    "Type": "User",
+    "GUID": "{D05055ED-04AC-4E2F-BBCA-98E5CA21DED5}",
+    "Language": "SFX",
+    "Hash": "{C501F980-582F-20D0-F44C-C6F0FC05B6A6}",
+    "ObjectPath": "\\SoundBanks\\Default Work Unit\\LC",
+    "ShortName": "LC",
+    "Path": "LC.bnk",
+    "Media": [
+     {
+      "Id": "902210420",
+      "Language": "SFX",
+      "Streaming": "false",
+      "Location": "Memory",
+      "ShortName": "Music\\LC\\Logistic Center.wav",
+      "CachePath": "SFX/Music/LC/Logistic Center_818F3B66.wem"
+     }
+    ],
+    "Events": [
+     {
+      "Id": "2620029126",
+      "Name": "Play_LC_BGM",
+      "ObjectPath": "\\Events\\Default Work Unit\\Play_LC_BGM",
+      "GUID": "{17044A03-13EB-419B-A7B4-33819DC2E145}",
+      "DurationType": "OneShot",
+      "DurationMin": "127.536",
+      "DurationMax": "127.536",
+      "MediaRefs": [
+       {
+        "Id": "902210420"
+       }
+      ]
+     }
+    ]
+   }
+  ],
+  "FileHash": "{5171C783-D350-1470-740D-BFE8F4D1EF96}"
+ }
+}

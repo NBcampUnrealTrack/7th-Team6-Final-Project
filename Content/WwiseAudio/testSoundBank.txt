@@ -1,0 +1,6 @@
+Event	ID	Name			Wwise Object Path	Notes
+	1097980931	testevent			\Default Work Unit\testevent	
+
+In Memory Audio	ID	Name	Audio source file		Wwise Object Path	Notes	Data Size
+	166282579	766542__mrgungus__bat-swoosh	C:\Users\dignw\Documents\WwiseProjects\Test\.cache\Windows\SFX\766542__mrgungus__bat-swoosh_818F3B66.wem		\Actor-Mixer Hierarchy\Default Work Unit\Test Virtual Folder\766542__mrgungus__bat-swoosh		82038
+

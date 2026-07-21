@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<SoundBanksInfo Platform="Windows" BasePlatform="Windows" SchemaVersion="16" SoundBankVersion="150">
+	<SoundBanks>
+		<SoundBank Id="1635194334" Type="User" GUID="{007CA0E5-F67C-4DFA-B327-B8787A690CF7}" Language="SFX" Hash="{08CF4901-4C52-2094-70F9-7C943B1035EA}">
+			<ObjectPath>\SoundBanks\Default Work Unit\PC</ObjectPath>
+			<ShortName>PC</ShortName>
+			<Path>PC.bnk</Path>
+			<Media>
+				<File Id="637371893" Language="SFX" Streaming="false" Location="Memory">
+					<ShortName>Play_PC_BGM.wav</ShortName>
+					<CachePath>SFX/Play_PC_BGM_818F3B66.wem</CachePath>
+				</File>
+			</Media>
+			<Events>
+				<Event Id="3036750162" Name="Play_PC_BGM" ObjectPath="\Events\Default Work Unit\Play_PC_BGM" GUID="{4F266B37-DD26-428D-9274-A538E999612B}" DurationType="OneShot" DurationMin="110.043274" DurationMax="110.043274">
+					<MediaRefs>
+						<MediaRef Id="637371893"/>
+					</MediaRefs>
+				</Event>
+			</Events>
+		</SoundBank>
+	</SoundBanks>
+	<FileHash>{069CD135-EDE2-E776-BEAC-BC88DA88B1A8}</FileHash>
+</SoundBanksInfo>

@@ -1,0 +1,17 @@
+Event	ID	Name			Wwise Object Path	Notes
+	2194559701	Play_7_1			\Channels_Demo\Play_7_1	
+	2195104153	Play_2_0			\Channels_Demo\Play_2_0	
+	2195545438	Play_1_0			\Channels_Demo\Play_1_0	
+	3268621539	Play_5_1			\Channels_Demo\Play_5_1	
+	4274198532	Play_7_1_4			\Channels_Demo\Play_7_1_4	
+
+Metadata plug-ins	ID	Name	Type				Notes
+	2077473410	RouteToMainMix	Wwise System Output Settings			
+
+In Memory Audio	ID	Name	Audio source file		Wwise Object Path	Notes	Data Size
+	460788097	1_0	C:\Jenkins\ws\wwise_v2023.1\Wwise\SDK\samples\IntegrationDemo\WwiseProject\.cache\Windows\SFX\1_0_A38B24EA.wem		\Actor-Mixer Hierarchy\Channels_Demo\1_0		19104
+	624951112	7_1_4	C:\Jenkins\ws\wwise_v2023.1\Wwise\SDK\samples\IntegrationDemo\WwiseProject\.cache\Windows\SFX\7_1_4_A38B24EA.wem		\Actor-Mixer Hierarchy\Channels_Demo\7_1_4		1286592
+	636732928	5_1	C:\Jenkins\ws\wwise_v2023.1\Wwise\SDK\samples\IntegrationDemo\WwiseProject\.cache\Windows\SFX\5_1_A38B24EA.wem		\Actor-Mixer Hierarchy\Channels_Demo\5_1		643344
+	853023223	7_1	C:\Jenkins\ws\wwise_v2023.1\Wwise\SDK\samples\IntegrationDemo\WwiseProject\.cache\Windows\SFX\7_1_A38B24EA.wem		\Actor-Mixer Hierarchy\Channels_Demo\7_1		857760
+	1067988940	2_0	C:\Jenkins\ws\wwise_v2023.1\Wwise\SDK\samples\IntegrationDemo\WwiseProject\.cache\Windows\SFX\2_0_A38B24EA.wem		\Actor-Mixer Hierarchy\Channels_Demo\2_0		27744
+
