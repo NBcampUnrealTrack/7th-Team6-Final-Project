@@ -1,4 +1,4 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
+// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
@@ -33,6 +33,8 @@ public:
 	void OnQuitClicked();
 	UFUNCTION()
 	void OnAchievementClicked();
+	UFUNCTION()
+	void OnCreditClicked();
 
 	// 로고 화면에서 타이틀 화면으로 전환
 	UFUNCTION()
@@ -52,16 +54,26 @@ protected:
 	TObjectPtr<UButton> ButtonAchievement = nullptr;
 
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "PTB|UI")
-	TObjectPtr<UImage> ImageLogo = nullptr;
+	TObjectPtr<UButton> ButtonCredit = nullptr;
 
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "PTB|UI")
+	TObjectPtr<UImage> ImageLogo = nullptr;
 
 	// 전환할 타이틀 위젯 클래스
 	UPROPERTY(EditDefaultsOnly, Category = "PTB|UI")
 	TSubclassOf<UUserWidget> TitleScreenWidgetClass;
 
-	// 자동 전환 타이머
-	FTimerHandle TransitionTimerHandle;
-
 	UPROPERTY(EditDefaultsOnly, Category = "PTB|UI")
 	TSubclassOf<UUserWidget> ProfileSelectWidgetClass;
+
+	// 크레딧 위젯 클래스
+	UPROPERTY(EditDefaultsOnly, Category = "PTB|UI")
+	TSubclassOf<UUserWidget> CreditWidgetClass;
+
+	// 생성된 크레딧 위젯 (중복 생성 방지용)
+	UPROPERTY(Transient)
+	TObjectPtr<UUserWidget> CreditWidget = nullptr;
+
+	// 자동 전환 타이머
+	FTimerHandle TransitionTimerHandle;
 };
