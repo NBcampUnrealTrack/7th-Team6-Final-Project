@@ -7,6 +7,7 @@
 #include "PTBGameModeBase.generated.h"
 
 class APTBBaseMiniGame;
+struct FStreamableHandle;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnGameStarted);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnGameEnded, FPTBRoundResult, Result);
@@ -19,9 +20,13 @@ class PARTTIMEBEAT_API APTBGameModeBase : public AGameModeBase
 {
 	GENERATED_BODY()
 public:
-	/**	미니게임 ID → 클래스 매핑 */
+	/**
+	 * 미니게임 ID → 클래스 매핑
+	 * Soft 참조: 맵 로드 시 모든 미니게임이 같이 로드되지 않도록 하고,
+	 * 실제로 시작할 미니게임만 StartGameFlow에서 비동기 로드한다.
+	 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Game Flow")
-	TMap<FName, TSubclassOf<APTBBaseMiniGame>> MiniGameClassMap;
+	TMap<FName, TSoftClassPtr<APTBBaseMiniGame>> MiniGameClassMap;
 	/**	현재 실행 중인 미니게임 */
 	UPROPERTY(BlueprintReadOnly, Category = "Game Flow")
 	APTBBaseMiniGame* ActiveMiniGame = nullptr;
@@ -35,15 +40,15 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Game Flow")
 	bool bIsPaused = false;
 
-	//	라운드 준비 시작
+	//	라운드 준비 시작 (미니게임 클래스 비동기 로드 후 스폰)
 	UFUNCTION(BlueprintCallable, Category = "Game Flow")
 	void StartGameFlow(const FPTBGameSessionRequest& Request);
-	//	클래스 탐색
-	TSubclassOf<APTBBaseMiniGame> ResolveMiniGameClass(FName Id) const;
+	//	클래스 탐색 (Soft 참조 반환, 로드하지 않음)
+	TSoftClassPtr<APTBBaseMiniGame> ResolveMiniGameClass(FName Id) const;
 	//	Actor 스폰
 	APTBBaseMiniGame* SpawnMiniGame(TSubclassOf<APTBBaseMiniGame> Cls);
 	//게임 + Wwise 일시정지
-	void PauseGame(); 
+	void PauseGame();
 	// 게임 + Wwise 재개
 	void ResumeGame();
 
@@ -114,7 +119,24 @@ protected:
 	/** Flow 요청 없이 미니게임 맵을 직접 PIE로 연 경우 배치된 미니게임 Actor로 테스트 시작 */
 	bool TryStartDirectPIEMiniGame();
 
+	/** 클래스 로드 완료 후 스폰 ~ 초기화 진행 */
+	void ContinueStartGameFlow(TSubclassOf<APTBBaseMiniGame> Cls);
+
+	/** 미니게임 로드 동안 화면을 검은색으로 유지 */
+	void HoldScreenBlack();
+	/** 검은 화면에서 페이드인 (Duration <= 0이면 즉시 해제) */
+	void FadeInScreen(float Duration);
+
+	/** 현재 레벨 이름이 미니게임 키/RuleSet과 매칭되는지 (PIE 전용, 필요 시 동기 로드) */
+	bool DoesLevelMatchMiniGame(const FString& LevelName, FName Key, TSubclassOf<APTBBaseMiniGame> Cls) const;
+
 	/** 일시정지 메뉴 위젯 인스턴스 */
 	UPROPERTY()
 	TObjectPtr<UPTBPauseMenuWidget> PauseMenuInstance;
+
+	/** 미니게임 클래스 비동기 로드 핸들 (유지하는 동안 로드된 클래스가 GC되지 않음) */
+	TSharedPtr<FStreamableHandle> MiniGameLoadHandle;
+
+	/** 로드 중 새 요청이 들어온 경우 이전 콜백을 무시하기 위한 일련번호 */
+	int32 StartFlowSerial = 0;
 };
