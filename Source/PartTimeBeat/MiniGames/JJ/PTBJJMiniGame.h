@@ -12,6 +12,32 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FPTBJJLandingEvent, int32, Charac
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FPTBJJNoteClearedEvent, int32, NoteId, EPTBJudgementType, JudgementType);
 
 /**
+ * 체공시간 산출 규칙 묶음
+ * 체공시간 = clamp(이전 같은 액션 노트와의 간격 × Ratio, Min, Max)
+ */
+USTRUCT(BlueprintType)
+struct FPTBJJAirtimeProfile
+{
+	GENERATED_BODY()
+
+	/** 이전 같은 액션 노트와의 간격 중 체공에 쓰는 비율 (1.0에 가까울수록 착지 직후 바로 다시 뜸) */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|JumpJump", meta = (ClampMin = "0.1", ClampMax = "1.0"))
+	float AirtimeRatio = 0.85f;
+
+	/** 최소 체공시간(ms) */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|JumpJump", meta = (ClampMin = "0"))
+	float MinAirtimeMs = 250.0f;
+
+	/** 최대 체공시간(ms). 간격이 이보다 길면 이 값으로 고정 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|JumpJump", meta = (ClampMin = "0"))
+	float MaxAirtimeMs = 2000.0f;
+
+	/** 노트마다 Ratio에 주는 랜덤 편차(±). 0이면 사용 안 함. 시드 고정이라 Retry 시 동일 패턴 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|JumpJump", meta = (ClampMin = "0", ClampMax = "0.5"))
+	float RatioJitter = 0.0f;
+};
+
+/**
  * 공용 리듬 코어를 점프/착지 연출로 해석하는 JumpJump 미니게임 Actor입니다
  *
  * 채보 노트를 좌/중/우 캐릭터 점프로 매핑하고, 판정 결과를 착지 피드백으로 연출합니다
@@ -108,11 +134,20 @@ protected:
 	/** 노트 디버그 로그 출력 */
 	void LogNoteDebug(const TCHAR* EventName, const FPTBNoteEvent& Note) const;
 
+	/** 현재 난이도에 맞는 체공 프로필 결정 */
+	FPTBJJAirtimeProfile ResolveAirtimeProfile() const;
+
 	/** 채보 전체를 스캔해 노트별 체공시간을 미리 계산 */
 	void PrecomputeAirtimes();
 
 	/** NoteId로 미리 계산된 체공시간 조회(없으면 기본값) */
 	float GetAirtimeMsForNote(int32 NoteId) const;
+
+	/** Insane처럼 "이전 착지 직후 바로 다음 점프"를 예약하는 모드인지 */
+	bool IsChainJumpEnabled() const;
+
+	/** 노트 하나의 점프를 (정시점 - 체공시간)에 시작되도록 예약. 이미 예약됐으면 무시 */
+	void ScheduleJumpForNote(const FPTBNoteEvent& Note, float NowMs);
 
 	/** 점프를 실제로 발동(타이머 콜백) */
 	void StartScheduledJump(int32 CharacterIndex, float AirtimeMs, float HeightScale);
@@ -151,18 +186,40 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PTB|JumpJump")
 	TArray<FPTBNoteEvent> ReachedNotes;
 
-	/** 최대 선행 점프 시간 상한(ms). 노트 간격이 이보다 길면 이 값으로 고정 */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|JumpJump", meta = (ClampMin = "0"))
+	/** [Easy/Normal] 최대 선행 점프 시간 상한(ms). 노트 간격이 이보다 길면 이 값으로 고정 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|JumpJump|Airtime", meta = (ClampMin = "0"))
 	float MaxAirtimeMs = 2000.0f;
 
-	/** 최소 체공시간 하한(ms). 간격이 너무 짧아도 이보다 짧게는 안 뜀 */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|JumpJump", meta = (ClampMin = "0"))
+	/** [Easy/Normal] 최소 체공시간 하한(ms). 간격이 너무 짧아도 이보다 짧게는 안 뜀 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|JumpJump|Airtime", meta = (ClampMin = "0"))
 	float MinAirtimeMs = 250.0f;
 
-	/** 체공시간 비율. 노트 간격(Gap)의 몇 %를 체공에 쓸지 (0.85 = 85%).
+	/** [Easy/Normal] 체공시간 비율. 노트 간격(Gap)의 몇 %를 체공에 쓸지 (0.85 = 85%).
 	 *  1.0보다 작게 두면 다음 노트 전에 착지 여유가 생겨 빠른 구간이 덜 빡빡해진다. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|JumpJump", meta = (ClampMin = "0.1", ClampMax = "1.0"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|JumpJump|Airtime", meta = (ClampMin = "0.1", ClampMax = "1.0"))
 	float AirtimeRatio = 0.85f;
+
+	/**
+	 * [Insane] 체공 프로필
+	 * Ratio를 1.0 가까이 두면 착지 직후 바로 다음 점프가 시작되어 "거의 착지하지 않는" 상태가 되고,
+	 * 노트 간격마다 낙하 속도가 달라져 착지 타이밍 읽기가 어려워진다.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|JumpJump|Airtime")
+	FPTBJJAirtimeProfile InsaneAirtimeProfile = { 0.95f, 200.0f, 4000.0f, 0.0f };
+
+	/** 테스트용: 난이도와 무관하게 Insane 체공 프로필 강제 적용 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|JumpJump|Airtime")
+	bool bForceInsaneAirtime = false;
+
+	/** 이번 라운드에 실제 적용 중인 체공 프로필 */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PTB|JumpJump|Airtime")
+	FPTBJJAirtimeProfile ActiveAirtimeProfile;
+
+	/** 이번 라운드가 Insane 난이도인지 (InitializeMiniGame에서 설정) */
+	bool bIsInsaneDifficulty = false;
+
+	/** 체공 랜덤 편차용 시드 (세션 RandomSeed) */
+	int32 AirtimeSeed = 0;
 
 	/** 좌/중/우 점프 캐릭터 Actor (인덱스 0/1/2) */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|JumpJump")
@@ -173,6 +230,12 @@ protected:
 
 	/** 점프 발동 예약 타이머 핸들 모음(라운드 종료 시 정리용) */
 	TArray<FTimerHandle> PendingJumpTimers;
+
+	/** NoteId → 같은 액션의 다음 노트 (체인 점프 예약용) */
+	TMap<int32, FPTBNoteEvent> NextSameActionNote;
+
+	/** 점프가 이미 예약된 NoteId (Cue / 체인 중복 예약 방지) */
+	TSet<int32> ScheduledJumpNoteIds;
 
 	/** 스폰할 점프 캐릭터 클래스(BP_JJ_JumpChar 등을 지정) */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|JumpJump|Spawn")
