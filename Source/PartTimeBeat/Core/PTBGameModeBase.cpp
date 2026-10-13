@@ -7,12 +7,16 @@
 #include "MiniGames/Common/PTBMiniGameRuleSet.h"
 #include "Kismet/GameplayStatics.h"
 #include "GameFramework/PlayerController.h"
+#include "Engine/AssetManager.h"
+#include "Engine/StreamableManager.h"
+#include "Components/MeshComponent.h"
+#include "Camera/PlayerCameraManager.h"
 #include "TimerManager.h"
 
 void APTBGameModeBase::BeginPlay()
 {
 	Super::BeginPlay();
-	
+
 	if (UGameViewportClient* VC = GetWorld()->GetGameViewport())
 	{
 		VC->SetIgnoreInput(false);
@@ -55,22 +59,28 @@ void APTBGameModeBase::BeginPlay()
 
 	const FString CurrentLevelName = UGameplayStatics::GetCurrentLevelName(this, true);
 	bool bCanTryDirectPIEMiniGame = false;
-	for (const TPair<FName, TSubclassOf<APTBBaseMiniGame>>& ClassEntry : MiniGameClassMap)
-	{
-		const TSubclassOf<APTBBaseMiniGame> CandidateClass = ClassEntry.Value;
-		const APTBBaseMiniGame* CandidateCDO = CandidateClass
-			? CandidateClass->GetDefaultObject<APTBBaseMiniGame>()
-			: nullptr;
 
-		const bool bLevelMatchesClassKey = CurrentLevelName.Contains(ClassEntry.Key.ToString(), ESearchCase::IgnoreCase);
-		const bool bLevelMatchesRuleSetId = CandidateCDO && CandidateCDO->RuleSet
-			&& CurrentLevelName.Contains(CandidateCDO->RuleSet->MiniGameId.ToString(), ESearchCase::IgnoreCase);
-		const bool bLevelMatchesRuleSetCode = CandidateCDO && CandidateCDO->RuleSet
-			&& CurrentLevelName.Contains(CandidateCDO->RuleSet->MiniGameCode.ToString(), ESearchCase::IgnoreCase);
-		if (bLevelMatchesClassKey || bLevelMatchesRuleSetId || bLevelMatchesRuleSetCode)
+	// 1차: 키 이름만으로 매칭 (클래스 로드 없음)
+	for (const TPair<FName, TSoftClassPtr<APTBBaseMiniGame>>& ClassEntry : MiniGameClassMap)
+	{
+		if (CurrentLevelName.Contains(ClassEntry.Key.ToString(), ESearchCase::IgnoreCase))
 		{
 			bCanTryDirectPIEMiniGame = true;
 			break;
+		}
+	}
+
+	// 2차: RuleSet Id/Code로 매칭 (PIE 전용이므로 동기 로드 허용)
+	if (!bCanTryDirectPIEMiniGame)
+	{
+		for (const TPair<FName, TSoftClassPtr<APTBBaseMiniGame>>& ClassEntry : MiniGameClassMap)
+		{
+			const TSubclassOf<APTBBaseMiniGame> CandidateClass = ClassEntry.Value.LoadSynchronous();
+			if (DoesLevelMatchMiniGame(CurrentLevelName, ClassEntry.Key, CandidateClass))
+			{
+				bCanTryDirectPIEMiniGame = true;
+				break;
+			}
 		}
 	}
 
@@ -81,10 +91,27 @@ void APTBGameModeBase::BeginPlay()
 
 	FTimerDelegate DeferredDirectPIEStart;
 	DeferredDirectPIEStart.BindWeakLambda(this, [this]()
-	{
-		TryStartDirectPIEMiniGame();
-	});
+		{
+			TryStartDirectPIEMiniGame();
+		});
 	World->GetTimerManager().SetTimerForNextTick(DeferredDirectPIEStart);
+}
+
+bool APTBGameModeBase::DoesLevelMatchMiniGame(const FString& LevelName, FName Key, TSubclassOf<APTBBaseMiniGame> Cls) const
+{
+	if (LevelName.Contains(Key.ToString(), ESearchCase::IgnoreCase))
+	{
+		return true;
+	}
+
+	const APTBBaseMiniGame* CDO = Cls ? Cls->GetDefaultObject<APTBBaseMiniGame>() : nullptr;
+	if (!CDO || !CDO->RuleSet)
+	{
+		return false;
+	}
+
+	return LevelName.Contains(CDO->RuleSet->MiniGameId.ToString(), ESearchCase::IgnoreCase)
+		|| LevelName.Contains(CDO->RuleSet->MiniGameCode.ToString(), ESearchCase::IgnoreCase);
 }
 
 bool APTBGameModeBase::TryStartDirectPIEMiniGame()
@@ -123,9 +150,10 @@ bool APTBGameModeBase::TryStartDirectPIEMiniGame()
 	if (!DirectMiniGame)
 	{
 		TSubclassOf<APTBBaseMiniGame> DirectMiniGameClass = nullptr;
-		for (const TPair<FName, TSubclassOf<APTBBaseMiniGame>>& ClassEntry : MiniGameClassMap)
+		for (const TPair<FName, TSoftClassPtr<APTBBaseMiniGame>>& ClassEntry : MiniGameClassMap)
 		{
-			const TSubclassOf<APTBBaseMiniGame> CandidateClass = ClassEntry.Value;
+			// PIE 전용 경로이므로 동기 로드 허용
+			const TSubclassOf<APTBBaseMiniGame> CandidateClass = ClassEntry.Value.LoadSynchronous();
 			const APTBBaseMiniGame* CandidateCDO = CandidateClass
 				? CandidateClass->GetDefaultObject<APTBBaseMiniGame>()
 				: nullptr;
@@ -141,12 +169,7 @@ bool APTBGameModeBase::TryStartDirectPIEMiniGame()
 
 			if (CandidateCDO && CandidateCDO->bAutoStartWhenOpenedDirectlyInPIE)
 			{
-				const bool bLevelMatchesClassKey = CurrentLevelName.Contains(ClassEntry.Key.ToString(), ESearchCase::IgnoreCase);
-				const bool bLevelMatchesRuleSetId = CandidateCDO->RuleSet
-					&& CurrentLevelName.Contains(CandidateCDO->RuleSet->MiniGameId.ToString(), ESearchCase::IgnoreCase);
-				const bool bLevelMatchesRuleSetCode = CandidateCDO->RuleSet
-					&& CurrentLevelName.Contains(CandidateCDO->RuleSet->MiniGameCode.ToString(), ESearchCase::IgnoreCase);
-				if (!bLevelMatchesClassKey && !bLevelMatchesRuleSetId && !bLevelMatchesRuleSetCode)
+				if (!DoesLevelMatchMiniGame(CurrentLevelName, ClassEntry.Key, CandidateClass))
 				{
 					PTB_VERBOSE(LogPTBMiniGames, TEXT("Direct PIE MiniGame class skipped: current level [%s] does not match Id=%s Class=%s."),
 						*CurrentLevelName,
@@ -279,9 +302,9 @@ void APTBGameModeBase::StartGameFlow(const FPTBGameSessionRequest& Request)
 		FlowSubsystem->PendingSessionRequest = CurrentRequest;
 	}
 
-	// 1) 미니게임 클래스 해석
-	TSubclassOf<APTBBaseMiniGame> Cls = ResolveMiniGameClass(CurrentRequest.MiniGameId);
-	if (!Cls)
+	// 1) 미니게임 클래스 해석 (Soft 참조)
+	const TSoftClassPtr<APTBBaseMiniGame> SoftClass = ResolveMiniGameClass(CurrentRequest.MiniGameId);
+	if (SoftClass.IsNull())
 	{
 		PTB_ERROR(LogPTBMiniGames, TEXT("StartGameFlow: MiniGame class not found for [%s]"),
 			*CurrentRequest.MiniGameId.ToString());
@@ -297,18 +320,96 @@ void APTBGameModeBase::StartGameFlow(const FPTBGameSessionRequest& Request)
 		ActiveMiniGame = nullptr;
 	}
 
-	// 3) 스폰
+	// 로드 + 텍스처 스트리밍 동안 화면을 가림 (ContinueStartGameFlow에서 페이드인)
+	HoldScreenBlack();
+
+	// 진행 중인 이전 로드가 있으면 취소
+	const int32 Serial = ++StartFlowSerial;
+	if (MiniGameLoadHandle.IsValid())
+	{
+		MiniGameLoadHandle->CancelHandle();
+		MiniGameLoadHandle.Reset();
+	}
+
+	// 이미 로드돼 있으면 (Retry 등) 바로 진행
+	if (UClass* LoadedClass = SoftClass.Get())
+	{
+		ContinueStartGameFlow(LoadedClass);
+		return;
+	}
+
+	// 3) 선택된 미니게임만 비동기 로드
+	PTB_VERBOSE(LogPTBMiniGames, TEXT("StartGameFlow: async loading [%s]"), *SoftClass.ToString());
+
+	MiniGameLoadHandle = UAssetManager::GetStreamableManager().RequestAsyncLoad(
+		SoftClass.ToSoftObjectPath(),
+		FStreamableDelegate::CreateWeakLambda(this, [this, SoftClass, Serial]()
+			{
+				// 로드 중 더 새로운 요청이 들어왔으면 무시
+				if (Serial != StartFlowSerial)
+				{
+					return;
+				}
+
+				UClass* LoadedClass = SoftClass.Get();
+				if (!LoadedClass)
+				{
+					PTB_ERROR(LogPTBMiniGames, TEXT("StartGameFlow: async load failed for [%s]"), *SoftClass.ToString());
+					FadeInScreen(0.f);
+					return;
+				}
+
+				ContinueStartGameFlow(LoadedClass);
+			}));
+
+	if (!MiniGameLoadHandle.IsValid())
+	{
+		PTB_ERROR(LogPTBMiniGames, TEXT("StartGameFlow: RequestAsyncLoad failed for [%s]"), *SoftClass.ToString());
+		FadeInScreen(0.f);
+	}
+}
+
+void APTBGameModeBase::HoldScreenBlack()
+{
+	APlayerController* PC = GetWorld() ? GetWorld()->GetFirstPlayerController() : nullptr;
+	if (PC && PC->PlayerCameraManager)
+	{
+		PC->PlayerCameraManager->SetManualCameraFade(1.f, FLinearColor::Black, false);
+	}
+}
+
+void APTBGameModeBase::FadeInScreen(float Duration)
+{
+	APlayerController* PC = GetWorld() ? GetWorld()->GetFirstPlayerController() : nullptr;
+	if (!PC || !PC->PlayerCameraManager)
+	{
+		return;
+	}
+
+	if (Duration <= 0.f)
+	{
+		PC->PlayerCameraManager->StopCameraFade();
+		return;
+	}
+
+	PC->PlayerCameraManager->StartCameraFade(1.f, 0.f, Duration, FLinearColor::Black, false, false);
+}
+
+void APTBGameModeBase::ContinueStartGameFlow(TSubclassOf<APTBBaseMiniGame> Cls)
+{
+	// 4) 스폰
 	ActiveMiniGame = SpawnMiniGame(Cls);
 	if (!ActiveMiniGame)
 	{
 		PTB_ERROR(LogPTBMiniGames, TEXT("StartGameFlow: SpawnMiniGame failed"));
+		FadeInScreen(0.f);
 		return;
 	}
 
 	ActiveMiniGame->OnMiniGameStarted.AddUniqueDynamic(this, &APTBGameModeBase::HandleMiniGameStarted);
 	ActiveMiniGame->OnMiniGameFinished.AddUniqueDynamic(this, &APTBGameModeBase::HandleMiniGameFinished);
 
-	// 4) 미니게임 컨텍스트 구성 & 주입
+	// 5) 미니게임 컨텍스트 구성 & 주입
 	FPTBMiniGameContext Context;
 	Context.SessionRequest = CurrentRequest;
 	// Context.ChartData  → 채보 로딩 시스템에서 채워야 함 (DataTable / Asset 등)
@@ -322,6 +423,22 @@ void APTBGameModeBase::StartGameFlow(const FPTBGameSessionRequest& Request)
 
 	ActiveMiniGame->InitializeMiniGame(Context);
 
+	// 6) Init에서 생성된 메시까지 포함해 텍스처를 고해상도 mip까지 미리 스트리밍
+	TArray<UMeshComponent*> MeshComps;
+	ActiveMiniGame->GetComponents<UMeshComponent>(MeshComps);
+	for (UMeshComponent* Mesh : MeshComps)
+	{
+		Mesh->PrestreamTextures(2.0f, true);
+	}
+
+	// 7) 검은 화면에서 페이드인
+	FadeInScreen(0.8f);
+
+	UGameInstance* GameInstance = GetGameInstance();
+	UPTBGameFlowSubsystem* FlowSubsystem = GameInstance
+		? GameInstance->GetSubsystem<UPTBGameFlowSubsystem>()
+		: nullptr;
+
 	const FString CurrentLevelName = UGameplayStatics::GetCurrentLevelName(this, true);
 	if (FlowSubsystem && !CurrentLevelName.IsEmpty())
 	{
@@ -329,12 +446,12 @@ void APTBGameModeBase::StartGameFlow(const FPTBGameSessionRequest& Request)
 	}
 
 	PTB_RECORD(LogPTBMiniGames, TEXT("StartGameFlow: initialized [%s]"),
-		*Request.MiniGameId.ToString());
+		*CurrentRequest.MiniGameId.ToString());
 }
 
-TSubclassOf<APTBBaseMiniGame> APTBGameModeBase::ResolveMiniGameClass(FName Id) const
+TSoftClassPtr<APTBBaseMiniGame> APTBGameModeBase::ResolveMiniGameClass(FName Id) const
 {
-	if (const TSubclassOf<APTBBaseMiniGame>* Found = MiniGameClassMap.Find(Id))
+	if (const TSoftClassPtr<APTBBaseMiniGame>* Found = MiniGameClassMap.Find(Id))
 	{
 		return *Found;
 	}
@@ -493,9 +610,9 @@ void APTBGameModeBase::SubmitRoundResult(const FPTBRoundResult& Result)
 			{
 				// 진행도 반영 (내부에서 RequestSave 자동 호출)
 				FPTBProfileProgressUpdate Update;
-				Update.MiniGameId  = Result.MiniGameId;
-				Update.Difficulty  = Result.Difficulty;
-				Update.Score       = Result.Score;
+				Update.MiniGameId = Result.MiniGameId;
+				Update.Difficulty = Result.Difficulty;
+				Update.Score = Result.Score;
 				Update.EarnedStars = Result.StarCount;
 				Update.EarnedMoney = Result.EarnedMoney;
 				PS->ApplyRoundResultToActive(Update);
@@ -505,8 +622,8 @@ void APTBGameModeBase::SubmitRoundResult(const FPTBRoundResult& Result)
 				const FPTBProfileData UpdatedProfile = PS->GetActiveProfile(bHasActive);
 				Reward.EarnedMoney = Result.EarnedMoney;
 				Reward.EarnedStars = Result.StarCount;
-				Reward.TotalMoney  = bHasActive ? UpdatedProfile.TotalEarnedMoney : Result.EarnedMoney;
-				Reward.TotalStars  = 0;
+				Reward.TotalMoney = bHasActive ? UpdatedProfile.TotalEarnedMoney : Result.EarnedMoney;
+				Reward.TotalStars = 0;
 				if (bHasActive)
 				{
 					for (auto& Pair : UpdatedProfile.EarnedStarsByMiniGame)
@@ -569,7 +686,7 @@ void APTBGameModeBase::RetryGame_Implementation()
 	bIsGameActive = false;
 	bIsPaused = false;
 
-	// 동일 요청으로 재시작
+	// 동일 요청으로 재시작 (클래스가 이미 로드돼 있으므로 즉시 진행)
 	StartGameFlow(CurrentRequest);
 
 }
