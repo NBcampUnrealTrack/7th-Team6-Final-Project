@@ -63,7 +63,7 @@ enum class EPTBJudgementReason : uint8
     EmptyInput       UMETA(DisplayName = "Empty Input"),
     EarlyRelease       UMETA(DisplayName = "Early Release"),
     WrongInput       UMETA(DisplayName = "Wrong Input")
-};  
+};
 
 UENUM(BlueprintType)
 enum class EPTBEmptyInputPolicy : uint8
@@ -228,7 +228,7 @@ public:
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
     EPTBActionType ActionType = EPTBActionType::None;
-    
+
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
     EPTBActionType InputActionType = EPTBActionType::None;
 
@@ -343,7 +343,7 @@ namespace PTBResolution
             {1280, 720}, {1600, 900}, {1920, 1080}, {2560, 1440}, {3840, 2160}
         };
         if (Index >= 0 && Index < PresetCount) return Presets[Index];
-        return {1920, 1080};
+        return { 1920, 1080 };
     }
 
     inline TArray<FString> GetPresetNames()
@@ -462,6 +462,14 @@ struct PARTTIMEBEAT_API FPTBProfileData
     UPROPERTY(BlueprintReadOnly, SaveGame, Category = "Profile|Progress")
     TSet<FName> CompletedStoryIds;
 
+    /** 허브 맵(L_GameMap) 복귀 위치가 저장되어 있는지 */
+    UPROPERTY(BlueprintReadOnly, SaveGame, Category = "Profile|Hub")
+    bool bHasHubReturnTransform = false;
+
+    /** 허브 맵에서 마지막으로 서 있던 위치와 방향 (미니게임 복귀·재실행 시 스폰 위치) */
+    UPROPERTY(BlueprintReadOnly, SaveGame, Category = "Profile|Hub")
+    FTransform HubReturnTransform;
+
     // 코스튬 추가 시
     //UPROPERTY(BlueprintReadOnly, SaveGame, Category = "Profile|Progress")
     //TSet<FName> UnlockedCostumes;
@@ -529,7 +537,7 @@ USTRUCT(BlueprintType)
 struct FPTBGameSessionRequest
 {
     GENERATED_BODY()
-    
+
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
     FGuid ProfileId;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
