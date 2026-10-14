@@ -20,13 +20,13 @@ class PARTTIMEBEAT_API UPTBProfileSubsystem : public UGameInstanceSubsystem
     GENERATED_BODY()
 
 public:
-    
+
     virtual void Initialize(FSubsystemCollectionBase& Collection) override;
     virtual void Deinitialize() override;
 
     UFUNCTION(BlueprintCallable, Category = "Profile|Active")
     EPTBGender GetActiveProfileGender() const;
-    
+
     /** 신규 프로필 생성 */
     UFUNCTION(BlueprintCallable, Category = "Profile")
     FGuid CreateProfile(const FString& Nickname, EPTBGender Gender, int32 SlotIndex, FDateTime Birthday);
@@ -62,7 +62,7 @@ public:
     /** 현재 활성화된 프로필 데이터 반환 */
     UFUNCTION(BlueprintCallable, Category = "Profile|Active")
     FPTBProfileData GetActiveProfile(bool& bOutHasActive) const;
-    
+
     /** 활성화 한 프로필이 있는지 여부. */
     UFUNCTION(BlueprintCallable, Category = "Profile|Active")
     bool HasActiveProfile() const;
@@ -117,6 +117,21 @@ public:
     /** SaveGame에 동기화하여 디스크에 저장 */
     UFUNCTION(BlueprintCallable, Category = "Profile")
     void RequestSave();
+
+    /**
+     * 활성 프로필의 허브 복귀 위치 기록.
+     * bSaveToDisk=false면 메모리만 갱신 (주기적 갱신용), true면 디스크까지 저장.
+     */
+    UFUNCTION(BlueprintCallable, Category = "Profile|Hub")
+    void SetHubReturnTransform(const FTransform& InTransform, bool bSaveToDisk = false);
+
+    /** 활성 프로필의 허브 복귀 위치 조회. 저장된 위치가 없으면 false */
+    UFUNCTION(BlueprintCallable, Category = "Profile|Hub")
+    bool GetHubReturnTransform(FTransform& OutTransform) const;
+
+    /** 허브 복귀 위치 초기화 (끼임 탈출 등 PlayerStart로 되돌릴 때) */
+    UFUNCTION(BlueprintCallable, Category = "Profile|Hub")
+    void ClearHubReturnTransform();
 
     FOnActiveProfileChanged OnActiveProfileChanged;
     FOnProfileListChanged   OnProfileListChanged;
@@ -187,7 +202,7 @@ protected:
      * 난이도별 점수 키 생성 유틸리티.
      * 반환 형식: "MiniGameId_DifficultyName" (예: "TG_Standard")
      */
-static FName MakeDifficultyScoreKey(FName MiniGameId, EPTBDifficulty Difficulty);
+    static FName MakeDifficultyScoreKey(FName MiniGameId, EPTBDifficulty Difficulty);
 
 private:
     /** 메모리 상의 모든 프로필 */
