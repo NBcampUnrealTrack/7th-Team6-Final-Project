@@ -9,6 +9,7 @@
 #include "MiniGames/JJ/PTBJJJumpActor.h"
 #include "TimerManager.h"
 #include "Engine/World.h"
+#include "Math/RandomStream.h"
 
 APTBJJMiniGame::APTBJJMiniGame()
 {
@@ -32,6 +33,8 @@ void APTBJJMiniGame::EndPlay(const EEndPlayReason::Type EndPlayReason)
 		}
 	}
 	PendingJumpTimers.Reset();
+	ScheduledJumpNoteIds.Reset();
+	NextSameActionNote.Reset();
 
 	Super::EndPlay(EndPlayReason);
 }
@@ -46,6 +49,7 @@ void APTBJJMiniGame::BuildRuntimeState()
 	CuedNotes.Reset();
 	ArmedNotes.Reset();
 	ReachedNotes.Reset();
+	ScheduledJumpNoteIds.Reset();
 
 	if (JumpSpeeds.Num() < 3)
 	{
@@ -58,10 +62,16 @@ void APTBJJMiniGame::BuildRuntimeState()
 	// 채보 스캔 → 노트별 체공시간 산출
 	PrecomputeAirtimes();
 
-	UE_LOG(LogPTBMiniGames, Log, TEXT("[%s] JJ BuildRuntimeState RuleSet=%s Chart=%s"),
+	UE_LOG(LogPTBMiniGames, Warning, TEXT("[%s] JJ BuildRuntimeState RuleSet=%s Chart=%s Insane=%d Chain=%d Ratio=%.2f Min=%.0f Max=%.0f Jitter=%.2f"),
 		*GetNameSafe(this),
 		*GetNameSafe(RuleSet.Get()),
-		*GetNameSafe(ChartAsset.Get()));
+		*GetNameSafe(ChartAsset.Get()),
+		(bIsInsaneDifficulty || bForceInsaneAirtime) ? 1 : 0,
+		IsChainJumpEnabled() ? 1 : 0,
+		ActiveAirtimeProfile.AirtimeRatio,
+		ActiveAirtimeProfile.MinAirtimeMs,
+		ActiveAirtimeProfile.MaxAirtimeMs,
+		ActiveAirtimeProfile.RatioJitter);
 }
 
 void APTBJJMiniGame::HandleNoteCue(FPTBNoteEvent Note)
@@ -74,44 +84,8 @@ void APTBJJMiniGame::HandleNoteCue(FPTBNoteEvent Note)
 	const int32 CharacterIndex = ResolveCharacterIndex(Note.ActionType);
 	OnJJJumpCue.Broadcast(CharacterIndex, Note);
 
-	const float SpeedScale = JumpSpeeds.IsValidIndex(CharacterIndex) ? JumpSpeeds[CharacterIndex] : 1.0f;
-	const float NowMs = GetCurrentChartTimeMs();
-	const float TargetMs = Note.TimeMs;
-	const float TimeToReach = TargetMs - NowMs;   // 지금부터 착지까지 실제 남은 시간
-
-	// 1) 채보 간격 기반 희망 체공시간
-	const float DesiredAirtime = GetAirtimeMsForNote(Note.NoteId);
-
-	// 2) 실제 남은 시간으로 상한 (Cue 선행이 짧으면 그만큼만 떠야 늦지 않음)
-	float AirtimeMs = FMath::Min(DesiredAirtime, TimeToReach);
-
-	// 3) 하한 적용
-	AirtimeMs = FMath::Max(AirtimeMs, MinAirtimeMs);
-
-	const float DelayMs = TimeToReach - AirtimeMs;
-
-	const bool bHasActor = JumpActors.IsValidIndex(CharacterIndex) && JumpActors[CharacterIndex] != nullptr;
-
-	UE_LOG(LogPTBMiniGames, Warning,
-		TEXT("CUE NoteId=%d CharIdx=%d Desired=%.0f Airtime=%.0f Now=%.0f Target=%.0f TimeToReach=%.0f Delay=%.0f HasActor=%d Actors=%d"),
-		Note.NoteId, CharacterIndex, DesiredAirtime, AirtimeMs, NowMs, TargetMs, TimeToReach, DelayMs,
-		bHasActor ? 1 : 0, JumpActors.Num());
-
-	if (UWorld* World = GetWorld())
-	{
-		if (DelayMs <= 0.0f)
-		{
-			StartScheduledJump(CharacterIndex, AirtimeMs, SpeedScale);
-		}
-		else
-		{
-			FTimerHandle Handle;
-			FTimerDelegate Del = FTimerDelegate::CreateUObject(
-				this, &APTBJJMiniGame::StartScheduledJump, CharacterIndex, AirtimeMs, SpeedScale);
-			World->GetTimerManager().SetTimer(Handle, Del, DelayMs / 1000.0f, false);
-			PendingJumpTimers.Add(Handle);
-		}
-	}
+	// 체인 모드에서는 이전 착지 시점에 이미 예약됐을 수 있음 → 내부에서 중복 무시
+	ScheduleJumpForNote(Note, GetCurrentChartTimeMs());
 
 	LogNoteDebug(TEXT("JumpCue"), Note);
 }
@@ -135,6 +109,16 @@ void APTBJJMiniGame::HandleChartEvent(FPTBNoteEvent Note)
 
 	const int32 CharacterIndex = ResolveCharacterIndex(Note.ActionType);
 	OnJJJumpTriggered.Broadcast(CharacterIndex, Note);
+
+	// Insane: 착지하자마자 같은 캐릭터의 다음 점프를 바로 예약
+	// (Cue는 정시점 직전에만 오므로, Cue에만 의존하면 긴 간격에서 체공이 Cue 선행시간으로 잘린다)
+	if (IsChainJumpEnabled())
+	{
+		if (const FPTBNoteEvent* NextNote = NextSameActionNote.Find(Note.NoteId))
+		{
+			ScheduleJumpForNote(*NextNote, GetCurrentChartTimeMs());
+		}
+	}
 
 	LogNoteDebug(TEXT("JumpTriggered"), Note);
 }
@@ -178,6 +162,11 @@ void APTBJJMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 
 void APTBJJMiniGame::InitializeMiniGame(const FPTBMiniGameContext& Context)
 {
+	// BuildRuntimeState(→ PrecomputeAirtimes)보다 먼저 난이도/시드를 세팅해야 한다
+	// TODO: 프로젝트의 실제 난이도 enum 이름/값으로 맞출 것
+	bIsInsaneDifficulty = (Context.SessionRequest.Difficulty == EPTBDifficulty::Insane);
+	AirtimeSeed = Context.SessionRequest.RandomSeed;
+
 	Super::InitializeMiniGame(Context);
 }
 
@@ -337,45 +326,132 @@ void APTBJJMiniGame::LogNoteDebug(const TCHAR* EventName, const FPTBNoteEvent& N
 		Note.bIsLongNote ? 1 : 0);
 }
 
+FPTBJJAirtimeProfile APTBJJMiniGame::ResolveAirtimeProfile() const
+{
+	if (bIsInsaneDifficulty || bForceInsaneAirtime)
+	{
+		return InsaneAirtimeProfile;
+	}
+
+	// Easy / Normal: 기존 값 그대로 (채보로 난이도 조절)
+	FPTBJJAirtimeProfile Profile;
+	Profile.AirtimeRatio = AirtimeRatio;
+	Profile.MinAirtimeMs = MinAirtimeMs;
+	Profile.MaxAirtimeMs = MaxAirtimeMs;
+	Profile.RatioJitter = 0.0f;
+	return Profile;
+}
+
+bool APTBJJMiniGame::IsChainJumpEnabled() const
+{
+	// Easy / Normal은 기존 Cue 기반 동작 유지
+	return bIsInsaneDifficulty || bForceInsaneAirtime;
+}
+
+void APTBJJMiniGame::ScheduleJumpForNote(const FPTBNoteEvent& Note, float NowMs)
+{
+	if (ScheduledJumpNoteIds.Contains(Note.NoteId))
+	{
+		return;
+	}
+	ScheduledJumpNoteIds.Add(Note.NoteId);
+
+	const int32 CharacterIndex = ResolveCharacterIndex(Note.ActionType);
+	const float SpeedScale = JumpSpeeds.IsValidIndex(CharacterIndex) ? JumpSpeeds[CharacterIndex] : 1.0f;
+	const float TimeToReach = Note.TimeMs - NowMs;   // 지금부터 착지까지 실제 남은 시간
+
+	// 1) 채보 간격 기반 희망 체공시간
+	const float DesiredAirtime = GetAirtimeMsForNote(Note.NoteId);
+
+	// 2) 실제 남은 시간으로 상한 (예약이 늦으면 그만큼만 떠야 늦지 않음)
+	float AirtimeMs = FMath::Min(DesiredAirtime, TimeToReach);
+
+	// 3) 하한 적용
+	AirtimeMs = FMath::Max(AirtimeMs, ActiveAirtimeProfile.MinAirtimeMs);
+
+	const float DelayMs = TimeToReach - AirtimeMs;
+
+	const bool bHasActor = JumpActors.IsValidIndex(CharacterIndex) && JumpActors[CharacterIndex] != nullptr;
+
+	UE_LOG(LogPTBMiniGames, Warning,
+		TEXT("SCHEDULE NoteId=%d CharIdx=%d Desired=%.0f Airtime=%.0f Now=%.0f Target=%.0f TimeToReach=%.0f Delay=%.0f HasActor=%d"),
+		Note.NoteId, CharacterIndex, DesiredAirtime, AirtimeMs, NowMs, Note.TimeMs, TimeToReach, DelayMs,
+		bHasActor ? 1 : 0);
+
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return;
+	}
+
+	if (DelayMs <= 0.0f)
+	{
+		StartScheduledJump(CharacterIndex, AirtimeMs, SpeedScale);
+	}
+	else
+	{
+		FTimerHandle Handle;
+		FTimerDelegate Del = FTimerDelegate::CreateUObject(
+			this, &APTBJJMiniGame::StartScheduledJump, CharacterIndex, AirtimeMs, SpeedScale);
+		World->GetTimerManager().SetTimer(Handle, Del, DelayMs / 1000.0f, false);
+		PendingJumpTimers.Add(Handle);
+	}
+}
+
 void APTBJJMiniGame::PrecomputeAirtimes()
 {
 	NoteAirtimeMs.Reset();
+	NextSameActionNote.Reset();
+	ActiveAirtimeProfile = ResolveAirtimeProfile();
 
 	if (!ChartAsset)
 	{
 		return;
 	}
 
+	const FPTBJJAirtimeProfile& Profile = ActiveAirtimeProfile;
 	const TArray<FPTBNoteEvent>& Notes = ChartAsset->NoteEvents;
 
-	// 액션별로 "바로 다음에 같은 액션이 등장하는 노트의 TimeMs"를 알아내기 위해
-	// 뒤에서 앞으로 스캔하며 각 액션의 직후 등장 시각을 추적한다.
-	TMap<EPTBActionType, float> NextSameActionTimeMs;
+	// 시드 고정 랜덤: 같은 세션(Retry 포함)이면 같은 체공 패턴
+	FRandomStream Stream(AirtimeSeed);
 
-	for (int32 Index = Notes.Num() - 1; Index >= 0; --Index)
+	// 노트 N의 점프는 "직전 같은 액션 노트 착지(N-1) ~ N 정시점" 사이에서 일어나야 하므로
+	// 이전 같은 액션 노트와의 간격을 기준으로 체공시간을 계산한다.
+	// (다음 노트 기준으로 계산하면 이전 점프가 착지하기 전에 새 점프가 덮어쓸 수 있음)
+	TMap<EPTBActionType, float> PrevSameActionTimeMs;
+	TMap<EPTBActionType, int32> PrevSameActionNoteId;
+
+	for (const FPTBNoteEvent& Note : Notes)
 	{
-		const FPTBNoteEvent& Note = Notes[Index];
-
-		// 이 노트 기준, 같은 액션의 "다음" 노트 시각
-		float Airtime = MaxAirtimeMs;
-		if (const float* NextTime = NextSameActionTimeMs.Find(Note.ActionType))
+		// 이전 같은 액션 노트 → 이 노트 연결 (착지 시 다음 점프 예약용)
+		if (const int32* PrevId = PrevSameActionNoteId.Find(Note.ActionType))
 		{
-			const float Gap = *NextTime - Note.TimeMs;   // 같은 액션끼리의 간격
+			NextSameActionNote.Add(*PrevId, Note);
+		}
+		PrevSameActionNoteId.Add(Note.ActionType, Note.NoteId);
+
+		float Airtime = Profile.MaxAirtimeMs;
+
+		if (const float* PrevTime = PrevSameActionTimeMs.Find(Note.ActionType))
+		{
+			const float Gap = Note.TimeMs - *PrevTime;
 			if (Gap > 0.0f)
 			{
-				// 간격의 일정 비율만 체공 → 다음 노트 전에 착지 여유
-				// (비율을 곱한 뒤 상한으로 자른다)
-				Airtime = FMath::Min(MaxAirtimeMs, Gap * AirtimeRatio);
+				float Ratio = Profile.AirtimeRatio;
+				if (Profile.RatioJitter > 0.0f)
+				{
+					Ratio = FMath::Clamp(Ratio + Stream.FRandRange(-Profile.RatioJitter, Profile.RatioJitter), 0.1f, 1.0f);
+				}
+
+				Airtime = FMath::Min(Profile.MaxAirtimeMs, Gap * Ratio);
 			}
 		}
 
 		// 하한 클램프(너무 짧은 점프 방지)
-		Airtime = FMath::Max(Airtime, MinAirtimeMs);
+		Airtime = FMath::Max(Airtime, Profile.MinAirtimeMs);
 
 		NoteAirtimeMs.Add(Note.NoteId, Airtime);
-
-		// 다음(앞쪽) 노트 스캔을 위해 이 액션의 등장 시각 갱신
-		NextSameActionTimeMs.Add(Note.ActionType, Note.TimeMs);
+		PrevSameActionTimeMs.Add(Note.ActionType, Note.TimeMs);
 	}
 }
 
@@ -385,7 +461,7 @@ float APTBJJMiniGame::GetAirtimeMsForNote(int32 NoteId) const
 	{
 		return *Found;
 	}
-	return MaxAirtimeMs;
+	return ActiveAirtimeProfile.MaxAirtimeMs;
 }
 
 void APTBJJMiniGame::StartScheduledJump(int32 CharacterIndex, float AirtimeMs, float HeightScale)

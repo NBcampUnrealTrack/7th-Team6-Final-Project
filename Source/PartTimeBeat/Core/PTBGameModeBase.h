@@ -113,8 +113,38 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Game Flow")
 	FName ResultLevelName = TEXT("L_MiniGameResult");
 
+	/** 허브에서 위치를 메모리에 기록하는 주기(초) */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|Hub")
+	float HubPositionCacheInterval = 1.0f;
+
+	/** 허브에서 위치를 디스크에 저장하는 주기(초). 비정상 종료 대비용 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|Hub")
+	float HubPositionDiskSaveInterval = 30.0f;
+
 protected:
 	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+
+	/** 허브 맵이면 저장된 복귀 위치에 스폰, 아니면 기본(PlayerStart) */
+	virtual APawn* SpawnDefaultPawnFor_Implementation(AController* NewPlayer, AActor* StartSpot) override;
+	/** 저장 위치로 스폰했으면 카메라 방향도 저장된 방향으로 맞춤 */
+	virtual void FinishRestartPlayer(AController* NewPlayer, const FRotator& StartRotation) override;
+
+	/** 현재 맵이 허브(미니게임 선택) 맵인지 */
+	bool IsHubLevel() const;
+	/** 허브 위치 기록 타이머 시작 */
+	void StartHubPositionTracking();
+	/** 플레이어 위치를 활성 프로필에 기록 (공중에 있으면 건너뜀) */
+	bool CacheHubPlayerTransform(bool bSaveToDisk);
+	/** 디스크 저장 타이머 콜백 */
+	void SaveHubPlayerTransformToDisk();
+
+	FTimerHandle HubPositionCacheTimer;
+	FTimerHandle HubPositionDiskSaveTimer;
+
+	/** 이번 스폰이 저장 위치로 이뤄졌는지 (FinishRestartPlayer에서 회전 적용용) */
+	bool bSpawnedAtHubReturnTransform = false;
+	FRotator HubReturnControlRotation = FRotator::ZeroRotator;
 
 	/** Flow 요청 없이 미니게임 맵을 직접 PIE로 연 경우 배치된 미니게임 Actor로 테스트 시작 */
 	bool TryStartDirectPIEMiniGame();

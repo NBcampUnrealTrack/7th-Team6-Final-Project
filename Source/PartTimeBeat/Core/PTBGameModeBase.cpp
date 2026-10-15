@@ -12,6 +12,8 @@
 #include "Components/MeshComponent.h"
 #include "Camera/PlayerCameraManager.h"
 #include "TimerManager.h"
+#include "GameFramework/Character.h"
+#include "GameFramework/CharacterMovementComponent.h"
 
 void APTBGameModeBase::BeginPlay()
 {
@@ -49,6 +51,12 @@ void APTBGameModeBase::BeginPlay()
 			PC->SetInputMode(InputMode);
 			PC->SetShowMouseCursor(true);
 		}
+	}
+
+	// 허브 맵이면 플레이어 위치를 주기적으로 기록 (미니게임 복귀·재실행 시 그 자리에서 시작)
+	if (IsHubLevel())
+	{
+		StartHubPositionTracking();
 	}
 
 	UWorld* World = GetWorld();
@@ -761,4 +769,153 @@ void APTBGameModeBase::GoToMainMenu_Implementation()
 		GI->CurrentFlowState = EGameFlowState::MainMenu;
 		GI->OnFlowStateChanged.Broadcast(EGameFlowState::MainMenu);
 	}
+}
+// ── 허브 복귀 위치 ──────────────────────────────────────────────
+
+bool APTBGameModeBase::IsHubLevel() const
+{
+	FName HubLevelName = TEXT("L_GameMap");
+	if (const UGameInstance* GI = GetGameInstance())
+	{
+		if (const UPTBGameFlowSubsystem* Flow = GI->GetSubsystem<UPTBGameFlowSubsystem>())
+		{
+			if (!Flow->MiniGameSelectLevelName.IsNone())
+			{
+				HubLevelName = Flow->MiniGameSelectLevelName;
+			}
+		}
+	}
+
+	return UGameplayStatics::GetCurrentLevelName(this, true).Equals(HubLevelName.ToString(), ESearchCase::IgnoreCase);
+}
+
+APawn* APTBGameModeBase::SpawnDefaultPawnFor_Implementation(AController* NewPlayer, AActor* StartSpot)
+{
+	bSpawnedAtHubReturnTransform = false;
+
+	if (NewPlayer && NewPlayer->IsPlayerController() && IsHubLevel())
+	{
+		const UGameInstance* GI = GetGameInstance();
+		const UPTBProfileSubsystem* PS = GI ? GI->GetSubsystem<UPTBProfileSubsystem>() : nullptr;
+
+		FTransform SavedTransform;
+		if (PS && PS->GetHubReturnTransform(SavedTransform))
+		{
+			// 캐릭터는 Yaw만 유지 (기울어진 채로 스폰 방지)
+			const FRotator SavedRotation(0.f, SavedTransform.Rotator().Yaw, 0.f);
+			SavedTransform.SetRotation(SavedRotation.Quaternion());
+			SavedTransform.SetScale3D(FVector::OneVector);
+
+			// SpawnDefaultPawnAtTransform은 겹침 시 위치를 보정해서 스폰함
+			if (APawn* Pawn = SpawnDefaultPawnAtTransform(NewPlayer, SavedTransform))
+			{
+				bSpawnedAtHubReturnTransform = true;
+				HubReturnControlRotation = SavedRotation;
+				PTB_RECORD(LogPTBFlow, TEXT("[PTBHub] 저장된 위치에서 스폰: %s"),
+					*SavedTransform.GetLocation().ToString());
+				return Pawn;
+			}
+
+			PTB_WARNING(LogPTBFlow, TEXT("[PTBHub] 저장 위치 스폰 실패, PlayerStart 사용"));
+		}
+	}
+
+	return Super::SpawnDefaultPawnFor_Implementation(NewPlayer, StartSpot);
+}
+
+void APTBGameModeBase::FinishRestartPlayer(AController* NewPlayer, const FRotator& StartRotation)
+{
+	if (bSpawnedAtHubReturnTransform)
+	{
+		bSpawnedAtHubReturnTransform = false;
+		Super::FinishRestartPlayer(NewPlayer, HubReturnControlRotation);
+		return;
+	}
+
+	Super::FinishRestartPlayer(NewPlayer, StartRotation);
+}
+
+void APTBGameModeBase::StartHubPositionTracking()
+{
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return;
+	}
+
+	FTimerManager& TM = World->GetTimerManager();
+
+	if (HubPositionCacheInterval > 0.f)
+	{
+		TM.SetTimer(HubPositionCacheTimer,
+			FTimerDelegate::CreateWeakLambda(this, [this]() { CacheHubPlayerTransform(false); }),
+			HubPositionCacheInterval, true);
+	}
+
+	if (HubPositionDiskSaveInterval > 0.f)
+	{
+		TM.SetTimer(HubPositionDiskSaveTimer, this, &APTBGameModeBase::SaveHubPlayerTransformToDisk,
+			HubPositionDiskSaveInterval, true);
+	}
+}
+
+bool APTBGameModeBase::CacheHubPlayerTransform(bool bSaveToDisk)
+{
+	UGameInstance* GI = GetGameInstance();
+	UPTBProfileSubsystem* PS = GI ? GI->GetSubsystem<UPTBProfileSubsystem>() : nullptr;
+	if (!PS)
+	{
+		return false;
+	}
+
+	const UWorld* World = GetWorld();
+	const APlayerController* PC = World ? World->GetFirstPlayerController() : nullptr;
+	const APawn* Pawn = PC ? PC->GetPawn() : nullptr;
+
+	bool bCached = false;
+	if (IsValid(Pawn))
+	{
+		// 점프·낙하 중 위치는 저장하지 않음 (공중 스폰·추락 방지)
+		const ACharacter* Character = Cast<ACharacter>(Pawn);
+		const bool bOnGround = !Character || !Character->GetCharacterMovement()
+			|| Character->GetCharacterMovement()->IsMovingOnGround();
+
+		if (bOnGround)
+		{
+			FTransform Transform = Pawn->GetActorTransform();
+			Transform.SetRotation(FRotator(0.f, PC->GetControlRotation().Yaw, 0.f).Quaternion());
+			PS->SetHubReturnTransform(Transform, false);
+			bCached = true;
+		}
+	}
+
+	// 이번에 기록 못 했어도 직전에 기록한 위치는 디스크에 저장
+	if (bSaveToDisk)
+	{
+		PS->RequestSave();
+	}
+
+	return bCached;
+}
+
+void APTBGameModeBase::SaveHubPlayerTransformToDisk()
+{
+	CacheHubPlayerTransform(true);
+}
+
+void APTBGameModeBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	// 미니게임 진입(레벨 이동), 메인 메뉴 이동, 게임 종료 모두 여기로 들어옴
+	if (IsHubLevel())
+	{
+		CacheHubPlayerTransform(true);
+	}
+
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(HubPositionCacheTimer);
+		World->GetTimerManager().ClearTimer(HubPositionDiskSaveTimer);
+	}
+
+	Super::EndPlay(EndPlayReason);
 }

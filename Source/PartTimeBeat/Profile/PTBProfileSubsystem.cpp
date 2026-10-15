@@ -77,12 +77,12 @@ FGuid UPTBProfileSubsystem::CreateProfile(
     }
 
     FPTBProfileData NewProfile;
-    NewProfile.ProfileId  = FGuid::NewGuid();
-    NewProfile.Nickname   = NormalizeNickname(Nickname);
-    NewProfile.Gender     = Gender;
-    NewProfile.Birthday   = Birthday;
-    NewProfile.SlotIndex  = SlotIndex;
-    NewProfile.CreatedAt  = FDateTime::Now();
+    NewProfile.ProfileId = FGuid::NewGuid();
+    NewProfile.Nickname = NormalizeNickname(Nickname);
+    NewProfile.Gender = Gender;
+    NewProfile.Birthday = Birthday;
+    NewProfile.SlotIndex = SlotIndex;
+    NewProfile.CreatedAt = FDateTime::Now();
     NewProfile.LastPlayedAt = FDateTime::Now();
 
     const FGuid NewId = NewProfile.ProfileId;
@@ -409,7 +409,7 @@ void UPTBProfileSubsystem::ApplyRoundResultToActive(const FPTBProfileProgressUpd
         Update.Score, BestScore,
         Update.EarnedStars,
         Update.EarnedMoney, Active->TotalEarnedMoney);
-    
+
 }
 
 void UPTBProfileSubsystem::MarkTutorialComplete(FName MiniGameId)
@@ -439,6 +439,48 @@ void UPTBProfileSubsystem::MarkStoryViewed(FName StoryId)
 
     Active->CompletedStoryIds.Add(StoryId);
 
+    RequestSave();
+}
+
+void UPTBProfileSubsystem::SetHubReturnTransform(const FTransform& InTransform, bool bSaveToDisk)
+{
+    FPTBProfileData* Active = FindActiveProfileMutable();
+    if (!Active)
+    {
+        return;
+    }
+
+    Active->HubReturnTransform = InTransform;
+    Active->bHasHubReturnTransform = true;
+
+    if (bSaveToDisk)
+    {
+        RequestSave();
+    }
+}
+
+bool UPTBProfileSubsystem::GetHubReturnTransform(FTransform& OutTransform) const
+{
+    const FPTBProfileData* Active = FindActiveProfileConst();
+    if (!Active || !Active->bHasHubReturnTransform)
+    {
+        return false;
+    }
+
+    OutTransform = Active->HubReturnTransform;
+    return true;
+}
+
+void UPTBProfileSubsystem::ClearHubReturnTransform()
+{
+    FPTBProfileData* Active = FindActiveProfileMutable();
+    if (!Active)
+    {
+        return;
+    }
+
+    Active->bHasHubReturnTransform = false;
+    Active->HubReturnTransform = FTransform::Identity;
     RequestSave();
 }
 
@@ -473,12 +515,12 @@ int32 UPTBProfileSubsystem::GetBestScoreForDifficulty(FName MiniGameId, EPTBDiff
     if (!Active) { return 0; }
 
     const FName Key = MakeDifficultyScoreKey(MiniGameId, Difficulty);
-	if (const int32* Found = Active->BestScoresByDifficulty.Find(Key))
-	{
-		return *Found;
-	}
+    if (const int32* Found = Active->BestScoresByDifficulty.Find(Key))
+    {
+        return *Found;
+    }
 
-	return 0;
+    return 0;
 }
 
 FName UPTBProfileSubsystem::MakeDifficultyScoreKey(FName MiniGameId, EPTBDifficulty Difficulty)
@@ -782,9 +824,9 @@ namespace
     /** 한글 음절 1개를 초성+중성+종성 자모로 분해해 Result에 추가 */
     void AppendDecomposedSyllable(TCHAR Syllable, FString& Result)
     {
-        const int32 Offset     = Syllable - 0xAC00;
-        const int32 FinalIdx   = Offset % 28;
-        const int32 MedialIdx  = (Offset / 28) % 21;
+        const int32 Offset = Syllable - 0xAC00;
+        const int32 FinalIdx = Offset % 28;
+        const int32 MedialIdx = (Offset / 28) % 21;
         const int32 InitialIdx = Offset / 28 / 21;
 
         Result.AppendChar(GInitialJamo[InitialIdx]);
@@ -840,7 +882,7 @@ FString UPTBProfileSubsystem::NormalizeForFilter(const FString& Input)
 
     for (const TCHAR Ch : Input)
     {
-        if      (Ch >= 0xAC00 && Ch <= 0xD7A3) AppendDecomposedSyllable(Ch, Result); // 한글 음절
+        if (Ch >= 0xAC00 && Ch <= 0xD7A3) AppendDecomposedSyllable(Ch, Result); // 한글 음절
         else if (Ch >= 0x3131 && Ch <= 0x3163) Result.AppendChar(Ch);                // 한글 호환 자모
         else if (FChar::IsAlpha(Ch) || FChar::IsDigit(Ch)) Result.AppendChar(FChar::ToLower(Ch)); // 영숫자
         // 공백·특수문자: 제거
@@ -858,7 +900,7 @@ FString UPTBProfileSubsystem::NormalizeForFilterKoreanOnly(const FString& Input)
 
     for (const TCHAR Ch : Input)
     {
-        if      (Ch >= 0xAC00 && Ch <= 0xD7A3) AppendDecomposedSyllable(Ch, Result); // 한글 음절
+        if (Ch >= 0xAC00 && Ch <= 0xD7A3) AppendDecomposedSyllable(Ch, Result); // 한글 음절
         else if (Ch >= 0x3131 && Ch <= 0x3163) Result.AppendChar(Ch);                // 한글 호환 자모
         // 영숫자·특수문자: 모두 제거 (NormalizeForFilter와의 유일한 차이)
     }
