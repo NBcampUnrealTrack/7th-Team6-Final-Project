@@ -9,6 +9,13 @@
 #include "Components/TextBlock.h"
 #include "Components/WidgetSwitcher.h"
 #include "Core/PTBGameInstance.h"
+#include "Kismet/GameplayStatics.h"
+#include "Kismet/KismetInternationalizationLibrary.h"
+#include "Internationalization/Internationalization.h"
+#include "Internationalization/Culture.h"
+
+// C++ 표시 문구는 LOCTEXT로 작성 → Gather from Text Files(Source/*)로 수집됨
+#define LOCTEXT_NAMESPACE "PTBSettings"
 
 UPTBSettingsWidget::UPTBSettingsWidget(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -30,14 +37,45 @@ void UPTBSettingsWidget::InitializeView()
 {
 	const UPTBGameInstance* GI = GetGameInstance<UPTBGameInstance>();
 	PendingSettings = GI ? GI->CachedSettings : FPTBUserSettings{};
+	PendingCulture = GetCurrentLanguageCode();
 
 	// ComboBox 옵션 구성 (값 설정은 RefreshAllWidgets에서 일괄 처리)
+	BuildComboBoxOptions();
+
+	// 플레이 중(일시정지 상태)에는 언어 변경 비활성화
+	// (Format Text로 만든 HUD 텍스트가 이전 언어로 남아 화면에 두 언어가 섞이는 것을 방지)
+	const bool bLanguageLocked = UGameplayStatics::IsGamePaused(this);
+	if (ComboBoxLanguage) ComboBoxLanguage->SetIsEnabled(!bLanguageLocked);
+	if (TextLanguageLocked)
+	{
+		TextLanguageLocked->SetVisibility(bLanguageLocked ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
+	}
+
+	if (SliderMaster) { SliderMaster->SetMinValue(0.f); SliderMaster->SetMaxValue(1.f); }
+	if (SliderBgm) { SliderBgm->SetMinValue(0.f);   SliderBgm->SetMaxValue(1.f); }
+	if (SliderSfx) { SliderSfx->SetMinValue(0.f);   SliderSfx->SetMaxValue(1.f); }
+	if (SliderSyncOffset) { SliderSyncOffset->SetMinValue(-200.f); SliderSyncOffset->SetMaxValue(200.f); }
+
+	// 알림 텍스트 / 재바인딩 프롬프트 초기 숨김
+	if (TextNotification) TextNotification->SetVisibility(ESlateVisibility::Hidden);
+	if (TextRebindPrompt) TextRebindPrompt->SetVisibility(ESlateVisibility::Hidden);
+
+	// 첫 탭(그래픽)으로 시작
+	SwitchToTab(0);
+
+	RefreshAllWidgets();
+}
+
+void UPTBSettingsWidget::BuildComboBoxOptions()
+{
+	// ComboBoxString은 FString만 받으므로 LOCTEXT(...).ToString()으로 현재 언어 문자열을 넣는다.
+	// 언어가 바뀌면 이 함수를 다시 호출해야 옵션이 새 언어로 바뀜.
 	if (ComboBoxWindowMode)
 	{
 		ComboBoxWindowMode->ClearOptions();
-		ComboBoxWindowMode->AddOption(TEXT("전체화면"));
-		ComboBoxWindowMode->AddOption(TEXT("창 전체화면"));
-		ComboBoxWindowMode->AddOption(TEXT("창 모드"));
+		ComboBoxWindowMode->AddOption(LOCTEXT("WindowMode_Fullscreen", "전체화면").ToString());
+		ComboBoxWindowMode->AddOption(LOCTEXT("WindowMode_WindowedFullscreen", "창 전체화면").ToString());
+		ComboBoxWindowMode->AddOption(LOCTEXT("WindowMode_Windowed", "창 모드").ToString());
 	}
 	if (ComboBoxResolution)
 	{
@@ -50,24 +88,23 @@ void UPTBSettingsWidget::InitializeView()
 	if (ComboBoxGraphics)
 	{
 		ComboBoxGraphics->ClearOptions();
-		ComboBoxGraphics->AddOption(TEXT("낮음"));
-		ComboBoxGraphics->AddOption(TEXT("중간"));
-		ComboBoxGraphics->AddOption(TEXT("높음"));
-		ComboBoxGraphics->AddOption(TEXT("최고"));
+		ComboBoxGraphics->AddOption(LOCTEXT("Graphics_Low", "낮음").ToString());
+		ComboBoxGraphics->AddOption(LOCTEXT("Graphics_Medium", "중간").ToString());
+		ComboBoxGraphics->AddOption(LOCTEXT("Graphics_High", "높음").ToString());
+		ComboBoxGraphics->AddOption(LOCTEXT("Graphics_Epic", "최고").ToString());
 	}
-	if (SliderMaster)     { SliderMaster->SetMinValue(0.f); SliderMaster->SetMaxValue(1.f); }
-	if (SliderBgm)        { SliderBgm->SetMinValue(0.f);   SliderBgm->SetMaxValue(1.f); }
-	if (SliderSfx)        { SliderSfx->SetMinValue(0.f);   SliderSfx->SetMaxValue(1.f); }
-	if (SliderSyncOffset) { SliderSyncOffset->SetMinValue(-200.f); SliderSyncOffset->SetMaxValue(200.f); }
+	if (ComboBoxLanguage)
+	{
+		// 언어 이름은 번역하지 않음 (어떤 언어 상태에서도 자기 언어를 찾을 수 있도록)
+		ComboBoxLanguage->ClearOptions();
+		ComboBoxLanguage->AddOption(TEXT("한국어"));
+		ComboBoxLanguage->AddOption(TEXT("English"));
+	}
+}
 
-	// 알림 텍스트 / 재바인딩 프롬프트 초기 숨김
-	if (TextNotification) TextNotification->SetVisibility(ESlateVisibility::Hidden);
-	if (TextRebindPrompt) TextRebindPrompt->SetVisibility(ESlateVisibility::Hidden);
-
-	// 첫 탭(그래픽)으로 시작
-	SwitchToTab(0);
-
-	RefreshAllWidgets();
+FString UPTBSettingsWidget::GetCurrentLanguageCode()
+{
+	return FInternationalization::Get().GetCurrentCulture()->GetTwoLetterISOLanguageName();
 }
 
 // ── 탭 전환 ───────────────────────────────────────────────────────
@@ -111,24 +148,38 @@ void UPTBSettingsWidget::ApplySettings()
 	if (UPTBGameInstance* GI = GetGameInstance<UPTBGameInstance>())
 	{
 		GI->ApplyUserSettings(PendingSettings);
-		OnSettingsApplied();
+
+		// 언어 변경: 즉시 적용 + GameUserSettings.ini에 저장 (다음 실행부터 이 언어로 시작)
+		if (!PendingCulture.IsEmpty() && PendingCulture != GetCurrentLanguageCode())
+		{
+			UKismetInternationalizationLibrary::SetCurrentCulture(PendingCulture, /*SaveToConfig*/ true);
+
+			// 디자이너에 입력된 텍스트(탭 이름 등)는 자동 갱신됨.
+			// C++에서 문자열로 넣은 ComboBox 옵션/키 이름은 직접 다시 구성.
+			BuildComboBoxOptions();
+			RefreshAllWidgets();
+		}
+
+		OnSettingsApplied(); // 언어 변경 후 호출 → 알림 문구도 새 언어로 표시
 	}
 }
 
 void UPTBSettingsWidget::ResetToDefaults()
 {
 	PendingSettings = FPTBUserSettings{};
+	// 언어는 초기화 대상에서 제외 (초기화로 읽을 수 없는 언어가 되는 것을 방지). 선택만 현재 언어로 되돌림.
+	PendingCulture = GetCurrentLanguageCode();
 	RefreshAllWidgets();
 	OnSettingsReset();
 }
 
 // ── 알림 텍스트 ───────────────────────────────────────────────────
 
-void UPTBSettingsWidget::ShowNotification(const FString& Message)
+void UPTBSettingsWidget::ShowNotification(const FText& Message)
 {
 	if (!TextNotification) return;
 
-	TextNotification->SetText(FText::FromString(Message));
+	TextNotification->SetText(Message);
 	TextNotification->SetVisibility(ESlateVisibility::HitTestInvisible);
 
 	// 이전 타이머 취소 후 2초 뒤 숨김
@@ -153,12 +204,12 @@ void UPTBSettingsWidget::HideNotification()
 
 void UPTBSettingsWidget::OnSettingsApplied_Implementation()
 {
-	ShowNotification(TEXT("설정이 저장되었습니다."));
+	ShowNotification(LOCTEXT("Notify_Saved", "설정이 저장되었습니다."));
 }
 
 void UPTBSettingsWidget::OnSettingsReset_Implementation()
 {
-	ShowNotification(TEXT("기본값으로 초기화되었습니다."));
+	ShowNotification(LOCTEXT("Notify_Reset", "기본값으로 초기화되었습니다."));
 }
 
 // ── 키 입력 처리 ──────────────────────────────────────────────────
@@ -212,9 +263,9 @@ FReply UPTBSettingsWidget::NativeOnKeyDown(const FGeometry& InGeometry, const FK
 	}
 
 	// 수정자 단독 키는 리듬 게임 입력으로 부적합 → 무시
-	if (PressedKey == EKeys::LeftControl  || PressedKey == EKeys::RightControl ||
-		PressedKey == EKeys::LeftShift    || PressedKey == EKeys::RightShift   ||
-		PressedKey == EKeys::LeftAlt      || PressedKey == EKeys::RightAlt)
+	if (PressedKey == EKeys::LeftControl || PressedKey == EKeys::RightControl ||
+		PressedKey == EKeys::LeftShift || PressedKey == EKeys::RightShift ||
+		PressedKey == EKeys::LeftAlt || PressedKey == EKeys::RightAlt)
 	{
 		return FReply::Handled();
 	}
@@ -248,8 +299,8 @@ void UPTBSettingsWidget::RefreshAllWidgets()
 	if (SliderBgm)    SliderBgm->SetValue(PendingSettings.BGMVolume);
 	if (SliderSfx)    SliderSfx->SetValue(PendingSettings.SFXVolume);
 	RefreshVolumeText(TextMasterValue, PendingSettings.MasterVolume);
-	RefreshVolumeText(TextBgmValue,    PendingSettings.BGMVolume);
-	RefreshVolumeText(TextSfxValue,    PendingSettings.SFXVolume);
+	RefreshVolumeText(TextBgmValue, PendingSettings.BGMVolume);
+	RefreshVolumeText(TextSfxValue, PendingSettings.SFXVolume);
 
 	if (SliderSyncOffset) SliderSyncOffset->SetValue(PendingSettings.JudgementOffsetMs);
 	if (TextSyncOffsetValue)
@@ -277,10 +328,16 @@ void UPTBSettingsWidget::RefreshAllWidgets()
 		PendingSettings.GraphicsQuality = GraphicsIndex;
 		ComboBoxGraphics->SetSelectedIndex(GraphicsIndex);
 	}
+	if (ComboBoxLanguage)
+	{
+		int32 LangIndex = LanguageCultures.IndexOfByKey(PendingCulture);
+		if (LangIndex == INDEX_NONE) LangIndex = LanguageCultures.IndexOfByKey(TEXT("en"));
+		ComboBoxLanguage->SetSelectedIndex(LangIndex);
+	}
 
 	for (EPTBActionType Action : {
 		EPTBActionType::ActionA, EPTBActionType::ActionB, EPTBActionType::ActionC,
-		EPTBActionType::ActionD, EPTBActionType::ActionE })
+			EPTBActionType::ActionD, EPTBActionType::ActionE })
 	{
 		RefreshKeyText(Action);
 	}
@@ -289,11 +346,12 @@ void UPTBSettingsWidget::RefreshAllWidgets()
 void UPTBSettingsWidget::RefreshKeyText(EPTBActionType Action)
 {
 	const FKey CurrentKey = PendingSettings.RhythmKeys.ResolveAction(Action);
-	const FString KeyName = CurrentKey.GetDisplayName().ToString();
+	// 키 이름은 엔진이 언어별로 제공하는 FText 그대로 사용 (예: Space → 스페이스 바)
+	const FText KeyName = CurrentKey.GetDisplayName();
 
 	auto SetText = [&](UTextBlock* Text) {
-		if (Text) Text->SetText(FText::FromString(KeyName));
-	};
+		if (Text) Text->SetText(KeyName);
+		};
 
 	switch (Action)
 	{
@@ -317,42 +375,43 @@ void UPTBSettingsWidget::RefreshVolumeText(UTextBlock* TextWidget, float Value)
 
 void UPTBSettingsWidget::BindWidgetCallbacks()
 {
-	if (ButtonClose)        ButtonClose->OnClicked.AddUniqueDynamic(this,        &UPTBSettingsWidget::OnCloseClicked);
-	if (ButtonTabSounds)    ButtonTabSounds->OnClicked.AddUniqueDynamic(this,    &UPTBSettingsWidget::OnTabSoundsClicked);
-	if (ButtonTabGraphics)  ButtonTabGraphics->OnClicked.AddUniqueDynamic(this,  &UPTBSettingsWidget::OnTabGraphicsClicked);
-	if (ButtonTabKeys)      ButtonTabKeys->OnClicked.AddUniqueDynamic(this,      &UPTBSettingsWidget::OnTabKeysClicked);
-	if (ButtonTabGame)      ButtonTabGame->OnClicked.AddUniqueDynamic(this,      &UPTBSettingsWidget::OnTabGameClicked);
+	if (ButtonClose)        ButtonClose->OnClicked.AddUniqueDynamic(this, &UPTBSettingsWidget::OnCloseClicked);
+	if (ButtonTabSounds)    ButtonTabSounds->OnClicked.AddUniqueDynamic(this, &UPTBSettingsWidget::OnTabSoundsClicked);
+	if (ButtonTabGraphics)  ButtonTabGraphics->OnClicked.AddUniqueDynamic(this, &UPTBSettingsWidget::OnTabGraphicsClicked);
+	if (ButtonTabKeys)      ButtonTabKeys->OnClicked.AddUniqueDynamic(this, &UPTBSettingsWidget::OnTabKeysClicked);
+	if (ButtonTabGame)      ButtonTabGame->OnClicked.AddUniqueDynamic(this, &UPTBSettingsWidget::OnTabGameClicked);
 
-	if (ButtonApply)   ButtonApply->OnClicked.AddUniqueDynamic(this,   &UPTBSettingsWidget::OnApplyClicked);
-	if (ButtonReset)   ButtonReset->OnClicked.AddUniqueDynamic(this,   &UPTBSettingsWidget::OnResetClicked);
+	if (ButtonApply)   ButtonApply->OnClicked.AddUniqueDynamic(this, &UPTBSettingsWidget::OnApplyClicked);
+	if (ButtonReset)   ButtonReset->OnClicked.AddUniqueDynamic(this, &UPTBSettingsWidget::OnResetClicked);
 	if (ButtonRebindA) ButtonRebindA->OnClicked.AddUniqueDynamic(this, &UPTBSettingsWidget::OnRebindAClicked);
 	if (ButtonRebindB) ButtonRebindB->OnClicked.AddUniqueDynamic(this, &UPTBSettingsWidget::OnRebindBClicked);
 	if (ButtonRebindC) ButtonRebindC->OnClicked.AddUniqueDynamic(this, &UPTBSettingsWidget::OnRebindCClicked);
 	if (ButtonRebindD) ButtonRebindD->OnClicked.AddUniqueDynamic(this, &UPTBSettingsWidget::OnRebindDClicked);
 	if (ButtonRebindE) ButtonRebindE->OnClicked.AddUniqueDynamic(this, &UPTBSettingsWidget::OnRebindEClicked);
 
-	if (SliderMaster)     SliderMaster->OnValueChanged.AddUniqueDynamic(this,     &UPTBSettingsWidget::OnMasterSliderChanged);
-	if (SliderBgm)        SliderBgm->OnValueChanged.AddUniqueDynamic(this,        &UPTBSettingsWidget::OnBgmSliderChanged);
-	if (SliderSfx)        SliderSfx->OnValueChanged.AddUniqueDynamic(this,        &UPTBSettingsWidget::OnSfxSliderChanged);
+	if (SliderMaster)     SliderMaster->OnValueChanged.AddUniqueDynamic(this, &UPTBSettingsWidget::OnMasterSliderChanged);
+	if (SliderBgm)        SliderBgm->OnValueChanged.AddUniqueDynamic(this, &UPTBSettingsWidget::OnBgmSliderChanged);
+	if (SliderSfx)        SliderSfx->OnValueChanged.AddUniqueDynamic(this, &UPTBSettingsWidget::OnSfxSliderChanged);
 	if (SliderSyncOffset) SliderSyncOffset->OnValueChanged.AddUniqueDynamic(this, &UPTBSettingsWidget::OnSyncOffsetSliderChanged);
 
 	if (ComboBoxWindowMode) ComboBoxWindowMode->OnSelectionChanged.AddUniqueDynamic(this, &UPTBSettingsWidget::OnWindowModeSelectionChanged);
 	if (ComboBoxResolution) ComboBoxResolution->OnSelectionChanged.AddUniqueDynamic(this, &UPTBSettingsWidget::OnResolutionSelectionChanged);
-	if (ComboBoxGraphics)   ComboBoxGraphics->OnSelectionChanged.AddUniqueDynamic(this,   &UPTBSettingsWidget::OnGraphicsSelectionChanged);
+	if (ComboBoxGraphics)   ComboBoxGraphics->OnSelectionChanged.AddUniqueDynamic(this, &UPTBSettingsWidget::OnGraphicsSelectionChanged);
+	if (ComboBoxLanguage)   ComboBoxLanguage->OnSelectionChanged.AddUniqueDynamic(this, &UPTBSettingsWidget::OnLanguageSelectionChanged);
 }
 
-void UPTBSettingsWidget::OnCloseClicked()        { CloseMenu(); }
-void UPTBSettingsWidget::OnTabGraphicsClicked()  { SwitchToTab(0); }
-void UPTBSettingsWidget::OnTabSoundsClicked()    { SwitchToTab(1); }
-void UPTBSettingsWidget::OnTabKeysClicked()      { SwitchToTab(2); }
-void UPTBSettingsWidget::OnTabGameClicked()      { SwitchToTab(3); }
-void UPTBSettingsWidget::OnApplyClicked()        { ApplySettings(); }
-void UPTBSettingsWidget::OnResetClicked()        { ResetToDefaults(); }
-void UPTBSettingsWidget::OnRebindAClicked()      { RequestRebind(EPTBActionType::ActionA); }
-void UPTBSettingsWidget::OnRebindBClicked()      { RequestRebind(EPTBActionType::ActionB); }
-void UPTBSettingsWidget::OnRebindCClicked()      { RequestRebind(EPTBActionType::ActionC); }
-void UPTBSettingsWidget::OnRebindDClicked()      { RequestRebind(EPTBActionType::ActionD); }
-void UPTBSettingsWidget::OnRebindEClicked()      { RequestRebind(EPTBActionType::ActionE); }
+void UPTBSettingsWidget::OnCloseClicked() { CloseMenu(); }
+void UPTBSettingsWidget::OnTabGraphicsClicked() { SwitchToTab(0); }
+void UPTBSettingsWidget::OnTabSoundsClicked() { SwitchToTab(1); }
+void UPTBSettingsWidget::OnTabKeysClicked() { SwitchToTab(2); }
+void UPTBSettingsWidget::OnTabGameClicked() { SwitchToTab(3); }
+void UPTBSettingsWidget::OnApplyClicked() { ApplySettings(); }
+void UPTBSettingsWidget::OnResetClicked() { ResetToDefaults(); }
+void UPTBSettingsWidget::OnRebindAClicked() { RequestRebind(EPTBActionType::ActionA); }
+void UPTBSettingsWidget::OnRebindBClicked() { RequestRebind(EPTBActionType::ActionB); }
+void UPTBSettingsWidget::OnRebindCClicked() { RequestRebind(EPTBActionType::ActionC); }
+void UPTBSettingsWidget::OnRebindDClicked() { RequestRebind(EPTBActionType::ActionD); }
+void UPTBSettingsWidget::OnRebindEClicked() { RequestRebind(EPTBActionType::ActionE); }
 
 void UPTBSettingsWidget::OnMasterSliderChanged(float Value)
 {
@@ -401,3 +460,15 @@ void UPTBSettingsWidget::OnGraphicsSelectionChanged(FString SelectedItem, ESelec
 	if (SelectionType == ESelectInfo::Direct || !ComboBoxGraphics) return;
 	PendingSettings.GraphicsQuality = FMath::Clamp(ComboBoxGraphics->GetSelectedIndex(), 0, 3);
 }
+
+void UPTBSettingsWidget::OnLanguageSelectionChanged(FString SelectedItem, ESelectInfo::Type SelectionType)
+{
+	if (SelectionType == ESelectInfo::Direct || !ComboBoxLanguage) return;
+	const int32 Index = ComboBoxLanguage->GetSelectedIndex();
+	if (LanguageCultures.IsValidIndex(Index))
+	{
+		PendingCulture = LanguageCultures[Index]; // Apply 버튼을 눌러야 실제 적용
+	}
+}
+
+#undef LOCTEXT_NAMESPACE

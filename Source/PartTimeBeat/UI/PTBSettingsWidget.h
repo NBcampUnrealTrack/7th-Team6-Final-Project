@@ -28,6 +28,7 @@ class UWidgetSwitcher;
  *  [싱크]  SliderSyncOffset (-200~+200ms), TextSyncOffsetValue
  *  [화면]  ComboBoxWindowMode, ComboBoxResolution, ComboBoxGraphics
  *  [키]    KeyText_A~KeyText_E, ButtonRebindA~ButtonRebindE, TextRebindPrompt
+ *  [언어]  ComboBoxLanguage, TextLanguageLocked (일시정지 중 안내, 선택)
  *  [제어]  ButtonApply, ButtonReset, ButtonCalibrate
  *  [알림]  TextNotification (2초 후 자동 숨김, Hidden 상태로 시작)
  */
@@ -202,6 +203,16 @@ protected:
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "PTB|Settings|Display")
 	TObjectPtr<UComboBoxString> ComboBoxGraphics;
 
+	// ── 언어 ─────────────────────────────────────────────────────────
+
+	/** 언어 선택. 옵션: "한국어" / "English" (LanguageCultures와 같은 순서). 게임 설정 탭에 배치. */
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "PTB|Settings|Language")
+	TObjectPtr<UComboBoxString> ComboBoxLanguage;
+
+	/** 일시정지 상태(플레이 중)에서 열었을 때 표시. "메인 메뉴에서 변경할 수 있습니다" */
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "PTB|Settings|Language")
+	TObjectPtr<UTextBlock> TextLanguageLocked;
+
 	// ── 키 바인딩 ────────────────────────────────────────────────────
 
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "PTB|Settings|Keys")
@@ -260,12 +271,22 @@ private:
 	/** TextNotification 자동 숨김 타이머 */
 	FTimerHandle NotificationTimerHandle;
 
+	/** 지원 언어 코드. ComboBoxLanguage 옵션 순서와 동일해야 함. 언어 추가 시 여기와 BuildComboBoxOptions에 한 줄씩 추가. */
+	TArray<FString> LanguageCultures = { TEXT("ko"), TEXT("en") };
+
+	/** Apply 전까지만 유효한 언어 코드 */
+	FString PendingCulture;
+
+	/** ComboBox 옵션 구성. 언어 변경 후에도 다시 호출해 새 언어로 갱신. */
+	void BuildComboBoxOptions();
+	static FString GetCurrentLanguageCode();
+
 	void RefreshAllWidgets();
 	void RefreshKeyText(EPTBActionType Action);
 	void RefreshVolumeText(UTextBlock* TextWidget, float Value);
 	void BindWidgetCallbacks();
 
-	void ShowNotification(const FString& Message);
+	void ShowNotification(const FText& Message);
 	void HideNotification();
 
 	UFUNCTION() void OnCloseClicked();
@@ -287,4 +308,5 @@ private:
 	UFUNCTION() void OnWindowModeSelectionChanged(FString SelectedItem, ESelectInfo::Type SelectionType);
 	UFUNCTION() void OnResolutionSelectionChanged(FString SelectedItem, ESelectInfo::Type SelectionType);
 	UFUNCTION() void OnGraphicsSelectionChanged(FString SelectedItem, ESelectInfo::Type SelectionType);
+	UFUNCTION() void OnLanguageSelectionChanged(FString SelectedItem, ESelectInfo::Type SelectionType);
 };

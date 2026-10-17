@@ -5,6 +5,9 @@
 #include "Kismet/GameplayStatics.h"
 #include "UI/PTBMainTitleWidget.h"
 #include "Debug/PTBTeamLog.h"
+#include "Kismet/KismetInternationalizationLibrary.h"
+#include "Internationalization/Internationalization.h"
+#include "Internationalization/Culture.h"
 
 // 내부에서 SaveGame 오브젝트를 보관할 멤버가 헤더에 없으므로
 // 헤더에 아래를 추가하는 것을 권장합니다:
@@ -14,6 +17,23 @@ void UPTBGameInstance::Init()
 {
 	Super::Init();
 	InitPTBSystems();
+}
+
+void UPTBGameInstance::ApplyDefaultLanguage()
+{
+	// 유저가 옵션에서 고른 적이 있으면 엔진이 이미 그 언어로 시작했으므로 그대로 둠
+	FString Saved;
+	if (GConfig->GetString(TEXT("Internationalization"), TEXT("Culture"), Saved, GGameUserSettingsIni)
+		&& !Saved.IsEmpty())
+	{
+		return;
+	}
+
+	// 처음 실행: 엔진이 OS 언어로 시작함. 지원하지 않는 언어면 영어로 대체 (저장하지 않음)
+	if (!GetSupportedLanguages().Contains(GetGameLanguage()))
+	{
+		FInternationalization::Get().SetCurrentCulture(TEXT("en"));
+	}
 }
 
 
@@ -92,6 +112,17 @@ void UPTBGameInstance::ApplyUserSettings(const FPTBUserSettings& InSettings)
 	PTB_RECORD(LogPTBCore, TEXT("UserSettings applied — Master:%.2f BGM:%.2f SFX:%.2f Offset:%.1fms / WinMode:%d / Resolution:%d / Graphics:%d"),
 		InSettings.MasterVolume, InSettings.BGMVolume, InSettings.SFXVolume, InSettings.JudgementOffsetMs,
 		static_cast<int32>(InSettings.WindowMode), InSettings.ResolutionPresetIndex, InSettings.GraphicsQuality);
+}
+
+void UPTBGameInstance::SetGameLanguage(const FString& Culture)
+{
+	// SaveToConfig=true → GameUserSettings.ini에 저장되어 다음 실행부터 이 언어로 시작
+	UKismetInternationalizationLibrary::SetCurrentCulture(Culture, /*SaveToConfig*/ true);
+}
+
+FString UPTBGameInstance::GetGameLanguage() const
+{
+	return FInternationalization::Get().GetCurrentCulture()->GetTwoLetterISOLanguageName();
 }
 
 void UPTBGameInstance::SaveGame()

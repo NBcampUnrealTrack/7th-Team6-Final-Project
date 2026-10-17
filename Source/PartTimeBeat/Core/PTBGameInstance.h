@@ -26,6 +26,19 @@ public:
 	//설정 저장 + Wwise / Rhythm에 전달
 	void ApplyUserSettings(const FPTBUserSettings& InSettings);
 
+
+	// 옵션창에서 호출. 즉시 적용 + 저장
+	UFUNCTION(BlueprintCallable, Category = "Localization")
+	void SetGameLanguage(const FString& Culture);
+
+	// 현재 언어 코드 ("ko", "en")
+	UFUNCTION(BlueprintPure, Category = "Localization")
+	FString GetGameLanguage() const;
+
+	// 지원 언어 목록 (언어 추가 시 여기만 수정)
+	UFUNCTION(BlueprintPure, Category = "Localization")
+	static TArray<FString> GetSupportedLanguages() { return { TEXT("ko"), TEXT("en") }; }
+
 	//슬롯에 저장 (프로필은 Subsystem에서 CurrentSaveGame에 먼저 반영 후 호출)
 	UFUNCTION(BlueprintCallable, Category = "PTB|Save")
 	void SaveGame();
@@ -79,4 +92,7 @@ public:
 	/** 현재 로드된 세이브 오브젝트 */
 	UPROPERTY()
 	UPTBSaveGame* CurrentSaveGame = nullptr;
+
+private:
+	void ApplyDefaultLanguage();
 };
