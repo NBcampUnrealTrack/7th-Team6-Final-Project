@@ -7,6 +7,8 @@
 
 class UPTBWwiseAudioManager;
 class UPTBSaveGame;
+class UPTBMiniGameIntroData;
+class UPTBSceneWidgetBase;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnFlowStateChanged, EGameFlowState, NewState);
 
@@ -88,6 +90,20 @@ public:
 
 	UPROPERTY()
 	TObjectPtr<UPTBMainTitleWidget> TitleWidgetInstance;
+
+	// ── 미니게임 스토리/튜토리얼 공용 기본값 ───────────────────────
+
+	/** 미니게임에 IntroData가 없거나 시작 스토리/튜토리얼 테이블이 비었을 때 쓰는 공용 템플릿 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "PTB|Scene")
+	TObjectPtr<UPTBMiniGameIntroData> DefaultIntroData;
+
+	/** 스토리 위젯 (시작 스토리/결과 직전 스토리 공용). 비어 있으면 스토리 단계는 건너뜀 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "PTB|Scene")
+	TSubclassOf<UPTBSceneWidgetBase> StoryWidgetClass;
+
+	/** 튜토리얼 위젯. 비어 있으면 튜토리얼 단계는 건너뜀 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "PTB|Scene")
+	TSubclassOf<UPTBSceneWidgetBase> TutorialWidgetClass;
 
 	/** 현재 로드된 세이브 오브젝트 */
 	UPROPERTY()

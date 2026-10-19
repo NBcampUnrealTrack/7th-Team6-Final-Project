@@ -1,5 +1,5 @@
 #include "MiniGames/Common/UI/PTBActionCueWidgetBase.h"
-#include "Core/PTBGameInstance.h"
+#include "UI/PTBKeyTextLibrary.h"
 
 void UPTBActionCueWidgetBase::SetActionType(EPTBActionType InActionType)
 {
@@ -9,29 +9,8 @@ void UPTBActionCueWidgetBase::SetActionType(EPTBActionType InActionType)
 
 FText UPTBActionCueWidgetBase::GetActionKeyLabel(EPTBActionType InActionType) const
 {
-	// GameInstance의 실제 키 바인딩 기준으로 표시
-	if (const UWorld* World = GetWorld())
-	{
-		if (const UPTBGameInstance* GI = Cast<UPTBGameInstance>(World->GetGameInstance()))
-		{
-			const FKey BoundKey = GI->CachedSettings.RhythmKeys.ResolveAction(InActionType);
-			if (BoundKey.IsValid() && BoundKey != EKeys::Invalid)
-			{
-				return BoundKey.GetDisplayName();
-			}
-		}
-	}
-
-	// 폴백: 기본 바인딩(Z/X/C/V/B)
-	switch (InActionType)
-	{
-	case EPTBActionType::ActionA: return FText::FromString(TEXT("Z"));
-	case EPTBActionType::ActionB: return FText::FromString(TEXT("X"));
-	case EPTBActionType::ActionC: return FText::FromString(TEXT("C"));
-	case EPTBActionType::ActionD: return FText::FromString(TEXT("V"));
-	case EPTBActionType::ActionE: return FText::FromString(TEXT("B"));
-	default:                      return FText::FromString(TEXT("?"));
-	}
+	// 실제 키 바인딩 기준 표시 (폴백 포함). 스토리/튜토리얼과 같은 공용 유틸 사용
+	return UPTBKeyTextLibrary::GetActionKeyLabel(this, InActionType);
 }
 
 FLinearColor UPTBActionCueWidgetBase::GetActionColor(EPTBActionType InActionType)

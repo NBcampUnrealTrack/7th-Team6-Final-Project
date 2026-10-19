@@ -181,7 +181,7 @@ void UPTBGameFlowSubsystem::SelectDifficulty(EPTBDifficulty InDiff)
 	PTB_RECORD(LogPTBFlow, TEXT("[PTBFlow] 난이도 선택: %s"),
 		*GetDifficultyName(SelectedDifficulty));
 
-	// TODO(Tutorial): TutorialManager::ShouldShowTutorial() 연동 후 첫 플레이면 Tutorial 상태로 전환
+	// 스토리/튜토리얼은 미니게임 로딩 완료 후 APTBBaseMiniGame::BeginIntroScenes()에서 처리
 	StartGameplay();
 }
 
@@ -418,6 +418,8 @@ void UPTBGameFlowSubsystem::CacheRetryTarget(const FPTBGameSessionRequest& Sessi
 	}
 
 	LastSessionRequest = SessionRequest;
+	// 다시보기로 들어온 판을 결과 화면에서 재시작해도 스토리/튜토리얼이 또 강제 재생되지 않도록
+	LastSessionRequest.bForceScenePlayback = false;
 	LastPlayedMiniGameLevelName = LevelName;
 
 	PTB_RECORD(LogPTBFlow,

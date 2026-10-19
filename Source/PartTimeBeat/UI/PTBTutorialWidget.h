@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Blueprint/UserWidget.h"
+#include "UI/PTBSceneWidgetBase.h"
 #include "PTBTutorialWidget.generated.h"
 
 class UButton;
@@ -15,7 +15,7 @@ class UTextBlock;
  * 안내 문구와 데모 이미지를 동기화해 학습 흐름을 제공
  */
 UCLASS(Blueprintable)
-class PARTTIMEBEAT_API UPTBTutorialWidget : public UUserWidget
+class PARTTIMEBEAT_API UPTBTutorialWidget : public UPTBSceneWidgetBase
 {
 	GENERATED_BODY()
 	

@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Blueprint/UserWidget.h"
+#include "UI/PTBSceneWidgetBase.h"
 #include "PTBStoryViewerWidget.generated.h"
 
 class UButton;
@@ -14,7 +14,7 @@ class UTextBlock;
  * 스토리 대사와 캐릭터 비주얼을 순차적으로 표시하는 스토리 뷰어 위젯
  */
 UCLASS(Blueprintable)
-class PARTTIMEBEAT_API UPTBStoryViewerWidget : public UUserWidget
+class PARTTIMEBEAT_API UPTBStoryViewerWidget : public UPTBSceneWidgetBase
 {
 	GENERATED_BODY()
 	

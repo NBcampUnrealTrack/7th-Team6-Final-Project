@@ -1,12 +1,15 @@
-﻿#pragma once
+#pragma once
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "Core/PTBStructEnums.h"
+#include "MiniGames/Common/PTBMiniGameIntroData.h"
 #include "TimerManager.h"
 #include "PTBBaseMiniGame.generated.h"
 
 class UPTBMiniGameRuleSet;
+class UPTBSceneWidgetBase;
+class UDataTable;
 class UPTBWwiseEventMapAsset;
 class UPTBWwiseAudioManager;
 class UPTBWwiseRhythmSyncComponent;
@@ -25,6 +28,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE(FPTBOnMiniGameStarted);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FPTBMiniGameNoteDelegate, FPTBNoteEvent, Note);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FPTBMiniGameJudgementDelegate, FPTBJudgementResult, Result);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FPTBMiniGameOutroDelegate, FPTBRoundResult, Result, EPTBRoundEndReason, EndReason);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FPTBMiniGameScenePhaseDelegate, EPTBMiniGameScenePhase, Phase);
 
 struct FPTBActiveHoldState
 {
@@ -78,6 +82,25 @@ public:
 	/** 직접 PIE 테스트에 사용할 플레이 모드 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|MiniGame|PIE Test")
 	EPTBPlayMode DirectPIEPlayMode = EPTBPlayMode::Single;
+
+	/**
+	 * 스토리/튜토리얼 데이터.
+	 * 비어 있거나 시작 스토리/튜토리얼 테이블이 비었으면 GameInstance.DefaultIntroData(공용 템플릿) 사용.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|Scene")
+	TObjectPtr<UPTBMiniGameIntroData> IntroData;
+
+	/** 씬 단계(시작 스토리/튜토리얼/시작 대기/결과 직전 스토리) 변경 */
+	UPROPERTY(BlueprintAssignable, Category = "PTB|Scene")
+	FPTBMiniGameScenePhaseDelegate OnScenePhaseChanged;
+
+	/** 현재 씬 단계 */
+	UFUNCTION(BlueprintPure, Category = "PTB|Scene")
+	EPTBMiniGameScenePhase GetScenePhase() const { return ScenePhase; }
+
+	/** 씬 위젯 종료 알림 (UPTBSceneWidgetBase::FinishScene에서 호출). 시청 기록 후 다음 단계로 진행 */
+	UFUNCTION(BlueprintCallable, Category = "PTB|Scene")
+	void NotifySceneFinished(bool bSkipped);
 
 	/** 미니게임 종료 결과 */
 	UPROPERTY(BlueprintAssignable, Category = "PTB|MiniGame")
@@ -219,6 +242,11 @@ public:
 	void ReceiveOutroFinished(FPTBRoundResult Result, EPTBRoundEndReason EndReason);
 	virtual void ReceiveOutroFinished_Implementation(FPTBRoundResult Result, EPTBRoundEndReason EndReason);
 
+	/** BP 미니게임에서 씬 단계 변경 시점을 확장합니다. (예: 튜토리얼 중 캐릭터 대기 모션) */
+	UFUNCTION(BlueprintNativeEvent, Category = "PTB|Scene")
+	void ReceiveScenePhaseChanged(EPTBMiniGameScenePhase Phase);
+	virtual void ReceiveScenePhaseChanged_Implementation(EPTBMiniGameScenePhase Phase);
+
 protected:
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaTime) override;
@@ -345,6 +373,52 @@ protected:
 
 	/** 결과 전달 대기 중인 종료 사유 */
 	EPTBRoundEndReason PendingEndReason = EPTBRoundEndReason::Completed;
+
+	// ── 스토리/튜토리얼 씬 ─────────────────────────────────────────
+
+	/** 현재 씬 단계 */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PTB|Scene")
+	EPTBMiniGameScenePhase ScenePhase = EPTBMiniGameScenePhase::None;
+
+	/** 표시 중인 씬 위젯 */
+	UPROPERTY()
+	TObjectPtr<UPTBSceneWidgetBase> ActiveSceneWidget;
+
+	/** 이번 라운드는 본 적 있어도 씬 재생 (다시보기) */
+	bool bForceScenePlayback = false;
+
+	/** 로딩 완료 후 시작 스토리 → 튜토리얼 → 시작 대기 순으로 진행 */
+	void BeginIntroScenes();
+
+	/** 현재 단계 다음의 시작 씬을 재생하거나, 없으면 시작 대기(HandleReadyToStart)로 */
+	void AdvanceIntroScenes();
+
+	/** 해당 단계 씬을 재생할 수 있으면 위젯 띄우고 true */
+	bool TryPlayScene(EPTBMiniGameScenePhase Phase);
+
+	/** 재생 조건 (본 적 있음/버전/클리어 여부). 미니게임별로 조건을 바꾸려면 override */
+	virtual bool ShouldPlayScene(EPTBMiniGameScenePhase Phase) const;
+
+	/** 해당 단계 내용을 가진 IntroData (미니게임 전용 → 공용 템플릿 순). 없으면 nullptr */
+	const UPTBMiniGameIntroData* ResolveSceneData(EPTBMiniGameScenePhase Phase) const;
+
+	/** 해당 단계 위젯 클래스 (GameInstance 설정) */
+	TSubclassOf<UPTBSceneWidgetBase> ResolveSceneWidgetClass(EPTBMiniGameScenePhase Phase) const;
+
+	/** 시청 기록 키에 쓸 미니게임 ID */
+	FName ResolveSceneMiniGameId() const;
+
+	/** 단계 변경 + 델리게이트/BP 이벤트 */
+	void SetScenePhase(EPTBMiniGameScenePhase NewPhase);
+
+	/** 씬 위젯 제거 */
+	void CloseActiveSceneWidget();
+
+	/** 로딩 위젯 숨김/복구 (씬 재생 중에는 숨김) */
+	void SetLoadingWidgetHidden(bool bShouldHide);
+
+	/** 결과 델리게이트 전달 (결과 직전 스토리 이후 또는 즉시) */
+	void DispatchMiniGameFinished();
 
 	/** 라운드 시작 전 에셋 준비(하위 override 권장) */
 	virtual void PreloadAssets();
