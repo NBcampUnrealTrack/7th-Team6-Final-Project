@@ -22,6 +22,15 @@ enum class EPTBMiniGameScenePhase : uint8
 	OutroStory  UMETA(DisplayName = "결과 직전 스토리")
 };
 
+/** 스탠딩 이미지 위치 */
+UENUM(BlueprintType)
+enum class EPTBPortraitSlot : uint8
+{
+	Center  UMETA(DisplayName = "가운데"),
+	Left    UMETA(DisplayName = "왼쪽"),
+	Right   UMETA(DisplayName = "오른쪽")
+};
+
 /** 스토리 대사 한 줄 (스탠딩 이미지 + 다이얼로그) */
 USTRUCT(BlueprintType)
 struct PARTTIMEBEAT_API FPTBDialogueLine : public FTableRowBase
@@ -32,9 +41,17 @@ struct PARTTIMEBEAT_API FPTBDialogueLine : public FTableRowBase
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Dialogue")
 	FText Speaker;
 
-	/** 스탠딩 이미지. 비우면 이전 이미지 유지 */
+	/** 스탠딩 이미지. 비우면 해당 위치의 이전 이미지 유지 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Dialogue")
 	TSoftObjectPtr<UTexture2D> Portrait;
+
+	/** 스탠딩 이미지 위치 = 이 대사의 화자 위치. 이 위치는 밝게, 나머지는 어둡게 표시 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Dialogue")
+	EPTBPortraitSlot PortraitSlot = EPTBPortraitSlot::Center;
+
+	/** 체크하면 이 대사에서 다른 위치의 스탠딩 이미지를 지움 (퇴장/장면 전환) */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Dialogue")
+	bool bClearOtherPortraits = false;
 
 	/** 대사. {ActionA}~{ActionE} 토큰은 현재 키 바인딩으로 치환됨 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Dialogue", meta = (MultiLine = true))

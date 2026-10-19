@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 #include "PTBStoryViewerWidget.h"
 
@@ -26,10 +26,13 @@ void UPTBStoryViewerWidget::NativeConstruct()
 
 void UPTBStoryViewerWidget::InitializeView()
 {
-	if (ImageCharacter)
+	// Portrait가 지정된 위치만 보이도록 처음엔 전부 숨김
+	for (UImage* PortraitImage : { ImageCharacter.Get(), ImageCharacterLeft.Get(), ImageCharacterRight.Get() })
 	{
-		// 첫 대사에 Portrait가 있을 때만 보이도록
-		ImageCharacter->SetVisibility(ESlateVisibility::Hidden);
+		if (PortraitImage)
+		{
+			PortraitImage->SetVisibility(ESlateVisibility::Hidden);
+		}
 	}
 }
 
@@ -123,17 +126,56 @@ void UPTBStoryViewerWidget::ShowLine(int32 LineIndex)
 		TextDialogue->SetText(DialogueText);
 	}
 
-	// Portrait가 비어 있으면 이전 이미지 유지
-	if (ImageCharacter && !Line.Portrait.IsNull())
+	// 퇴장/장면 전환: 다른 위치 스탠딩 이미지 제거
+	if (Line.bClearOtherPortraits)
 	{
-		if (UTexture2D* PortraitTexture = Line.Portrait.LoadSynchronous())
+		for (const EPTBPortraitSlot EachSlot : { EPTBPortraitSlot::Center, EPTBPortraitSlot::Left, EPTBPortraitSlot::Right })
 		{
-			ImageCharacter->SetBrushFromTexture(PortraitTexture, true);
-			ImageCharacter->SetVisibility(ESlateVisibility::HitTestInvisible);
+			UImage* OtherImage = GetPortraitImage(EachSlot);
+			if (EachSlot != Line.PortraitSlot && OtherImage)
+			{
+				OtherImage->SetVisibility(ESlateVisibility::Hidden);
+			}
 		}
 	}
 
+	// Portrait가 비어 있으면 해당 위치의 이전 이미지 유지
+	UImage* TargetImage = GetPortraitImage(Line.PortraitSlot);
+	if (TargetImage && !Line.Portrait.IsNull())
+	{
+		if (UTexture2D* PortraitTexture = Line.Portrait.LoadSynchronous())
+		{
+			// 원본 크기로 설정해야 ScaleBox가 비율을 유지함
+			TargetImage->SetBrushFromTexture(PortraitTexture, true);
+			TargetImage->SetVisibility(ESlateVisibility::HitTestInvisible);
+		}
+	}
+
+	RefreshPortraitHighlight(Line.PortraitSlot, !bHasSpeaker);
+
 	OnLineShown(LineIndex, SpeakerText, DialogueText);
+}
+
+UImage* UPTBStoryViewerWidget::GetPortraitImage(EPTBPortraitSlot InSlot) const
+{
+	switch (InSlot)
+	{
+	case EPTBPortraitSlot::Left:  return ImageCharacterLeft;
+	case EPTBPortraitSlot::Right: return ImageCharacterRight;
+	default:                      return ImageCharacter;
+	}
+}
+
+void UPTBStoryViewerWidget::RefreshPortraitHighlight(EPTBPortraitSlot ActiveSlot, bool bNarration)
+{
+	for (const EPTBPortraitSlot EachSlot : { EPTBPortraitSlot::Center, EPTBPortraitSlot::Left, EPTBPortraitSlot::Right })
+	{
+		if (UImage* PortraitImage = GetPortraitImage(EachSlot))
+		{
+			const bool bActive = bNarration || EachSlot == ActiveSlot;
+			PortraitImage->SetColorAndOpacity(bActive ? FLinearColor::White : InactivePortraitTint);
+		}
+	}
 }
 
 void UPTBStoryViewerWidget::HandleNextClicked()

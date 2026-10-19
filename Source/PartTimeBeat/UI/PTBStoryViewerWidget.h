@@ -18,10 +18,14 @@ class UWidget;
  *  - TextSpeaker     : 화자 이름 (TextBlock)
  *  - SpeakerBox      : 화자 이름표 배경. 화자가 비면 숨김 (아무 위젯)
  *  - TextDialogue    : 대사 (TextBlock)
- *  - ImageCharacter  : 스탠딩 이미지 (Image)
+ *  - ImageCharacter      : 가운데 스탠딩 이미지 (Image)
+ *  - ImageCharacterLeft  : 왼쪽 스탠딩 이미지 (Image)
+ *  - ImageCharacterRight : 오른쪽 스탠딩 이미지 (Image)
+ *    → 각 Image는 ScaleBox(Stretch: Scale to Fit)로 감싸서 크기/위치를 ScaleBox로 지정
  *  - ButtonNext      : 다음 대사
  *  - ButtonSkip      : 스토리 전체 스킵
  *
+ * 스탠딩 이미지: 대사의 PortraitSlot 위치에 표시, 화자 위치는 밝게 나머지는 어둡게
  * 다음 대사: ButtonNext / Enter / Space / 화면 클릭 / 리듬 키
  * 배경은 WBP에서 맨 뒤에 전체 화면 Image로 직접 배치
  */
@@ -60,6 +64,16 @@ protected:
 
 	void ShowLine(int32 LineIndex);
 
+	/** 위치별 Image 위젯 (없으면 nullptr) */
+	UImage* GetPortraitImage(EPTBPortraitSlot InSlot) const;
+
+	/** 화자 위치 강조, 나머지 어둡게. bNarration이면 전부 원래 밝기 */
+	void RefreshPortraitHighlight(EPTBPortraitSlot ActiveSlot, bool bNarration);
+
+	/** 화자가 아닌 스탠딩 이미지 색 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Story")
+	FLinearColor InactivePortraitTint = FLinearColor(0.45f, 0.45f, 0.45f, 1.0f);
+
 	UFUNCTION()
 	void HandleNextClicked();
 
@@ -77,6 +91,12 @@ protected:
 
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "PTB|UI")
 	TObjectPtr<UImage> ImageCharacter = nullptr;
+
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "PTB|UI")
+	TObjectPtr<UImage> ImageCharacterLeft = nullptr;
+
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "PTB|UI")
+	TObjectPtr<UImage> ImageCharacterRight = nullptr;
 
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "PTB|UI")
 	TObjectPtr<UButton> ButtonSkip = nullptr;
