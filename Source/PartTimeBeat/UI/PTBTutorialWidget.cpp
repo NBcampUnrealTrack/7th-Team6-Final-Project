@@ -95,27 +95,33 @@ FReply UPTBTutorialWidget::NativeOnKeyDown(const FGeometry& InGeometry, const FK
 {
 	const FKey Key = InKeyEvent.GetKey();
 	const bool bProceedKey = Key == EKeys::Enter || Key == EKeys::SpaceBar || Key == EKeys::Gamepad_FaceButton_Bottom;
-	if (!InKeyEvent.IsRepeat() && bProceedKey)
+	if (!InKeyEvent.IsRepeat() && bProceedKey && HandleConfirmInput())
 	{
-		if (PracticeState == EPTBTutorialPracticeState::Playing)
-		{
-			// 플레이 중에는 무시 (리듬 키로 쓰는 경우는 아래로 흘려보냄)
-			return Super::NativeOnKeyDown(InGeometry, InKeyEvent);
-		}
-		if (PracticeState != EPTBTutorialPracticeState::None)
-		{
-			HandleProceed();
-			return FReply::Handled();
-		}
-		if (!IsCurrentStepWaitingForAction())
-		{
-			AdvanceStep();
-			return FReply::Handled();
-		}
+		return FReply::Handled();
 	}
 
 	// 리듬 키는 처리하지 않고 흘려보냄 → PlayerController → 미니게임 → NativeOnSceneAction
 	return Super::NativeOnKeyDown(InGeometry, InKeyEvent);
+}
+
+bool UPTBTutorialWidget::NativeOnConfirm()
+{
+	// 연습 플레이 중에는 확인 입력 무시
+	if (PracticeState == EPTBTutorialPracticeState::Playing)
+	{
+		return false;
+	}
+	if (PracticeState != EPTBTutorialPracticeState::None)
+	{
+		HandleProceed();
+		return true;
+	}
+	if (!IsCurrentStepWaitingForAction())
+	{
+		AdvanceStep();
+		return true;
+	}
+	return false;
 }
 
 void UPTBTutorialWidget::AdvanceStep()

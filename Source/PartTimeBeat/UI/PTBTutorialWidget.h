@@ -48,6 +48,7 @@ protected:
 	virtual void NativeConstruct() override;
 	virtual void NativeOnSceneSetup() override;
 	virtual void NativeOnSceneAction(EPTBActionType Action) override;
+	virtual bool NativeOnConfirm() override;
 	virtual FReply NativeOnKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent) override;
 
 public:

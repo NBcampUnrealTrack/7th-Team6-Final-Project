@@ -21,6 +21,22 @@ bool APTBPlayerControllerBase::InputKey(const FInputKeyEventArgs& EventArgs)
 		}
 	}
 
+	// ── 확인(Enter/Space): 스토리/튜토리얼 씬 진행 ────────────────
+	// 씬 위젯이 포커스를 잃었을 때도 넘어가도록 (포커스가 있으면 위젯이 먼저 처리해서 여기 안 옴)
+	if (EventArgs.Event == IE_Pressed
+		&& (EventArgs.Key == EKeys::Enter || EventArgs.Key == EKeys::SpaceBar))
+	{
+		APTBBaseMiniGame* SceneMiniGame = nullptr;
+		if (APTBGameModeBase* GM = GetWorld()->GetAuthGameMode<APTBGameModeBase>())
+		{
+			SceneMiniGame = GM->ActiveMiniGame;
+		}
+		if (SceneMiniGame && SceneMiniGame->HandleSceneConfirmInput())
+		{
+			return true;
+		}
+	}
+
 	// ── 리듬 입력: 활성 미니게임으로 라우팅 ───────────────────────
 	if (TryRouteRhythmInput(EventArgs))
 	{

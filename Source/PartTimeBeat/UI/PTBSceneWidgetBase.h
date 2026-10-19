@@ -34,6 +34,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "PTB|Scene")
 	void FinishScene(bool bSkipped);
 
+	/** 확인 입력(Enter/Space). 처리했으면 true. 위젯 포커스와 관계없이 PlayerController에서도 호출됨 */
+	bool HandleConfirmInput();
+
 	/** 미니게임에서 호출. 튜토리얼 연습 한 판 종료 */
 	void HandlePracticeFinished(bool bPassed, int32 HitCount, int32 RequiredCount, int32 TotalCount);
 
@@ -70,6 +73,9 @@ protected:
 
 	/** C++ 파생 클래스용: 리듬 키 입력 (BP OnSceneAction보다 먼저 호출) */
 	virtual void NativeOnSceneAction(EPTBActionType Action) {}
+
+	/** C++ 파생 클래스용: 확인 입력. 처리했으면 true */
+	virtual bool NativeOnConfirm() { return false; }
 
 	/** C++ 파생 클래스용: 연습 한 판 종료 (BP OnPracticeFinished보다 먼저 호출) */
 	virtual void NativeOnPracticeFinished(bool bPassed, int32 HitCount, int32 RequiredCount, int32 TotalCount) {}

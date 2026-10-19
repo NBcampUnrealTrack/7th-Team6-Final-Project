@@ -60,13 +60,19 @@ FReply UPTBStoryViewerWidget::NativeOnKeyDown(const FGeometry& InGeometry, const
 {
 	const FKey Key = InKeyEvent.GetKey();
 	if (!InKeyEvent.IsRepeat()
-		&& (Key == EKeys::Enter || Key == EKeys::SpaceBar || Key == EKeys::Gamepad_FaceButton_Bottom))
+		&& (Key == EKeys::Enter || Key == EKeys::SpaceBar || Key == EKeys::Gamepad_FaceButton_Bottom)
+		&& HandleConfirmInput())
 	{
-		AdvanceLine();
 		return FReply::Handled();
 	}
 
 	return Super::NativeOnKeyDown(InGeometry, InKeyEvent);
+}
+
+bool UPTBStoryViewerWidget::NativeOnConfirm()
+{
+	AdvanceLine();
+	return true;
 }
 
 FReply UPTBStoryViewerWidget::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)

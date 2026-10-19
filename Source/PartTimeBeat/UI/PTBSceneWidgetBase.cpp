@@ -84,6 +84,16 @@ void UPTBSceneWidgetBase::FinishScene(bool bSkipped)
 	}
 }
 
+bool UPTBSceneWidgetBase::HandleConfirmInput()
+{
+	if (bSceneFinished)
+	{
+		return false;
+	}
+
+	return NativeOnConfirm();
+}
+
 void UPTBSceneWidgetBase::HandlePracticeFinished(bool bPassed, int32 HitCount, int32 RequiredCount, int32 TotalCount)
 {
 	if (bSceneFinished)

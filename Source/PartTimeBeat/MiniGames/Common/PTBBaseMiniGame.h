@@ -10,6 +10,7 @@
 class UPTBMiniGameRuleSet;
 class UPTBSceneWidgetBase;
 class UDataTable;
+class USoundBase;
 class UPTBWwiseEventMapAsset;
 class UPTBWwiseAudioManager;
 class UPTBWwiseRhythmSyncComponent;
@@ -113,6 +114,22 @@ public:
 	/** 튜토리얼 연습 진행 중인지 */
 	UFUNCTION(BlueprintPure, Category = "PTB|Scene")
 	bool IsTutorialPracticeActive() const { return bTutorialPracticeActive; }
+
+	/** 확인 입력(Enter/Space)을 씬 위젯에 전달. 씬 재생 중이고 처리됐으면 true (PlayerController에서 호출) */
+	bool HandleSceneConfirmInput();
+
+	/**
+	 * BP 미니게임: 튜토리얼 연습 한 판 시작 직전.
+	 * 본게임 시작(Intro Started 등)에서 만들던 HUD/판정 UI를 여기서도 만들어야 연습 중에 보임.
+	 */
+	UFUNCTION(BlueprintNativeEvent, Category = "PTB|Scene")
+	void ReceiveTutorialPracticeStarted();
+	virtual void ReceiveTutorialPracticeStarted_Implementation();
+
+	/** BP 미니게임: 튜토리얼 연습 한 판 종료 */
+	UFUNCTION(BlueprintNativeEvent, Category = "PTB|Scene")
+	void ReceiveTutorialPracticeFinished(bool bPassed);
+	virtual void ReceiveTutorialPracticeFinished_Implementation(bool bPassed);
 
 	/** 미니게임 종료 결과 */
 	UPROPERTY(BlueprintAssignable, Category = "PTB|MiniGame")
@@ -446,6 +463,14 @@ protected:
 	TObjectPtr<UPTBRhythmChartAsset> SavedMainChartAsset;
 
 	FPTBChartData SavedMainChartData;
+
+	/** 연습 중 노트 타이밍 소리 / 메트로놈 소리 */
+	UPROPERTY(Transient)
+	TObjectPtr<USoundBase> PracticeNoteSound;
+
+	UPROPERTY(Transient)
+	TObjectPtr<USoundBase> PracticeMetronomeSound;
+
 	int32 PracticeTotalNotes = 0;
 	int32 PracticeRequiredHits = 0;
 	FName PracticeMetronomeSFXKey = NAME_None;

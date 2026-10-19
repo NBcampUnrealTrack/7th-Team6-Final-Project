@@ -24,6 +24,8 @@
 #include "Engine/DataTable.h"
 #include "Profile/PTBProfileSubsystem.h"
 #include "UI/PTBSceneWidgetBase.h"
+#include "Kismet/GameplayStatics.h"
+#include "Sound/SoundBase.h"
 
 namespace PTBBaseMiniGameInternal
 {
@@ -1012,6 +1014,12 @@ void APTBBaseMiniGame::HandleChartEvent(FPTBNoteEvent Note)
 		Note.TimeMs,
 		Note.BeatTime);
 
+	// 튜토리얼 연습: 맞추든 못 맞추든 노트 타이밍마다 소리
+	if (bTutorialPracticeActive && PracticeNoteSound)
+	{
+		UGameplayStatics::PlaySound2D(this, PracticeNoteSound);
+	}
+
 	OnMiniGameChartNote.Broadcast(Note);
 	ReceiveChartNote(Note);
 }
@@ -1631,8 +1639,15 @@ bool APTBBaseMiniGame::StartTutorialPractice(const FPTBTutorialStep& Step)
 		: PracticeTotalNotes;
 
 	const UPTBMiniGameIntroData* SceneData = ResolveSceneData(EPTBMiniGameScenePhase::Tutorial);
+	const UPTBGameInstance* PTBGI = Cast<UPTBGameInstance>(GetGameInstance());
 	PracticeMetronomeSFXKey = SceneData ? SceneData->TutorialMetronomeSFXKey : NAME_None;
-	if (RhythmConductor && !PracticeMetronomeSFXKey.IsNone())
+	PracticeNoteSound = SceneData && SceneData->TutorialNoteSound
+		? SceneData->TutorialNoteSound.Get()
+		: (PTBGI ? PTBGI->DefaultTutorialNoteSound.Get() : nullptr);
+	PracticeMetronomeSound = SceneData && SceneData->TutorialMetronomeSound
+		? SceneData->TutorialMetronomeSound.Get()
+		: (PTBGI ? PTBGI->DefaultTutorialMetronomeSound.Get() : nullptr);
+	if (RhythmConductor && (PracticeMetronomeSound || !PracticeMetronomeSFXKey.IsNone()))
 	{
 		RhythmConductor->OnBeatTick.AddUniqueDynamic(this, &APTBBaseMiniGame::HandlePracticeBeatTick);
 	}
@@ -1644,6 +1659,13 @@ bool APTBBaseMiniGame::StartTutorialPractice(const FPTBTutorialStep& Step)
 
 	UE_LOG(LogRhythm, Log, TEXT("[%s] Tutorial practice started. Notes=%d Required=%d BPM=%.1f"),
 		*GetNameSafe(this), PracticeTotalNotes, PracticeRequiredHits, GameContext.ChartData.BPM);
+
+	// BP에서 HUD/판정 UI 준비 (미니게임 BP / 레벨 BP 둘 다 지원)
+	ReceiveTutorialPracticeStarted();
+	if (APTBGameModeBase* GM = GetWorld() ? GetWorld()->GetAuthGameMode<APTBGameModeBase>() : nullptr)
+	{
+		GM->OnTutorialPracticeStarted.Broadcast();
+	}
 
 	// 인트로 연출 없이 바로 시작. BGM 이벤트가 없으므로 대체 타이밍(메트로놈)으로 진행
 	// OnMiniGameStarted는 브로드캐스트하지 않음 (GameMode가 본게임 시작으로 처리하지 않도록)
@@ -1754,10 +1776,33 @@ void APTBBaseMiniGame::CompleteTutorialPractice(EPTBRoundEndReason Reason)
 		PlayerController->SetShowMouseCursor(true);
 	}
 
+	ReceiveTutorialPracticeFinished(bPassed);
+
 	if (Reason != EPTBRoundEndReason::Aborted && ActiveSceneWidget)
 	{
 		ActiveSceneWidget->HandlePracticeFinished(bPassed, HitCount, RequiredCount, TotalCount);
 	}
+}
+
+bool APTBBaseMiniGame::HandleSceneConfirmInput()
+{
+	if (!ActiveSceneWidget
+		|| bTutorialPracticeActive
+		|| ScenePhase == EPTBMiniGameScenePhase::None
+		|| ScenePhase == EPTBMiniGameScenePhase::Ready)
+	{
+		return false;
+	}
+
+	return ActiveSceneWidget->HandleConfirmInput();
+}
+
+void APTBBaseMiniGame::ReceiveTutorialPracticeStarted_Implementation()
+{
+}
+
+void APTBBaseMiniGame::ReceiveTutorialPracticeFinished_Implementation(bool bPassed)
+{
 }
 
 void APTBBaseMiniGame::ResetRoundStateForReplay()
@@ -1788,7 +1833,16 @@ void APTBBaseMiniGame::HandleRoundChartChanged()
 
 void APTBBaseMiniGame::HandlePracticeBeatTick(float Beat)
 {
-	if (bTutorialPracticeActive && !PracticeMetronomeSFXKey.IsNone())
+	if (!bTutorialPracticeActive)
+	{
+		return;
+	}
+
+	if (PracticeMetronomeSound)
+	{
+		UGameplayStatics::PlaySound2D(this, PracticeMetronomeSound);
+	}
+	else if (!PracticeMetronomeSFXKey.IsNone())
 	{
 		RequestWwiseEvent(PracticeMetronomeSFXKey, this);
 	}

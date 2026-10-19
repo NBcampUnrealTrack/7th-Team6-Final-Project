@@ -9,6 +9,7 @@ class UPTBWwiseAudioManager;
 class UPTBSaveGame;
 class UPTBMiniGameIntroData;
 class UPTBSceneWidgetBase;
+class USoundBase;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnFlowStateChanged, EGameFlowState, NewState);
 
@@ -104,6 +105,14 @@ public:
 	/** 튜토리얼 위젯. 비어 있으면 튜토리얼 단계는 건너뜀 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "PTB|Scene")
 	TSubclassOf<UPTBSceneWidgetBase> TutorialWidgetClass;
+
+	/** 튜토리얼 연습 노트 타이밍 소리 공용 기본값 (예: 싱크 조절 메트로놈 소리) */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "PTB|Scene")
+	TObjectPtr<USoundBase> DefaultTutorialNoteSound;
+
+	/** 튜토리얼 연습 메트로놈 소리 공용 기본값. 비우면 박 틱 없음 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "PTB|Scene")
+	TObjectPtr<USoundBase> DefaultTutorialMetronomeSound;
 
 	/** 현재 로드된 세이브 오브젝트 */
 	UPROPERTY()

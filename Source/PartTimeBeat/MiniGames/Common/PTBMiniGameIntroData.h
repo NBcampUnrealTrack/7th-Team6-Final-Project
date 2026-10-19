@@ -8,6 +8,7 @@
 
 class UTexture2D;
 class UPTBRhythmChartAsset;
+class USoundBase;
 
 /**
  * 미니게임 본게임 전후에 재생되는 씬 단계.
@@ -159,8 +160,16 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Scene|IntroStory", meta = (ClampMin = "0"))
 	int32 IntroStoryVersion = 0;
 
-	/** 튜토리얼 연습 중 매 박 재생할 메트로놈 SFX 키 (RuleSet AudioEventSet의 키). 비우면 틱 없음 */
+	/** 튜토리얼 연습 중 노트 타이밍마다 재생할 소리 (맞추든 못 맞추든 재생). 비우면 공용 기본값(GameInstance) */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Scene|Tutorial")
+	TObjectPtr<USoundBase> TutorialNoteSound;
+
+	/** 튜토리얼 연습 중 매 박 재생할 메트로놈 소리 (준비 박 포함). 비우면 공용 기본값(GameInstance) */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Scene|Tutorial")
+	TObjectPtr<USoundBase> TutorialMetronomeSound;
+
+	/** (Wwise) 메트로놈 SFX 키 (RuleSet AudioEventSet의 키). TutorialMetronomeSound가 있으면 그쪽 우선 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Scene|Tutorial", AdvancedDisplay)
 	FName TutorialMetronomeSFXKey = NAME_None;
 
 	/** 튜토리얼 (Row: FPTBTutorialStep) */
