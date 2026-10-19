@@ -459,6 +459,15 @@ protected:
 	/** 판정/점수 상태를 새 라운드 시작 전으로 초기화 */
 	void ResetRoundStateForReplay();
 
+	/**
+	 * 라운드 채보가 바뀐 직후 호출 (튜토리얼 연습 시작 / 연습 끝나고 본게임 채보 복구).
+	 * 하위 미니게임은 채보 기반으로 미리 계산한 값, NoteId 기반 중복 방지 목록, 예약 타이머 등을 여기서 다시 맞출 것.
+	 */
+	virtual void HandleRoundChartChanged();
+
+	/** 연습 채보 NoteId가 회차마다 겹치지 않도록 쓰는 카운터 */
+	int32 PracticeRunCounter = 0;
+
 	/** 연습 중 매 박 메트로놈 */
 	UFUNCTION()
 	void HandlePracticeBeatTick(float Beat);

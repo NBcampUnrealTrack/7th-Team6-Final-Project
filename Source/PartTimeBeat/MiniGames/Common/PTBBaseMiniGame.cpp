@@ -1623,6 +1623,7 @@ bool APTBBaseMiniGame::StartTutorialPractice(const FPTBTutorialStep& Step)
 	ChartAsset = PracticeChart;
 	GameContext.ChartData = PracticeChart->ChartData;
 	ResetRoundStateForReplay();
+	HandleRoundChartChanged();
 
 	PracticeTotalNotes = PracticeChart->NoteEvents.Num();
 	PracticeRequiredHits = Step.PracticeRequiredHits > 0
@@ -1675,7 +1676,8 @@ UPTBRhythmChartAsset* APTBBaseMiniGame::BuildTutorialPracticeChart(const FPTBTut
 	Step.PracticePattern.ParseIntoArrayWS(Tokens);
 
 	float Beat = static_cast<float>(FMath::Max(0, Step.PracticeLeadInBeats));
-	int32 NextNoteId = 1;
+	// 회차마다 다른 NoteId 대역 사용 (NoteId로 중복을 막는 미니게임 대비, 본게임 채보 ID와도 안 겹치게)
+	int32 NextNoteId = 100000 + (PracticeRunCounter++ % 1000) * 100 + 1;
 	for (const FString& Token : Tokens)
 	{
 		const TCHAR Symbol = Token.IsEmpty() ? TEXT('-') : FChar::ToUpper(Token[0]);
@@ -1731,6 +1733,7 @@ void APTBBaseMiniGame::CompleteTutorialPractice(EPTBRoundEndReason Reason)
 	}
 	TutorialPracticeChart = nullptr;
 	ResetRoundStateForReplay();
+	HandleRoundChartChanged();
 
 	bTutorialPracticeActive = false;
 	bFinishSequenceActive = false;
@@ -1777,6 +1780,10 @@ void APTBBaseMiniGame::ResetRoundStateForReplay()
 	bAllNotesDispatched = false;
 	ActiveBGMPlayingId = 0;
 	PendingEndReason = EPTBRoundEndReason::Completed;
+}
+
+void APTBBaseMiniGame::HandleRoundChartChanged()
+{
 }
 
 void APTBBaseMiniGame::HandlePracticeBeatTick(float Beat)

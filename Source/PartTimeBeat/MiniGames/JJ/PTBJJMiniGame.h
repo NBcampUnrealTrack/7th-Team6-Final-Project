@@ -73,6 +73,9 @@ public:
 	/** 오브젝트 / 상태 구성 */
 	virtual void BuildRuntimeState() override;
 
+	/** 튜토리얼 연습 채보 ↔ 본게임 채보 전환 시 점프 예약/체공 캐시 재계산 */
+	virtual void HandleRoundChartChanged() override;
+
 	/** 채보 이벤트 처리(정시점 도달 → 점프 발동) */
 	virtual void HandleChartEvent(FPTBNoteEvent Note) override;
 
