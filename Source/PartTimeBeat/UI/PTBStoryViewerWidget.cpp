@@ -126,6 +126,18 @@ void UPTBStoryViewerWidget::ShowLine(int32 LineIndex)
 		TextDialogue->SetText(DialogueText);
 	}
 
+	// 배경: 지정된 줄에서만 교체, 비우면 이전 배경(또는 WBP 기본 배경) 유지
+	if (ImageBackground && !Line.Background.IsNull())
+	{
+		if (UTexture2D* BackgroundTexture = Line.Background.LoadSynchronous())
+		{
+			// 배경은 전체 화면 앵커로 늘려 쓰므로 원본 크기 맞춤 안 함
+			ImageBackground->SetBrushFromTexture(BackgroundTexture, false);
+			ImageBackground->SetColorAndOpacity(FLinearColor::White);
+			OnBackgroundChanged(BackgroundTexture);
+		}
+	}
+
 	const bool bHasListener = !Line.ListenerPortrait.IsNull() && Line.ListenerSlot != Line.PortraitSlot;
 
 	// 퇴장/장면 전환/혼잣말: 화자·청자 위치를 뺀 나머지 스탠딩 이미지 제거

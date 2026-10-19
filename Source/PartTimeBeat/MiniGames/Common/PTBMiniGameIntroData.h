@@ -61,6 +61,10 @@ struct PARTTIMEBEAT_API FPTBDialogueLine : public FTableRowBase
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Dialogue")
 	EPTBPortraitSlot ListenerSlot = EPTBPortraitSlot::Right;
 
+	/** 배경 그림. 비우면 이전 배경 유지 (장면이 바뀌는 줄에만 지정) */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Dialogue")
+	TSoftObjectPtr<UTexture2D> Background;
+
 	/** 대사. {ActionA}~{ActionE} 토큰은 현재 키 바인딩으로 치환됨 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Dialogue", meta = (MultiLine = true))
 	FText Text;

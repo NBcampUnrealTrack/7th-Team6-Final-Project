@@ -18,6 +18,7 @@ class UWidget;
  *  - TextSpeaker     : 화자 이름 (TextBlock)
  *  - SpeakerBox      : 화자 이름표 배경. 화자가 비면 숨김 (아무 위젯)
  *  - TextDialogue    : 대사 (TextBlock)
+ *  - ImageBackground     : 배경 그림 (Image, 전체 화면 앵커). 대사에 Background가 있을 때만 교체
  *  - ImageCharacter      : 가운데 스탠딩 이미지 (Image)
  *  - ImageCharacterLeft  : 왼쪽 스탠딩 이미지 (Image)
  *  - ImageCharacterRight : 오른쪽 스탠딩 이미지 (Image)
@@ -58,6 +59,10 @@ public:
 	int32 GetLineCount() const { return Lines.Num(); }
 
 protected:
+	/** 배경이 바뀐 직후 (BP 연출용: 페이드 인 애니메이션 재생 등) */
+	UFUNCTION(BlueprintImplementableEvent, Category = "PTB|Story")
+	void OnBackgroundChanged(UTexture2D* NewBackground);
+
 	/** 대사 표시 직후 (BP에서 연출 추가용: 페이드, 효과음 등). Text는 토큰 치환 완료본 */
 	UFUNCTION(BlueprintImplementableEvent, Category = "PTB|Story")
 	void OnLineShown(int32 LineIndex, const FText& Speaker, const FText& Text);
@@ -88,6 +93,9 @@ protected:
 
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "PTB|UI")
 	TObjectPtr<UTextBlock> TextDialogue = nullptr;
+
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "PTB|UI")
+	TObjectPtr<UImage> ImageBackground = nullptr;
 
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "PTB|UI")
 	TObjectPtr<UImage> ImageCharacter = nullptr;
