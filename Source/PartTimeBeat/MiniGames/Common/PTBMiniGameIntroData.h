@@ -49,9 +49,17 @@ struct PARTTIMEBEAT_API FPTBDialogueLine : public FTableRowBase
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Dialogue")
 	EPTBPortraitSlot PortraitSlot = EPTBPortraitSlot::Center;
 
-	/** 체크하면 이 대사에서 다른 위치의 스탠딩 이미지를 지움 (퇴장/장면 전환) */
+	/** 체크하면 이 대사에서 화자/청자 위치를 뺀 나머지 스탠딩 이미지를 지움 (퇴장/장면 전환/혼잣말) */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Dialogue")
 	bool bClearOtherPortraits = false;
+
+	/** 듣는 사람 스탠딩 이미지 (선택). 화자가 아니므로 어둡게 표시됨 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Dialogue")
+	TSoftObjectPtr<UTexture2D> ListenerPortrait;
+
+	/** 듣는 사람 위치. ListenerPortrait가 있을 때만 사용 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Dialogue")
+	EPTBPortraitSlot ListenerSlot = EPTBPortraitSlot::Right;
 
 	/** 대사. {ActionA}~{ActionE} 토큰은 현재 키 바인딩으로 치환됨 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Dialogue", meta = (MultiLine = true))

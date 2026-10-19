@@ -126,16 +126,31 @@ void UPTBStoryViewerWidget::ShowLine(int32 LineIndex)
 		TextDialogue->SetText(DialogueText);
 	}
 
-	// 퇴장/장면 전환: 다른 위치 스탠딩 이미지 제거
+	const bool bHasListener = !Line.ListenerPortrait.IsNull() && Line.ListenerSlot != Line.PortraitSlot;
+
+	// 퇴장/장면 전환/혼잣말: 화자·청자 위치를 뺀 나머지 스탠딩 이미지 제거
 	if (Line.bClearOtherPortraits)
 	{
 		for (const EPTBPortraitSlot EachSlot : { EPTBPortraitSlot::Center, EPTBPortraitSlot::Left, EPTBPortraitSlot::Right })
 		{
+			const bool bKeep = EachSlot == Line.PortraitSlot || (bHasListener && EachSlot == Line.ListenerSlot);
 			UImage* OtherImage = GetPortraitImage(EachSlot);
-			if (EachSlot != Line.PortraitSlot && OtherImage)
+			if (!bKeep && OtherImage)
 			{
 				OtherImage->SetVisibility(ESlateVisibility::Hidden);
 			}
+		}
+	}
+
+	// 듣는 사람 배치 (어둡게 표시는 아래 RefreshPortraitHighlight에서)
+	if (bHasListener)
+	{
+		UImage* ListenerImage = GetPortraitImage(Line.ListenerSlot);
+		UTexture2D* ListenerTexture = Line.ListenerPortrait.LoadSynchronous();
+		if (ListenerImage && ListenerTexture)
+		{
+			ListenerImage->SetBrushFromTexture(ListenerTexture, true);
+			ListenerImage->SetVisibility(ESlateVisibility::HitTestInvisible);
 		}
 	}
 
