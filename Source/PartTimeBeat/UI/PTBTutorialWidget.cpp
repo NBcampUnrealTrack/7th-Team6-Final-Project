@@ -61,14 +61,25 @@ void UPTBTutorialWidget::NativeOnSceneAction(EPTBActionType Action)
 	{
 		if (PracticeState == EPTBTutorialPracticeState::Ready)
 		{
+			// 글자 표시 중이면 먼저 전부 표시
+			if (IsTypewriterRunning())
+			{
+				CompleteTypewriter();
+				return;
+			}
 			HandleProceed();
 		}
 		return;
 	}
 
-	// 입력 요구가 없는 스텝은 아무 리듬 키로 넘기기
+	// 입력 요구가 없는 스텝은 아무 리듬 키로 넘기기 (글자 표시 중이면 먼저 전부 표시)
 	if (!IsCurrentStepWaitingForAction())
 	{
+		if (IsTypewriterRunning())
+		{
+			CompleteTypewriter();
+			return;
+		}
 		AdvanceStep();
 		return;
 	}
@@ -110,6 +121,13 @@ bool UPTBTutorialWidget::NativeOnConfirm()
 	if (PracticeState == EPTBTutorialPracticeState::Playing)
 	{
 		return false;
+	}
+
+	// 글자 표시 중이면 먼저 전부 표시
+	if (IsTypewriterRunning())
+	{
+		CompleteTypewriter();
+		return true;
 	}
 	if (PracticeState != EPTBTutorialPracticeState::None)
 	{
@@ -159,10 +177,7 @@ void UPTBTutorialWidget::ShowStep(int32 StepIndex)
 	}
 
 	const FText InstructionText = FormatSceneText(Step.Instruction);
-	if (TextInstruction)
-	{
-		TextInstruction->SetText(InstructionText);
-	}
+	StartTypewriter(TextInstruction, InstructionText);
 
 	if (ImageDemo)
 	{
@@ -305,10 +320,7 @@ void UPTBTutorialWidget::NativeOnPracticeFinished(bool bPassed, int32 HitCount, 
 			: FormatSceneText(Step.PracticeRetryText);
 	}
 
-	if (TextInstruction)
-	{
-		TextInstruction->SetText(ResultText);
-	}
+	StartTypewriter(TextInstruction, ResultText);
 	if (TextProgress)
 	{
 		TextProgress->SetText(FText::Format(

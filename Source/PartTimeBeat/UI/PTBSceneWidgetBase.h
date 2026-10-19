@@ -8,6 +8,7 @@
 
 class APTBBaseMiniGame;
 class UDataTable;
+class UTextBlock;
 
 /**
  * 미니게임 씬(스토리/튜토리얼) 위젯 공통 베이스.
@@ -65,8 +66,28 @@ public:
 	UFUNCTION(BlueprintPure, Category = "PTB|Scene")
 	FText FormatSceneText(const FText& SourceText) const;
 
+	/** 글자 하나씩 표시 속도 (초당 글자 수). 0 이하면 한 번에 표시 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|Scene")
+	float TypewriterCharsPerSecond = 35.0f;
+
+	/** 글자 하나씩 표시 중인지 */
+	UFUNCTION(BlueprintPure, Category = "PTB|Scene")
+	bool IsTypewriterRunning() const;
+
+	/** 글자 하나씩 표시 중이면 즉시 전부 표시 */
+	UFUNCTION(BlueprintCallable, Category = "PTB|Scene")
+	void CompleteTypewriter();
+
 protected:
 	virtual void NativeOnInitialized() override;
+	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
+
+	/** Target에 FullText를 글자 하나씩 표시 시작 */
+	void StartTypewriter(UTextBlock* Target, const FText& FullText);
+
+	/** 글자가 전부 표시된 직후 (BP 연출용: 넘김 아이콘 깜빡임 등) */
+	UFUNCTION(BlueprintImplementableEvent, Category = "PTB|Scene")
+	void OnTypewriterFinished();
 
 	/** C++ 파생 클래스용: 데이터 주입 완료 (BP OnSceneSetup보다 먼저 호출) */
 	virtual void NativeOnSceneSetup() {}
@@ -101,4 +122,10 @@ protected:
 	TWeakObjectPtr<APTBBaseMiniGame> OwnerMiniGame;
 
 	bool bSceneFinished = false;
+
+private:
+	TWeakObjectPtr<UTextBlock> TypewriterTarget;
+	FString TypewriterFullText;
+	float TypewriterElapsed = 0.0f;
+	int32 TypewriterShownChars = 0;
 };

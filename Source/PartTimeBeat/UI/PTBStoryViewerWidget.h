@@ -11,6 +11,15 @@ class UImage;
 class UTextBlock;
 class UWidget;
 
+/** 스탠딩 이미지 슬롯별 연출 상태 (리플렉션 불필요) */
+struct FPTBPortraitAnimState
+{
+	float Scale = 1.0f;
+	float TargetScale = 1.0f;
+	FLinearColor Tint = FLinearColor::White;
+	FLinearColor TargetTint = FLinearColor::White;
+};
+
 /**
  * 스토리 대사와 캐릭터 비주얼을 순차적으로 표시하는 스토리 뷰어 위젯
  *
@@ -27,7 +36,9 @@ class UWidget;
  *  - ButtonSkip      : 스토리 전체 스킵
  *
  * 스탠딩 이미지: 대사의 PortraitSlot 위치에 표시, 화자 위치는 밝게 나머지는 어둡게
- * 다음 대사: ButtonNext / Enter / Space / 화면 클릭 / 리듬 키
+ * 대사는 글자 하나씩 표시. Enter / Space / 화면 클릭 / 리듬 키: 표시 중이면 전부 표시, 다 떴으면 다음 대사
+ * ButtonNext: 표시 중이어도 바로 다음 대사
+ * 화자 강조: 화자는 크게·밝게, 나머지는 작게·어둡게 부드럽게 전환 (연타해도 자연스럽게 따라감)
  * 배경은 WBP에서 맨 뒤에 전체 화면 Image로 직접 배치
  */
 UCLASS(Blueprintable)
@@ -37,6 +48,7 @@ class PARTTIMEBEAT_API UPTBStoryViewerWidget : public UPTBSceneWidgetBase
 	
 protected:
 	virtual void NativeConstruct() override;
+	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
 	virtual void NativeOnSceneSetup() override;
 	virtual void NativeOnSceneAction(EPTBActionType Action) override;
 	virtual bool NativeOnConfirm() override;
@@ -79,6 +91,26 @@ protected:
 	/** 화자가 아닌 스탠딩 이미지 색 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Story")
 	FLinearColor InactivePortraitTint = FLinearColor(0.45f, 0.45f, 0.45f, 1.0f);
+
+	/** 화자 스탠딩 이미지 크기 배율 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Story")
+	float ActivePortraitScale = 1.0f;
+
+	/** 화자가 아닌 스탠딩 이미지 크기 배율 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Story")
+	float InactivePortraitScale = 0.9f;
+
+	/** 크기/밝기 전환 속도 (클수록 빠름) */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Story", meta = (ClampMin = "1.0"))
+	float PortraitTransitionSpeed = 12.0f;
+
+	/** 슬롯 인덱스 (Center=0, Left=1, Right=2) */
+	static int32 SlotIndex(EPTBPortraitSlot InSlot) { return static_cast<int32>(InSlot); }
+
+	/** 새로 나타난 스탠딩 이미지는 투명에서 서서히 등장 */
+	void RevealPortrait(EPTBPortraitSlot InSlot);
+
+	FPTBPortraitAnimState PortraitAnim[3];
 
 	UFUNCTION()
 	void HandleNextClicked();

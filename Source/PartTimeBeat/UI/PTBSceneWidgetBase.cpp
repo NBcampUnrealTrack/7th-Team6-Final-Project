@@ -2,6 +2,7 @@
 
 #include "Debug/PTBTeamLog.h"
 #include "Engine/DataTable.h"
+#include "Components/TextBlock.h"
 #include "MiniGames/Common/PTBBaseMiniGame.h"
 #include "UI/PTBKeyTextLibrary.h"
 
@@ -35,6 +36,78 @@ void UPTBSceneWidgetBase::NativeOnInitialized()
 
 	// Enter/Space 등 키 입력을 받기 위해 포커스 가능하게
 	SetIsFocusable(true);
+}
+
+void UPTBSceneWidgetBase::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
+{
+	Super::NativeTick(MyGeometry, InDeltaTime);
+
+	if (!IsTypewriterRunning())
+	{
+		return;
+	}
+
+	TypewriterElapsed += InDeltaTime;
+	const int32 TargetChars = FMath::Min(
+		TypewriterFullText.Len(),
+		FMath::FloorToInt(TypewriterElapsed * FMath::Max(1.0f, TypewriterCharsPerSecond)));
+
+	if (TargetChars != TypewriterShownChars)
+	{
+		TypewriterShownChars = TargetChars;
+		if (UTextBlock* Target = TypewriterTarget.Get())
+		{
+			Target->SetText(FText::FromString(TypewriterFullText.Left(TypewriterShownChars)));
+		}
+
+		if (TypewriterShownChars >= TypewriterFullText.Len())
+		{
+			OnTypewriterFinished();
+		}
+	}
+}
+
+void UPTBSceneWidgetBase::StartTypewriter(UTextBlock* Target, const FText& FullText)
+{
+	TypewriterTarget = Target;
+	TypewriterFullText = FullText.ToString();
+	TypewriterElapsed = 0.0f;
+	TypewriterShownChars = 0;
+
+	if (!Target)
+	{
+		return;
+	}
+
+	if (TypewriterCharsPerSecond <= 0.0f || TypewriterFullText.IsEmpty())
+	{
+		TypewriterShownChars = TypewriterFullText.Len();
+		Target->SetText(FullText);
+		OnTypewriterFinished();
+		return;
+	}
+
+	Target->SetText(FText::GetEmpty());
+}
+
+bool UPTBSceneWidgetBase::IsTypewriterRunning() const
+{
+	return TypewriterTarget.IsValid() && TypewriterShownChars < TypewriterFullText.Len();
+}
+
+void UPTBSceneWidgetBase::CompleteTypewriter()
+{
+	if (!IsTypewriterRunning())
+	{
+		return;
+	}
+
+	TypewriterShownChars = TypewriterFullText.Len();
+	if (UTextBlock* Target = TypewriterTarget.Get())
+	{
+		Target->SetText(FText::FromString(TypewriterFullText));
+	}
+	OnTypewriterFinished();
 }
 
 void UPTBSceneWidgetBase::SetupScene(APTBBaseMiniGame* InOwnerMiniGame, EPTBMiniGameScenePhase InPhase, UDataTable* InTable)

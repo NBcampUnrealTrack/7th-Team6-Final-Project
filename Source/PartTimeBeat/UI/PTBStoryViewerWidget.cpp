@@ -26,13 +26,63 @@ void UPTBStoryViewerWidget::NativeConstruct()
 
 void UPTBStoryViewerWidget::InitializeView()
 {
-	// Portrait가 지정된 위치만 보이도록 처음엔 전부 숨김
+	// Portrait가 지정된 위치만 보이도록 처음엔 전부 숨김. 크기 변화는 발밑 기준
 	for (UImage* PortraitImage : { ImageCharacter.Get(), ImageCharacterLeft.Get(), ImageCharacterRight.Get() })
 	{
 		if (PortraitImage)
 		{
 			PortraitImage->SetVisibility(ESlateVisibility::Hidden);
+			PortraitImage->SetRenderTransformPivot(FVector2D(0.5f, 1.0f));
 		}
+	}
+
+	for (FPTBPortraitAnimState& State : PortraitAnim)
+	{
+		State = FPTBPortraitAnimState();
+	}
+}
+
+void UPTBStoryViewerWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
+{
+	Super::NativeTick(MyGeometry, InDeltaTime);
+
+	// 화자 강조 전환: 목표값으로 부드럽게 따라감 (연타하면 목표만 바뀌어 자연스럽게 이어짐)
+	const float Alpha = FMath::Clamp(InDeltaTime * PortraitTransitionSpeed, 0.0f, 1.0f);
+	for (const EPTBPortraitSlot EachSlot : { EPTBPortraitSlot::Center, EPTBPortraitSlot::Left, EPTBPortraitSlot::Right })
+	{
+		UImage* PortraitImage = GetPortraitImage(EachSlot);
+		if (!PortraitImage)
+		{
+			continue;
+		}
+
+		FPTBPortraitAnimState& State = PortraitAnim[SlotIndex(EachSlot)];
+		State.Scale = FMath::Lerp(State.Scale, State.TargetScale, Alpha);
+		State.Tint = FMath::Lerp(State.Tint, State.TargetTint, Alpha);
+
+		PortraitImage->SetRenderScale(FVector2D(State.Scale, State.Scale));
+		PortraitImage->SetColorAndOpacity(State.Tint);
+	}
+}
+
+void UPTBStoryViewerWidget::RevealPortrait(EPTBPortraitSlot InSlot)
+{
+	UImage* PortraitImage = GetPortraitImage(InSlot);
+	if (!PortraitImage)
+	{
+		return;
+	}
+
+	const bool bWasHidden = PortraitImage->GetVisibility() == ESlateVisibility::Hidden
+		|| PortraitImage->GetVisibility() == ESlateVisibility::Collapsed;
+	PortraitImage->SetVisibility(ESlateVisibility::HitTestInvisible);
+
+	if (bWasHidden)
+	{
+		// 투명 + 살짝 작게 시작 → Tick에서 목표값으로 등장
+		FPTBPortraitAnimState& State = PortraitAnim[SlotIndex(InSlot)];
+		State.Tint.A = 0.0f;
+		State.Scale = InactivePortraitScale * 0.95f;
 	}
 }
 
@@ -52,8 +102,8 @@ void UPTBStoryViewerWidget::NativeOnSceneSetup()
 
 void UPTBStoryViewerWidget::NativeOnSceneAction(EPTBActionType Action)
 {
-	// 리듬 키로도 대사 넘기기
-	AdvanceLine();
+	// 리듬 키도 확인 입력과 동일 (표시 중이면 전부 표시, 아니면 다음 대사)
+	NativeOnConfirm();
 }
 
 FReply UPTBStoryViewerWidget::NativeOnKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent)
@@ -71,6 +121,12 @@ FReply UPTBStoryViewerWidget::NativeOnKeyDown(const FGeometry& InGeometry, const
 
 bool UPTBStoryViewerWidget::NativeOnConfirm()
 {
+	if (IsTypewriterRunning())
+	{
+		CompleteTypewriter();
+		return true;
+	}
+
 	AdvanceLine();
 	return true;
 }
@@ -80,7 +136,7 @@ FReply UPTBStoryViewerWidget::NativeOnMouseButtonDown(const FGeometry& InGeometr
 	// 버튼 이외 영역 클릭 시 다음 대사 (버튼은 자기 클릭을 먼저 소비함)
 	if (InMouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
 	{
-		AdvanceLine();
+		NativeOnConfirm();
 		return FReply::Handled();
 	}
 
@@ -129,7 +185,7 @@ void UPTBStoryViewerWidget::ShowLine(int32 LineIndex)
 	}
 	if (TextDialogue)
 	{
-		TextDialogue->SetText(DialogueText);
+		StartTypewriter(TextDialogue, DialogueText);
 	}
 
 	// 배경: 지정된 줄에서만 교체, 비우면 이전 배경(또는 WBP 기본 배경) 유지
@@ -168,7 +224,7 @@ void UPTBStoryViewerWidget::ShowLine(int32 LineIndex)
 		if (ListenerImage && ListenerTexture)
 		{
 			ListenerImage->SetBrushFromTexture(ListenerTexture, true);
-			ListenerImage->SetVisibility(ESlateVisibility::HitTestInvisible);
+			RevealPortrait(Line.ListenerSlot);
 		}
 	}
 
@@ -180,7 +236,7 @@ void UPTBStoryViewerWidget::ShowLine(int32 LineIndex)
 		{
 			// 원본 크기로 설정해야 ScaleBox가 비율을 유지함
 			TargetImage->SetBrushFromTexture(PortraitTexture, true);
-			TargetImage->SetVisibility(ESlateVisibility::HitTestInvisible);
+			RevealPortrait(Line.PortraitSlot);
 		}
 	}
 
@@ -203,11 +259,12 @@ void UPTBStoryViewerWidget::RefreshPortraitHighlight(EPTBPortraitSlot ActiveSlot
 {
 	for (const EPTBPortraitSlot EachSlot : { EPTBPortraitSlot::Center, EPTBPortraitSlot::Left, EPTBPortraitSlot::Right })
 	{
-		if (UImage* PortraitImage = GetPortraitImage(EachSlot))
-		{
-			const bool bActive = bNarration || EachSlot == ActiveSlot;
-			PortraitImage->SetColorAndOpacity(bActive ? FLinearColor::White : InactivePortraitTint);
-		}
+		// 목표값만 정하고 실제 전환은 NativeTick에서 부드럽게
+		const bool bActive = bNarration || EachSlot == ActiveSlot;
+		FPTBPortraitAnimState& State = PortraitAnim[SlotIndex(EachSlot)];
+		State.TargetScale = bActive ? ActivePortraitScale : InactivePortraitScale;
+		State.TargetTint = bActive ? FLinearColor::White : InactivePortraitTint;
+		State.TargetTint.A = 1.0f;
 	}
 }
 
