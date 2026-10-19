@@ -84,6 +84,20 @@ void UPTBSceneWidgetBase::FinishScene(bool bSkipped)
 	}
 }
 
+void UPTBSceneWidgetBase::HandlePracticeFinished(bool bPassed, int32 HitCount, int32 RequiredCount, int32 TotalCount)
+{
+	if (bSceneFinished)
+	{
+		return;
+	}
+
+	NativeOnPracticeFinished(bPassed, HitCount, RequiredCount, TotalCount);
+	if (!bSceneFinished)
+	{
+		OnPracticeFinished(bPassed, HitCount, RequiredCount, TotalCount);
+	}
+}
+
 bool UPTBSceneWidgetBase::GetDialogueLines(TArray<FPTBDialogueLine>& OutLines) const
 {
 	return PTBSceneWidgetInternal::CollectRows(SceneTable.Get(), OutLines);

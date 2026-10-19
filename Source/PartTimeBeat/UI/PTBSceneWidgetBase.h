@@ -34,6 +34,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "PTB|Scene")
 	void FinishScene(bool bSkipped);
 
+	/** 미니게임에서 호출. 튜토리얼 연습 한 판 종료 */
+	void HandlePracticeFinished(bool bPassed, int32 HitCount, int32 RequiredCount, int32 TotalCount);
+
 	/** 스킵 버튼용 */
 	UFUNCTION(BlueprintCallable, Category = "PTB|Scene")
 	void SkipScene() { FinishScene(true); }
@@ -67,6 +70,13 @@ protected:
 
 	/** C++ 파생 클래스용: 리듬 키 입력 (BP OnSceneAction보다 먼저 호출) */
 	virtual void NativeOnSceneAction(EPTBActionType Action) {}
+
+	/** C++ 파생 클래스용: 연습 한 판 종료 (BP OnPracticeFinished보다 먼저 호출) */
+	virtual void NativeOnPracticeFinished(bool bPassed, int32 HitCount, int32 RequiredCount, int32 TotalCount) {}
+
+	/** 연습 한 판 종료 (BP 연출용: 성공/실패 효과) */
+	UFUNCTION(BlueprintImplementableEvent, Category = "PTB|Scene")
+	void OnPracticeFinished(bool bPassed, int32 HitCount, int32 RequiredCount, int32 TotalCount);
 
 	/** 데이터 주입 완료. 여기서 첫 대사/첫 스텝 표시 시작 */
 	UFUNCTION(BlueprintImplementableEvent, Category = "PTB|Scene")

@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
@@ -101,6 +101,18 @@ public:
 	/** 씬 위젯 종료 알림 (UPTBSceneWidgetBase::FinishScene에서 호출). 시청 기록 후 다음 단계로 진행 */
 	UFUNCTION(BlueprintCallable, Category = "PTB|Scene")
 	void NotifySceneFinished(bool bSkipped);
+
+	/**
+	 * 튜토리얼 연습 한 판 시작 (튜토리얼 위젯에서 호출).
+	 * 스텝의 패턴으로 짧은 채보를 만들어 실제 미니게임으로 재생. 끝나면 씬 위젯의 HandlePracticeFinished 호출.
+	 * 연습 결과는 점수/결과/진행도에 반영되지 않음.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "PTB|Scene")
+	bool StartTutorialPractice(const FPTBTutorialStep& Step);
+
+	/** 튜토리얼 연습 진행 중인지 */
+	UFUNCTION(BlueprintPure, Category = "PTB|Scene")
+	bool IsTutorialPracticeActive() const { return bTutorialPracticeActive; }
 
 	/** 미니게임 종료 결과 */
 	UPROPERTY(BlueprintAssignable, Category = "PTB|MiniGame")
@@ -419,6 +431,37 @@ protected:
 
 	/** 결과 델리게이트 전달 (결과 직전 스토리 이후 또는 즉시) */
 	void DispatchMiniGameFinished();
+
+	// ── 튜토리얼 연습 ─────────────────────────────────────────────
+
+	/** 연습 라운드 진행 중 */
+	bool bTutorialPracticeActive = false;
+
+	/** 연습용 임시 채보 */
+	UPROPERTY(Transient)
+	TObjectPtr<UPTBRhythmChartAsset> TutorialPracticeChart;
+
+	/** 연습 동안 잠시 빼둔 본게임 채보 */
+	UPROPERTY(Transient)
+	TObjectPtr<UPTBRhythmChartAsset> SavedMainChartAsset;
+
+	FPTBChartData SavedMainChartData;
+	int32 PracticeTotalNotes = 0;
+	int32 PracticeRequiredHits = 0;
+	FName PracticeMetronomeSFXKey = NAME_None;
+
+	/** 스텝 패턴(또는 지정 채보)으로 연습 채보 생성 */
+	UPTBRhythmChartAsset* BuildTutorialPracticeChart(const FPTBTutorialStep& Step);
+
+	/** 연습 한 판 종료 처리: 통과 판정, 본게임 채보 복구, 위젯에 결과 전달 */
+	void CompleteTutorialPractice(EPTBRoundEndReason Reason);
+
+	/** 판정/점수 상태를 새 라운드 시작 전으로 초기화 */
+	void ResetRoundStateForReplay();
+
+	/** 연습 중 매 박 메트로놈 */
+	UFUNCTION()
+	void HandlePracticeBeatTick(float Beat);
 
 	/** 라운드 시작 전 에셋 준비(하위 override 권장) */
 	virtual void PreloadAssets();

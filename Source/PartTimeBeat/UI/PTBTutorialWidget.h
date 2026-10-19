@@ -9,6 +9,17 @@
 class UButton;
 class UImage;
 class UTextBlock;
+class UWidget;
+
+/** 튜토리얼 연습 스텝 진행 상태 (리플렉션 불필요) */
+enum class EPTBTutorialPracticeState : uint8
+{
+	None,       // 연습 스텝 아님
+	Ready,      // 설명 표시 중, 다음 누르면 시작
+	Playing,    // 플레이 중 (안내창 숨김)
+	Passed,     // 통과, 다음 누르면 다음 스텝
+	Failed      // 실패, 다음 누르면 재도전
+};
 
 /**
  * 조작/규칙 안내를 단계적으로 보여주는 튜토리얼 위젯
@@ -20,10 +31,12 @@ class UTextBlock;
  *  - ImageDemo       : 시범 이미지. 스텝에 없으면 숨김 (Image)
  *  - ButtonNext      : 다음 스텝. 입력이 필요한 스텝에서는 숨김
  *  - ButtonSkip      : 튜토리얼 전체 스킵
+ *  - PanelInstruction: 안내창 전체 (아무 위젯). 연습 플레이 중에는 숨김
  *
  * 스텝 진행:
  *  - RequiredAction = None : ButtonNext / Enter / Space / 아무 리듬 키
  *  - RequiredAction 지정    : 해당 리듬 키를 RequiredCount번 입력
+ *  - 연습 스텝(PracticePattern 지정): 설명 → 다음(시작) → 실제 플레이 → 통과면 다음 스텝, 실패면 재도전
  * 배경은 반투명 전체 화면 Image를 WBP 맨 뒤에 직접 배치 (뒤의 게임 화면이 보이도록)
  */
 UCLASS(Blueprintable)
@@ -66,6 +79,18 @@ protected:
 	UFUNCTION(BlueprintImplementableEvent, Category = "PTB|Tutorial")
 	void OnWrongAction(int32 StepIndex, EPTBActionType PressedAction);
 
+	virtual void NativeOnPracticeFinished(bool bPassed, int32 HitCount, int32 RequiredCount, int32 TotalCount) override;
+
+	/** 연습 시작/재도전 */
+	void StartPractice();
+
+	/** 다음(버튼/Enter/Space) 입력 처리. 연습 상태에 따라 시작/재도전/다음 스텝 */
+	void HandleProceed();
+
+	/** 연습 플레이 시작 (BP 연출용) */
+	UFUNCTION(BlueprintImplementableEvent, Category = "PTB|Tutorial")
+	void OnPracticeStarted(int32 StepIndex);
+
 	void ShowStep(int32 StepIndex);
 	void RefreshProgressText();
 	bool IsCurrentStepWaitingForAction() const;
@@ -91,6 +116,9 @@ protected:
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "PTB|UI")
 	TObjectPtr<UButton> ButtonSkip = nullptr;
 
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "PTB|UI")
+	TObjectPtr<UWidget> PanelInstruction = nullptr;
+
 	UPROPERTY()
 	TArray<FPTBTutorialStep> Steps;
 
@@ -98,4 +126,6 @@ protected:
 
 	/** 현재 스텝에서 맞게 입력한 횟수 */
 	int32 CurrentActionCount = 0;
+
+	EPTBTutorialPracticeState PracticeState = EPTBTutorialPracticeState::None;
 };

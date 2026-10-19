@@ -7,6 +7,7 @@
 #include "PTBMiniGameIntroData.generated.h"
 
 class UTexture2D;
+class UPTBRhythmChartAsset;
 
 /**
  * 미니게임 본게임 전후에 재생되는 씬 단계.
@@ -91,6 +92,51 @@ struct PARTTIMEBEAT_API FPTBTutorialStep : public FTableRowBase
 	/** 시범 이미지 (선택) */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Tutorial")
 	TSoftObjectPtr<UTexture2D> DemoImage;
+
+	// ── 연습 (설명 → 실제 플레이) ────────────────────────────────
+	// PracticePattern 또는 PracticeChartOverride가 있으면 "연습 스텝":
+	// 설명 표시(채보 정지) → 시작 → 실제 미니게임으로 짧은 채보 플레이 → 통과 시 다음, 실패 시 재도전
+
+	/**
+	 * 연습 패턴. 공백으로 구분, A~E = ActionA~E 노트, - = 쉼표(빈 박)
+	 * 예) "A A A A" / "A B C B A" / "A - B - C"
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Tutorial|Practice")
+	FString PracticePattern;
+
+	/** 연습 템포 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Tutorial|Practice", meta = (ClampMin = "30.0"))
+	float PracticeBPM = 100.0f;
+
+	/** 패턴 한 칸 사이 간격(박). 1 = 4분음표, 0.5 = 8분음표 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Tutorial|Practice", meta = (ClampMin = "0.25"))
+	float PracticeBeatInterval = 1.0f;
+
+	/** 첫 노트 전 준비 박 수 (메트로놈으로 박자 감 잡는 구간) */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Tutorial|Practice", meta = (ClampMin = "0"))
+	int32 PracticeLeadInBeats = 4;
+
+	/** 통과에 필요한 Good 이상 판정 수. 0이면 전부 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Tutorial|Practice", meta = (ClampMin = "0"))
+	int32 PracticeRequiredHits = 0;
+
+	/** 통과 시 문구 (비우면 기본 문구) */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Tutorial|Practice", meta = (MultiLine = true))
+	FText PracticeSuccessText;
+
+	/** 실패 시 문구 (비우면 기본 문구). 다시 시작하면 같은 연습을 반복 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Tutorial|Practice", meta = (MultiLine = true))
+	FText PracticeRetryText;
+
+	/** 패턴으로 표현하기 어려운 경우(롱노트 등) 기존 채보 에셋을 대신 사용. 지정 시 패턴 무시 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Tutorial|Practice")
+	TSoftObjectPtr<UPTBRhythmChartAsset> PracticeChartOverride;
+
+	/** 연습 스텝인지 */
+	bool IsPracticeStep() const
+	{
+		return !PracticePattern.TrimStartAndEnd().IsEmpty() || !PracticeChartOverride.IsNull();
+	}
 };
 
 /**
@@ -112,6 +158,10 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Scene|IntroStory", meta = (ClampMin = "0"))
 	int32 IntroStoryVersion = 0;
+
+	/** 튜토리얼 연습 중 매 박 재생할 메트로놈 SFX 키 (RuleSet AudioEventSet의 키). 비우면 틱 없음 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Scene|Tutorial")
+	FName TutorialMetronomeSFXKey = NAME_None;
 
 	/** 튜토리얼 (Row: FPTBTutorialStep) */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Scene|Tutorial",
