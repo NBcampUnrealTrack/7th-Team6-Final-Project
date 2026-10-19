@@ -29,6 +29,14 @@ namespace PTBSceneWidgetInternal
 	}
 }
 
+void UPTBSceneWidgetBase::NativeOnInitialized()
+{
+	Super::NativeOnInitialized();
+
+	// Enter/Space 등 키 입력을 받기 위해 포커스 가능하게
+	SetIsFocusable(true);
+}
+
 void UPTBSceneWidgetBase::SetupScene(APTBBaseMiniGame* InOwnerMiniGame, EPTBMiniGameScenePhase InPhase, UDataTable* InTable)
 {
 	OwnerMiniGame = InOwnerMiniGame;
@@ -36,7 +44,11 @@ void UPTBSceneWidgetBase::SetupScene(APTBBaseMiniGame* InOwnerMiniGame, EPTBMini
 	SceneTable = InTable;
 	bSceneFinished = false;
 
-	OnSceneSetup();
+	NativeOnSceneSetup();
+	if (!bSceneFinished)
+	{
+		OnSceneSetup();
+	}
 }
 
 void UPTBSceneWidgetBase::HandleSceneAction(EPTBActionType Action)
@@ -46,7 +58,11 @@ void UPTBSceneWidgetBase::HandleSceneAction(EPTBActionType Action)
 		return;
 	}
 
-	OnSceneAction(Action);
+	NativeOnSceneAction(Action);
+	if (!bSceneFinished)
+	{
+		OnSceneAction(Action);
+	}
 }
 
 void UPTBSceneWidgetBase::FinishScene(bool bSkipped)

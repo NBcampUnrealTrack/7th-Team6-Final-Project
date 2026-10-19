@@ -60,6 +60,14 @@ public:
 	FText FormatSceneText(const FText& SourceText) const;
 
 protected:
+	virtual void NativeOnInitialized() override;
+
+	/** C++ 파생 클래스용: 데이터 주입 완료 (BP OnSceneSetup보다 먼저 호출) */
+	virtual void NativeOnSceneSetup() {}
+
+	/** C++ 파생 클래스용: 리듬 키 입력 (BP OnSceneAction보다 먼저 호출) */
+	virtual void NativeOnSceneAction(EPTBActionType Action) {}
+
 	/** 데이터 주입 완료. 여기서 첫 대사/첫 스텝 표시 시작 */
 	UFUNCTION(BlueprintImplementableEvent, Category = "PTB|Scene")
 	void OnSceneSetup();
