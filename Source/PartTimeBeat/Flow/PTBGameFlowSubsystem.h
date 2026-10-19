@@ -31,6 +31,17 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "PTB|Flow")
 	void SelectDifficulty(EPTBDifficulty InDiff);
 
+	/**
+	 * 튜토리얼만 보기. SelectDifficulty 대신 호출 (이후 맵 여는 흐름은 난이도 버튼과 동일).
+	 * 스토리/본게임 없이 튜토리얼만 재생하고, 끝나면 미니게임 선택 화면으로 복귀.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "PTB|Flow")
+	void SelectDifficultyForTutorialOnly(EPTBDifficulty InDiff);
+
+	/** 활성 프로필이 이 미니게임 튜토리얼을 한 번이라도 끝냈는지(스킵 포함). 튜토리얼 버튼 활성화용 */
+	UFUNCTION(BlueprintPure, Category = "PTB|Flow")
+	bool HasCompletedTutorial(FName MiniGameId) const;
+
 	/** PendingSessionRequest 생성 후 GameMode 전달 */
 	UFUNCTION(BlueprintCallable, Category = "PTB|Flow")
 	void StartGameplay();
@@ -131,4 +142,8 @@ public:
 	/** 메인 타이틀 화면 레벨 이름 */
 	UPROPERTY(BlueprintReadOnly, Category = "PTB|Flow")
 	FName MainMenuLevelName = TEXT("L_MainTitle");
+
+private:
+	/** 다음 StartGameplay를 튜토리얼 전용으로 만들지 */
+	bool bPendingTutorialOnly = false;
 };

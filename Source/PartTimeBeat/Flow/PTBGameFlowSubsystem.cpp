@@ -185,6 +185,26 @@ void UPTBGameFlowSubsystem::SelectDifficulty(EPTBDifficulty InDiff)
 	StartGameplay();
 }
 
+void UPTBGameFlowSubsystem::SelectDifficultyForTutorialOnly(EPTBDifficulty InDiff)
+{
+	bPendingTutorialOnly = true;
+	PTB_RECORD(LogPTBFlow, TEXT("[PTBFlow] 튜토리얼만 보기 요청"));
+	SelectDifficulty(InDiff);
+}
+
+bool UPTBGameFlowSubsystem::HasCompletedTutorial(FName MiniGameId) const
+{
+	const UPTBProfileSubsystem* PS = GetGameInstance() ? GetGameInstance()->GetSubsystem<UPTBProfileSubsystem>() : nullptr;
+	if (!PS || MiniGameId.IsNone())
+	{
+		return false;
+	}
+
+	bool bHasActive = false;
+	const FPTBProfileData Profile = PS->GetActiveProfile(bHasActive);
+	return bHasActive && Profile.CompletedTutorialIds.Contains(MiniGameId);
+}
+
 void UPTBGameFlowSubsystem::StartGameplay() 
 {
 	if (SelectedMiniGameId.IsNone())
@@ -208,6 +228,8 @@ void UPTBGameFlowSubsystem::StartGameplay()
 	PendingSessionRequest.PlayMode = PTBGI ? PTBGI->CurrentPlayMode : EPTBPlayMode::Single;
 	PendingSessionRequest.RandomSeed = FMath::Rand();
 	PendingSessionRequest.ExpectedPlayerCount = 1;
+	PendingSessionRequest.bTutorialOnly = bPendingTutorialOnly;
+	bPendingTutorialOnly = false;
 
 	if (PTBGI)
 	{
@@ -420,6 +442,7 @@ void UPTBGameFlowSubsystem::CacheRetryTarget(const FPTBGameSessionRequest& Sessi
 	LastSessionRequest = SessionRequest;
 	// 다시보기로 들어온 판을 결과 화면에서 재시작해도 스토리/튜토리얼이 또 강제 재생되지 않도록
 	LastSessionRequest.bForceScenePlayback = false;
+	LastSessionRequest.bTutorialOnly = false;
 	LastPlayedMiniGameLevelName = LevelName;
 
 	PTB_RECORD(LogPTBFlow,

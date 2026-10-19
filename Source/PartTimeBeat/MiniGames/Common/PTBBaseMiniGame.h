@@ -416,6 +416,12 @@ protected:
 	/** 이번 라운드는 본 적 있어도 씬 재생 (다시보기) */
 	bool bForceScenePlayback = false;
 
+	/** 튜토리얼만 보기 모드: 스토리/본게임 없이 튜토리얼 후 미니게임 선택 화면으로 */
+	bool bTutorialOnlyMode = false;
+
+	/** 튜토리얼만 보기 종료 → 미니게임 선택 화면 */
+	void ExitTutorialOnly();
+
 	/** 로딩 완료 후 시작 스토리 → 튜토리얼 → 시작 대기 순으로 진행 */
 	void BeginIntroScenes();
 

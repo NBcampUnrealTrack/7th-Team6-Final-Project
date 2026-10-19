@@ -26,6 +26,7 @@
 #include "UI/PTBSceneWidgetBase.h"
 #include "Kismet/GameplayStatics.h"
 #include "Sound/SoundBase.h"
+#include "Flow/PTBGameFlowSubsystem.h"
 
 namespace PTBBaseMiniGameInternal
 {
@@ -252,7 +253,9 @@ void APTBBaseMiniGame::InitializeMiniGame(const FPTBMiniGameContext& Context)
 	GetWorldTimerManager().ClearTimer(OutroTimerHandle);
 	CloseActiveSceneWidget();
 	ScenePhase = EPTBMiniGameScenePhase::None;
-	bForceScenePlayback = Context.SessionRequest.bForceScenePlayback;
+	bTutorialOnlyMode = Context.SessionRequest.bTutorialOnly;
+	// 튜토리얼만 보기는 본 적 있어도 재생
+	bForceScenePlayback = Context.SessionRequest.bForceScenePlayback || bTutorialOnlyMode;
 
 	HandleLoadingStarted();
 
@@ -1381,6 +1384,17 @@ void APTBBaseMiniGame::BeginIntroScenes()
 
 void APTBBaseMiniGame::AdvanceIntroScenes()
 {
+	// 튜토리얼만 보기: 스토리 건너뛰고 튜토리얼 → 끝나면 미니게임 선택 화면
+	if (bTutorialOnlyMode)
+	{
+		if (ScenePhase == EPTBMiniGameScenePhase::None && TryPlayScene(EPTBMiniGameScenePhase::Tutorial))
+		{
+			return;
+		}
+		ExitTutorialOnly();
+		return;
+	}
+
 	if (ScenePhase == EPTBMiniGameScenePhase::None
 		&& TryPlayScene(EPTBMiniGameScenePhase::IntroStory))
 	{
@@ -1825,6 +1839,20 @@ void APTBBaseMiniGame::ResetRoundStateForReplay()
 	bAllNotesDispatched = false;
 	ActiveBGMPlayingId = 0;
 	PendingEndReason = EPTBRoundEndReason::Completed;
+}
+
+void APTBBaseMiniGame::ExitTutorialOnly()
+{
+	SetScenePhase(EPTBMiniGameScenePhase::None);
+	CloseActiveSceneWidget();
+
+	UE_LOG(LogRhythm, Log, TEXT("[%s] Tutorial-only finished. Returning to mini game select."), *GetNameSafe(this));
+
+	UGameInstance* GI = GetGameInstance();
+	if (UPTBGameFlowSubsystem* Flow = GI ? GI->GetSubsystem<UPTBGameFlowSubsystem>() : nullptr)
+	{
+		Flow->ReturnToMiniGameSelect();
+	}
 }
 
 void APTBBaseMiniGame::HandleRoundChartChanged()

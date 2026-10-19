@@ -563,6 +563,9 @@ struct FPTBGameSessionRequest
     /** true면 이미 본 스토리/튜토리얼도 다시 재생 (다시보기 메뉴 진입용, 1회성) */
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
     bool bForceScenePlayback = false;
+    /** true면 튜토리얼만 재생하고 본게임 없이 미니게임 선택 화면으로 복귀 (튜토리얼 다시보기 버튼) */
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
+    bool bTutorialOnly = false;
 };
 
 USTRUCT(BlueprintType)
