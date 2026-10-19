@@ -12,6 +12,9 @@
  * 표시 시점의 실제 키 이름(CachedSettings.RhythmKeys)으로 치환된다.
  * 예) "{ActionA} 키를 눌러 점프!" → "Z 키를 눌러 점프!"
  *
+ * {Player} 토큰은 현재 프로필 닉네임으로 치환된다.
+ * 예) "{Player}, 오늘도 잘 부탁해!" → "람다, 오늘도 잘 부탁해!"
+ *
  * 표시할 때마다 치환하므로 키 설정을 바꾸면 다음 표시부터 바로 반영된다.
  * FText::Format 기반이라 번역 텍스트에서도 토큰이 그대로 동작한다.
  */
@@ -25,7 +28,11 @@ public:
 	UFUNCTION(BlueprintPure, Category = "PTB|Input", meta = (WorldContext = "WorldContextObject"))
 	static FText GetActionKeyLabel(const UObject* WorldContextObject, EPTBActionType Action);
 
-	/** {ActionA}~{ActionE} 토큰을 현재 키 이름으로 치환 */
+	/** 현재 프로필 닉네임. 프로필이 없거나 닉네임이 비면 기본 호칭 */
+	UFUNCTION(BlueprintPure, Category = "PTB|Text", meta = (WorldContext = "WorldContextObject"))
+	static FText GetPlayerName(const UObject* WorldContextObject);
+
+	/** {ActionA}~{ActionE} → 현재 키 이름, {Player} → 프로필 닉네임으로 치환 */
 	UFUNCTION(BlueprintPure, Category = "PTB|Input", meta = (WorldContext = "WorldContextObject"))
 	static FText FormatKeyTokens(const UObject* WorldContextObject, const FText& SourceText);
 };
