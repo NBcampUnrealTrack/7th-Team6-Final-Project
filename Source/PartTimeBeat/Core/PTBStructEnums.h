@@ -462,6 +462,14 @@ struct PARTTIMEBEAT_API FPTBProfileData
     UPROPERTY(BlueprintReadOnly, SaveGame, Category = "Profile|Progress")
     TSet<FName> CompletedStoryIds;
 
+    /**
+     * 미니게임 씬(시작 스토리/튜토리얼/결과 직전 스토리) 시청 버전.
+     * 키: "MiniGameId.Phase" (예: "JJ.Tutorial"), 값: 마지막으로 본 콘텐츠 버전.
+     * IntroData의 Version이 이 값보다 크면 다시 자동재생된다.
+     */
+    UPROPERTY(BlueprintReadOnly, SaveGame, Category = "Profile|Progress")
+    TMap<FName, int32> SeenSceneVersions;
+
     /** 허브 맵(L_GameMap) 복귀 위치가 저장되어 있는지 */
     UPROPERTY(BlueprintReadOnly, SaveGame, Category = "Profile|Hub")
     bool bHasHubReturnTransform = false;
@@ -552,6 +560,12 @@ struct FPTBGameSessionRequest
     int32 RandomSeed = 0;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
     int32 ExpectedPlayerCount = 1;
+    /** true면 이미 본 스토리/튜토리얼도 다시 재생 (다시보기 메뉴 진입용, 1회성) */
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
+    bool bForceScenePlayback = false;
+    /** true면 튜토리얼만 재생하고 본게임 없이 미니게임 선택 화면으로 복귀 (튜토리얼 다시보기 버튼) */
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
+    bool bTutorialOnly = false;
 };
 
 USTRUCT(BlueprintType)

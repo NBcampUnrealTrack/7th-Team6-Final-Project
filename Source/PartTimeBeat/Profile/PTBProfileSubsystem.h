@@ -93,6 +93,17 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Profile|Progression")
     void MarkStoryViewed(FName StoryId);
 
+    /**
+     * 미니게임 씬(스토리/튜토리얼)을 해당 버전 이상으로 본 적 있는지.
+     * 활성 프로필이 없으면 false (항상 재생).
+     */
+    UFUNCTION(BlueprintPure, Category = "Profile|Progression")
+    bool HasSeenScene(FName SceneKey, int32 Version) const;
+
+    /** 미니게임 씬 시청 기록 (더 낮은 버전으로는 덮어쓰지 않음) */
+    UFUNCTION(BlueprintCallable, Category = "Profile|Progression")
+    void MarkSceneSeen(FName SceneKey, int32 Version);
+
     /** 코스튬 해금 */
     //UFUNCTION(BlueprintCallable, Category = "Profile|Progression")
     //void UnlockCostume(FName CostumeId);

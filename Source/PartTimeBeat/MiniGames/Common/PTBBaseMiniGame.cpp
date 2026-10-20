@@ -3,6 +3,7 @@
 #include "AkComponent.h"
 #include "Audio/PTBWwiseAudioManager.h"
 #include "Audio/PTBWwiseRhythmSyncComponent.h"
+#include "Core/PTBGameInstance.h"
 #include "Core/PTBGameModeBase.h"
 #include "Debug/PTBLogChannels.h"
 #include "MiniGames/Common/PTBMiniGameRuleSet.h"
@@ -20,6 +21,12 @@
 #include "TimerManager.h"
 #include "Blueprint/UserWidget.h"
 #include "Blueprint/WidgetBlueprintLibrary.h"
+#include "Engine/DataTable.h"
+#include "Profile/PTBProfileSubsystem.h"
+#include "UI/PTBSceneWidgetBase.h"
+#include "Kismet/GameplayStatics.h"
+#include "Sound/SoundBase.h"
+#include "Flow/PTBGameFlowSubsystem.h"
 
 namespace PTBBaseMiniGameInternal
 {
@@ -244,6 +251,11 @@ void APTBBaseMiniGame::InitializeMiniGame(const FPTBMiniGameContext& Context)
 	GetWorldTimerManager().ClearTimer(IntroTimerHandle);
 	GetWorldTimerManager().ClearTimer(CuePreRollTimerHandle);
 	GetWorldTimerManager().ClearTimer(OutroTimerHandle);
+	CloseActiveSceneWidget();
+	ScenePhase = EPTBMiniGameScenePhase::None;
+	bTutorialOnlyMode = Context.SessionRequest.bTutorialOnly;
+	// 튜토리얼만 보기는 본 적 있어도 재생
+	bForceScenePlayback = Context.SessionRequest.bForceScenePlayback || bTutorialOnlyMode;
 
 	HandleLoadingStarted();
 
@@ -359,7 +371,9 @@ void APTBBaseMiniGame::CompleteMiniGameInitialization()
 
 	bIsInitialized = true;
 	bIsReadyToStart = true;
-	HandleReadyToStart();
+
+	// 시작 스토리 → 튜토리얼 → HandleReadyToStart(Press Any Key) 순으로 진행
+	BeginIntroScenes();
 }
 
 void APTBBaseMiniGame::PreloadAssets()
@@ -510,6 +524,8 @@ void APTBBaseMiniGame::EndPlay(const EEndPlayReason::Type EndPlayReason)
 		}
 	}
 	SpawnedRoundActors.Reset();
+
+	CloseActiveSceneWidget();
 
 	Super::EndPlay(EndPlayReason);
 }
@@ -884,6 +900,13 @@ FPTBRoundResult APTBBaseMiniGame::FinishMiniGame(EPTBRoundEndReason Reason)
 		RoundResult.GoodCount,
 		RoundResult.MissCount);
 
+	// 튜토리얼 연습은 아웃트로/결과 없이 위젯으로 결과만 전달
+	if (bTutorialPracticeActive)
+	{
+		CompleteTutorialPractice(Reason);
+		return RoundResult;
+	}
+
 	BeginOutroSequence(Reason);
 
 	return RoundResult;
@@ -922,6 +945,18 @@ void APTBBaseMiniGame::CompleteFinishSequence()
 		ReceiveOutroFinished(RoundResult, PendingEndReason);
 	}
 
+	// 결과 직전 스토리가 있으면 재생 후 NotifySceneFinished에서 결과 전달
+	if (PendingEndReason != EPTBRoundEndReason::Aborted
+		&& TryPlayScene(EPTBMiniGameScenePhase::OutroStory))
+	{
+		return;
+	}
+
+	DispatchMiniGameFinished();
+}
+
+void APTBBaseMiniGame::DispatchMiniGameFinished()
+{
 	bFinishSequenceActive = false;
 	OnMiniGameFinished.Broadcast(RoundResult);
 }
@@ -982,6 +1017,12 @@ void APTBBaseMiniGame::HandleChartEvent(FPTBNoteEvent Note)
 		Note.TimeMs,
 		Note.BeatTime);
 
+	// 튜토리얼 연습: 맞추든 못 맞추든 노트 타이밍마다 소리
+	if (bTutorialPracticeActive && PracticeNoteSound)
+	{
+		UGameplayStatics::PlaySound2D(this, PracticeNoteSound);
+	}
+
 	OnMiniGameChartNote.Broadcast(Note);
 	ReceiveChartNote(Note);
 }
@@ -1021,6 +1062,16 @@ void APTBBaseMiniGame::HandleNoteCue(FPTBNoteEvent Note)
 
 void APTBBaseMiniGame::HandleRhythmInput(EPTBActionType Action, float TimeMs)
 {
+	// 씬 재생 중에는 리듬 키를 씬 위젯으로 전달 (튜토리얼 입력, 대사 넘기기)
+	if (ActiveSceneWidget
+		&& !bTutorialPracticeActive
+		&& ScenePhase != EPTBMiniGameScenePhase::None
+		&& ScenePhase != EPTBMiniGameScenePhase::Ready)
+	{
+		ActiveSceneWidget->HandleSceneAction(Action);
+		return;
+	}
+
 	if (!CanAcceptInput())
 	{
 		return;
@@ -1317,6 +1368,529 @@ void APTBBaseMiniGame::ReceiveOutroStarted_Implementation(FPTBRoundResult Result
 
 void APTBBaseMiniGame::ReceiveOutroFinished_Implementation(FPTBRoundResult Result, EPTBRoundEndReason EndReason)
 {
+}
+
+void APTBBaseMiniGame::ReceiveScenePhaseChanged_Implementation(EPTBMiniGameScenePhase Phase)
+{
+}
+
+// ── 스토리/튜토리얼 씬 ─────────────────────────────────────────────
+
+void APTBBaseMiniGame::BeginIntroScenes()
+{
+	ScenePhase = EPTBMiniGameScenePhase::None;
+	AdvanceIntroScenes();
+}
+
+void APTBBaseMiniGame::AdvanceIntroScenes()
+{
+	// 튜토리얼만 보기: 스토리 건너뛰고 튜토리얼 → 끝나면 미니게임 선택 화면
+	if (bTutorialOnlyMode)
+	{
+		if (ScenePhase == EPTBMiniGameScenePhase::None && TryPlayScene(EPTBMiniGameScenePhase::Tutorial))
+		{
+			return;
+		}
+		ExitTutorialOnly();
+		return;
+	}
+
+	if (ScenePhase == EPTBMiniGameScenePhase::None
+		&& TryPlayScene(EPTBMiniGameScenePhase::IntroStory))
+	{
+		return;
+	}
+
+	if ((ScenePhase == EPTBMiniGameScenePhase::None || ScenePhase == EPTBMiniGameScenePhase::IntroStory)
+		&& TryPlayScene(EPTBMiniGameScenePhase::Tutorial))
+	{
+		return;
+	}
+
+	SetScenePhase(EPTBMiniGameScenePhase::Ready);
+	SetLoadingWidgetHidden(false);
+	HandleReadyToStart();
+}
+
+bool APTBBaseMiniGame::TryPlayScene(EPTBMiniGameScenePhase Phase)
+{
+	const UPTBMiniGameIntroData* SceneData = ResolveSceneData(Phase);
+	if (!SceneData || !ShouldPlayScene(Phase))
+	{
+		return false;
+	}
+
+	const TSubclassOf<UPTBSceneWidgetBase> WidgetClass = ResolveSceneWidgetClass(Phase);
+	if (!WidgetClass)
+	{
+		UE_LOG(LogRhythm, Warning, TEXT("[%s] Scene skipped: widget class is not set on GameInstance. Phase=%d"),
+			*GetNameSafe(this), static_cast<int32>(Phase));
+		return false;
+	}
+
+	APlayerController* PlayerController = GetWorld() ? GetWorld()->GetFirstPlayerController() : nullptr;
+	if (!PlayerController)
+	{
+		return false;
+	}
+
+	UPTBSceneWidgetBase* SceneWidget = CreateWidget<UPTBSceneWidgetBase>(PlayerController, WidgetClass);
+	if (!SceneWidget)
+	{
+		return false;
+	}
+
+	CloseActiveSceneWidget();
+	ActiveSceneWidget = SceneWidget;
+
+	SetLoadingWidgetHidden(true);
+	SceneWidget->AddToViewport(10);
+
+	FInputModeGameAndUI InputMode;
+	InputMode.SetWidgetToFocus(SceneWidget->TakeWidget());
+	InputMode.SetHideCursorDuringCapture(false);
+	PlayerController->SetInputMode(InputMode);
+	PlayerController->SetShowMouseCursor(true);
+
+	// SetupScene 안에서 바로 FinishScene이 불려도 흐름이 꼬이지 않도록 단계 먼저 갱신
+	SetScenePhase(Phase);
+	SceneWidget->SetupScene(this, Phase, SceneData->GetTable(Phase));
+
+	UE_LOG(LogRhythm, Log, TEXT("[%s] Scene started. Phase=%d Data=%s Force=%d"),
+		*GetNameSafe(this), static_cast<int32>(Phase), *GetNameSafe(SceneData), bForceScenePlayback ? 1 : 0);
+	return true;
+}
+
+bool APTBBaseMiniGame::ShouldPlayScene(EPTBMiniGameScenePhase Phase) const
+{
+	if (GameContext.SessionRequest.PlayMode == EPTBPlayMode::Multiplayer)
+	{
+		return false;
+	}
+
+	const UPTBMiniGameIntroData* SceneData = ResolveSceneData(Phase);
+	if (!SceneData)
+	{
+		return false;
+	}
+
+	// 결과 직전 스토리: 실패/중도 종료면 재생 안 함 (설정 시)
+	if (Phase == EPTBMiniGameScenePhase::OutroStory && SceneData->bOutroRequiresClear)
+	{
+		const bool bCleared = PendingEndReason == EPTBRoundEndReason::Completed
+			&& RoundResult.Grade != EPTBGradeType::Fail;
+		if (!bCleared)
+		{
+			return false;
+		}
+	}
+
+	if (bForceScenePlayback)
+	{
+		return true;
+	}
+
+	const UGameInstance* GI = GetGameInstance();
+	const UPTBProfileSubsystem* ProfileSubsystem = GI ? GI->GetSubsystem<UPTBProfileSubsystem>() : nullptr;
+	if (!ProfileSubsystem)
+	{
+		return true;
+	}
+
+	const FName SceneKey = UPTBMiniGameIntroData::MakeSceneKey(ResolveSceneMiniGameId(), Phase);
+	return !ProfileSubsystem->HasSeenScene(SceneKey, SceneData->GetVersion(Phase));
+}
+
+const UPTBMiniGameIntroData* APTBBaseMiniGame::ResolveSceneData(EPTBMiniGameScenePhase Phase) const
+{
+	if (IntroData && IntroData->HasContent(Phase))
+	{
+		return IntroData;
+	}
+
+	// 결과 직전 스토리는 없는 게임이 정상이므로 공용 템플릿으로 폴백하지 않음
+	if (Phase == EPTBMiniGameScenePhase::OutroStory)
+	{
+		return nullptr;
+	}
+
+	const UPTBGameInstance* PTBGI = Cast<UPTBGameInstance>(GetGameInstance());
+	const UPTBMiniGameIntroData* DefaultData = PTBGI ? PTBGI->DefaultIntroData.Get() : nullptr;
+	return DefaultData && DefaultData->HasContent(Phase) ? DefaultData : nullptr;
+}
+
+TSubclassOf<UPTBSceneWidgetBase> APTBBaseMiniGame::ResolveSceneWidgetClass(EPTBMiniGameScenePhase Phase) const
+{
+	const UPTBGameInstance* PTBGI = Cast<UPTBGameInstance>(GetGameInstance());
+	if (!PTBGI)
+	{
+		return nullptr;
+	}
+
+	return Phase == EPTBMiniGameScenePhase::Tutorial
+		? PTBGI->TutorialWidgetClass
+		: PTBGI->StoryWidgetClass;
+}
+
+FName APTBBaseMiniGame::ResolveSceneMiniGameId() const
+{
+	if (!MiniGameId.IsNone())
+	{
+		return MiniGameId;
+	}
+
+	if (RuleSet && !RuleSet->MiniGameId.IsNone())
+	{
+		return RuleSet->MiniGameId;
+	}
+
+	return GetClass()->GetFName();
+}
+
+void APTBBaseMiniGame::SetScenePhase(EPTBMiniGameScenePhase NewPhase)
+{
+	if (ScenePhase == NewPhase)
+	{
+		return;
+	}
+
+	ScenePhase = NewPhase;
+	OnScenePhaseChanged.Broadcast(NewPhase);
+	ReceiveScenePhaseChanged(NewPhase);
+}
+
+void APTBBaseMiniGame::NotifySceneFinished(bool bSkipped)
+{
+	const EPTBMiniGameScenePhase FinishedPhase = ScenePhase;
+	if (FinishedPhase == EPTBMiniGameScenePhase::None || FinishedPhase == EPTBMiniGameScenePhase::Ready)
+	{
+		return;
+	}
+
+	// 연습 도중 튜토리얼 스킵: 연습 중단 후 본게임 채보 복구
+	if (bTutorialPracticeActive)
+	{
+		FinishMiniGame(EPTBRoundEndReason::Aborted);
+	}
+
+	// 스킵해도 '봤음'으로 기록. 다시 보려면 다시보기(bForceScenePlayback)로
+	if (const UPTBMiniGameIntroData* SceneData = ResolveSceneData(FinishedPhase))
+	{
+		UGameInstance* GI = GetGameInstance();
+		if (UPTBProfileSubsystem* ProfileSubsystem = GI ? GI->GetSubsystem<UPTBProfileSubsystem>() : nullptr)
+		{
+			const FName SceneMiniGameId = ResolveSceneMiniGameId();
+			const FName SceneKey = UPTBMiniGameIntroData::MakeSceneKey(SceneMiniGameId, FinishedPhase);
+			ProfileSubsystem->MarkSceneSeen(SceneKey, SceneData->GetVersion(FinishedPhase));
+
+			// 기존 진행도 API와도 동기화 (IsFirstTimeProfile 등에서 사용)
+			if (FinishedPhase == EPTBMiniGameScenePhase::Tutorial)
+			{
+				ProfileSubsystem->MarkTutorialComplete(SceneMiniGameId);
+			}
+			else
+			{
+				ProfileSubsystem->MarkStoryViewed(SceneKey);
+			}
+		}
+	}
+
+	UE_LOG(LogRhythm, Log, TEXT("[%s] Scene finished. Phase=%d Skipped=%d"),
+		*GetNameSafe(this), static_cast<int32>(FinishedPhase), bSkipped ? 1 : 0);
+
+	CloseActiveSceneWidget();
+
+	if (FinishedPhase == EPTBMiniGameScenePhase::OutroStory)
+	{
+		SetScenePhase(EPTBMiniGameScenePhase::None);
+		ApplyGameAndUIInputMode();
+		DispatchMiniGameFinished();
+		return;
+	}
+
+	AdvanceIntroScenes();
+}
+
+// ── 튜토리얼 연습 ──────────────────────────────────────────────────
+
+bool APTBBaseMiniGame::StartTutorialPractice(const FPTBTutorialStep& Step)
+{
+	if (bTutorialPracticeActive || bIsRoundActive || bStartSequenceActive || bFinishSequenceActive)
+	{
+		UE_LOG(LogRhythm, Warning, TEXT("[%s] Tutorial practice ignored: round busy"), *GetNameSafe(this));
+		return false;
+	}
+
+	if (!bIsInitialized || ScenePhase != EPTBMiniGameScenePhase::Tutorial)
+	{
+		UE_LOG(LogRhythm, Warning, TEXT("[%s] Tutorial practice ignored: not in tutorial phase"), *GetNameSafe(this));
+		return false;
+	}
+
+	UPTBRhythmChartAsset* PracticeChart = BuildTutorialPracticeChart(Step);
+	if (!PracticeChart || PracticeChart->NoteEvents.IsEmpty())
+	{
+		UE_LOG(LogRhythm, Warning, TEXT("[%s] Tutorial practice ignored: empty pattern/chart"), *GetNameSafe(this));
+		return false;
+	}
+
+	// 본게임 채보는 연습이 끝나면 복구
+	if (!SavedMainChartAsset)
+	{
+		SavedMainChartAsset = ChartAsset;
+		SavedMainChartData = GameContext.ChartData;
+	}
+
+	TutorialPracticeChart = PracticeChart;
+	ChartAsset = PracticeChart;
+	GameContext.ChartData = PracticeChart->ChartData;
+	ResetRoundStateForReplay();
+	HandleRoundChartChanged();
+
+	PracticeTotalNotes = PracticeChart->NoteEvents.Num();
+	PracticeRequiredHits = Step.PracticeRequiredHits > 0
+		? FMath::Min(Step.PracticeRequiredHits, PracticeTotalNotes)
+		: PracticeTotalNotes;
+
+	const UPTBMiniGameIntroData* SceneData = ResolveSceneData(EPTBMiniGameScenePhase::Tutorial);
+	const UPTBGameInstance* PTBGI = Cast<UPTBGameInstance>(GetGameInstance());
+	PracticeMetronomeSFXKey = SceneData ? SceneData->TutorialMetronomeSFXKey : NAME_None;
+	PracticeNoteSound = SceneData && SceneData->TutorialNoteSound
+		? SceneData->TutorialNoteSound.Get()
+		: (PTBGI ? PTBGI->DefaultTutorialNoteSound.Get() : nullptr);
+	PracticeMetronomeSound = SceneData && SceneData->TutorialMetronomeSound
+		? SceneData->TutorialMetronomeSound.Get()
+		: (PTBGI ? PTBGI->DefaultTutorialMetronomeSound.Get() : nullptr);
+	if (RhythmConductor && (PracticeMetronomeSound || !PracticeMetronomeSFXKey.IsNone()))
+	{
+		RhythmConductor->OnBeatTick.AddUniqueDynamic(this, &APTBBaseMiniGame::HandlePracticeBeatTick);
+	}
+
+	bTutorialPracticeActive = true;
+	bIsReadyToStart = true;
+	bStartSequenceActive = true;
+	bInputLocked = true;
+
+	UE_LOG(LogRhythm, Log, TEXT("[%s] Tutorial practice started. Notes=%d Required=%d BPM=%.1f"),
+		*GetNameSafe(this), PracticeTotalNotes, PracticeRequiredHits, GameContext.ChartData.BPM);
+
+	// BP에서 HUD/판정 UI 준비 (미니게임 BP / 레벨 BP 둘 다 지원)
+	ReceiveTutorialPracticeStarted();
+	if (APTBGameModeBase* GM = GetWorld() ? GetWorld()->GetAuthGameMode<APTBGameModeBase>() : nullptr)
+	{
+		GM->OnTutorialPracticeStarted.Broadcast();
+	}
+
+	// 인트로 연출 없이 바로 시작. BGM 이벤트가 없으므로 대체 타이밍(메트로놈)으로 진행
+	// OnMiniGameStarted는 브로드캐스트하지 않음 (GameMode가 본게임 시작으로 처리하지 않도록)
+	BeginCuePreRollSequence();
+	return true;
+}
+
+UPTBRhythmChartAsset* APTBBaseMiniGame::BuildTutorialPracticeChart(const FPTBTutorialStep& Step)
+{
+	// 지정 채보가 있으면 그대로 사용 (BGM 포함)
+	if (!Step.PracticeChartOverride.IsNull())
+	{
+		return Step.PracticeChartOverride.LoadSynchronous();
+	}
+
+	const float BPM = FMath::Max(30.0f, Step.PracticeBPM);
+	const float MsPerBeat = 60000.0f / BPM;
+	const float Interval = FMath::Max(0.25f, Step.PracticeBeatInterval);
+
+	UPTBRhythmChartAsset* Chart = NewObject<UPTBRhythmChartAsset>(this, NAME_None, RF_Transient);
+	Chart->ChartId = TEXT("Tutorial");
+	Chart->ChartData.BPM = BPM;
+	Chart->ChartData.OffsetMs = 0.0f;
+	Chart->ChartData.WwiseEventName = NAME_None;
+	Chart->ChartData.ChartId = Chart->ChartId;
+	Chart->ChartData.MiniGameId = ResolveSceneMiniGameId();
+	Chart->ChartData.Difficulty = GameContext.SessionRequest.Difficulty;
+
+	TArray<FString> Tokens;
+	Step.PracticePattern.ParseIntoArrayWS(Tokens);
+
+	float Beat = static_cast<float>(FMath::Max(0, Step.PracticeLeadInBeats));
+	// 회차마다 다른 NoteId 대역 사용 (NoteId로 중복을 막는 미니게임 대비, 본게임 채보 ID와도 안 겹치게)
+	int32 NextNoteId = 100000 + (PracticeRunCounter++ % 1000) * 100 + 1;
+	for (const FString& Token : Tokens)
+	{
+		const TCHAR Symbol = Token.IsEmpty() ? TEXT('-') : FChar::ToUpper(Token[0]);
+		EPTBActionType Action = EPTBActionType::None;
+		switch (Symbol)
+		{
+		case TEXT('A'): Action = EPTBActionType::ActionA; break;
+		case TEXT('B'): Action = EPTBActionType::ActionB; break;
+		case TEXT('C'): Action = EPTBActionType::ActionC; break;
+		case TEXT('D'): Action = EPTBActionType::ActionD; break;
+		case TEXT('E'): Action = EPTBActionType::ActionE; break;
+		default: break; // '-' 등은 쉼표
+		}
+
+		if (Action != EPTBActionType::None)
+		{
+			FPTBNoteEvent Note;
+			Note.NoteId = NextNoteId++;
+			Note.BeatTime = Beat;
+			Note.TimeMs = Beat * MsPerBeat;
+			Note.ActionType = Action;
+			Note.NoteType = EPTBNoteType::Tap;
+			Note.Lane = static_cast<int32>(Action) - 1;
+			Chart->NoteEvents.Add(Note);
+		}
+
+		Beat += Interval;
+	}
+
+	// 마지막 노트 뒤 2박 여유
+	Chart->ChartData.SongLengthMs = (Beat + 2.0f) * MsPerBeat;
+	return Chart;
+}
+
+void APTBBaseMiniGame::CompleteTutorialPractice(EPTBRoundEndReason Reason)
+{
+	if (RhythmConductor)
+	{
+		RhythmConductor->OnBeatTick.RemoveDynamic(this, &APTBBaseMiniGame::HandlePracticeBeatTick);
+	}
+
+	const int32 HitCount = RoundResult.HighPerfectCount + RoundResult.PerfectCount + RoundResult.GoodCount;
+	const int32 TotalCount = PracticeTotalNotes;
+	const int32 RequiredCount = PracticeRequiredHits;
+	const bool bPassed = Reason != EPTBRoundEndReason::Aborted && HitCount >= RequiredCount;
+
+	// 본게임 채보 복구 + 상태 초기화 (점수/결과에 연습이 남지 않도록)
+	if (SavedMainChartAsset)
+	{
+		ChartAsset = SavedMainChartAsset;
+		GameContext.ChartData = SavedMainChartData;
+		SavedMainChartAsset = nullptr;
+	}
+	TutorialPracticeChart = nullptr;
+	ResetRoundStateForReplay();
+	HandleRoundChartChanged();
+
+	bTutorialPracticeActive = false;
+	bFinishSequenceActive = false;
+	bIsReadyToStart = true;
+	bInputLocked = true;
+
+	UE_LOG(LogRhythm, Log, TEXT("[%s] Tutorial practice finished. Reason=%d Hits=%d/%d Required=%d Passed=%d"),
+		*GetNameSafe(this), static_cast<int32>(Reason), HitCount, TotalCount, RequiredCount, bPassed ? 1 : 0);
+
+	// FinishMiniGame이 바꾼 입력 모드를 튜토리얼 위젯 포커스로 되돌림
+	APlayerController* PlayerController = GetWorld() ? GetWorld()->GetFirstPlayerController() : nullptr;
+	if (PlayerController && ActiveSceneWidget)
+	{
+		FInputModeGameAndUI InputMode;
+		InputMode.SetWidgetToFocus(ActiveSceneWidget->TakeWidget());
+		InputMode.SetHideCursorDuringCapture(false);
+		PlayerController->SetInputMode(InputMode);
+		PlayerController->SetShowMouseCursor(true);
+	}
+
+	ReceiveTutorialPracticeFinished(bPassed);
+
+	if (Reason != EPTBRoundEndReason::Aborted && ActiveSceneWidget)
+	{
+		ActiveSceneWidget->HandlePracticeFinished(bPassed, HitCount, RequiredCount, TotalCount);
+	}
+}
+
+bool APTBBaseMiniGame::HandleSceneConfirmInput()
+{
+	if (!ActiveSceneWidget
+		|| bTutorialPracticeActive
+		|| ScenePhase == EPTBMiniGameScenePhase::None
+		|| ScenePhase == EPTBMiniGameScenePhase::Ready)
+	{
+		return false;
+	}
+
+	return ActiveSceneWidget->HandleConfirmInput();
+}
+
+void APTBBaseMiniGame::ReceiveTutorialPracticeStarted_Implementation()
+{
+}
+
+void APTBBaseMiniGame::ReceiveTutorialPracticeFinished_Implementation(bool bPassed)
+{
+}
+
+void APTBBaseMiniGame::ResetRoundStateForReplay()
+{
+	if (JudgementSystem)
+	{
+		JudgementSystem->Initialize(GameContext.ChartData, 0.0f);
+	}
+	if (ScoreCalculator)
+	{
+		ScoreCalculator->Reset();
+	}
+
+	RoundResult = FPTBRoundResult();
+	ActiveNoteQueue.Reset();
+	ActiveHoldStates.Reset();
+	EmptyInputActionLockUntilTimeMs.Reset();
+	bPendingRoundFinish = false;
+	bPendingRoundFailed = false;
+	bAllNotesDispatched = false;
+	ActiveBGMPlayingId = 0;
+	PendingEndReason = EPTBRoundEndReason::Completed;
+}
+
+void APTBBaseMiniGame::ExitTutorialOnly()
+{
+	SetScenePhase(EPTBMiniGameScenePhase::None);
+	CloseActiveSceneWidget();
+
+	UE_LOG(LogRhythm, Log, TEXT("[%s] Tutorial-only finished. Returning to mini game select."), *GetNameSafe(this));
+
+	UGameInstance* GI = GetGameInstance();
+	if (UPTBGameFlowSubsystem* Flow = GI ? GI->GetSubsystem<UPTBGameFlowSubsystem>() : nullptr)
+	{
+		Flow->ReturnToMiniGameSelect();
+	}
+}
+
+void APTBBaseMiniGame::HandleRoundChartChanged()
+{
+}
+
+void APTBBaseMiniGame::HandlePracticeBeatTick(float Beat)
+{
+	if (!bTutorialPracticeActive)
+	{
+		return;
+	}
+
+	if (PracticeMetronomeSound)
+	{
+		UGameplayStatics::PlaySound2D(this, PracticeMetronomeSound);
+	}
+	else if (!PracticeMetronomeSFXKey.IsNone())
+	{
+		RequestWwiseEvent(PracticeMetronomeSFXKey, this);
+	}
+}
+
+void APTBBaseMiniGame::CloseActiveSceneWidget()
+{
+	if (ActiveSceneWidget)
+	{
+		ActiveSceneWidget->RemoveFromParent();
+		ActiveSceneWidget = nullptr;
+	}
+}
+
+void APTBBaseMiniGame::SetLoadingWidgetHidden(bool bShouldHide)
+{
+	if (LoadingWidgetInstance)
+	{
+		LoadingWidgetInstance->SetVisibility(bShouldHide ? ESlateVisibility::Collapsed : ESlateVisibility::Visible);
+	}
 }
 
 FPTBMiniGameResultPayload APTBBaseMiniGame::BuildResultPayload() const

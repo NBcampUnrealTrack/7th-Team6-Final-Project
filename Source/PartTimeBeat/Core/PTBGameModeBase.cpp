@@ -695,6 +695,9 @@ void APTBGameModeBase::RetryGame_Implementation()
 	bIsPaused = false;
 
 	// 동일 요청으로 재시작 (클래스가 이미 로드돼 있으므로 즉시 진행)
+	// 다시보기로 들어온 판이어도 재시작 때는 스토리/튜토리얼을 강제 재생하지 않음
+	CurrentRequest.bForceScenePlayback = false;
+	CurrentRequest.bTutorialOnly = false;
 	StartGameFlow(CurrentRequest);
 
 }

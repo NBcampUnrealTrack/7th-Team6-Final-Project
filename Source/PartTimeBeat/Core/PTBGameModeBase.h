@@ -85,6 +85,13 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Game State")
 	FOnGameStarted OnGameStarted;
 
+	/**
+	 * 튜토리얼 연습 한 판 시작 직전 (본게임 시작 OnGameStarted는 연습에서 호출되지 않음).
+	 * OnGameStarted에서 HUD/판정 UI를 만드는 레벨 BP는 같은 이벤트를 여기에도 바인딩하면 연습 중에도 보임.
+	 */
+	UPROPERTY(BlueprintAssignable, Category = "PTB|Scene")
+	FOnGameStarted OnTutorialPracticeStarted;
+
 	// 2) 게임 종료 시 결과 전달과 함께 호출
 	UPROPERTY(BlueprintAssignable, Category = "Game State")
 	FOnGameEnded OnGameEnded;

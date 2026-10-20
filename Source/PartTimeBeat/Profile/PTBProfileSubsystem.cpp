@@ -442,6 +442,39 @@ void UPTBProfileSubsystem::MarkStoryViewed(FName StoryId)
     RequestSave();
 }
 
+bool UPTBProfileSubsystem::HasSeenScene(FName SceneKey, int32 Version) const
+{
+    const FPTBProfileData* Active = FindActiveProfileConst();
+    if (!Active || SceneKey.IsNone())
+    {
+        return false;
+    }
+
+    const int32* SeenVersion = Active->SeenSceneVersions.Find(SceneKey);
+    return SeenVersion && *SeenVersion >= Version;
+}
+
+void UPTBProfileSubsystem::MarkSceneSeen(FName SceneKey, int32 Version)
+{
+    FPTBProfileData* Active = FindActiveProfileMutable();
+    if (!Active || SceneKey.IsNone())
+    {
+        PTB_WARNING(LogPTBProfile, TEXT("MarkSceneSeen skipped: no active profile or empty key (%s)"), *SceneKey.ToString());
+        return;
+    }
+
+    int32& SeenVersion = Active->SeenSceneVersions.FindOrAdd(SceneKey, -1);
+    if (Version <= SeenVersion)
+    {
+        return;
+    }
+
+    SeenVersion = Version;
+    RequestSave();
+
+    PTB_RECORD(LogPTBProfile, TEXT("MarkSceneSeen: key=%s version=%d"), *SceneKey.ToString(), Version);
+}
+
 void UPTBProfileSubsystem::SetHubReturnTransform(const FTransform& InTransform, bool bSaveToDisk)
 {
     FPTBProfileData* Active = FindActiveProfileMutable();

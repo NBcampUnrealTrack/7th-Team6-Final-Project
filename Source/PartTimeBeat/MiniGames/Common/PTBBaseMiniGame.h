@@ -3,10 +3,14 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "Core/PTBStructEnums.h"
+#include "MiniGames/Common/PTBMiniGameIntroData.h"
 #include "TimerManager.h"
 #include "PTBBaseMiniGame.generated.h"
 
 class UPTBMiniGameRuleSet;
+class UPTBSceneWidgetBase;
+class UDataTable;
+class USoundBase;
 class UPTBWwiseEventMapAsset;
 class UPTBWwiseAudioManager;
 class UPTBWwiseRhythmSyncComponent;
@@ -25,6 +29,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE(FPTBOnMiniGameStarted);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FPTBMiniGameNoteDelegate, FPTBNoteEvent, Note);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FPTBMiniGameJudgementDelegate, FPTBJudgementResult, Result);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FPTBMiniGameOutroDelegate, FPTBRoundResult, Result, EPTBRoundEndReason, EndReason);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FPTBMiniGameScenePhaseDelegate, EPTBMiniGameScenePhase, Phase);
 
 struct FPTBActiveHoldState
 {
@@ -78,6 +83,53 @@ public:
 	/** 직접 PIE 테스트에 사용할 플레이 모드 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|MiniGame|PIE Test")
 	EPTBPlayMode DirectPIEPlayMode = EPTBPlayMode::Single;
+
+	/**
+	 * 스토리/튜토리얼 데이터.
+	 * 비어 있거나 시작 스토리/튜토리얼 테이블이 비었으면 GameInstance.DefaultIntroData(공용 템플릿) 사용.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|Scene")
+	TObjectPtr<UPTBMiniGameIntroData> IntroData;
+
+	/** 씬 단계(시작 스토리/튜토리얼/시작 대기/결과 직전 스토리) 변경 */
+	UPROPERTY(BlueprintAssignable, Category = "PTB|Scene")
+	FPTBMiniGameScenePhaseDelegate OnScenePhaseChanged;
+
+	/** 현재 씬 단계 */
+	UFUNCTION(BlueprintPure, Category = "PTB|Scene")
+	EPTBMiniGameScenePhase GetScenePhase() const { return ScenePhase; }
+
+	/** 씬 위젯 종료 알림 (UPTBSceneWidgetBase::FinishScene에서 호출). 시청 기록 후 다음 단계로 진행 */
+	UFUNCTION(BlueprintCallable, Category = "PTB|Scene")
+	void NotifySceneFinished(bool bSkipped);
+
+	/**
+	 * 튜토리얼 연습 한 판 시작 (튜토리얼 위젯에서 호출).
+	 * 스텝의 패턴으로 짧은 채보를 만들어 실제 미니게임으로 재생. 끝나면 씬 위젯의 HandlePracticeFinished 호출.
+	 * 연습 결과는 점수/결과/진행도에 반영되지 않음.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "PTB|Scene")
+	bool StartTutorialPractice(const FPTBTutorialStep& Step);
+
+	/** 튜토리얼 연습 진행 중인지 */
+	UFUNCTION(BlueprintPure, Category = "PTB|Scene")
+	bool IsTutorialPracticeActive() const { return bTutorialPracticeActive; }
+
+	/** 확인 입력(Enter/Space)을 씬 위젯에 전달. 씬 재생 중이고 처리됐으면 true (PlayerController에서 호출) */
+	bool HandleSceneConfirmInput();
+
+	/**
+	 * BP 미니게임: 튜토리얼 연습 한 판 시작 직전.
+	 * 본게임 시작(Intro Started 등)에서 만들던 HUD/판정 UI를 여기서도 만들어야 연습 중에 보임.
+	 */
+	UFUNCTION(BlueprintNativeEvent, Category = "PTB|Scene")
+	void ReceiveTutorialPracticeStarted();
+	virtual void ReceiveTutorialPracticeStarted_Implementation();
+
+	/** BP 미니게임: 튜토리얼 연습 한 판 종료 */
+	UFUNCTION(BlueprintNativeEvent, Category = "PTB|Scene")
+	void ReceiveTutorialPracticeFinished(bool bPassed);
+	virtual void ReceiveTutorialPracticeFinished_Implementation(bool bPassed);
 
 	/** 미니게임 종료 결과 */
 	UPROPERTY(BlueprintAssignable, Category = "PTB|MiniGame")
@@ -219,6 +271,11 @@ public:
 	void ReceiveOutroFinished(FPTBRoundResult Result, EPTBRoundEndReason EndReason);
 	virtual void ReceiveOutroFinished_Implementation(FPTBRoundResult Result, EPTBRoundEndReason EndReason);
 
+	/** BP 미니게임에서 씬 단계 변경 시점을 확장합니다. (예: 튜토리얼 중 캐릭터 대기 모션) */
+	UFUNCTION(BlueprintNativeEvent, Category = "PTB|Scene")
+	void ReceiveScenePhaseChanged(EPTBMiniGameScenePhase Phase);
+	virtual void ReceiveScenePhaseChanged_Implementation(EPTBMiniGameScenePhase Phase);
+
 protected:
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaTime) override;
@@ -345,6 +402,106 @@ protected:
 
 	/** 결과 전달 대기 중인 종료 사유 */
 	EPTBRoundEndReason PendingEndReason = EPTBRoundEndReason::Completed;
+
+	// ── 스토리/튜토리얼 씬 ─────────────────────────────────────────
+
+	/** 현재 씬 단계 */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PTB|Scene")
+	EPTBMiniGameScenePhase ScenePhase = EPTBMiniGameScenePhase::None;
+
+	/** 표시 중인 씬 위젯 */
+	UPROPERTY()
+	TObjectPtr<UPTBSceneWidgetBase> ActiveSceneWidget;
+
+	/** 이번 라운드는 본 적 있어도 씬 재생 (다시보기) */
+	bool bForceScenePlayback = false;
+
+	/** 튜토리얼만 보기 모드: 스토리/본게임 없이 튜토리얼 후 미니게임 선택 화면으로 */
+	bool bTutorialOnlyMode = false;
+
+	/** 튜토리얼만 보기 종료 → 미니게임 선택 화면 */
+	void ExitTutorialOnly();
+
+	/** 로딩 완료 후 시작 스토리 → 튜토리얼 → 시작 대기 순으로 진행 */
+	void BeginIntroScenes();
+
+	/** 현재 단계 다음의 시작 씬을 재생하거나, 없으면 시작 대기(HandleReadyToStart)로 */
+	void AdvanceIntroScenes();
+
+	/** 해당 단계 씬을 재생할 수 있으면 위젯 띄우고 true */
+	bool TryPlayScene(EPTBMiniGameScenePhase Phase);
+
+	/** 재생 조건 (본 적 있음/버전/클리어 여부). 미니게임별로 조건을 바꾸려면 override */
+	virtual bool ShouldPlayScene(EPTBMiniGameScenePhase Phase) const;
+
+	/** 해당 단계 내용을 가진 IntroData (미니게임 전용 → 공용 템플릿 순). 없으면 nullptr */
+	const UPTBMiniGameIntroData* ResolveSceneData(EPTBMiniGameScenePhase Phase) const;
+
+	/** 해당 단계 위젯 클래스 (GameInstance 설정) */
+	TSubclassOf<UPTBSceneWidgetBase> ResolveSceneWidgetClass(EPTBMiniGameScenePhase Phase) const;
+
+	/** 시청 기록 키에 쓸 미니게임 ID */
+	FName ResolveSceneMiniGameId() const;
+
+	/** 단계 변경 + 델리게이트/BP 이벤트 */
+	void SetScenePhase(EPTBMiniGameScenePhase NewPhase);
+
+	/** 씬 위젯 제거 */
+	void CloseActiveSceneWidget();
+
+	/** 로딩 위젯 숨김/복구 (씬 재생 중에는 숨김) */
+	void SetLoadingWidgetHidden(bool bShouldHide);
+
+	/** 결과 델리게이트 전달 (결과 직전 스토리 이후 또는 즉시) */
+	void DispatchMiniGameFinished();
+
+	// ── 튜토리얼 연습 ─────────────────────────────────────────────
+
+	/** 연습 라운드 진행 중 */
+	bool bTutorialPracticeActive = false;
+
+	/** 연습용 임시 채보 */
+	UPROPERTY(Transient)
+	TObjectPtr<UPTBRhythmChartAsset> TutorialPracticeChart;
+
+	/** 연습 동안 잠시 빼둔 본게임 채보 */
+	UPROPERTY(Transient)
+	TObjectPtr<UPTBRhythmChartAsset> SavedMainChartAsset;
+
+	FPTBChartData SavedMainChartData;
+
+	/** 연습 중 노트 타이밍 소리 / 메트로놈 소리 */
+	UPROPERTY(Transient)
+	TObjectPtr<USoundBase> PracticeNoteSound;
+
+	UPROPERTY(Transient)
+	TObjectPtr<USoundBase> PracticeMetronomeSound;
+
+	int32 PracticeTotalNotes = 0;
+	int32 PracticeRequiredHits = 0;
+	FName PracticeMetronomeSFXKey = NAME_None;
+
+	/** 스텝 패턴(또는 지정 채보)으로 연습 채보 생성 */
+	UPTBRhythmChartAsset* BuildTutorialPracticeChart(const FPTBTutorialStep& Step);
+
+	/** 연습 한 판 종료 처리: 통과 판정, 본게임 채보 복구, 위젯에 결과 전달 */
+	void CompleteTutorialPractice(EPTBRoundEndReason Reason);
+
+	/** 판정/점수 상태를 새 라운드 시작 전으로 초기화 */
+	void ResetRoundStateForReplay();
+
+	/**
+	 * 라운드 채보가 바뀐 직후 호출 (튜토리얼 연습 시작 / 연습 끝나고 본게임 채보 복구).
+	 * 하위 미니게임은 채보 기반으로 미리 계산한 값, NoteId 기반 중복 방지 목록, 예약 타이머 등을 여기서 다시 맞출 것.
+	 */
+	virtual void HandleRoundChartChanged();
+
+	/** 연습 채보 NoteId가 회차마다 겹치지 않도록 쓰는 카운터 */
+	int32 PracticeRunCounter = 0;
+
+	/** 연습 중 매 박 메트로놈 */
+	UFUNCTION()
+	void HandlePracticeBeatTick(float Beat);
 
 	/** 라운드 시작 전 에셋 준비(하위 override 권장) */
 	virtual void PreloadAssets();

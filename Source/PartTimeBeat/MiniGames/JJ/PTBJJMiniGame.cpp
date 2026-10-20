@@ -74,6 +74,33 @@ void APTBJJMiniGame::BuildRuntimeState()
 		ActiveAirtimeProfile.RatioJitter);
 }
 
+void APTBJJMiniGame::HandleRoundChartChanged()
+{
+	Super::HandleRoundChartChanged();
+
+	// 이전 채보 기준으로 걸어둔 점프 예약 취소
+	if (UWorld* World = GetWorld())
+	{
+		for (FTimerHandle& TimerHandle : PendingJumpTimers)
+		{
+			World->GetTimerManager().ClearTimer(TimerHandle);
+		}
+	}
+	PendingJumpTimers.Reset();
+
+	// NoteId 기반 중복 방지/추적 목록 초기화 (연습 채보는 회차마다 다시 재생됨)
+	ScheduledJumpNoteIds.Reset();
+	CuedNotes.Reset();
+	ArmedNotes.Reset();
+	ReachedNotes.Reset();
+	JumpCount = 0;
+	LandingCount = 0;
+	CueCount = 0;
+
+	// 현재 채보 기준으로 체공시간 재계산
+	PrecomputeAirtimes();
+}
+
 void APTBJJMiniGame::HandleNoteCue(FPTBNoteEvent Note)
 {
 	Super::HandleNoteCue(Note);
