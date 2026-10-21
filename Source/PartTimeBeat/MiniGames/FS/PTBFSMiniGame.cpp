@@ -602,7 +602,9 @@ void APTBFSMiniGame::GetKeyGuideMotion(int32 KeyIndex, float VisualTimeMs, int32
 {
 	OutFromLane = OutToLane = FMath::Clamp(KeyIndex, 0, 2);
 	OutAlpha = 1.0f;
-	if (!bKeyShuffleActive || KeySegments.Num() <= 1)
+	// 라운드 진행 중이 아닐 때(연습 끝난 뒤 Press Any Key 대기 등)는 기본 배치로 표시
+	// → 이전 연습의 재생 시간이 남아 있어도 섞인 배치가 보이지 않도록
+	if (!bKeyShuffleActive || KeySegments.Num() <= 1 || (!bIsRoundActive && !bStartSequenceActive))
 	{
 		return;
 	}
