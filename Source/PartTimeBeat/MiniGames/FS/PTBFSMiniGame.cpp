@@ -262,6 +262,12 @@ void APTBFSMiniGame::InitializeMiniGame(const FPTBMiniGameContext& Context)
 
 void APTBFSMiniGame::OnAllNotesPassedFishing()
 {
+	// 튜토리얼 연습 채보가 끝난 것 → 본게임 결과 연출(성공/실패 시퀀스, HUD 제거)을 돌리면 안 됨
+	if (IsTutorialPracticeActive())
+	{
+		return;
+	}
+
 	OnFishRevealed.Broadcast(FishActor);
 	if (FishDistance <= 0.5f)
 	{
@@ -387,6 +393,23 @@ void APTBFSMiniGame::HandleRoundChartChanged()
 {
 	Super::HandleRoundChartChanged();
 	RebuildKeyShuffleSchedule();
+
+	// 연습 ↔ 본게임 전환 시 물고기 거리/콤보 초기화 (연습 결과가 본게임에 남지 않도록)
+	const int32 TotalNoteCount = ChartAsset ? ChartAsset->NoteEvents.Num() : 0;
+	StepDistance = TotalNoteCount > 0 ? 1.0f / TotalNoteCount : 0.0f;
+	FishDistance = 1.0f;
+	CorrectCount = 0;
+	MovingCount = 0;
+	CurrentComboCount = 0;
+	FishLateralOffset = FVector::ZeroVector;
+	CurrentLineState = CalculateLineState(FishDistance);
+	OnFishDistanceChanged.Broadcast(FishDistance);
+	OnFishingLineStateChanged.Broadcast(CurrentLineState);
+	OnFishingComboChanged.Broadcast(CurrentComboCount);
+	if (FishActor)
+	{
+		FishActor->SetTargetLocation(FMath::Lerp(CharacterLocation, FishStartLocation, FishDistance));
+	}
 }
 
 // ───────────────────────── 키 셔플 ─────────────────────────
