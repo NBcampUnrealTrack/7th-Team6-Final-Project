@@ -115,7 +115,11 @@ void APTBBBMiniGame::OnFadeFinished()
 	}
 
 	// 마지막 노트까지 판정이 모두 끝난 시점 — 이때의 보스 체력으로 처치 여부를 최종 확정한다.
-	ConfirmBossDefeatIfNeeded();
+	// HP 미사용이면 보스 쓰러짐 없음
+	if (IsHPEnabled())
+	{
+		ConfirmBossDefeatIfNeeded();
+	}
 
 	// Failed는 플레이어 체력 0(HandleJudgementResult)에서만 발생한다.
 	// 채보를 끝까지 마쳤다면 목표 점수/보스 체력과 무관하게 항상 정상 종료로 처리하고,
@@ -146,6 +150,13 @@ void APTBBBMiniGame::BuildRuntimeState()
 	CachedDamageTakenOnMiss = Config.DamageTakenOnMiss;
 	CachedTargetScore       = Config.TargetScore;
 
+	ResetHPForCurrentChart();
+}
+
+void APTBBBMiniGame::ResetHPForCurrentChart()
+{
+	const UPTBBBMiniGameRuleSet* BBRuleSet = GetBBRuleSet();
+
 	// HP 초기화
 	PlayerMaxHP     = BBRuleSet ? BBRuleSet->PlayerMaxHP : 100.f;
 	PlayerCurrentHP = PlayerMaxHP;
@@ -173,6 +184,21 @@ void APTBBBMiniGame::BuildRuntimeState()
 		HittableCount, CachedDamagePerParry, BossMaxHP);
 
 	BossCurrentHP = BossMaxHP;
+	OnBBBossHPChanged.Broadcast(BossCurrentHP, BossMaxHP);
+	OnBBPlayerHPChanged.Broadcast(PlayerCurrentHP, PlayerMaxHP);
+}
+
+void APTBBBMiniGame::HandleRoundChartChanged()
+{
+	Super::HandleRoundChartChanged();
+	ResetHPForCurrentChart();
+}
+
+bool APTBBBMiniGame::IsHPEnabled() const
+{
+	const UPTBBBMiniGameRuleSet* BBRuleSet = GetBBRuleSet();
+	const bool bRuleSetUsesHP = !BBRuleSet || BBRuleSet->bUseHP;
+	return bRuleSetUsesHP && !IsTutorialPracticeActive();
 }
 
 void APTBBBMiniGame::PreloadAudioAssets()
@@ -215,7 +241,11 @@ void APTBBBMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 	// Miss(놓침, 조기 해제 포함) → 플레이어 데미지
 	if (Result.JudgementType == EPTBJudgementType::Miss)
 	{
-		ApplyPlayerDamage(CachedDamageTakenOnMiss);
+		// HP 미사용(설정 또는 튜토리얼 연습)이면 데미지 없이 피격 모션만 (HP%가 1이라 쓰러지지 않음)
+		if (IsHPEnabled())
+		{
+			ApplyPlayerDamage(CachedDamageTakenOnMiss);
+		}
 		OnBBParryFail.Broadcast(Result, GetPlayerHPPercent());
 
 		if (MissCameraShakeClass)
@@ -227,7 +257,7 @@ void APTBBBMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 		}
 
 		// 플레이어 HP 0 실패 처리 (RuleSet 옵션이 켜져 있을 때만)
-		if (PlayerCurrentHP <= 0.f && !bPendingRoundFinish)
+		if (IsHPEnabled() && PlayerCurrentHP <= 0.f && !bPendingRoundFinish)
 		{
 			const UPTBBBMiniGameRuleSet* BBRuleSet = GetBBRuleSet();
 			if (BBRuleSet && BBRuleSet->bFailOnPlayerHPDepleted)
@@ -239,7 +269,11 @@ void APTBBBMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 	else
 	{
 		// HighPerfect / Perfect / Good → 패링 성공 → 보스 데미지
-		ApplyBossDamage(CachedDamagePerParry);
+		// HP 미사용이면 데미지 없이 공격/피격 모션만
+		if (IsHPEnabled())
+		{
+			ApplyBossDamage(CachedDamagePerParry);
+		}
 		OnBBParrySuccess.Broadcast(Result, GetBossHPPercent());
 	}
 }
@@ -279,7 +313,8 @@ FPTBRoundResult APTBBBMiniGame::FinishMiniGame(EPTBRoundEndReason Reason)
 {
 	// Aborted(재시작 등 중도 종료)는 채보를 끝까지 마친 게 아니므로 보스 처치 판정을 하지 않는다 —
 	// 안 그러면 미스 관용치 안에서 재시작할 때마다 보스가 처치 연출(랙돌)로 전환돼 버린다.
-	if (Reason != EPTBRoundEndReason::Aborted)
+	// HP 미사용(설정 또는 튜토리얼 연습)이면 보스 쓰러짐 없음
+	if (Reason != EPTBRoundEndReason::Aborted && IsHPEnabled())
 	{
 		ConfirmBossDefeatIfNeeded();
 	}

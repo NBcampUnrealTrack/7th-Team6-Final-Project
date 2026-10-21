@@ -92,6 +92,10 @@ public:
 	UFUNCTION(BlueprintPure, Category = "PTB|BB|HP")
 	float GetBossHPPercent() const;
 
+	/** HP 시스템이 지금 동작 중인지 (RuleSet bUseHP && 튜토리얼 연습 아님). HUD HP 바 표시 여부에 사용 */
+	UFUNCTION(BlueprintPure, Category = "PTB|BB|HP")
+	bool IsHPEnabled() const;
+
 	UFUNCTION(BlueprintPure, Category = "PTB|BB|HP")
 	float GetPlayerHP() const { return PlayerCurrentHP; }
 
@@ -162,6 +166,12 @@ protected:
 	 * 먼저 라운드를 끝내더라도, 이 함수가 유일한 공통 진입점이므로 여기서 안전하게 처리한다.)
 	 */
 	virtual FPTBRoundResult FinishMiniGame(EPTBRoundEndReason Reason)  override;
+
+	/** 튜토리얼 연습 ↔ 본게임 채보 전환 시 HP/데미지 재계산 */
+	virtual void HandleRoundChartChanged()                             override;
+
+	/** 현재 채보 기준으로 HP 초기화 + 패링당 데미지 계산 */
+	void ResetHPForCurrentChart();
 
 private:
 	/** BBRuleSet 캐스팅 헬퍼 */
