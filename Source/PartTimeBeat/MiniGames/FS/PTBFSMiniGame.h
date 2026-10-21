@@ -130,6 +130,20 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Fishing|Input")
 	void HandleActionCInputReleased();
 	
+	/**
+	 * 키 안내 UI용: KeyIndex(0=A,1=B,2=C) 키가 VisualTimeMs 시점에 어느 칸(0=왼,1=가운데,2=오른쪽)에 있는지.
+	 * 교체 연출 중이면 FromLane→ToLane, Alpha 0~1. 연출 중이 아니면 From=To, Alpha=1
+	 */
+	UFUNCTION(BlueprintPure, Category = "Fishing|KeyShuffle")
+	void GetKeyGuideMotion(int32 KeyIndex, float VisualTimeMs, int32& OutFromLane, int32& OutToLane, float& OutAlpha) const;
+
+	/** 키 셔플 기믹이 이번 판에 켜져 있는지 */
+	UFUNCTION(BlueprintPure, Category = "Fishing|KeyShuffle")
+	bool IsKeyShuffleActive() const { return bKeyShuffleActive; }
+
+	virtual void HandleRhythmInput(EPTBActionType Action, float TimeMs = -1.0f) override;
+	virtual void HandleRhythmInputReleased(EPTBActionType Action, float TimeMs = -1.0f) override;
+
 	TObjectPtr<UPTBWwiseRhythmSyncComponent> GetUPTBWwiseRhythmSyncComponent()
 	{
 		return RhythmSyncComponent;
@@ -153,6 +167,9 @@ protected:
 	virtual void InitializeMiniGame(const FPTBMiniGameContext& Context)override;
 	
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+
+	/** 튜토리얼 연습 ↔ 본게임 채보 전환 시 키 셔플 일정 재계산 */
+	virtual void HandleRoundChartChanged() override;
 	
 	UPROPERTY(EditDefaultsOnly, Category = "UI")
 	TSubclassOf<UFSWidget> WidgetClass;
@@ -193,7 +210,32 @@ private:
 	
 	FVector FishLateralOffset = FVector::ZeroVector;
 	
-	FPTBRhythmKeyBindings OriginalKeyBindings;
+	// ── 키 셔플 ──
+	struct FFSKeySegment
+	{
+		/** KeyForLane[칸] = 그 칸을 맞추는 키 (0=A,1=B,2=C) */
+		int32 KeyForLane[3] = { 0, 1, 2 };
+		/** 이전 구간 배치 → 이 구간 배치로 바뀌는 연출 구간 (차트 시간 ms) */
+		float SwapStartMs = TNumericLimits<float>::Lowest();
+		float SwapEndMs = TNumericLimits<float>::Lowest();
+		bool bHasSwap = false;
+	};
+
+	/** 이번 채보 기준으로 구간별 키 배치/교체 연출 시간 계산 (항상 같은 결과) */
+	void RebuildKeyShuffleSchedule();
+
+	/** 노트 박자 → 구간 인덱스 */
+	int32 GetKeySegmentIndex(float BeatTime) const;
+
+	/** 해당 구간에서 키가 있는 칸 */
+	int32 GetLaneOfKey(int32 SegmentIndex, int32 KeyIndex) const;
+
+	TArray<FFSKeySegment> KeySegments;
+	float KeySegmentBeats = 4.0f;
+	bool bKeyShuffleActive = false;
+
+	/** 누른 키(0~2)가 실제로 판정에 넘긴 칸 (롱노트 떼기용) */
+	int32 HeldLaneByKey[3] = { INDEX_NONE, INDEX_NONE, INDEX_NONE };
 	
 	int32 CurrentComboCount = 0;
 	
