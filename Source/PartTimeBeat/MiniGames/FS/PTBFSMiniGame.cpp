@@ -461,11 +461,16 @@ void APTBFSMiniGame::RebuildKeyShuffleSchedule()
 	}
 
 	const bool bPracticeChart = TutorialPracticeChart && Chart == TutorialPracticeChart.Get();
-	if (bPracticeChart && !Rule->bKeyShuffleInPractice)
+	if (bPracticeChart)
 	{
-		return;
+		// 튜토리얼: PracticeTag = KeyShuffle 인 연습 스텝만 (난이도 무관, 튜토리얼만 다시 보기는 Easy라서)
+		static const FName KeyShuffleTag(TEXT("KeyShuffle"));
+		if (!Rule->bKeyShuffleInPractice && GetActivePracticeTag() != KeyShuffleTag)
+		{
+			return;
+		}
 	}
-	if (!Rule->KeyShuffleDifficulties.Contains(GameContext.SessionRequest.Difficulty))
+	else if (!Rule->KeyShuffleDifficulties.Contains(GameContext.SessionRequest.Difficulty))
 	{
 		return;
 	}
@@ -506,6 +511,8 @@ void APTBFSMiniGame::RebuildKeyShuffleSchedule()
 	}
 
 	float PrevLastMs = LastMs[0];
+	// 노트가 처음 나오는 구간은 기본 배치로 시작 (앞에 빈 마디/연습 대기 박자가 있어도 첫 마디는 익숙한 배치)
+	bool bSeenNotes = FirstMs[0] < TNumericLimits<float>::Max();
 	for (int32 Seg = 1; Seg <= MaxSegment; ++Seg)
 	{
 		FFSKeySegment& NewSegment = KeySegments.AddDefaulted_GetRef();
@@ -519,8 +526,13 @@ void APTBFSMiniGame::RebuildKeyShuffleSchedule()
 		}
 
 		const bool bHasNotes = FirstMs[Seg] < TNumericLimits<float>::Max();
-		if (!bHasNotes)
+		if (!bHasNotes || !bSeenNotes)
 		{
+			bSeenNotes |= bHasNotes;
+			if (bHasNotes)
+			{
+				PrevLastMs = LastMs[Seg];
+			}
 			FMemory::Memcpy(NewSegment.KeyForLane, PrevSegment.KeyForLane, sizeof(NewSegment.KeyForLane));
 			continue;
 		}
