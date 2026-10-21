@@ -1557,6 +1557,15 @@ void APTBBaseMiniGame::SetScenePhase(EPTBMiniGameScenePhase NewPhase)
 	ScenePhase = NewPhase;
 	OnScenePhaseChanged.Broadcast(NewPhase);
 	ReceiveScenePhaseChanged(NewPhase);
+
+	// 튜토리얼 시작: 레벨 BP가 카메라/HUD를 미리 준비할 수 있도록
+	if (NewPhase == EPTBMiniGameScenePhase::Tutorial)
+	{
+		if (APTBGameModeBase* GM = GetWorld() ? GetWorld()->GetAuthGameMode<APTBGameModeBase>() : nullptr)
+		{
+			GM->OnTutorialStarted.Broadcast();
+		}
+	}
 }
 
 void APTBBaseMiniGame::NotifySceneFinished(bool bSkipped)
