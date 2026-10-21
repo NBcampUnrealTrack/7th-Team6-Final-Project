@@ -263,7 +263,9 @@ void APTBFSMiniGame::InitializeMiniGame(const FPTBMiniGameContext& Context)
 void APTBFSMiniGame::OnAllNotesPassedFishing()
 {
 	// 튜토리얼 연습 채보가 끝난 것 → 본게임 결과 연출(성공/실패 시퀀스, HUD 제거)을 돌리면 안 됨
-	if (IsTutorialPracticeActive())
+	// 마지막 노트를 일찍 맞히면 base의 HandleAllNotesPassed가 먼저 실행돼 연습이 이미 종료(IsTutorialPracticeActive=false)된
+	// 상태로 여기 들어오므로, 튜토리얼 단계인지도 같이 확인 (본게임은 Ready/None 단계에서 진행)
+	if (IsTutorialPracticeActive() || GetScenePhase() == EPTBMiniGameScenePhase::Tutorial)
 	{
 		return;
 	}
