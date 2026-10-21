@@ -145,11 +145,12 @@ void APTBFSMiniGame::HandleNoteArm(FPTBNoteEvent Note)
 	case EPTBActionType::ActionA:
 		Offset = FVector(0, -200, 0);
 		break;
+	// 키 배치(A 왼쪽 / B 가운데 / C 오른쪽)와 화면 위치를 맞춤: B = 위(가운데), C = 오른쪽
 	case EPTBActionType::ActionB:
-		Offset = FVector(0, 200, 0);
+		Offset = FVector(0, 0, 150);
 		break;
 	case EPTBActionType::ActionC:
-		Offset = FVector(0, 0, 150);
+		Offset = FVector(0, 200, 0);
 		break;
 	default:
 		break;

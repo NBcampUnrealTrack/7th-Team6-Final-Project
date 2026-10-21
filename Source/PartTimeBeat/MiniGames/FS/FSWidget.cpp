@@ -22,13 +22,13 @@ void UFSWidget::OnNoteEvent(EPTBActionType Action, bool bLongNote, float InTarge
 		ArrowStateB.TargetTimeMs = InTargetTimeMs;
 		ArrowStateB.CueLeadTimeMs = InCueLeadTimeMs;
 		ArrowStateB.bIsActive = true;
-		if (ArrowRight) ArrowRight->SetVisibility(ESlateVisibility::Visible);
+		if (ArrowUp) ArrowUp->SetVisibility(ESlateVisibility::Visible);
 	}
 	else if (Action == EPTBActionType::ActionC) {
 		ArrowStateC.TargetTimeMs = InTargetTimeMs;
 		ArrowStateC.CueLeadTimeMs = InCueLeadTimeMs;
 		ArrowStateC.bIsActive = true;
-		if (ArrowUp) ArrowUp->SetVisibility(ESlateVisibility::Visible);
+		if (ArrowRight) ArrowRight->SetVisibility(ESlateVisibility::Visible);
 	}
 }
 
@@ -54,6 +54,7 @@ void UFSWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 	};
 
 	UpdateArrow(ArrowStateA, ArrowLeft,  FVector2D(100, 540),  FVector2D(760, 540));
-	UpdateArrow(ArrowStateB, ArrowRight, FVector2D(1820, 540), FVector2D(1160, 540));
-	UpdateArrow(ArrowStateC, ArrowUp,    FVector2D(960, 100),  FVector2D(960, 540));
+	// B = 가운데(위에서 내려옴), C = 오른쪽 (키 배치 A/B/C = 왼/가운데/오른쪽에 맞춤)
+	UpdateArrow(ArrowStateB, ArrowUp,    FVector2D(960, 100),  FVector2D(960, 540));
+	UpdateArrow(ArrowStateC, ArrowRight, FVector2D(1820, 540), FVector2D(1160, 540));
 }		
