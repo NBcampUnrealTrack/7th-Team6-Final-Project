@@ -123,7 +123,8 @@ void APTBFSMiniGame::HandleNoteCue(FPTBNoteEvent Note)
 	{
 		ActualLeadTime = RhythmConductor->CueLeadTimeMs;
 	}
-	OnFishingPromptCue.Broadcast(Note.ActionType, Note.bIsLongNote, Note.TimeMs, ActualLeadTime);
+	// 키 셔플: 노트는 "누를 키" 기준, 화면 칸은 그 노트 구간에서 그 키가 있는 칸
+	OnFishingPromptCue.Broadcast(GetVisualAction(Note), Note.bIsLongNote, Note.TimeMs, ActualLeadTime);
 	MovingCount++;
 }
 
@@ -133,15 +134,16 @@ void APTBFSMiniGame::HandleNoteArm(FPTBNoteEvent Note)
 	Super::HandleNoteArm(Note);
 	if (!FishActor) return;
 
-	OnFishingPromptReleased.Broadcast(Note.ActionType);
-	OnFishingPromptShown.Broadcast(Note.ActionType, Note.bIsLongNote);
+	const EPTBActionType VisualAction = GetVisualAction(Note);
+	OnFishingPromptReleased.Broadcast(VisualAction);
+	OnFishingPromptShown.Broadcast(VisualAction, Note.bIsLongNote);
 	FishLateralOffset = FVector::ZeroVector;
 	FVector BaseLoc = FMath::Lerp(CharacterLocation, FishStartLocation, FishDistance);
 	FishActor->SetTargetLocation(BaseLoc);
 
 
 	FVector Offset = FVector::ZeroVector;
-	switch (Note.ActionType)
+	switch (VisualAction)
 	{
 	case EPTBActionType::ActionA:
 		Offset = FVector(0, -200, 0);
@@ -179,7 +181,7 @@ void APTBFSMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 	if (Result.Reason == EPTBJudgementReason::EarlyRelease)
 	{
 		OnFishSlipped.Broadcast(1.0f);
-		OnFishingPromptReleased.Broadcast(Result.ActionType);
+		OnFishingPromptReleased.Broadcast(GetVisualActionForNoteId(Result.NoteId, Result.ActionType));
 		return;
 	}
 	switch (Result.JudgementType)
@@ -187,7 +189,7 @@ void APTBFSMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 	case EPTBJudgementType::HighPerfect:
 		FishLateralOffset = FVector::ZeroVector;
 		ApplyDistanceDelta(-StepDistance * 1.0f);
-		OnFishingPromptReleased.Broadcast(Result.ActionType);
+		OnFishingPromptReleased.Broadcast(GetVisualActionForNoteId(Result.NoteId, Result.ActionType));
 		OnFishPulled.Broadcast(2.0f);
 		Character->OnPlayRealAnimMontage();
 		OnFishingJudgement.Broadcast(Result.JudgementType);
@@ -198,7 +200,7 @@ void APTBFSMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 	case EPTBJudgementType::Perfect:
 		FishLateralOffset = FVector::ZeroVector;
 		ApplyDistanceDelta(-StepDistance * 1.0f);
-		OnFishingPromptReleased.Broadcast(Result.ActionType);
+		OnFishingPromptReleased.Broadcast(GetVisualActionForNoteId(Result.NoteId, Result.ActionType));
 		OnFishPulled.Broadcast(2.0f);
 		Character->OnPlayRealAnimMontage();
 		OnFishingJudgement.Broadcast(Result.JudgementType);
@@ -209,7 +211,7 @@ void APTBFSMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 	case EPTBJudgementType::Good:
 		FishLateralOffset = FVector::ZeroVector;
 		ApplyDistanceDelta(-StepDistance * 1.0f);
-		OnFishingPromptReleased.Broadcast(Result.ActionType);
+		OnFishingPromptReleased.Broadcast(GetVisualActionForNoteId(Result.NoteId, Result.ActionType));
 		OnFishPulled.Broadcast(2.0f);
 		Character->OnPlayRealAnimMontage();
 		OnFishingJudgement.Broadcast(Result.JudgementType);
@@ -221,7 +223,7 @@ void APTBFSMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 		PTB_WARNING(LogPTBMiniGames, TEXT("[FS] Miss Reason: %d"), static_cast<int32>(Result.Reason));
 		FishLateralOffset = FVector::ZeroVector;
 		FishActor->SetTargetLocation(FMath::Lerp(CharacterLocation, FishStartLocation, FishDistance));
-		OnFishingPromptReleased.Broadcast(Result.ActionType);
+		OnFishingPromptReleased.Broadcast(GetVisualActionForNoteId(Result.NoteId, Result.ActionType));
 		if (Result.Reason == EPTBJudgementReason::ExpiredNote)
 		{
 			ApplyDistanceDelta(StepDistance * 1.0f);
@@ -473,10 +475,6 @@ void APTBFSMiniGame::RebuildKeyShuffleSchedule()
 	KeySegments.Reset();
 	KeySegments.AddDefaulted(1); // 0번 구간 = 기본 배치
 	bKeyShuffleActive = false;
-	for (int32& Lane : HeldLaneByKey)
-	{
-		Lane = INDEX_NONE;
-	}
 
 	const UPTBFSMiniGameRuleSet* Rule = FishRuleSet ? FishRuleSet.Get() : Cast<UPTBFSMiniGameRuleSet>(RuleSet);
 	const UPTBRhythmChartAsset* Chart = ChartAsset.Get();
@@ -655,70 +653,29 @@ void APTBFSMiniGame::GetKeyGuideMotion(int32 KeyIndex, float VisualTimeMs, int32
 	}
 }
 
-void APTBFSMiniGame::HandleRhythmInput(EPTBActionType Action, float TimeMs)
+EPTBActionType APTBFSMiniGame::GetVisualAction(const FPTBNoteEvent& Note) const
 {
-	const int32 KeyIndex = FSKeyShuffle::ActionToIndex(Action);
-	if (!bKeyShuffleActive || KeyIndex == INDEX_NONE || !JudgementSystem || !CanAcceptInput())
-	{
-		Super::HandleRhythmInput(Action, TimeMs);
-		return;
-	}
-
-	// 누른 키로 맞출 수 있는 노트 = 각 칸의 대기 노트 중 "그 노트 구간에서 이 키가 그 칸"인 것
-	const float JudgeTimeMs = TimeMs >= 0.0f ? TimeMs : GetCurrentInputJudgeTimeMs();
-	int32 BestLane = INDEX_NONE;
-	float BestDelta = TNumericLimits<float>::Max();
-	bool bAnyPending = false;
-	for (int32 Lane = 0; Lane < 3; ++Lane)
-	{
-		FPTBNoteEvent Note;
-		if (!JudgementSystem->FindBestPendingNote(FSKeyShuffle::IndexToAction(Lane), JudgeTimeMs, Note))
-		{
-			continue;
-		}
-		bAnyPending = true;
-		const int32 Segment = GetKeySegmentIndex(Note.BeatTime);
-		if (KeySegments[Segment].KeyForLane[Lane] != KeyIndex)
-		{
-			continue;
-		}
-		const float Delta = FMath::Abs(JudgeTimeMs - Note.TimeMs);
-		if (Delta < BestDelta)
-		{
-			BestDelta = Delta;
-			BestLane = Lane;
-		}
-	}
-
-	if (BestLane != INDEX_NONE)
-	{
-		HeldLaneByKey[KeyIndex] = BestLane;
-		Super::HandleRhythmInput(FSKeyShuffle::IndexToAction(BestLane), TimeMs);
-		return;
-	}
-
-	// 틀린 키: 다른 칸 노트를 대신 맞추지 않도록 무시 (그 노트는 지나가면 Miss)
-	if (bAnyPending)
-	{
-		return;
-	}
-
-	// 대기 노트가 없으면 일반 빈 입력 처리
-	Super::HandleRhythmInput(Action, TimeMs);
-}
-
-void APTBFSMiniGame::HandleRhythmInputReleased(EPTBActionType Action, float TimeMs)
-{
-	const int32 KeyIndex = FSKeyShuffle::ActionToIndex(Action);
+	const int32 KeyIndex = FSKeyShuffle::ActionToIndex(Note.ActionType);
 	if (!bKeyShuffleActive || KeyIndex == INDEX_NONE)
 	{
-		Super::HandleRhythmInputReleased(Action, TimeMs);
-		return;
+		return Note.ActionType;
 	}
+	return FSKeyShuffle::IndexToAction(GetLaneOfKey(GetKeySegmentIndex(Note.BeatTime), KeyIndex));
+}
 
-	const int32 Lane = HeldLaneByKey[KeyIndex];
-	HeldLaneByKey[KeyIndex] = INDEX_NONE;
-	Super::HandleRhythmInputReleased(Lane != INDEX_NONE ? FSKeyShuffle::IndexToAction(Lane) : Action, TimeMs);
+EPTBActionType APTBFSMiniGame::GetVisualActionForNoteId(int32 NoteId, EPTBActionType Fallback) const
+{
+	if (bKeyShuffleActive && ChartAsset && NoteId != 0)
+	{
+		for (const FPTBNoteEvent& Note : ChartAsset->NoteEvents)
+		{
+			if (Note.NoteId == NoteId || (Note.bIsLongNote && Note.ReleaseNoteId == NoteId))
+			{
+				return GetVisualAction(Note);
+			}
+		}
+	}
+	return Fallback;
 }
 
 void APTBFSMiniGame::HandleActionAInput()

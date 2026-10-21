@@ -141,8 +141,11 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Fishing|KeyShuffle")
 	bool IsKeyShuffleActive() const { return bKeyShuffleActive; }
 
-	virtual void HandleRhythmInput(EPTBActionType Action, float TimeMs = -1.0f) override;
-	virtual void HandleRhythmInputReleased(EPTBActionType Action, float TimeMs = -1.0f) override;
+	/** 노트를 화면 어느 칸에 보여줄지 (ActionA=왼쪽, B=가운데, C=오른쪽). 판정 키는 노트의 ActionType 그대로 */
+	EPTBActionType GetVisualAction(const FPTBNoteEvent& Note) const;
+
+	/** NoteId로 화면 칸 찾기 (판정 결과용) */
+	EPTBActionType GetVisualActionForNoteId(int32 NoteId, EPTBActionType Fallback) const;
 
 	TObjectPtr<UPTBWwiseRhythmSyncComponent> GetUPTBWwiseRhythmSyncComponent()
 	{
@@ -233,9 +236,6 @@ private:
 	TArray<FFSKeySegment> KeySegments;
 	float KeySegmentBeats = 4.0f;
 	bool bKeyShuffleActive = false;
-
-	/** 누른 키(0~2)가 실제로 판정에 넘긴 칸 (롱노트 떼기용) */
-	int32 HeldLaneByKey[3] = { INDEX_NONE, INDEX_NONE, INDEX_NONE };
 	
 	int32 CurrentComboCount = 0;
 	

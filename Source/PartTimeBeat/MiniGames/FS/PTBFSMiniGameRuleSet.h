@@ -16,8 +16,8 @@ class PARTTIMEBEAT_API UPTBFSMiniGameRuleSet : public UPTBMiniGameRuleSet
 
 public:
 	// ── 키 셔플 기믹 ─────────────────────────────
-	// 화면 위치(왼/가운데/오른쪽)는 그대로, 각 위치를 맞추는 키가 정해진 순서대로 바뀐다.
-	// 노트마다 "그 노트가 속한 구간"의 배치로 판정하므로, 교체 연출 타이밍과 상관없이 채보를 외우면 퍼펙트 가능.
+	// 채보의 A/B/C = 누를 키 (판정은 항상 그대로). 바뀌는 건 각 키가 화면 어느 칸(왼/가운데/오른쪽)에 있는지뿐.
+	// 노트마다 "그 노트가 속한 구간"의 배치로 나올 칸이 정해져서 날아오는 도중에 바뀌지 않음.
 
 	/** 키 셔플을 켤 난이도 (기본: 발광모드만) */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|FS|KeyShuffle")
