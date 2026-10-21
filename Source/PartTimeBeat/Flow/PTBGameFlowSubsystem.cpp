@@ -2,6 +2,7 @@
 
 #include "Core/PTBGameInstance.h"
 #include "Debug/PTBTeamLog.h"
+#include "Flow/PTBMiniGameAvailability.h"
 #include "Kismet/GameplayStatics.h"
 #include "Profile/PTBProfileSubsystem.h"
 
@@ -157,6 +158,13 @@ bool UPTBGameFlowSubsystem::SelectMiniGame(FName InId)
 		return false;
 	}
 
+	// 개발중/숨김 미니게임은 진입 차단 (Project Settings → PTB 미니게임 공개 설정)
+	if (!UPTBMiniGameAvailabilityLibrary::IsMiniGamePlayable(InId))
+	{
+		PTB_WARNING(LogPTBFlow, TEXT("[PTBFlow] SelectMiniGame 차단: %s 는 아직 공개되지 않은 미니게임입니다."), *InId.ToString());
+		return false;
+	}
+
 	// TODO(Progression): StageUnlockManager::CanPlayMiniGame(InId)로 해금 여부 검사
 	SelectedMiniGameId = InId;
 
@@ -211,6 +219,13 @@ void UPTBGameFlowSubsystem::StartGameplay()
 	{
 		PTB_WARNING(LogPTBFlow, 
 			TEXT("[PTBFlow] StartGameplay 실패: 미니게임이 선택되지 않았습니다."));
+		return;
+	}
+
+	if (!UPTBMiniGameAvailabilityLibrary::IsMiniGamePlayable(SelectedMiniGameId))
+	{
+		PTB_WARNING(LogPTBFlow,
+			TEXT("[PTBFlow] StartGameplay 차단: %s 는 아직 공개되지 않은 미니게임입니다."), *SelectedMiniGameId.ToString());
 		return;
 	}
 

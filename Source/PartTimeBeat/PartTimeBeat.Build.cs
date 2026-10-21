@@ -27,7 +27,8 @@ public class PartTimeBeat : ModuleRules
 			"CableComponent",
 			"Niagara",
 			"LevelSequence",
-			"MovieScene" 
+			"MovieScene",
+			"DeveloperSettings"
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] { });
