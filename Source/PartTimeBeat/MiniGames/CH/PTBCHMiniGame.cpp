@@ -29,6 +29,27 @@ void APTBCHMiniGame::BuildRuntimeState()
     CurrentCustomerIndex = 0;
     PlacedIngredients.Reset();
     bReactionShownForCurrentCustomer = false;
+    CurrentIngredientIndex = 0;
+    LastPressedAction = EPTBActionType::None;
+    SetupMainCustomerOrders();
+
+    SlideGroups.Reset();
+    DroppingIngredients.Reset();
+    RebuildNoteIngredientMap();
+
+    // 첫 번째 접시 스폰
+    SpawnFirstPlate();
+
+    CreateAndAddHUD();
+
+    UE_LOG(LogPTBMiniGames, Log, TEXT("[%s] CH BuildRuntimeState RuleSet=%s Chart=%s"),
+        *GetNameSafe(this),
+        *GetNameSafe(RuleSet.Get()),
+        *GetNameSafe(ChartAsset.Get()));
+}
+
+void APTBCHMiniGame::SetupMainCustomerOrders()
+{
     CustomerOrders.Reset();
 
     // 손님 주문 고정 (채보에 맞춤), 난이도별로 분기
@@ -156,10 +177,60 @@ void APTBCHMiniGame::BuildRuntimeState()
         { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::Patty, EPTBCHIngredientType::Lettuce, EPTBCHIngredientType::Tomato, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
         { FPTBCHCustomerOrder O; O.Ingredients = { EPTBCHIngredientType::BreadBottom, EPTBCHIngredientType::Patty, EPTBCHIngredientType::Tomato, EPTBCHIngredientType::Cheese, EPTBCHIngredientType::Patty, EPTBCHIngredientType::BreadTop }; CustomerOrders.Add(O); }
     }
+}
 
+void APTBCHMiniGame::SetupPracticeCustomerOrders()
+{
+    // 튜토리얼 연습: 연습 채보의 키 순서 그대로 주문을 만든다
+    // A = 빵 (주문이 비어 있으면 아랫빵, 재료가 있으면 윗빵 + 주문 마감), B 양상추 / C 패티 / D 치즈 / E 토마토
+    // 예) "A A" = 빵만 있는 버거, "A B A" = 양상추 버거, "A B C D E A" = 풀버거
+    CustomerOrders.Reset();
+    if (!ChartAsset.Get())
+    {
+        return;
+    }
+
+    FPTBCHCustomerOrder Current;
+    for (const FPTBNoteEvent& Note : ChartAsset->NoteEvents)
+    {
+        switch (Note.ActionType)
+        {
+        case EPTBActionType::ActionA:
+            if (Current.Ingredients.IsEmpty())
+            {
+                Current.Ingredients.Add(EPTBCHIngredientType::BreadBottom);
+            }
+            else
+            {
+                Current.Ingredients.Add(EPTBCHIngredientType::BreadTop);
+                CustomerOrders.Add(Current);
+                Current = FPTBCHCustomerOrder();
+            }
+            break;
+        case EPTBActionType::ActionB: Current.Ingredients.Add(EPTBCHIngredientType::Lettuce); break;
+        case EPTBActionType::ActionC: Current.Ingredients.Add(EPTBCHIngredientType::Patty); break;
+        case EPTBActionType::ActionD: Current.Ingredients.Add(EPTBCHIngredientType::Cheese); break;
+        case EPTBActionType::ActionE: Current.Ingredients.Add(EPTBCHIngredientType::Tomato); break;
+        default:
+            // 매핑 순서가 어긋나지 않도록 자리만 채움
+            Current.Ingredients.Add(EPTBCHIngredientType::Lettuce);
+            break;
+        }
+    }
+
+    // 윗빵 없이 끝난 패턴은 남은 재료로 마지막 주문 구성
+    if (!Current.Ingredients.IsEmpty())
+    {
+        CustomerOrders.Add(Current);
+    }
+
+    UE_LOG(LogPTBMiniGames, Log, TEXT("[%s] CH practice orders built: %d orders from %d notes"),
+        *GetNameSafe(this), CustomerOrders.Num(), ChartAsset->NoteEvents.Num());
+}
+
+void APTBCHMiniGame::RebuildNoteIngredientMap()
+{
     NoteIdToIngredientAction.Reset();
-    SlideGroups.Reset();
-    DroppingIngredients.Reset();
 
     // ChartAsset NoteEvents 순서 기반으로 NoteId → IngredientAction 사전 매핑
     // HandleNoteCue 시점에 맵에 없어서 bCorrectKey가 false되는 레이스 컨디션 방지
@@ -196,8 +267,10 @@ void APTBCHMiniGame::BuildRuntimeState()
         UE_LOG(LogPTBMiniGames, Log, TEXT("[%s] CH NoteIdToIngredientAction pre-mapped: %d entries"),
             *GetNameSafe(this), NoteIdToIngredientAction.Num());
     }
+}
 
-    // 첫 번째 접시 스폰
+void APTBCHMiniGame::SpawnFirstPlate()
+{
     if (PlateActorClass && GetWorld())
     {
         FActorSpawnParameters SpawnParams;
@@ -218,13 +291,105 @@ void APTBCHMiniGame::BuildRuntimeState()
             StackHeight = PlateOrigin.Z + PlateExtent.Z;
         }
     }
+}
 
-    CreateAndAddHUD();
+void APTBCHMiniGame::ResetBoardActors()
+{
+    // 연습/본게임 전환 시 이전 판에서 쌓인 접시·재료를 모두 제거
+    auto DestroyIfValid = [](AActor* Actor)
+    {
+        if (IsValid(Actor))
+        {
+            Actor->Destroy();
+        }
+    };
 
-    UE_LOG(LogPTBMiniGames, Log, TEXT("[%s] CH BuildRuntimeState RuleSet=%s Chart=%s"),
-        *GetNameSafe(this),
-        *GetNameSafe(RuleSet.Get()),
-        *GetNameSafe(ChartAsset.Get()));
+    for (AActor* Actor : SpawnedIngredients) { DestroyIfValid(Actor); }
+    for (const TArray<TObjectPtr<AActor>>& Burger : CompletedHamburgers)
+    {
+        for (AActor* Actor : Burger) { DestroyIfValid(Actor); }
+    }
+    for (AActor* Actor : CompletedPlates) { DestroyIfValid(Actor); }
+    for (const FCHSlideGroup& Group : SlideGroups)
+    {
+        DestroyIfValid(Group.Plate);
+        for (AActor* Actor : Group.Ingredients) { DestroyIfValid(Actor); }
+    }
+
+    SpawnedIngredients.Reset();
+    CompletedHamburgers.Reset();
+    CompletedPlates.Reset();
+    SlideGroups.Reset();
+    DroppingIngredients.Reset();
+    SpawnedRoundActors.RemoveAll([](const TObjectPtr<AActor>& Actor) { return !IsValid(Actor); });
+}
+
+void APTBCHMiniGame::InitHUDWidget()
+{
+    if (!HUDWidget)
+    {
+        return;
+    }
+
+    if (UFunction* InitFunc = HUDWidget->FindFunction(TEXT("Init")))
+    {
+        struct { APTBCHMiniGame* InMiniGame; } Params{ this };
+        HUDWidget->ProcessEvent(InitFunc, &Params);
+    }
+    else
+    {
+        UE_LOG(LogPTBMiniGames, Warning, TEXT("[%s] CH Init function NOT found!"), *GetNameSafe(this));
+    }
+}
+
+void APTBCHMiniGame::HandleRoundChartChanged()
+{
+    Super::HandleRoundChartChanged();
+
+    // 연습 시작 시점엔 bTutorialPracticeActive가 아직 false라서 채보로 구분
+    const bool bPracticeChart = TutorialPracticeChart && ChartAsset.Get() == TutorialPracticeChart.Get();
+
+    CueCount = 0;
+    ArmCount = 0;
+    NoteEventCount = 0;
+    LongNoteCueCount = 0;
+    JudgementCount = 0;
+    CuedNotes.Reset();
+    ArmedNotes.Reset();
+    ReachedNotes.Reset();
+
+    CurrentCursorIndex = 0;
+    CurrentCustomerIndex = 0;
+    CurrentIngredientIndex = 0;
+    PlacedIngredients.Reset();
+    bReactionShownForCurrentCustomer = false;
+    LastPressedAction = EPTBActionType::None;
+
+    if (bPracticeChart)
+    {
+        SetupPracticeCustomerOrders();
+    }
+    else
+    {
+        SetupMainCustomerOrders();
+    }
+    RebuildNoteIngredientMap();
+
+    ResetBoardActors();
+    SpawnFirstPlate();
+
+    UE_LOG(LogPTBMiniGames, Log, TEXT("[%s] CH round chart changed. Practice=%d Orders=%d Mapped=%d"),
+        *GetNameSafe(this), bPracticeChart ? 1 : 0, CustomerOrders.Num(), NoteIdToIngredientAction.Num());
+}
+
+void APTBCHMiniGame::ReceiveTutorialPracticeStarted_Implementation()
+{
+    Super::ReceiveTutorialPracticeStarted_Implementation();
+
+    // 본게임 HandleReadyToStart와 동일하게 HUD 연결 (게이지/판정 UI가 연습 중에도 보이도록)
+    InitHUDWidget();
+    OnCHCustomerChanged.Broadcast(1);
+    CallHUDUpdateCustomerNumber(0);
 }
 
 void APTBCHMiniGame::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -392,6 +557,14 @@ void APTBCHMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
         const bool bIsLastIngredientSlot = CustomerOrders.IsValidIndex(CurrentCustomerIndex)
             && CurrentIngredientIndex >= CustomerOrders[CurrentCustomerIndex].Ingredients.Num() - 1;
 
+        // 이 자리에 원래 와야 할 재료 (주문 자체가 빵-빵인 경우 빵 위에 빵 반응이 뜨지 않도록 비교용)
+        EPTBCHIngredientType ExpectedIngredientType = EPTBCHIngredientType::None;
+        if (CustomerOrders.IsValidIndex(CurrentCustomerIndex) &&
+            CustomerOrders[CurrentCustomerIndex].Ingredients.IsValidIndex(CurrentIngredientIndex))
+        {
+            ExpectedIngredientType = CustomerOrders[CurrentCustomerIndex].Ingredients[CurrentIngredientIndex];
+        }
+
         EPTBCHIngredientType IngredientType = EPTBCHIngredientType::None;
         if (bCorrectKey)
         {
@@ -434,6 +607,7 @@ void APTBCHMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
             if (!bReactionShownForCurrentCustomer)
             {
                 if (PlacedIngredients.Num() >= 2
+                    && IngredientType != ExpectedIngredientType
                     && IsBreadIngredient(PlacedIngredients.Last())
                     && IsBreadIngredient(PlacedIngredients[PlacedIngredients.Num() - 2]))
                 {
@@ -782,18 +956,7 @@ void APTBCHMiniGame::HandleReadyToStart()
 
     Super::HandleReadyToStart();
 
-    if (HUDWidget)
-    {
-        if (UFunction* InitFunc = HUDWidget->FindFunction(TEXT("Init")))
-        {
-            struct { APTBCHMiniGame* InMiniGame; } Params{ this };
-            HUDWidget->ProcessEvent(InitFunc, &Params);
-        }
-        else
-        {
-            UE_LOG(LogPTBMiniGames, Warning, TEXT("[%s] CH Init function NOT found!"), *GetNameSafe(this));
-        }
-    }
+    InitHUDWidget();
 
     OnCHCustomerChanged.Broadcast(1);
     CallHUDUpdateCustomerNumber(0);

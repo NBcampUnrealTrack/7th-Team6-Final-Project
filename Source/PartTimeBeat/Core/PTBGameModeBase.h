@@ -92,6 +92,13 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "PTB|Scene")
 	FOnGameStarted OnTutorialPracticeStarted;
 
+	/**
+	 * 튜토리얼 화면이 열리는 순간 (첫 안내 문구가 뜰 때).
+	 * 튜토리얼 뒤로 비치는 게임 화면(카메라 시점, HUD)을 미리 준비해야 하는 레벨 BP는 여기에도 바인딩.
+	 */
+	UPROPERTY(BlueprintAssignable, Category = "PTB|Scene")
+	FOnGameStarted OnTutorialStarted;
+
 	// 2) 게임 종료 시 결과 전달과 함께 호출
 	UPROPERTY(BlueprintAssignable, Category = "Game State")
 	FOnGameEnded OnGameEnded;

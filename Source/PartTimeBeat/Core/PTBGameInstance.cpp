@@ -112,6 +112,7 @@ void UPTBGameInstance::ApplyUserSettings(const FPTBUserSettings& InSettings)
 	PTB_RECORD(LogPTBCore, TEXT("UserSettings applied — Master:%.2f BGM:%.2f SFX:%.2f Offset:%.1fms / WinMode:%d / Resolution:%d / Graphics:%d"),
 		InSettings.MasterVolume, InSettings.BGMVolume, InSettings.SFXVolume, InSettings.JudgementOffsetMs,
 		static_cast<int32>(InSettings.WindowMode), InSettings.ResolutionPresetIndex, InSettings.GraphicsQuality);
+	OnUserSettingsApplied.Broadcast();
 }
 
 void UPTBGameInstance::SetGameLanguage(const FString& Culture)

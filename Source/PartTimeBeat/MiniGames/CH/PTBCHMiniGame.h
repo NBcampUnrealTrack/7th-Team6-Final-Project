@@ -85,6 +85,12 @@ public:
     /** 재도전/종료 시 이 인스턴스가 스폰한 접시·재료 액터를 전부 정리 (레벨에 남아 다음 판과 겹치는 것 방지) */
     virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
+    /** 튜토리얼 연습 채보 ↔ 본게임 채보 전환 시 주문/NoteId 매핑/접시를 다시 구성 */
+    virtual void HandleRoundChartChanged() override;
+
+    /** 튜토리얼 연습 시작 시 HUD Init (게이지/판정 UI 연결) */
+    virtual void ReceiveTutorialPracticeStarted_Implementation() override;
+
     UPROPERTY()
     EPTBActionType LastPressedAction = EPTBActionType::None;
 
@@ -157,6 +163,24 @@ public:
     float HaloEffectDuration = 1.0f;
 
 protected:
+    /** 난이도별 본게임 주문 구성 */
+    void SetupMainCustomerOrders();
+
+    /** 튜토리얼 연습 채보 키 순서로 주문 구성 */
+    void SetupPracticeCustomerOrders();
+
+    /** 현재 ChartAsset 노트 순서 + CustomerOrders로 NoteId → 재료 키 매핑 */
+    void RebuildNoteIngredientMap();
+
+    /** 첫 접시 스폰 + StackHeight 초기화 */
+    void SpawnFirstPlate();
+
+    /** 이전 판의 접시/재료 액터 제거 */
+    void ResetBoardActors();
+
+    /** HUD BP의 Init(InMiniGame) 호출 */
+    void InitHUDWidget();
+
     /** Hold 시작 입력 판정 */
     virtual FPTBJudgementResult EvaluateHoldInput(EPTBActionType Action, float TimeMs) override;
 

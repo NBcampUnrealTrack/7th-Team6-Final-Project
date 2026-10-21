@@ -39,6 +39,14 @@ class PARTTIMEBEAT_API UPTBBBMiniGameRuleSet : public UPTBMiniGameRuleSet
 
 public:
 	/**
+	 * HP 시스템 사용 여부.
+	 * false면 HP가 깎이지 않고, 보스 쓰러짐/플레이어 쓰러짐/HP 0 실패가 모두 없음.
+	 * 공격/피격 모션은 판정에 따라 그대로 재생됨. (튜토리얼 연습 중에는 이 값과 무관하게 항상 HP 없음)
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|BB|HP")
+	bool bUseHP = true;
+
+	/**
 	 * 미스 수가 이 값 이하면, 보스 체력이 진행도 계산상 완전히 0이 되지 않았어도
 	 * 처치(쓰러짐, OnBBBossDefeated)로 인정한다. 모든 난이도 공통 값.
 	 * (보스 체력 자체는 항상 채보 노트 수에 정확히 1:1로 맞춰 깎이는 진행도 지표라서,
