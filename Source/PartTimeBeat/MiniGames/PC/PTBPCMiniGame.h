@@ -55,10 +55,26 @@ protected:
     virtual void HandleChartEvent(FPTBNoteEvent Note) override;
     virtual void HandleJudgementResult(FPTBJudgementResult Result) override;
 
+    /** 튜토리얼 연습 ↔ 본게임 채보 전환 시 캐릭터 위치/타일 초기화 */
+    virtual void HandleRoundChartChanged() override;
+
 private:
 
     // NoteId로 타일 찾기용
     UPROPERTY()
     TMap<int32, APCTileActor*> ActiveTiles;
+
+    /** 이번 판에 스폰한 날아오는 타일 / 완성 타일 이미지 (채보 전환 시 정리용) */
+    UPROPERTY()
+    TArray<TObjectPtr<AActor>> PCSpawnedActors;
+
+    /** 튜토리얼 연습: NoteId → 레일 칸 번호(1부터). 본게임은 NoteId를 그대로 칸 번호로 사용 */
+    TMap<int32, int32> PracticePointIndexByNoteId;
+
+    /** 판정된 노트의 레일 칸 번호 */
+    int32 ResolvePointIndex(int32 NoteId) const;
+
+    /** 스폰한 타일/이미지 제거 */
+    void ClearPCSpawnedActors();
 
 };

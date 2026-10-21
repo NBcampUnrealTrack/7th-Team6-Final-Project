@@ -20,6 +20,8 @@ void APTBPCMiniGame::BuildRuntimeState()
 {
     Super::BuildRuntimeState();
     ActiveTiles.Empty();
+    PCSpawnedActors.Reset();
+    PracticePointIndexByNoteId.Reset();
     TileTextures.Empty();
 
     FString TilePrefix;
@@ -99,6 +101,7 @@ void APTBPCMiniGame::HandleNoteCue(FPTBNoteEvent Note)
     {
         ActiveTiles.Add(Note.NoteId, Tile);
         RegisterSpawnedRoundActor(Tile);
+        PCSpawnedActors.Add(Tile);
     }
 }
 
@@ -143,7 +146,7 @@ void APTBPCMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 
     if (!RailCharacter || !RailCharacter->PCRailPath) return;
 
-    int32 PointIndex = Result.NoteId;
+    const int32 PointIndex = ResolvePointIndex(Result.NoteId);
 
     if (!TileTextures.IsValidIndex(PointIndex - 1)) return;
 
@@ -157,7 +160,63 @@ void APTBPCMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
     {
         ImageActor->SetTexture(TileTextures[PointIndex - 1]);
         RegisterSpawnedRoundActor(ImageActor);
+        PCSpawnedActors.Add(ImageActor);
     }
 
+}
+
+int32 APTBPCMiniGame::ResolvePointIndex(int32 NoteId) const
+{
+    if (const int32* Found = PracticePointIndexByNoteId.Find(NoteId))
+    {
+        return *Found;
+    }
+    return NoteId;
+}
+
+void APTBPCMiniGame::ClearPCSpawnedActors()
+{
+    for (AActor* Actor : PCSpawnedActors)
+    {
+        if (IsValid(Actor))
+        {
+            Actor->Destroy();
+        }
+    }
+    PCSpawnedActors.Reset();
+    ActiveTiles.Empty();
+    SpawnedRoundActors.RemoveAll([](const TObjectPtr<AActor>& Actor) { return !IsValid(Actor); });
+}
+
+void APTBPCMiniGame::HandleRoundChartChanged()
+{
+    Super::HandleRoundChartChanged();
+
+    // 연습에서 완성한 타일/이동한 거리가 본게임에 이어지지 않도록 처음 상태로
+    ClearPCSpawnedActors();
+    if (RailCharacter)
+    {
+        // 노트마다 0.02초 뒤 한 칸 이동 예약 → 남은 예약이 초기화 후에 실행되지 않도록 취소
+        GetWorldTimerManager().ClearAllTimersForObject(RailCharacter);
+    }
+
+    // 연습 채보는 NoteId가 100000번대라 칸 번호로 못 씀 → 노트 순서대로 1, 2, 3... 칸 사용
+    PracticePointIndexByNoteId.Reset();
+    const bool bPracticeChart = TutorialPracticeChart && ChartAsset.Get() == TutorialPracticeChart.Get();
+    if (bPracticeChart && ChartAsset)
+    {
+        for (int32 Index = 0; Index < ChartAsset->NoteEvents.Num(); ++Index)
+        {
+            PracticePointIndexByNoteId.Add(ChartAsset->NoteEvents[Index].NoteId, Index + 1);
+        }
+    }
+
+    if (RailCharacter)
+    {
+        RailCharacter->SelectRailByDifficulty(GameContext.SessionRequest.Difficulty);
+    }
+
+    UE_LOG(LogTemp, Log, TEXT("[PC] Round chart changed. Practice=%d Notes=%d"),
+        bPracticeChart ? 1 : 0, ChartAsset ? ChartAsset->NoteEvents.Num() : 0);
 }
 

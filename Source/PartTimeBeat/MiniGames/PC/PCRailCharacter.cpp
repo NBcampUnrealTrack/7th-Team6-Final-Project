@@ -95,6 +95,8 @@ void APCRailCharacter::SelectRailByDifficulty(EPTBDifficulty Difficulty)
     }
 
     CurrentSplineDistance = 0.f;
+    // 튜토리얼 연습 후 다시 호출될 때, 진행 중이던 이동이 처음 위치를 덮어쓰지 않도록 정지
+    bIsMoving = false;
 
     if (PCRailPath)
     {
