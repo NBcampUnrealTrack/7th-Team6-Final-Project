@@ -138,6 +138,8 @@ protected:
 	virtual void ReceiveGameplayStarted_Implementation() override;
 	virtual void ReceiveIntroStarted_Implementation() override;
 	virtual void HandleReadyToStart() override;
+	virtual void ReceiveScenePhaseChanged_Implementation(EPTBMiniGameScenePhase Phase) override;
+	virtual void ReceiveTutorialPracticeStarted_Implementation() override;
 	virtual float ResolveVisualOffsetMs(const FPTBMiniGameContext& Context) const override;
 
 	const UPTBDWMiniGameRuleSet* GetDWRuleSet() const;

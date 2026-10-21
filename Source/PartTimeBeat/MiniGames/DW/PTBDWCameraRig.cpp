@@ -87,6 +87,12 @@ void APTBDWCameraRig::SnapToIntroPose()
 	ApplyPose(IntroArmLength, IntroPitch, IntroYaw, IntroFieldOfView);
 }
 
+void APTBDWCameraRig::SnapToGameplayPose()
+{
+	bIntroMoving = false;
+	ApplyPose(ArmLength, Pitch, Yaw, FieldOfView);
+}
+
 void APTBDWCameraRig::PlayFailShake(float Intensity, float Duration, float Frequency)
 {
 	if (Intensity <= 0.f || Duration <= 0.f)
