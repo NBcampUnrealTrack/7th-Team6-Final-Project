@@ -58,6 +58,7 @@ public:
 	void CreateTitleWidget();
 
 	virtual void Init() override;
+	virtual void Shutdown() override;
 
 	UPROPERTY(BlueprintAssignable, Category = "Game Flow")
 	FOnFlowStateChanged OnFlowStateChanged;
@@ -123,4 +124,7 @@ public:
 
 private:
 	void ApplyDefaultLanguage();
+
+	/** 에디터(PIE)에서 게임 언어 미리보기로 적용 중인 언어. 에디터 자체 언어는 바꾸지 않기 위함 */
+	FString EditorPreviewCulture;
 };

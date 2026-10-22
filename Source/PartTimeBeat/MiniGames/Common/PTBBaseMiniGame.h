@@ -115,6 +115,9 @@ public:
 	UFUNCTION(BlueprintPure, Category = "PTB|Scene")
 	bool IsTutorialPracticeActive() const { return bTutorialPracticeActive; }
 
+	/** 현재 연습 스텝의 PracticeTag (연습 채보로 바뀐 직후 HandleRoundChartChanged에서도 유효, 연습 끝나면 None) */
+	FName GetActivePracticeTag() const { return ActivePracticeTag; }
+
 	/** 확인 입력(Enter/Space)을 씬 위젯에 전달. 씬 재생 중이고 처리됐으면 true (PlayerController에서 호출) */
 	bool HandleSceneConfirmInput();
 
@@ -463,6 +466,9 @@ protected:
 	/** 연습용 임시 채보 */
 	UPROPERTY(Transient)
 	TObjectPtr<UPTBRhythmChartAsset> TutorialPracticeChart;
+
+	/** 진행 중인 연습 스텝의 PracticeTag */
+	FName ActivePracticeTag = NAME_None;
 
 	/** 연습 동안 잠시 빼둔 본게임 채보 */
 	UPROPERTY(Transient)

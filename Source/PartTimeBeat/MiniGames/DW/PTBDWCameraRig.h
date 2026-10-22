@@ -28,6 +28,9 @@ public:
 	/** 이동 없이 인트로 포즈(하늘 뷰)로 즉시 스냅. 대기 화면용. */
 	void SnapToIntroPose();
 
+	/** 이동 없이 본게임 포즈(사이드 뷰)로 즉시 스냅. 튜토리얼용 (본게임 시작 시 HandleReadyToStart에서 다시 인트로 포즈로 돌아감) */
+	void SnapToGameplayPose();
+
 	/** 실패 연출 카메라 흔들림. */
 	UFUNCTION(BlueprintCallable, Category = "PTB|DW")
 	void PlayFailShake(float Intensity, float Duration, float Frequency);

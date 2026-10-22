@@ -1651,6 +1651,7 @@ bool APTBBaseMiniGame::StartTutorialPractice(const FPTBTutorialStep& Step)
 	}
 
 	TutorialPracticeChart = PracticeChart;
+	ActivePracticeTag = Step.PracticeTag;
 	ChartAsset = PracticeChart;
 	GameContext.ChartData = PracticeChart->ChartData;
 	ResetRoundStateForReplay();
@@ -1777,6 +1778,7 @@ void APTBBaseMiniGame::CompleteTutorialPractice(EPTBRoundEndReason Reason)
 		SavedMainChartAsset = nullptr;
 	}
 	TutorialPracticeChart = nullptr;
+	ActivePracticeTag = NAME_None;
 	ResetRoundStateForReplay();
 	HandleRoundChartChanged();
 

@@ -8,6 +8,7 @@
 #include "Kismet/KismetInternationalizationLibrary.h"
 #include "Internationalization/Internationalization.h"
 #include "Internationalization/Culture.h"
+#include "Internationalization/TextLocalizationManager.h"
 
 // 내부에서 SaveGame 오브젝트를 보관할 멤버가 헤더에 없으므로
 // 헤더에 아래를 추가하는 것을 권장합니다:
@@ -16,7 +17,22 @@
 void UPTBGameInstance::Init()
 {
 	Super::Init();
+	// 첫 실행 언어: OS 언어가 지원 언어(ko/en)면 그대로, 아니면 영어 (패키징/Standalone만. 에디터는 영향 없음)
+	ApplyDefaultLanguage();
 	InitPTBSystems();
+}
+
+void UPTBGameInstance::Shutdown()
+{
+#if WITH_EDITOR
+	// PIE 종료: 게임 언어 미리보기를 켰었다면 해제 (에디터는 원래 상태로)
+	if (GIsEditor && !EditorPreviewCulture.IsEmpty())
+	{
+		FTextLocalizationManager::Get().DisableGameLocalizationPreview();
+		EditorPreviewCulture.Reset();
+	}
+#endif
+	Super::Shutdown();
 }
 
 void UPTBGameInstance::ApplyDefaultLanguage()
@@ -30,7 +46,7 @@ void UPTBGameInstance::ApplyDefaultLanguage()
 	}
 
 	// 처음 실행: 엔진이 OS 언어로 시작함. 지원하지 않는 언어면 영어로 대체 (저장하지 않음)
-	if (!GetSupportedLanguages().Contains(GetGameLanguage()))
+	if (!GIsEditor && !GetSupportedLanguages().Contains(GetGameLanguage()))
 	{
 		FInternationalization::Get().SetCurrentCulture(TEXT("en"));
 	}
@@ -117,12 +133,51 @@ void UPTBGameInstance::ApplyUserSettings(const FPTBUserSettings& InSettings)
 
 void UPTBGameInstance::SetGameLanguage(const FString& Culture)
 {
-	// SaveToConfig=true → GameUserSettings.ini에 저장되어 다음 실행부터 이 언어로 시작
+#if WITH_EDITOR
+	// 에디터(PIE)는 에디터와 같은 프로세스라 SetCurrentCulture가 에디터 UI 언어까지 바꿔버림.
+	// → 게임 텍스트만 바꾸는 "게임 언어 미리보기"로 적용 (에디터 언어/설정 파일은 그대로)
+	if (GIsEditor)
+	{
+		FTextLocalizationManager::Get().EnableGameLocalizationPreview(Culture);
+		EditorPreviewCulture = Culture;
+		return;
+	}
+#endif
+
+	// 패키징/Standalone: SaveToConfig=true → GameUserSettings.ini에 저장되어 다음 실행부터 이 언어로 시작
 	UKismetInternationalizationLibrary::SetCurrentCulture(Culture, /*SaveToConfig*/ true);
 }
 
 FString UPTBGameInstance::GetGameLanguage() const
 {
+#if WITH_EDITOR
+	if (GIsEditor)
+	{
+		// 에디터(PIE)에서는 에디터 언어(GetCurrentCulture)가 아니라 "게임 텍스트가 실제로 보이는 언어"를 반환
+		FString PreviewCulture = EditorPreviewCulture;
+		FTextLocalizationManager& LocManager = FTextLocalizationManager::Get();
+		if (PreviewCulture.IsEmpty() && LocManager.IsGameLocalizationPreviewEnabled())
+		{
+			// Editor Preferences → Preview Game Language로 켜둔 경우
+			PreviewCulture = LocManager.GetConfiguredGameLocalizationPreviewLanguage();
+		}
+		if (PreviewCulture.IsEmpty())
+		{
+			// 미리보기가 꺼져 있으면 게임 텍스트는 원문(Native, 이 프로젝트는 ko) 그대로 보임
+			PreviewCulture = LocManager.GetNativeCultureName(ELocalizedTextSourceCategory::Game);
+		}
+
+		FString Language;
+		if (!PreviewCulture.Split(TEXT("-"), &Language, nullptr))
+		{
+			Language = PreviewCulture;
+		}
+		if (!Language.IsEmpty())
+		{
+			return Language;
+		}
+	}
+#endif
 	return FInternationalization::Get().GetCurrentCulture()->GetTwoLetterISOLanguageName();
 }
 

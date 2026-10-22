@@ -102,8 +102,13 @@ void UPTBSettingsWidget::BuildComboBoxOptions()
 	}
 }
 
-FString UPTBSettingsWidget::GetCurrentLanguageCode()
+FString UPTBSettingsWidget::GetCurrentLanguageCode() const
 {
+	// 언어 적용/조회는 GameInstance로 통일 (에디터에서는 에디터 언어 대신 게임 언어 미리보기 사용)
+	if (const UPTBGameInstance* GI = GetGameInstance<UPTBGameInstance>())
+	{
+		return GI->GetGameLanguage();
+	}
 	return FInternationalization::Get().GetCurrentCulture()->GetTwoLetterISOLanguageName();
 }
 
@@ -152,7 +157,7 @@ void UPTBSettingsWidget::ApplySettings()
 		// 언어 변경: 즉시 적용 + GameUserSettings.ini에 저장 (다음 실행부터 이 언어로 시작)
 		if (!PendingCulture.IsEmpty() && PendingCulture != GetCurrentLanguageCode())
 		{
-			UKismetInternationalizationLibrary::SetCurrentCulture(PendingCulture, /*SaveToConfig*/ true);
+			GI->SetGameLanguage(PendingCulture);
 
 			// 디자이너에 입력된 텍스트(탭 이름 등)는 자동 갱신됨.
 			// C++에서 문자열로 넣은 ComboBox 옵션/키 이름은 직접 다시 구성.

@@ -382,6 +382,25 @@ void APTBDWMiniGame::HandleReadyToStart()
 	if (APTBDWCameraRig* Rig = GetCameraRig()) { Rig->SnapToIntroPose(); }
 }
 
+void APTBDWMiniGame::ReceiveScenePhaseChanged_Implementation(EPTBMiniGameScenePhase Phase)
+{
+	Super::ReceiveScenePhaseChanged_Implementation(Phase);
+
+	// 튜토리얼은 본게임과 같은 사이드 뷰로 보여준다.
+	// 본게임 직전 HandleReadyToStart에서 인트로 포즈(탑다운)로 다시 스냅 → 인트로 이동 연출은 그대로 유지
+	if (Phase == EPTBMiniGameScenePhase::Tutorial)
+	{
+		if (APTBDWCameraRig* Rig = GetCameraRig()) { Rig->SnapToGameplayPose(); }
+	}
+}
+
+void APTBDWMiniGame::ReceiveTutorialPracticeStarted_Implementation()
+{
+	Super::ReceiveTutorialPracticeStarted_Implementation();
+
+	if (APTBDWCameraRig* Rig = GetCameraRig()) { Rig->SnapToGameplayPose(); }
+}
+
 void APTBDWMiniGame::ReceiveIntroStarted_Implementation()
 {
 	Super::ReceiveIntroStarted_Implementation();

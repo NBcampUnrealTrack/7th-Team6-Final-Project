@@ -121,6 +121,13 @@ struct PARTTIMEBEAT_API FPTBTutorialStep : public FTableRowBase
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Tutorial|Practice", meta = (ClampMin = "0"))
 	int32 PracticeRequiredHits = 0;
 
+	/**
+	 * 미니게임별 연습 옵션 키 (비우면 기본 연습).
+	 * 미니게임이 GetActivePracticeTag()로 읽어서 기믹을 켜고 끔. 예) FS: KeyShuffle = 키 배치 바뀌는 기믹 연습
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Tutorial|Practice")
+	FName PracticeTag = NAME_None;
+
 	/** 통과 시 문구 (비우면 기본 문구) */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Tutorial|Practice", meta = (MultiLine = true))
 	FText PracticeSuccessText;
