@@ -12,7 +12,7 @@ class UPTBSceneWidgetBase;
 class USoundBase;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnFlowStateChanged, EGameFlowState, NewState);
-
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnUserSettingsApplied);
 // 위젯 관련
 class UPTBMainTitleWidget;
 
@@ -62,6 +62,9 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category = "Game Flow")
 	FOnFlowStateChanged OnFlowStateChanged;
+
+	UPROPERTY(BlueprintAssignable, Category = "PTB|Settings")
+	FOnUserSettingsApplied OnUserSettingsApplied;
 
 	/**	설정 캐시 */
 	UPROPERTY(BlueprintReadWrite, Category = "PTB|Settings")
