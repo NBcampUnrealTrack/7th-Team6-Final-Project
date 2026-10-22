@@ -2,11 +2,6 @@
 
 #include "Flow/PTBMiniGameAvailability.h"
 
-UPTBMiniGameAvailabilitySettings::UPTBMiniGameAvailabilitySettings()
-{
-	DefaultComingSoonMessage = NSLOCTEXT("PTBAvailability", "DefaultComingSoon", "Coming Soon\n아직 준비 중인 알바예요!");
-}
-
 const FPTBMiniGameAvailabilityEntry* UPTBMiniGameAvailabilitySettings::FindEntry(FName MiniGameId) const
 {
 	if (MiniGameId.IsNone())
@@ -54,11 +49,5 @@ bool UPTBMiniGameAvailabilityLibrary::IsMiniGameHidden(FName MiniGameId)
 
 FText UPTBMiniGameAvailabilityLibrary::GetMiniGameLockMessage(FName MiniGameId)
 {
-	const UPTBMiniGameAvailabilitySettings* Settings = GetDefault<UPTBMiniGameAvailabilitySettings>();
-	if (!Settings)
-	{
-		return FText::GetEmpty();
-	}
-	const FPTBMiniGameAvailabilityEntry* Entry = Settings->FindEntry(MiniGameId);
-	return Entry && !Entry->Message.IsEmpty() ? Entry->Message : Settings->DefaultComingSoonMessage;
+	return NSLOCTEXT("PTBAvailability", "DefaultComingSoon", "Coming Soon\n아직 준비 중인 알바예요!");
 }

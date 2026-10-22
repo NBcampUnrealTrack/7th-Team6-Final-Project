@@ -29,10 +29,6 @@ struct PARTTIMEBEAT_API FPTBMiniGameAvailabilityEntry
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Availability")
 	EPTBMiniGameAvailability Availability = EPTBMiniGameAvailability::ComingSoon;
 
-	/** 플레이어에게 보여줄 문구 (비우면 기본 문구) */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Availability", meta = (MultiLine = true))
-	FText Message;
-
 	/** 내부 메모 (비활성화 사유, 남은 작업 등). 게임에는 안 나옴 */
 	UPROPERTY(EditAnywhere, Category = "PTB|Availability", meta = (MultiLine = true))
 	FString InternalNote;
@@ -43,6 +39,7 @@ struct PARTTIMEBEAT_API FPTBMiniGameAvailabilityEntry
  * 에디터: Edit → Project Settings → Game → "PTB 미니게임 공개 설정"
  * 저장 위치: Config/DefaultGame.ini (git으로 변경 이력 관리)
  * 목록에 없는 미니게임은 전부 "출시" 취급
+ * 안내 문구는 여기서 관리하지 않음 → UI(WBP) 텍스트에 직접 입력 (Localization 수집 대상)
  */
 UCLASS(Config = Game, DefaultConfig, meta = (DisplayName = "PTB 미니게임 공개 설정"))
 class PARTTIMEBEAT_API UPTBMiniGameAvailabilitySettings : public UDeveloperSettings
@@ -50,17 +47,11 @@ class PARTTIMEBEAT_API UPTBMiniGameAvailabilitySettings : public UDeveloperSetti
 	GENERATED_BODY()
 
 public:
-	UPTBMiniGameAvailabilitySettings();
-
 	virtual FName GetCategoryName() const override { return TEXT("Game"); }
 
 	/** 출시가 아닌 미니게임 목록 */
 	UPROPERTY(Config, EditAnywhere, Category = "Availability", meta = (TitleProperty = "MiniGameId"))
 	TArray<FPTBMiniGameAvailabilityEntry> MiniGames;
-
-	/** Message를 비워둔 개발중 미니게임에 보여줄 기본 문구 */
-	UPROPERTY(Config, EditAnywhere, Category = "Availability", meta = (MultiLine = true))
-	FText DefaultComingSoonMessage;
 
 	/** 에디터(PIE)에서는 개발중 미니게임도 플레이 허용 (개발/테스트용, 패키징 빌드에는 영향 없음) */
 	UPROPERTY(Config, EditAnywhere, Category = "Availability")
@@ -92,7 +83,7 @@ public:
 	UFUNCTION(BlueprintPure, Category = "PTB|Availability")
 	static bool IsMiniGameHidden(FName MiniGameId);
 
-	/** 개발중 안내 문구 (항목 문구 > 기본 문구) */
+	/** 기본 안내 문구 (코드 고정, 다국어 수집 대상). UI에서 직접 입력한 텍스트를 쓰면 필요 없음 */
 	UFUNCTION(BlueprintPure, Category = "PTB|Availability")
 	static FText GetMiniGameLockMessage(FName MiniGameId);
 };
