@@ -17,6 +17,8 @@
 void UPTBGameInstance::Init()
 {
 	Super::Init();
+	// 첫 실행 언어: OS 언어가 지원 언어(ko/en)면 그대로, 아니면 영어 (패키징/Standalone만. 에디터는 영향 없음)
+	ApplyDefaultLanguage();
 	InitPTBSystems();
 }
 
@@ -149,9 +151,31 @@ void UPTBGameInstance::SetGameLanguage(const FString& Culture)
 FString UPTBGameInstance::GetGameLanguage() const
 {
 #if WITH_EDITOR
-	if (GIsEditor && !EditorPreviewCulture.IsEmpty())
+	if (GIsEditor)
 	{
-		return EditorPreviewCulture;
+		// 에디터(PIE)에서는 에디터 언어(GetCurrentCulture)가 아니라 "게임 텍스트가 실제로 보이는 언어"를 반환
+		FString PreviewCulture = EditorPreviewCulture;
+		FTextLocalizationManager& LocManager = FTextLocalizationManager::Get();
+		if (PreviewCulture.IsEmpty() && LocManager.IsGameLocalizationPreviewEnabled())
+		{
+			// Editor Preferences → Preview Game Language로 켜둔 경우
+			PreviewCulture = LocManager.GetConfiguredGameLocalizationPreviewLanguage();
+		}
+		if (PreviewCulture.IsEmpty())
+		{
+			// 미리보기가 꺼져 있으면 게임 텍스트는 원문(Native, 이 프로젝트는 ko) 그대로 보임
+			PreviewCulture = LocManager.GetNativeCultureName(ELocalizedTextSourceCategory::Game);
+		}
+
+		FString Language;
+		if (!PreviewCulture.Split(TEXT("-"), &Language, nullptr))
+		{
+			Language = PreviewCulture;
+		}
+		if (!Language.IsEmpty())
+		{
+			return Language;
+		}
 	}
 #endif
 	return FInternationalization::Get().GetCurrentCulture()->GetTwoLetterISOLanguageName();
