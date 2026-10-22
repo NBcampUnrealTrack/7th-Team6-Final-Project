@@ -279,7 +279,7 @@ private:
 
 	/** ComboBox 옵션 구성. 언어 변경 후에도 다시 호출해 새 언어로 갱신. */
 	void BuildComboBoxOptions();
-	static FString GetCurrentLanguageCode();
+	FString GetCurrentLanguageCode() const;
 
 	void RefreshAllWidgets();
 	void RefreshKeyText(EPTBActionType Action);

@@ -8,6 +8,7 @@
 #include "Kismet/KismetInternationalizationLibrary.h"
 #include "Internationalization/Internationalization.h"
 #include "Internationalization/Culture.h"
+#include "Internationalization/TextLocalizationManager.h"
 
 // 내부에서 SaveGame 오브젝트를 보관할 멤버가 헤더에 없으므로
 // 헤더에 아래를 추가하는 것을 권장합니다:
@@ -17,6 +18,19 @@ void UPTBGameInstance::Init()
 {
 	Super::Init();
 	InitPTBSystems();
+}
+
+void UPTBGameInstance::Shutdown()
+{
+#if WITH_EDITOR
+	// PIE 종료: 게임 언어 미리보기를 켰었다면 해제 (에디터는 원래 상태로)
+	if (GIsEditor && !EditorPreviewCulture.IsEmpty())
+	{
+		FTextLocalizationManager::Get().DisableGameLocalizationPreview();
+		EditorPreviewCulture.Reset();
+	}
+#endif
+	Super::Shutdown();
 }
 
 void UPTBGameInstance::ApplyDefaultLanguage()
@@ -30,7 +44,7 @@ void UPTBGameInstance::ApplyDefaultLanguage()
 	}
 
 	// 처음 실행: 엔진이 OS 언어로 시작함. 지원하지 않는 언어면 영어로 대체 (저장하지 않음)
-	if (!GetSupportedLanguages().Contains(GetGameLanguage()))
+	if (!GIsEditor && !GetSupportedLanguages().Contains(GetGameLanguage()))
 	{
 		FInternationalization::Get().SetCurrentCulture(TEXT("en"));
 	}
@@ -112,17 +126,33 @@ void UPTBGameInstance::ApplyUserSettings(const FPTBUserSettings& InSettings)
 	PTB_RECORD(LogPTBCore, TEXT("UserSettings applied — Master:%.2f BGM:%.2f SFX:%.2f Offset:%.1fms / WinMode:%d / Resolution:%d / Graphics:%d"),
 		InSettings.MasterVolume, InSettings.BGMVolume, InSettings.SFXVolume, InSettings.JudgementOffsetMs,
 		static_cast<int32>(InSettings.WindowMode), InSettings.ResolutionPresetIndex, InSettings.GraphicsQuality);
-	OnUserSettingsApplied.Broadcast();
 }
 
 void UPTBGameInstance::SetGameLanguage(const FString& Culture)
 {
-	// SaveToConfig=true → GameUserSettings.ini에 저장되어 다음 실행부터 이 언어로 시작
+#if WITH_EDITOR
+	// 에디터(PIE)는 에디터와 같은 프로세스라 SetCurrentCulture가 에디터 UI 언어까지 바꿔버림.
+	// → 게임 텍스트만 바꾸는 "게임 언어 미리보기"로 적용 (에디터 언어/설정 파일은 그대로)
+	if (GIsEditor)
+	{
+		FTextLocalizationManager::Get().EnableGameLocalizationPreview(Culture);
+		EditorPreviewCulture = Culture;
+		return;
+	}
+#endif
+
+	// 패키징/Standalone: SaveToConfig=true → GameUserSettings.ini에 저장되어 다음 실행부터 이 언어로 시작
 	UKismetInternationalizationLibrary::SetCurrentCulture(Culture, /*SaveToConfig*/ true);
 }
 
 FString UPTBGameInstance::GetGameLanguage() const
 {
+#if WITH_EDITOR
+	if (GIsEditor && !EditorPreviewCulture.IsEmpty())
+	{
+		return EditorPreviewCulture;
+	}
+#endif
 	return FInternationalization::Get().GetCurrentCulture()->GetTwoLetterISOLanguageName();
 }
 

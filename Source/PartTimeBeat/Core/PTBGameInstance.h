@@ -12,7 +12,7 @@ class UPTBSceneWidgetBase;
 class USoundBase;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnFlowStateChanged, EGameFlowState, NewState);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnUserSettingsApplied);
+
 // 위젯 관련
 class UPTBMainTitleWidget;
 
@@ -58,12 +58,10 @@ public:
 	void CreateTitleWidget();
 
 	virtual void Init() override;
+	virtual void Shutdown() override;
 
 	UPROPERTY(BlueprintAssignable, Category = "Game Flow")
 	FOnFlowStateChanged OnFlowStateChanged;
-
-	UPROPERTY(BlueprintAssignable, Category = "PTB|Settings")
-	FOnUserSettingsApplied OnUserSettingsApplied;
 
 	/**	설정 캐시 */
 	UPROPERTY(BlueprintReadWrite, Category = "PTB|Settings")
@@ -123,4 +121,7 @@ public:
 
 private:
 	void ApplyDefaultLanguage();
+
+	/** 에디터(PIE)에서 게임 언어 미리보기로 적용 중인 언어. 에디터 자체 언어는 바꾸지 않기 위함 */
+	FString EditorPreviewCulture;
 };
