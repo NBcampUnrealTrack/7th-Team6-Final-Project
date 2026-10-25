@@ -9,6 +9,10 @@
 class APTBBaseMiniGame;
 class UDataTable;
 class UTextBlock;
+class UPTBSceneWidgetBase;
+
+/** 씬 종료 알림 (미니게임 밖에서 쓸 때: 허브 오프닝 스토리/안내 등) */
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FPTBSceneFinishedDelegate, UPTBSceneWidgetBase*, SceneWidget, bool, bSkipped);
 
 /**
  * 미니게임 씬(스토리/튜토리얼) 위젯 공통 베이스.
@@ -40,6 +44,10 @@ public:
 
 	/** 미니게임에서 호출. 튜토리얼 연습 한 판 종료 */
 	void HandlePracticeFinished(bool bPassed, int32 HitCount, int32 RequiredCount, int32 TotalCount);
+
+	/** 씬이 끝났을 때 (정상 종료/스킵 모두). 미니게임 밖에서 위젯을 띄운 쪽이 다음 단계 진행용으로 구독 */
+	UPROPERTY(BlueprintAssignable, Category = "PTB|Scene")
+	FPTBSceneFinishedDelegate OnSceneFinished;
 
 	/** 스킵 버튼용 */
 	UFUNCTION(BlueprintCallable, Category = "PTB|Scene")

@@ -42,6 +42,7 @@ void UPTBGameInstance::ApplyDefaultLanguage()
 	if (GConfig->GetString(TEXT("Internationalization"), TEXT("Culture"), Saved, GGameUserSettingsIni)
 		&& !Saved.IsEmpty())
 	{
+
 		return;
 	}
 

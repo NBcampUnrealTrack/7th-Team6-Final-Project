@@ -149,11 +149,17 @@ void UPTBSceneWidgetBase::FinishScene(bool bSkipped)
 	if (APTBBaseMiniGame* MiniGame = OwnerMiniGame.Get())
 	{
 		MiniGame->NotifySceneFinished(bSkipped);
+		OnSceneFinished.Broadcast(this, bSkipped);
 	}
 	else
 	{
-		PTB_WARNING(LogPTBMiniGames, TEXT("[PTBScene] FinishScene: OwnerMiniGame 없음. 위젯만 제거합니다."));
+		// 미니게임 밖(허브 오프닝 등): 위젯을 띄운 쪽이 OnSceneFinished로 다음 단계 진행
+		if (!OnSceneFinished.IsBound())
+		{
+			PTB_WARNING(LogPTBMiniGames, TEXT("[PTBScene] FinishScene: OwnerMiniGame/구독자 없음. 위젯만 제거합니다."));
+		}
 		RemoveFromParent();
+		OnSceneFinished.Broadcast(this, bSkipped);
 	}
 }
 

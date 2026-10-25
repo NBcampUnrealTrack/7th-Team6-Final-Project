@@ -269,9 +269,17 @@ void UPTBTutorialWidget::HandleProceed()
 
 void UPTBTutorialWidget::StartPractice()
 {
-	APTBBaseMiniGame* MiniGame = GetOwnerMiniGame();
-	if (!MiniGame || !Steps.IsValidIndex(CurrentStepIndex))
+	if (!Steps.IsValidIndex(CurrentStepIndex))
 	{
+		return;
+	}
+
+	APTBBaseMiniGame* MiniGame = GetOwnerMiniGame();
+	if (!MiniGame)
+	{
+		// 미니게임 밖(허브 안내 등)에서는 연습을 돌릴 수 없으므로 막히지 않게 다음 스텝으로
+		PracticeState = EPTBTutorialPracticeState::Passed;
+		AdvanceStep();
 		return;
 	}
 
