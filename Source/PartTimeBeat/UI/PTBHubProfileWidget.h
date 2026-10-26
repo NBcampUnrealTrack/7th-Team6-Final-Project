@@ -5,7 +5,6 @@
 #include "Core/PTBStructEnums.h"
 #include "PTBHubProfileWidget.generated.h"
 
-class UButton;
 class UImage;
 class UTextBlock;
 class UTexture2D;
@@ -17,8 +16,8 @@ class UTexture2D;
  *  - ImagePortrait   : 캐릭터 프로필 이미지 (Image). 장착한 초상화 아이템의 Asset 우선, 비어 있으면 PortraitByGender
  *  - TextPlayerName  : 플레이어 이름 (TextBlock). 활성 프로필 닉네임
  *  - TextMoney       : 현재 소지금 (TextBlock, 누적 알바비 - 상점 사용 금액). MoneyFormat 형식으로 표시
- *  - ButtonShop      : 상점 버튼 → OnShopClicked
- *  - ButtonInventory : 사물함 버튼 → 사물함 열기 + OnInventoryClicked
+ *
+ * 사물함은 I 키, 상점은 허브의 상점 오브젝트(Enter)로 진입 → PTBHubUISubsystem
  */
 UCLASS(Blueprintable)
 class PARTTIMEBEAT_API UPTBHubProfileWidget : public UUserWidget
@@ -37,14 +36,6 @@ public:
 protected:
 	virtual void NativeConstruct() override;
 	virtual void NativeDestruct() override;
-
-	/** 상점 버튼 클릭 (BP: 상점 위젯 열기 - 나중에 구현) */
-	UFUNCTION(BlueprintImplementableEvent, Category = "PTB|Hub")
-	void OnShopClicked();
-
-	/** 사물함 버튼 클릭 (사물함은 C++에서 이미 열림. BP는 추가 연출용) */
-	UFUNCTION(BlueprintImplementableEvent, Category = "PTB|Hub")
-	void OnInventoryClicked();
 
 	/** 표시 갱신 직후 (BP 연출용) */
 	UFUNCTION(BlueprintImplementableEvent, Category = "PTB|Hub")
@@ -70,22 +61,10 @@ protected:
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "PTB|UI")
 	TObjectPtr<UTextBlock> TextMoney = nullptr;
 
-	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "PTB|UI")
-	TObjectPtr<UButton> ButtonShop = nullptr;
-
-	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "PTB|UI")
-	TObjectPtr<UButton> ButtonInventory = nullptr;
-
 public:
 	UPTBHubProfileWidget(const FObjectInitializer& ObjectInitializer);
 
 private:
-	UFUNCTION()
-	void HandleShopClicked();
-
-	UFUNCTION()
-	void HandleInventoryClicked();
-
 	void HandleProfileListChanged();
 
 	UFUNCTION()

@@ -1,11 +1,9 @@
 ﻿#include "UI/PTBHubProfileWidget.h"
 
-#include "Components/Button.h"
 #include "Components/Image.h"
 #include "Components/TextBlock.h"
 #include "Engine/Texture2D.h"
 #include "Items/PTBItemSubsystem.h"
-#include "Items/PTBHubUISubsystem.h"
 #include "Profile/PTBProfileSubsystem.h"
 #include "UI/PTBKeyTextLibrary.h"
 
@@ -18,15 +16,6 @@ UPTBHubProfileWidget::UPTBHubProfileWidget(const FObjectInitializer& ObjectIniti
 void UPTBHubProfileWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
-
-	if (ButtonShop)
-	{
-		ButtonShop->OnClicked.AddUniqueDynamic(this, &UPTBHubProfileWidget::HandleShopClicked);
-	}
-	if (ButtonInventory)
-	{
-		ButtonInventory->OnClicked.AddUniqueDynamic(this, &UPTBHubProfileWidget::HandleInventoryClicked);
-	}
 
 	if (UGameInstance* GI = GetGameInstance())
 	{
@@ -134,21 +123,6 @@ void UPTBHubProfileWidget::RefreshProfile()
 	}
 
 	OnProfileRefreshed(PlayerName, Money);
-}
-
-void UPTBHubProfileWidget::HandleShopClicked()
-{
-	OnShopClicked();
-}
-
-void UPTBHubProfileWidget::HandleInventoryClicked()
-{
-	// 기본 동작: 사물함 열기. BP OnInventoryClicked는 추가 연출용
-	if (UPTBHubUISubsystem* HubUI = GetWorld() ? GetWorld()->GetSubsystem<UPTBHubUISubsystem>() : nullptr)
-	{
-		HubUI->OpenLocker();
-	}
-	OnInventoryClicked();
 }
 
 void UPTBHubProfileWidget::HandleProfileListChanged()
