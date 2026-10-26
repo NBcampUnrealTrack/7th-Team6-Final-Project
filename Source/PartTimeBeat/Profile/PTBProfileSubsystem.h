@@ -6,6 +6,7 @@
 #include "PTBProfileSubsystem.generated.h"
 
 class UPTBSaveGame;
+class UPTBItemSubsystem;
 
 
 /** 활성 프로필이 변경되었을 때. */
@@ -18,6 +19,9 @@ UCLASS()
 class PARTTIMEBEAT_API UPTBProfileSubsystem : public UGameInstanceSubsystem
 {
     GENERATED_BODY()
+
+    /** 아이템 보유·장착·사용 금액은 ItemSubsystem만 활성 프로필에 직접 기록 (FindActiveProfileMutable 사용) */
+    friend class UPTBItemSubsystem;
 
 public:
 
@@ -120,9 +124,17 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Profile|Query")
     int32 GetEarnedStars(FName MiniGameId) const;
 
-    /** 활성화 된 프로필의 누적 알바비 */
+    /** 활성화 된 프로필의 누적 알바비 (지금까지 번 총액, 상점 사용 금액 차감 전) */
     UFUNCTION(BlueprintCallable, Category = "Profile|Query")
     int32 GetTotalEarnedMoney() const;
+
+    /** 활성화 된 프로필의 현재 소지금 (누적 알바비 - 상점 사용 금액). UI의 "소지금" 표시는 이 값 사용 */
+    UFUNCTION(BlueprintCallable, Category = "Profile|Query")
+    int32 GetCurrentMoney() const;
+
+    /** 프로필 데이터 하나의 현재 소지금 (프로필 선택 화면 슬롯 등 활성 프로필이 아닌 경우용) */
+    UFUNCTION(BlueprintPure, Category = "Profile|Query")
+    static int32 GetCurrentMoneyOfProfile(const FPTBProfileData& Profile) { return Profile.GetCurrentMoney(); }
 
 
     /** SaveGame에 동기화하여 디스크에 저장 */

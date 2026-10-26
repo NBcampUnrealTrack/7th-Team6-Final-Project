@@ -14,9 +14,9 @@ class UTexture2D;
  * 허브 맵(L_GameMap) 왼쪽 아래 프로필 HUD.
  *
  * WBP 구성 (이름이 같으면 자동 연결, 전부 선택사항):
- *  - ImagePortrait   : 캐릭터 프로필 이미지 (Image). 성별별 이미지는 PortraitByGender에서 지정
+ *  - ImagePortrait   : 캐릭터 프로필 이미지 (Image). 장착한 초상화 아이템의 Asset 우선, 비어 있으면 PortraitByGender
  *  - TextPlayerName  : 플레이어 이름 (TextBlock). 활성 프로필 닉네임
- *  - TextMoney       : 현재 모은 금액 (TextBlock). MoneyFormat 형식으로 표시
+ *  - TextMoney       : 현재 소지금 (TextBlock, 누적 알바비 - 상점 사용 금액). MoneyFormat 형식으로 표시
  *  - ButtonShop      : 상점 버튼 → OnShopClicked
  *  - ButtonInventory : 인벤토리 버튼 → OnInventoryClicked
  */
@@ -30,7 +30,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "PTB|Hub")
 	void RefreshProfile();
 
-	/** 활성 프로필 금액 */
+	/** 활성 프로필 소지금 (누적 알바비 - 상점 사용 금액) */
 	UFUNCTION(BlueprintPure, Category = "PTB|Hub")
 	int32 GetCurrentMoney() const;
 
@@ -87,6 +87,12 @@ private:
 	void HandleInventoryClicked();
 
 	void HandleProfileListChanged();
+
+	UFUNCTION()
+	void HandleItemStateChanged(FName Category);
+
+	UFUNCTION()
+	void HandleMoneyChanged(int32 CurrentMoney);
 
 	FDelegateHandle ProfileListChangedHandle;
 };
