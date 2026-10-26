@@ -5,6 +5,7 @@
 #include "Components/TextBlock.h"
 #include "Engine/Texture2D.h"
 #include "Items/PTBItemSubsystem.h"
+#include "Items/PTBHubUISubsystem.h"
 #include "Profile/PTBProfileSubsystem.h"
 #include "UI/PTBKeyTextLibrary.h"
 
@@ -142,6 +143,11 @@ void UPTBHubProfileWidget::HandleShopClicked()
 
 void UPTBHubProfileWidget::HandleInventoryClicked()
 {
+	// 기본 동작: 사물함 열기. BP OnInventoryClicked는 추가 연출용
+	if (UPTBHubUISubsystem* HubUI = GetWorld() ? GetWorld()->GetSubsystem<UPTBHubUISubsystem>() : nullptr)
+	{
+		HubUI->OpenLocker();
+	}
 	OnInventoryClicked();
 }
 

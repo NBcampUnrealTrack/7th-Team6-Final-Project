@@ -13,6 +13,7 @@ class APTBGameModeBase;
  * 담당하는 두 가지 입력 영역:
  *  1) ESC → PauseGame / ResumeGame 토글
  *  2) 리듬 입력 키(기본 Z/X/C/V/B) → 활성 미니게임으로 라우팅
+ *  3) 허브 전용 키(I: 사물함, Enter: 상점 등 상호작용) → PTBHubUISubsystem
  *
  * 리듬 키 바인딩은 FPTBUserSettings.RhythmKeys에 저장되며
  * GetRhythmKeyBindings()로 읽어 언제든 반영된다.

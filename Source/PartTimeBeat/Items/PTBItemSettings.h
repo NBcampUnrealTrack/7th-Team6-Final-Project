@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Engine/DeveloperSettings.h"
+#include "InputCoreTypes.h"
 #include "Items/PTBItemTypes.h"
 #include "PTBItemSettings.generated.h"
 
@@ -31,6 +32,24 @@ public:
 	/** 사물함/상점 탭 목록. 배열 순서 = 탭 순서 */
 	UPROPERTY(Config, EditAnywhere, Category = "Item", meta = (TitleProperty = "CategoryId"))
 	TArray<FPTBItemCategoryDef> Categories;
+
+	// ── 허브 UI ──
+
+	/** 사물함 WBP (부모: PTBLockerWidget) */
+	UPROPERTY(Config, EditAnywhere, Category = "Hub UI")
+	TSoftClassPtr<class UPTBLockerWidget> LockerWidgetClass;
+
+	/** 상점 WBP 기본값 (부모: PTBShopWidget). 상점 오브젝트에서 개별 지정하면 그쪽이 우선 */
+	UPROPERTY(Config, EditAnywhere, Category = "Hub UI")
+	TSoftClassPtr<class UPTBShopWidget> ShopWidgetClass;
+
+	/** 허브에서 사물함을 여는 키 */
+	UPROPERTY(Config, EditAnywhere, Category = "Hub UI")
+	FKey LockerKey = EKeys::I;
+
+	/** 허브에서 상점 등 오브젝트와 상호작용하는 키 */
+	UPROPERTY(Config, EditAnywhere, Category = "Hub UI")
+	TArray<FKey> InteractKeys = { EKeys::Enter };
 
 	const FPTBItemCategoryDef* FindCategory(FName CategoryId) const;
 };

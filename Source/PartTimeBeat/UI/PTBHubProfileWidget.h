@@ -18,7 +18,7 @@ class UTexture2D;
  *  - TextPlayerName  : 플레이어 이름 (TextBlock). 활성 프로필 닉네임
  *  - TextMoney       : 현재 소지금 (TextBlock, 누적 알바비 - 상점 사용 금액). MoneyFormat 형식으로 표시
  *  - ButtonShop      : 상점 버튼 → OnShopClicked
- *  - ButtonInventory : 인벤토리 버튼 → OnInventoryClicked
+ *  - ButtonInventory : 사물함 버튼 → 사물함 열기 + OnInventoryClicked
  */
 UCLASS(Blueprintable)
 class PARTTIMEBEAT_API UPTBHubProfileWidget : public UUserWidget
@@ -42,7 +42,7 @@ protected:
 	UFUNCTION(BlueprintImplementableEvent, Category = "PTB|Hub")
 	void OnShopClicked();
 
-	/** 인벤토리 버튼 클릭 (BP: 인벤토리 위젯 열기 - 나중에 구현) */
+	/** 사물함 버튼 클릭 (사물함은 C++에서 이미 열림. BP는 추가 연출용) */
 	UFUNCTION(BlueprintImplementableEvent, Category = "PTB|Hub")
 	void OnInventoryClicked();
 

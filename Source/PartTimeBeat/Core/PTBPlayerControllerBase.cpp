@@ -3,6 +3,7 @@
 #include "Core/PTBGameInstance.h"
 #include "Debug/PTBTeamLog.h"
 #include "MiniGames/Common/PTBBaseMiniGame.h"
+#include "Items/PTBHubUISubsystem.h"
 #include "Kismet/GameplayStatics.h"
 
 bool APTBPlayerControllerBase::InputKey(const FInputKeyEventArgs& EventArgs)
@@ -34,6 +35,19 @@ bool APTBPlayerControllerBase::InputKey(const FInputKeyEventArgs& EventArgs)
 		if (SceneMiniGame && SceneMiniGame->HandleSceneConfirmInput())
 		{
 			return true;
+		}
+	}
+
+	// ── 허브: I → 사물함, Enter → 상점 등 상호작용 ─────────────────
+	// 허브 맵이 아니거나 상호작용 대상이 없으면 소비하지 않음 (기존 Enter 처리 유지)
+	if (EventArgs.Event == IE_Pressed)
+	{
+		if (UPTBHubUISubsystem* HubUI = GetWorld() ? GetWorld()->GetSubsystem<UPTBHubUISubsystem>() : nullptr)
+		{
+			if (HubUI->HandleHubKeyPressed(EventArgs.Key))
+			{
+				return true;
+			}
 		}
 	}
 
