@@ -2,6 +2,7 @@
 
 #include "Blueprint/UserWidget.h"
 #include "Core/PTBGameModeBase.h"
+#include "MiniGames/Common/PTBBaseMiniGame.h"
 #include "Debug/PTBTeamLog.h"
 #include "Engine/World.h"
 #include "Flow/PTBGameFlowSubsystem.h"
@@ -49,25 +50,44 @@ bool UPTBHubUISubsystem::IsPopupOpen() const
 
 bool UPTBHubUISubsystem::CanOpenPopup() const
 {
-	const UWorld* World = GetWorld();
-	if (!World || !GetLocalPlayerController() || IsPopupOpen() || !IsHubWorld())
-	{
-		return false;
-	}
+	return GetBlockReason().IsEmpty();
+}
 
+FString UPTBHubUISubsystem::GetBlockReason() const
+{
+	const UWorld* World = GetWorld();
+	if (!World)
+	{
+		return TEXT("World 없음");
+	}
+	if (!GetLocalPlayerController())
+	{
+		return TEXT("PlayerController 없음");
+	}
+	if (IsPopupOpen())
+	{
+		return TEXT("이미 다른 팝업이 열려 있음");
+	}
+	if (!IsHubWorld())
+	{
+		return FString::Printf(TEXT("허브 맵이 아님 (현재 레벨: %s)"), *UGameplayStatics::GetCurrentLevelName(World, true));
+	}
 	if (UGameplayStatics::IsGamePaused(World))
 	{
-		return false;
+		return TEXT("게임 일시정지 중");
 	}
-
 	if (const APTBGameModeBase* GM = World->GetAuthGameMode<APTBGameModeBase>())
 	{
-		if (GM->bIsPaused || GM->ActiveMiniGame)
+		if (GM->bIsPaused)
 		{
-			return false;
+			return TEXT("GameMode bIsPaused=true");
+		}
+		if (GM->ActiveMiniGame)
+		{
+			return FString::Printf(TEXT("미니게임 진행 중 (%s)"), *GM->ActiveMiniGame->GetName());
 		}
 	}
-	return true;
+	return FString();
 }
 
 APlayerController* UPTBHubUISubsystem::GetLocalPlayerController() const
@@ -80,8 +100,10 @@ APlayerController* UPTBHubUISubsystem::GetLocalPlayerController() const
 
 bool UPTBHubUISubsystem::OpenLocker()
 {
-	if (!CanOpenPopup())
+	const FString BlockReason = GetBlockReason();
+	if (!BlockReason.IsEmpty())
 	{
+		PTB_WARNING(LogPTBProfile, TEXT("[HubUI] 사물함 열기 거부: %s"), *BlockReason);
 		return false;
 	}
 
@@ -99,8 +121,10 @@ bool UPTBHubUISubsystem::OpenLocker()
 
 bool UPTBHubUISubsystem::OpenShop(const FText& ShopName, const TArray<FName>& SoldCategories, TSubclassOf<UPTBShopWidget> WidgetClassOverride)
 {
-	if (!CanOpenPopup())
+	const FString BlockReason = GetBlockReason();
+	if (!BlockReason.IsEmpty())
 	{
+		PTB_WARNING(LogPTBProfile, TEXT("[HubUI] 상점 열기 거부: %s"), *BlockReason);
 		return false;
 	}
 
@@ -196,11 +220,6 @@ bool UPTBHubUISubsystem::TryInteract()
 
 bool UPTBHubUISubsystem::HandleHubKeyPressed(FKey Key)
 {
-	if (!IsHubWorld())
-	{
-		return false;
-	}
-
 	const UPTBItemSettings* Settings = GetDefault<UPTBItemSettings>();
 	if (!Settings)
 	{
@@ -209,13 +228,19 @@ bool UPTBHubUISubsystem::HandleHubKeyPressed(FKey Key)
 
 	if (Key == Settings->LockerKey)
 	{
+		// 허브가 아니면 조용히 무시 (미니게임 맵 등에서 로그 도배 방지)
+		if (!IsHubWorld())
+		{
+			return false;
+		}
+		PTB_RECORD(LogPTBProfile, TEXT("[HubUI] 사물함 키 입력 수신 (%s)"), *Key.ToString());
 		return OpenLocker();
 	}
 
 	if (Settings->InteractKeys.Contains(Key))
 	{
 		// 상호작용 대상이 없으면 소비하지 않음 → 기존 Enter 처리(미니게임 입구 등)가 그대로 동작
-		return TryInteract();
+		return IsHubWorld() && TryInteract();
 	}
 
 	return false;

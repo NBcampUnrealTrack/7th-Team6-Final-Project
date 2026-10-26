@@ -87,6 +87,9 @@ public:
 	bool IsHubWorld() const;
 
 private:
+	/** 팝업을 열 수 없는 이유 (열 수 있으면 빈 문자열). 로그용 */
+	FString GetBlockReason() const;
+
 	APlayerController* GetLocalPlayerController() const;
 	bool ShowPopup(UPTBHubPopupWidget* Popup);
 	void HandlePopupClosed();
