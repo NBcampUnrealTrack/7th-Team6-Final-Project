@@ -48,7 +48,7 @@ protected:
 
 	/** 플레이어가 범위에 들어오거나 나갈 때 (BP: 하이라이트, 효과음 등) */
 	UFUNCTION(BlueprintImplementableEvent, Category = "PTB|Shop")
-	void OnPlayerFocusChanged(bool bFocused);
+	void OnPlayerFocusChanged(bool bIsFocused);
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PTB|Shop")
 	TObjectPtr<USceneComponent> Root;
