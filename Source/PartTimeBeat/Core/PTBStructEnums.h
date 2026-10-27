@@ -478,9 +478,23 @@ struct PARTTIMEBEAT_API FPTBProfileData
     UPROPERTY(BlueprintReadOnly, SaveGame, Category = "Profile|Hub")
     FTransform HubReturnTransform;
 
-    // 코스튬 추가 시
-    //UPROPERTY(BlueprintReadOnly, SaveGame, Category = "Profile|Progress")
-    //TSet<FName> UnlockedCostumes;
+    // Items (사물함/상점)
+
+    /**
+     * 상점 등에서 사용한 누적 금액.
+     * 소지금 = TotalEarnedMoney - SpentMoney (GetCurrentMoney).
+     * TotalEarnedMoney는 지금까지 번 총액으로 유지 (엔딩 판정 등 기존 로직이 영향받지 않도록)
+     */
+    UPROPERTY(BlueprintReadOnly, SaveGame, Category = "Profile|Items")
+    int32 SpentMoney = 0;
+
+    /** 보유 아이템 ID (DataTable Row Name). 기본 아이템은 저장하지 않음 (항상 보유 취급) */
+    UPROPERTY(BlueprintReadOnly, SaveGame, Category = "Profile|Items")
+    TSet<FName> OwnedItemIds;
+
+    /** 카테고리 → 장착 아이템 ID. 기록 없는 카테고리는 기본 아이템이 장착된 것으로 취급 */
+    UPROPERTY(BlueprintReadOnly, SaveGame, Category = "Profile|Items")
+    TMap<FName, FName> EquippedItemByCategory;
 
 
     UPROPERTY(BlueprintReadOnly, SaveGame, Category = "Profile")
@@ -511,6 +525,12 @@ struct PARTTIMEBEAT_API FPTBProfileData
     bool IsValid() const
     {
         return ProfileId.IsValid() && !Nickname.IsEmpty();
+    }
+
+    /** 현재 소지금 (번 돈 - 쓴 돈) */
+    int32 GetCurrentMoney() const
+    {
+        return FMath::Max(0, TotalEarnedMoney - SpentMoney);
     }
 };
 
@@ -670,8 +690,13 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
     int32 EarnedStars = 0;
 
+    /** 지금까지 번 총액 (사용 금액 차감 전) */
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
     int32 TotalMoney = 0;
+
+    /** 현재 소지금 (상점 사용 금액 차감 후). 결과 화면에 "소지금"으로 보여줄 때는 이 값 사용 */
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
+    int32 CurrentMoney = 0;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
     int32 TotalStars = 0;

@@ -3,15 +3,61 @@
 #include "Core/PTBGameInstance.h"
 #include "Debug/PTBTeamLog.h"
 #include "MiniGames/Common/PTBBaseMiniGame.h"
+#include "Items/PTBHubUISubsystem.h"
 #include "Kismet/GameplayStatics.h"
+#include "EnhancedInputSubsystems.h"
+#include "Engine/LocalPlayer.h"
+#include "InputMappingContext.h"
+
+void APTBPlayerControllerBase::BeginPlay()
+{
+	Super::BeginPlay();
+
+	if (!IsLocalPlayerController())
+	{
+		return;
+	}
+
+	UEnhancedInputLocalPlayerSubsystem* InputSubsystem =
+		ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer());
+	if (!InputSubsystem)
+	{
+		return;
+	}
+
+	for (UInputMappingContext* Context : DefaultMappingContexts)
+	{
+		if (Context)
+		{
+			InputSubsystem->AddMappingContext(Context, 0);
+		}
+	}
+
+	const UPTBHubUISubsystem* HubUI = GetWorld() ? GetWorld()->GetSubsystem<UPTBHubUISubsystem>() : nullptr;
+	if (HubUI && HubUI->IsHubWorld())
+	{
+		for (UInputMappingContext* Context : HubMappingContexts)
+		{
+			if (Context)
+			{
+				InputSubsystem->AddMappingContext(Context, 0);
+			}
+		}
+		PTB_RECORD(LogPTBCore, TEXT("[PTBPlayerController] 허브 입력 매핑 등록: %d개"), HubMappingContexts.Num());
+	}
+}
 
 bool APTBPlayerControllerBase::InputKey(const FInputKeyEventArgs& EventArgs)
 {
 	// ── ESC: 일시정지 토글 ─────────────────────────────────────────
+	// 허브에서 미니게임이 진행 중이 아닐 때는 C++에서 소비하지 않음
+	// → BP(허브 ESC 메뉴)에서 처리할 수 있도록 넘김
 	if (EventArgs.Key == EKeys::Escape && EventArgs.Event == IE_Pressed)
 	{
 		APTBGameModeBase* GM = GetWorld()->GetAuthGameMode<APTBGameModeBase>();
-		if (GM)
+		const UPTBHubUISubsystem* HubUI = GetWorld()->GetSubsystem<UPTBHubUISubsystem>();
+		const bool bHubIdle = GM && HubUI && HubUI->IsHubWorld() && !GM->bIsGameActive && !GM->bIsPaused;
+		if (GM && !bHubIdle)
 		{
 			if (GM->bIsPaused)
 				GM->ResumeGame();
@@ -34,6 +80,19 @@ bool APTBPlayerControllerBase::InputKey(const FInputKeyEventArgs& EventArgs)
 		if (SceneMiniGame && SceneMiniGame->HandleSceneConfirmInput())
 		{
 			return true;
+		}
+	}
+
+	// ── 허브: I → 사물함, Enter → 상점 등 상호작용 ─────────────────
+	// 허브 맵이 아니거나 상호작용 대상이 없으면 소비하지 않음 (기존 Enter 처리 유지)
+	if (EventArgs.Event == IE_Pressed)
+	{
+		if (UPTBHubUISubsystem* HubUI = GetWorld() ? GetWorld()->GetSubsystem<UPTBHubUISubsystem>() : nullptr)
+		{
+			if (HubUI->HandleHubKeyPressed(EventArgs.Key))
+			{
+				return true;
+			}
 		}
 	}
 

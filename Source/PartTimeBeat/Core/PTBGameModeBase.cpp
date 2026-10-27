@@ -631,6 +631,7 @@ void APTBGameModeBase::SubmitRoundResult(const FPTBRoundResult& Result)
 				Reward.EarnedMoney = Result.EarnedMoney;
 				Reward.EarnedStars = Result.StarCount;
 				Reward.TotalMoney = bHasActive ? UpdatedProfile.TotalEarnedMoney : Result.EarnedMoney;
+				Reward.CurrentMoney = bHasActive ? UpdatedProfile.GetCurrentMoney() : Result.EarnedMoney;
 				Reward.TotalStars = 0;
 				if (bHasActive)
 				{

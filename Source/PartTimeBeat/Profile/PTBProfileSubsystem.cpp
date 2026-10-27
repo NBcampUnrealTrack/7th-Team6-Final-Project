@@ -586,6 +586,12 @@ int32 UPTBProfileSubsystem::GetTotalEarnedMoney() const
     return Active ? Active->TotalEarnedMoney : 0;
 }
 
+int32 UPTBProfileSubsystem::GetCurrentMoney() const
+{
+    const FPTBProfileData* Active = FindActiveProfileConst();
+    return Active ? Active->GetCurrentMoney() : 0;
+}
+
 
 void UPTBProfileSubsystem::RequestSave()
 {
