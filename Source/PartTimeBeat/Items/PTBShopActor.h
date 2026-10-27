@@ -17,7 +17,7 @@ class UPTBShopWidget;
  * 사용법
  *  1) 이 클래스를 부모로 BP 생성 (예: BP_Shop_Hair) → 건물/NPC 메시를 자식으로 추가
  *  2) ShopName, SoldCategories 지정 (예: "헤어샵", [Hair])
- *  3) PromptWidget의 Widget Class에 "Enter: 상점" 안내 위젯 지정 (선택)
+ *  3) PromptWidget의 Widget Class에 안내 위젯 지정 (예: WBP_Hud_EnterGuide, 부모 PTBKeyPromptWidget)
  *  4) 레벨에 배치하고 InteractVolume 크기 조절
  */
 UCLASS(Blueprintable)
@@ -41,6 +41,13 @@ public:
 	/** 이 상점만 다른 WBP를 쓰고 싶을 때 (비우면 PTB 아이템 설정의 ShopWidgetClass) */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Shop")
 	TSubclassOf<UPTBShopWidget> ShopWidgetClassOverride;
+
+	/**
+	 * 안내 문구 (PromptWidget이 PTBKeyPromptWidget 기반일 때만 적용).
+	 * 비우면 위젯 기본 문구. 키 토큰 사용 가능 (예: "헤어샵 들어가기: {Interact} 키")
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Shop", meta = (MultiLine = true))
+	FText PromptTextOverride;
 
 protected:
 	virtual void BeginPlay() override;
