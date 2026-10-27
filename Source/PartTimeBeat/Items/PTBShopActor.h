@@ -7,17 +7,17 @@
 
 class UBoxComponent;
 class UPrimitiveComponent;
-class UWidgetComponent;
 class UPTBShopWidget;
 
 /**
  * 허브에 배치하는 상점 (헤어샵, 판정 스킨샵, 탈것 가게 등).
- * 범위(InteractVolume) 안에서 Enter → 이 상점의 판매 카테고리만 보여주는 상점 팝업이 열림
+ * 범위(InteractVolume) 안에 들어오면 화면에 키 안내(PTB 아이템 설정의 InteractPromptWidgetClass)가 뜨고,
+ * Enter → 이 상점의 판매 카테고리만 보여주는 상점 팝업이 열림
  *
  * 사용법
  *  1) 이 클래스를 부모로 BP 생성 (예: BP_Shop_Hair) → 건물/NPC 메시를 자식으로 추가
  *  2) ShopName, SoldCategories 지정 (예: "헤어샵", [Hair])
- *  3) PromptWidget의 Widget Class에 안내 위젯 지정 (예: WBP_Hud_EnterGuide, 부모 PTBKeyPromptWidget)
+ *  3) (선택) PromptTextOverride로 상점별 안내 문구 지정
  *  4) 레벨에 배치하고 InteractVolume 크기 조절
  */
 UCLASS(Blueprintable)
@@ -29,6 +29,7 @@ public:
 	APTBShopActor();
 
 	virtual bool OnHubInteract_Implementation(APlayerController* Player) override;
+	virtual FText GetInteractPromptText_Implementation() const override { return PromptTextOverride; }
 
 	/** 상점 이름 (팝업 제목) */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Shop")
@@ -43,8 +44,8 @@ public:
 	TSubclassOf<UPTBShopWidget> ShopWidgetClassOverride;
 
 	/**
-	 * 안내 문구 (PromptWidget이 PTBKeyPromptWidget 기반일 때만 적용).
-	 * 비우면 위젯 기본 문구. 키 토큰 사용 가능 (예: "헤어샵 들어가기: {Interact} 키")
+	 * 화면 키 안내 문구. 비우면 안내 위젯의 기본 문구 (예: "상호작용: {Interact} 키").
+	 * 키 토큰 사용 가능 (예: "헤어샵 들어가기: {Interact} 키")
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Shop", meta = (MultiLine = true))
 	FText PromptTextOverride;
@@ -63,10 +64,6 @@ protected:
 	/** 상호작용 범위 */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PTB|Shop")
 	TObjectPtr<UBoxComponent> InteractVolume;
-
-	/** "Enter: 상점" 안내 (범위 안에서만 표시) */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PTB|Shop")
-	TObjectPtr<UWidgetComponent> PromptWidget;
 
 private:
 	UFUNCTION()

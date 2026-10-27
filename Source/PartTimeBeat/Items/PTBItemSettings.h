@@ -43,6 +43,13 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Hub UI")
 	TSoftClassPtr<class UPTBShopWidget> ShopWidgetClass;
 
+	/**
+	 * 상호작용 대상(상점 등) 근처에서 화면에 띄울 키 안내 위젯 (부모: PTBKeyPromptWidget, 예: WBP_Hud_EnterGuide).
+	 * 미니게임 입구 안내와 같은 위젯을 쓰면 방식이 통일됨
+	 */
+	UPROPERTY(Config, EditAnywhere, Category = "Hub UI")
+	TSoftClassPtr<class UPTBKeyPromptWidget> InteractPromptWidgetClass;
+
 	/** 허브에서 사물함을 여는 키 */
 	UPROPERTY(Config, EditAnywhere, Category = "Hub UI")
 	FKey LockerKey = EKeys::I;

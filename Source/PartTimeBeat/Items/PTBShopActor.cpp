@@ -1,13 +1,11 @@
 ﻿#include "Items/PTBShopActor.h"
 
 #include "Components/BoxComponent.h"
-#include "Components/WidgetComponent.h"
 #include "Engine/World.h"
 #include "GameFramework/Pawn.h"
 #include "GameFramework/PlayerController.h"
 #include "Items/PTBHubUISubsystem.h"
 #include "UI/PTBItemPopupWidget.h"
-#include "UI/PTBKeyPromptWidget.h"
 
 APTBShopActor::APTBShopActor()
 {
@@ -21,14 +19,6 @@ APTBShopActor::APTBShopActor()
 	InteractVolume->SetBoxExtent(FVector(150.f, 150.f, 100.f));
 	InteractVolume->SetCollisionProfileName(TEXT("Trigger"));
 	InteractVolume->SetGenerateOverlapEvents(true);
-
-	PromptWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("PromptWidget"));
-	PromptWidget->SetupAttachment(Root);
-	PromptWidget->SetWidgetSpace(EWidgetSpace::Screen);
-	PromptWidget->SetDrawAtDesiredSize(true);
-	PromptWidget->SetRelativeLocation(FVector(0.f, 0.f, 220.f));
-	PromptWidget->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	PromptWidget->SetHiddenInGame(true);
 
 	ShopName = NSLOCTEXT("PTBItem", "DefaultShopName", "상점");
 }
@@ -108,26 +98,6 @@ void APTBShopActor::SetFocused(bool bInFocused)
 		{
 			HubUI->ClearInteractTarget(this);
 		}
-	}
-
-	if (PromptWidget)
-	{
-		// 보일 때마다 현재 키 설정으로 문구 갱신 (설정에서 키를 바꿔도 다음 표시부터 반영)
-		if (bFocused)
-		{
-			if (UPTBKeyPromptWidget* Prompt = Cast<UPTBKeyPromptWidget>(PromptWidget->GetUserWidgetObject()))
-			{
-				if (!PromptTextOverride.IsEmpty())
-				{
-					Prompt->SetPromptText(PromptTextOverride);
-				}
-				else
-				{
-					Prompt->RefreshPromptText();
-				}
-			}
-		}
-		PromptWidget->SetHiddenInGame(!bFocused);
 	}
 
 	OnPlayerFocusChanged(bFocused);

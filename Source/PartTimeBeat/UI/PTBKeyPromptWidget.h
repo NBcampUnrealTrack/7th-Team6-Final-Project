@@ -32,6 +32,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "PTB|Prompt")
 	void RefreshPromptText();
 
+	/** 토큰 치환 전 원본 문구 */
+	UFUNCTION(BlueprintPure, Category = "PTB|Prompt")
+	FText GetPromptText() const { return PromptText; }
+
 	/** 토큰이 치환된 최종 문구 */
 	UFUNCTION(BlueprintPure, Category = "PTB|Prompt")
 	FText GetFormattedPromptText() const;
