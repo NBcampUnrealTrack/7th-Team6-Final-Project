@@ -1,7 +1,6 @@
 ﻿#include "Items/PTBShopActor.h"
 
 #include "Components/BoxComponent.h"
-#include "Components/WidgetComponent.h"
 #include "Engine/World.h"
 #include "GameFramework/Pawn.h"
 #include "GameFramework/PlayerController.h"
@@ -20,14 +19,6 @@ APTBShopActor::APTBShopActor()
 	InteractVolume->SetBoxExtent(FVector(150.f, 150.f, 100.f));
 	InteractVolume->SetCollisionProfileName(TEXT("Trigger"));
 	InteractVolume->SetGenerateOverlapEvents(true);
-
-	PromptWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("PromptWidget"));
-	PromptWidget->SetupAttachment(Root);
-	PromptWidget->SetWidgetSpace(EWidgetSpace::Screen);
-	PromptWidget->SetDrawAtDesiredSize(true);
-	PromptWidget->SetRelativeLocation(FVector(0.f, 0.f, 220.f));
-	PromptWidget->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	PromptWidget->SetHiddenInGame(true);
 
 	ShopName = NSLOCTEXT("PTBItem", "DefaultShopName", "상점");
 }
@@ -107,11 +98,6 @@ void APTBShopActor::SetFocused(bool bInFocused)
 		{
 			HubUI->ClearInteractTarget(this);
 		}
-	}
-
-	if (PromptWidget)
-	{
-		PromptWidget->SetHiddenInGame(!bFocused);
 	}
 
 	OnPlayerFocusChanged(bFocused);

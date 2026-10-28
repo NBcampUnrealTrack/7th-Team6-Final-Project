@@ -11,6 +11,7 @@
 #include "Items/PTBItemSettings.h"
 #include "Kismet/GameplayStatics.h"
 #include "UI/PTBItemPopupWidget.h"
+#include "UI/PTBKeyPromptWidget.h"
 
 bool UPTBHubUISubsystem::ShouldCreateSubsystem(UObject* Outer) const
 {
@@ -20,6 +21,11 @@ bool UPTBHubUISubsystem::ShouldCreateSubsystem(UObject* Outer) const
 
 void UPTBHubUISubsystem::Deinitialize()
 {
+	if (InteractPrompt)
+	{
+		InteractPrompt->RemoveFromParent();
+		InteractPrompt = nullptr;
+	}
 	ActivePopup = nullptr;
 	InteractTarget.Reset();
 	Super::Deinitialize();
@@ -158,6 +164,7 @@ bool UPTBHubUISubsystem::ShowPopup(UPTBHubPopupWidget* Popup)
 	ActivePopup = Popup;
 	Popup->OnPopupClosedNative.AddUObject(this, &UPTBHubUISubsystem::HandlePopupClosed);
 	Popup->OpenPopup();
+	UpdateInteractPrompt(); // 팝업 위로 안내가 겹치지 않게 숨김
 
 	PTB_RECORD(LogPTBProfile, TEXT("[HubUI] Popup opened: %s"), *Popup->GetClass()->GetName());
 	return true;
@@ -178,6 +185,7 @@ void UPTBHubUISubsystem::HandlePopupClosed()
 		ActivePopup->OnPopupClosedNative.RemoveAll(this);
 	}
 	ActivePopup = nullptr;
+	UpdateInteractPrompt(); // 상점 앞에서 닫았으면 안내 다시 표시
 }
 
 // ── 상호작용 ─────────────────────────────────────────────────────
@@ -189,6 +197,7 @@ void UPTBHubUISubsystem::SetInteractTarget(AActor* Target)
 		return;
 	}
 	InteractTarget = Target;
+	UpdateInteractPrompt();
 	OnInteractTargetChanged.Broadcast(Target);
 }
 
@@ -199,7 +208,53 @@ void UPTBHubUISubsystem::ClearInteractTarget(AActor* Target)
 		return;
 	}
 	InteractTarget.Reset();
+	UpdateInteractPrompt();
 	OnInteractTargetChanged.Broadcast(nullptr);
+}
+
+void UPTBHubUISubsystem::UpdateInteractPrompt()
+{
+	AActor* Target = InteractTarget.Get();
+	const bool bShow = Target && !IsPopupOpen()
+		&& Target->GetClass()->ImplementsInterface(UPTBHubInteractable::StaticClass());
+
+	if (!bShow)
+	{
+		if (InteractPrompt)
+		{
+			InteractPrompt->RemoveFromParent();
+		}
+		return;
+	}
+
+	if (!InteractPrompt)
+	{
+		const UPTBItemSettings* Settings = GetDefault<UPTBItemSettings>();
+		UClass* PromptClass = Settings ? Settings->InteractPromptWidgetClass.LoadSynchronous() : nullptr;
+		APlayerController* PC = GetLocalPlayerController();
+		if (!PromptClass || !PC)
+		{
+			return; // 안내 위젯 미지정 시 안내 없이 동작
+		}
+		InteractPrompt = CreateWidget<UPTBKeyPromptWidget>(PC, PromptClass);
+		if (!InteractPrompt)
+		{
+			return;
+		}
+	}
+
+	// 위젯 기본 문구를 기억해 두고, 대상이 문구를 지정하면 그걸로 교체
+	if (DefaultPromptText.IsEmpty())
+	{
+		DefaultPromptText = InteractPrompt->GetPromptText();
+	}
+	const FText TargetText = IPTBHubInteractable::Execute_GetInteractPromptText(Target);
+	InteractPrompt->SetPromptText(TargetText.IsEmpty() ? DefaultPromptText : TargetText);
+
+	if (!InteractPrompt->IsInViewport())
+	{
+		InteractPrompt->AddToViewport(10);
+	}
 }
 
 bool UPTBHubUISubsystem::TryInteract()

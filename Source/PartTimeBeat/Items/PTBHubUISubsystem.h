@@ -9,6 +9,7 @@ class APlayerController;
 class UPTBHubPopupWidget;
 class UPTBLockerWidget;
 class UPTBShopWidget;
+class UPTBKeyPromptWidget;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnPTBHubInteractTargetChanged, AActor*, NewTarget);
 
@@ -72,7 +73,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "PTB|Hub")
 	bool TryInteract();
 
-	/** 상호작용 대상 변경 (BP: HUD에 "Enter: 상점" 안내 표시 등) */
+	/** 상호작용 대상 변경 (BP: 추가 연출용. 키 안내는 서브시스템이 자동 표시) */
 	UPROPERTY(BlueprintAssignable, Category = "PTB|Hub")
 	FOnPTBHubInteractTargetChanged OnInteractTargetChanged;
 
@@ -93,6 +94,15 @@ private:
 	APlayerController* GetLocalPlayerController() const;
 	bool ShowPopup(UPTBHubPopupWidget* Popup);
 	void HandlePopupClosed();
+
+	/** 상호작용 대상이 있고 팝업이 없으면 화면 키 안내 표시, 아니면 숨김 */
+	void UpdateInteractPrompt();
+
+	UPROPERTY(Transient)
+	TObjectPtr<UPTBKeyPromptWidget> InteractPrompt;
+
+	/** 안내 위젯의 원래 문구 (대상별 문구로 바꿨다가 되돌릴 때 사용) */
+	FText DefaultPromptText;
 
 	UPROPERTY(Transient)
 	TObjectPtr<UPTBHubPopupWidget> ActivePopup;
