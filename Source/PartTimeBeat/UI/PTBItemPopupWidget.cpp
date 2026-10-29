@@ -349,7 +349,7 @@ UPTBLockerWidget::UPTBLockerWidget(const FObjectInitializer& ObjectInitializer)
 {
 	CloseKeys.AddUnique(EKeys::I);
 
-	TitleText     = NSLOCTEXT("PTBItem", "LockerTitle", "사물함");
+	TitleText     = NSLOCTEXT("PTBItem", "LockerTitle", "인벤토리");
 	LabelEquip    = NSLOCTEXT("PTBItem", "LockerEquip", "장착");
 	LabelEquipped = NSLOCTEXT("PTBItem", "LockerEquipped", "장착 중");
 }
