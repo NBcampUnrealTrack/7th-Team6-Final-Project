@@ -273,16 +273,16 @@ void UPTBVehicleComponent::UpdateVehicleMesh(const FPTBItemRow* Row)
 		VehicleMesh->RegisterComponent();
 	}
 
-	// 붙일 위치: 머리(AttachToHead) 또는 발밑(캡슐 바닥)
+	// 붙일 위치: 머리 뼈(AttachToHead) 또는 캐릭터 메시 원점(발밑)
+	// 둘 다 캐릭터 메시 기준이라, PIE에서 PTBVehicleMesh의 Location/Rotation/Scale 값이
+	// DataTable의 MeshOffsetX/Y/Z, MeshPitch/Yaw/Roll, MeshScale과 그대로 일치함
 	const bool bAttachToHead = GetParam(*Row, TEXT("AttachToHead"), 0.f) > 0.f;
 	USkeletalMeshComponent* CharMesh = Character->GetMesh();
-	USceneComponent* Parent = Character->GetRootComponent();
+	USceneComponent* Parent = CharMesh ? static_cast<USceneComponent*>(CharMesh) : Character->GetRootComponent();
 	FName Socket = NAME_None;
-	FVector BaseOffset = FVector::ZeroVector;
 
 	if (bAttachToHead && CharMesh)
 	{
-		Parent = CharMesh;
 		if (CharMesh->DoesSocketExist(HeadSocketName))
 		{
 			Socket = HeadSocketName;
@@ -293,18 +293,18 @@ void UPTBVehicleComponent::UpdateVehicleMesh(const FPTBItemRow* Row)
 				*HeadSocketName.ToString());
 		}
 	}
-	else if (const UCapsuleComponent* Capsule = Character->GetCapsuleComponent())
-	{
-		BaseOffset.Z = -Capsule->GetScaledCapsuleHalfHeight(); // 캡슐 중심 → 바닥
-	}
 
 	VehicleMesh->AttachToComponent(Parent, FAttachmentTransformRules::SnapToTargetNotIncludingScale, Socket);
 
-	const FVector Offset = BaseOffset + FVector(
+	const FVector Offset(
 		GetParam(*Row, TEXT("MeshOffsetX"), 0.f),
 		GetParam(*Row, TEXT("MeshOffsetY"), 0.f),
 		GetParam(*Row, TEXT("MeshOffsetZ"), 0.f));
-	VehicleMesh->SetRelativeLocationAndRotation(Offset, FRotator(0.f, GetParam(*Row, TEXT("MeshYaw"), 0.f), 0.f));
+	const FRotator Rotation(
+		GetParam(*Row, TEXT("MeshPitch"), 0.f),
+		GetParam(*Row, TEXT("MeshYaw"), 0.f),
+		GetParam(*Row, TEXT("MeshRoll"), 0.f));
+	VehicleMesh->SetRelativeLocationAndRotation(Offset, Rotation);
 	VehicleMesh->SetRelativeScale3D(FVector(GetParam(*Row, TEXT("MeshScale"), 1.f)));
 
 	VehicleMesh->SetStaticMesh(Mesh);

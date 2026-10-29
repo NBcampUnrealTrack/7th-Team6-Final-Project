@@ -28,11 +28,15 @@ class UStaticMeshComponent;
  *
  * 외형 (행의 Asset에 Static Mesh 지정)
  *  HideCharacter        1이면 캐릭터를 숨기고 탈것 메시만 표시 (뚜껑 닫힌 자동차 등 "통째로 치환")
- *  AttachToHead         1이면 머리 뼈(HeadSocketName)에 붙임 (대나무 헬리콥터 프로펠러 등). 0이면 발밑(캡슐 바닥)
- *  MeshOffsetX/Y/Z      붙인 위치 보정 (cm)
- *  MeshYaw              메시 방향 보정 (도)    예: 자동차 앞이 캐릭터 정면과 다르면 90 / -90 / 180
+ *  AttachToHead         1이면 머리 뼈(HeadSocketName)에 붙임 (대나무 헬리콥터 프로펠러 등). 0이면 캐릭터 메시 원점(발밑)
+ *  MeshOffsetX/Y/Z      위치 보정 (cm)
+ *  MeshPitch/Yaw/Roll   회전 보정 (도)  예: 자동차 앞뒤가 반대면 MeshYaw 180, 머리 뼈 축 때문에 옆으로 누우면 Pitch/Roll 90
  *  MeshScale            크기 배율 (기본 1)
- *  SpinSpeed            초당 회전 각도 (Z축) (예: 프로펠러 1080)
+ *  SpinSpeed            초당 회전 각도, 메시 자체의 Z축 기준 (예: 프로펠러 1080)
+ *
+ * 값 맞추는 법: PIE → F8(Eject) → Outliner에서 캐릭터 선택 → Details에서 PTBVehicleMesh 선택 →
+ *              Transform을 직접 조절 → 보이는 Location/Rotation/Scale 값을 DataTable에 그대로 옮기기
+ *              (DataTable 수정은 PIE를 다시 시작해야 반영됨)
  *
  * 애니메이션: ABP에서 GetVehicleParam("HoverPose") 등으로 읽어서 처리 (예: 헬리콥터 비행 중 공중 대기 포즈)
  */
