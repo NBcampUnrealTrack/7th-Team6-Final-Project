@@ -2,6 +2,7 @@
 
 #include "Components/SkeletalMeshComponent.h"
 #include "Components/StaticMeshComponent.h"
+#include "Components/CapsuleComponent.h"
 #include "Debug/PTBTeamLog.h"
 #include "Engine/StaticMesh.h"
 #include "Engine/World.h"
@@ -123,18 +124,24 @@ void UPTBVehicleComponent::ReapplyVehicle()
 	const bool bIsNone = !bFound || Row.bIsDefault;
 	if (bIsNone)
 	{
+		CurrentParams.Reset();
 		SpeedMultiplier = 1.f;
 		BoostMultiplier = 1.f;
+		SpinSpeed = 0.f;
 		UpdateVehicleMesh(nullptr);
+		SetCharacterHidden(false);
 	}
 	else
 	{
+		CurrentParams = Row.NumericParams;
 		ApplyVehicleRow(Row);
+		SpinSpeed = GetParam(Row, TEXT("SpinSpeed"), 0.f);
 		UpdateVehicleMesh(&Row);
+		SetCharacterHidden(GetParam(Row, TEXT("HideCharacter"), 0.f) > 0.f && VehicleMesh && VehicleMesh->IsVisible());
 	}
 
-	// 부스터가 있을 때만 키 입력 확인
-	SetComponentTickEnabled(BoostMultiplier > 1.f);
+	// 부스터 키 확인 또는 프로펠러 회전이 필요할 때만 Tick
+	SetComponentTickEnabled(BoostMultiplier > 1.f || !FMath::IsNearlyZero(SpinSpeed));
 
 	PTB_RECORD(LogPTBCharacters, TEXT("[Vehicle] Apply: item=%s none=%d speed=x%.2f boost=x%.2f"),
 		*VehicleId.ToString(), bIsNone ? 1 : 0, SpeedMultiplier, BoostMultiplier);
@@ -145,6 +152,12 @@ void UPTBVehicleComponent::ReapplyVehicle()
 float UPTBVehicleComponent::GetParam(const FPTBItemRow& Row, const TCHAR* Key, float Default) const
 {
 	const float* Found = Row.NumericParams.Find(FName(Key));
+	return Found ? *Found : Default;
+}
+
+float UPTBVehicleComponent::GetVehicleParam(FName Key, float Default) const
+{
+	const float* Found = CurrentParams.Find(Key);
 	return Found ? *Found : Default;
 }
 
@@ -171,11 +184,28 @@ void UPTBVehicleComponent::ApplyVehicleRow(const FPTBItemRow& Row)
 
 	// 헬리콥터식 상승: 점프 키를 누르고 있는 동안 JumpZVelocity로 계속 상승 (엔진 기본 기능 JumpMaxHoldTime)
 	Character->JumpMaxHoldTime = FMath::Max(BaseJumpMaxHoldTime, GetParam(Row, TEXT("JumpHoldTime"), 0.f));
+
+	// 점프 불가 (자동차 등)
+	if (GetParam(Row, TEXT("DisableJump"), 0.f) > 0.f)
+	{
+		Character->JumpMaxCount = 0;
+	}
 }
 
 void UPTBVehicleComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+
+	// 프로펠러 등 회전
+	if (VehicleMesh && VehicleMesh->IsVisible() && !FMath::IsNearlyZero(SpinSpeed))
+	{
+		VehicleMesh->AddLocalRotation(FRotator(0.f, SpinSpeed * DeltaTime, 0.f));
+	}
+
+	if (BoostMultiplier <= 1.f)
+	{
+		return;
+	}
 
 	const ACharacter* Character = GetCharacter();
 	const APlayerController* PC = Character ? Cast<APlayerController>(Character->GetController()) : nullptr;
@@ -222,6 +252,10 @@ void UPTBVehicleComponent::UpdateVehicleMesh(const FPTBItemRow* Row)
 			VehicleMesh->SetVisibility(false);
 			VehicleMesh->SetStaticMesh(nullptr);
 		}
+		if (Row && !Row->Asset.IsNull())
+		{
+			PTB_WARNING(LogPTBCharacters, TEXT("[Vehicle] Asset이 Static Mesh가 아님: %s"), *Row->Asset.ToString());
+		}
 		return;
 	}
 
@@ -235,14 +269,58 @@ void UPTBVehicleComponent::UpdateVehicleMesh(const FPTBItemRow* Row)
 	{
 		VehicleMesh = NewObject<UStaticMeshComponent>(Character, TEXT("PTBVehicleMesh"));
 		VehicleMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		VehicleMesh->SetCastShadow(true);
 		VehicleMesh->RegisterComponent();
-
-		USkeletalMeshComponent* CharMesh = Character->GetMesh();
-		const bool bHasSocket = CharMesh && !AttachSocketName.IsNone() && CharMesh->DoesSocketExist(AttachSocketName);
-		VehicleMesh->AttachToComponent(CharMesh ? static_cast<USceneComponent*>(CharMesh) : Character->GetRootComponent(),
-			FAttachmentTransformRules::SnapToTargetNotIncludingScale, bHasSocket ? AttachSocketName : NAME_None);
 	}
+
+	// 붙일 위치: 머리(AttachToHead) 또는 발밑(캡슐 바닥)
+	const bool bAttachToHead = GetParam(*Row, TEXT("AttachToHead"), 0.f) > 0.f;
+	USkeletalMeshComponent* CharMesh = Character->GetMesh();
+	USceneComponent* Parent = Character->GetRootComponent();
+	FName Socket = NAME_None;
+	FVector BaseOffset = FVector::ZeroVector;
+
+	if (bAttachToHead && CharMesh)
+	{
+		Parent = CharMesh;
+		if (CharMesh->DoesSocketExist(HeadSocketName))
+		{
+			Socket = HeadSocketName;
+		}
+		else
+		{
+			PTB_WARNING(LogPTBCharacters, TEXT("[Vehicle] 머리 소켓/뼈 '%s' 없음 → 캐릭터 메시 원점에 붙임 (HeadSocketName 확인)"),
+				*HeadSocketName.ToString());
+		}
+	}
+	else if (const UCapsuleComponent* Capsule = Character->GetCapsuleComponent())
+	{
+		BaseOffset.Z = -Capsule->GetScaledCapsuleHalfHeight(); // 캡슐 중심 → 바닥
+	}
+
+	VehicleMesh->AttachToComponent(Parent, FAttachmentTransformRules::SnapToTargetNotIncludingScale, Socket);
+
+	const FVector Offset = BaseOffset + FVector(
+		GetParam(*Row, TEXT("MeshOffsetX"), 0.f),
+		GetParam(*Row, TEXT("MeshOffsetY"), 0.f),
+		GetParam(*Row, TEXT("MeshOffsetZ"), 0.f));
+	VehicleMesh->SetRelativeLocationAndRotation(Offset, FRotator(0.f, GetParam(*Row, TEXT("MeshYaw"), 0.f), 0.f));
+	VehicleMesh->SetRelativeScale3D(FVector(GetParam(*Row, TEXT("MeshScale"), 1.f)));
 
 	VehicleMesh->SetStaticMesh(Mesh);
 	VehicleMesh->SetVisibility(true);
+}
+
+void UPTBVehicleComponent::SetCharacterHidden(bool bHidden)
+{
+	bCharacterHidden = bHidden;
+
+	// 캐릭터 메시만 숨김 (자식으로 붙은 탈것 메시는 영향 없음: bPropagateToChildren=false)
+	if (ACharacter* Character = GetCharacter())
+	{
+		if (USkeletalMeshComponent* CharMesh = Character->GetMesh())
+		{
+			CharMesh->SetVisibility(!bHidden, false);
+		}
+	}
 }

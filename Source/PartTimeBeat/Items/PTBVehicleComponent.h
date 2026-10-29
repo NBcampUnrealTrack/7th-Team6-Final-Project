@@ -24,9 +24,17 @@ class UStaticMeshComponent;
  *  JumpHoldTime         점프 키를 누르고 있으면 계속 상승하는 최대 시간(초) (기본 0) 예: 대나무 헬리콥터 1.5
  *  GravityScale         중력 배율                 (기본 = 캐릭터 원래값) 예: 대나무 헬리콥터 0.5 (천천히 낙하)
  *  AirControl           공중 조작감               (기본 = 캐릭터 원래값)
+ *  DisableJump          1이면 점프 불가           (예: 자동차)
  *
- * 외형(선택): 행의 Asset에 Static Mesh를 넣으면 캐릭터에 붙여서 표시 (AttachSocketName 소켓, 없으면 루트)
- * 애니메이션 변경 등은 BP의 OnVehicleChanged 이벤트에서 처리
+ * 외형 (행의 Asset에 Static Mesh 지정)
+ *  HideCharacter        1이면 캐릭터를 숨기고 탈것 메시만 표시 (뚜껑 닫힌 자동차 등 "통째로 치환")
+ *  AttachToHead         1이면 머리 뼈(HeadSocketName)에 붙임 (대나무 헬리콥터 프로펠러 등). 0이면 발밑(캡슐 바닥)
+ *  MeshOffsetX/Y/Z      붙인 위치 보정 (cm)
+ *  MeshYaw              메시 방향 보정 (도)    예: 자동차 앞이 캐릭터 정면과 다르면 90 / -90 / 180
+ *  MeshScale            크기 배율 (기본 1)
+ *  SpinSpeed            초당 회전 각도 (Z축) (예: 프로펠러 1080)
+ *
+ * 애니메이션: ABP에서 GetVehicleParam("HoverPose") 등으로 읽어서 처리 (예: 헬리콥터 비행 중 공중 대기 포즈)
  */
 UCLASS(ClassGroup = (PTB), meta = (BlueprintSpawnableComponent))
 class PARTTIMEBEAT_API UPTBVehicleComponent : public UActorComponent
@@ -50,6 +58,14 @@ public:
 	UFUNCTION(BlueprintPure, Category = "PTB|Vehicle")
 	bool IsBoosting() const { return bBoosting; }
 
+	/** 현재 탈것의 NumericParams 값 (없으면 Default). ABP에서 애니메이션 분기용 (예: HoverPose) */
+	UFUNCTION(BlueprintPure, Category = "PTB|Vehicle")
+	float GetVehicleParam(FName Key, float Default = 0.f) const;
+
+	/** 현재 캐릭터를 숨기고 탈것만 보이는 상태인지 (HideCharacter) */
+	UFUNCTION(BlueprintPure, Category = "PTB|Vehicle")
+	bool IsCharacterHidden() const { return bCharacterHidden; }
+
 protected:
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
@@ -66,9 +82,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|Vehicle")
 	TArray<FKey> BoostKeys = { EKeys::LeftShift, EKeys::RightShift };
 
-	/** 탈것 외형 메시를 붙일 소켓 (비우거나 없으면 캐릭터 메시 루트) */
+	/** AttachToHead=1인 탈것을 붙일 머리 뼈/소켓 이름 (PTB_Girl/PTB_Boy는 Bip001 계열 뼈 이름) */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|Vehicle")
-	FName AttachSocketName = NAME_None;
+	FName HeadSocketName = TEXT("Bip001-Head");
 
 private:
 	UFUNCTION()
@@ -78,6 +94,7 @@ private:
 	void RestoreBaseMovement();
 	void ApplyVehicleRow(const FPTBItemRow& Row);
 	void UpdateVehicleMesh(const FPTBItemRow* Row);
+	void SetCharacterHidden(bool bHidden);
 	void SetBoosting(bool bInBoosting);
 	float GetParam(const FPTBItemRow& Row, const TCHAR* Key, float Default) const;
 
@@ -94,6 +111,9 @@ private:
 
 	// 현재 탈것 적용값
 	FName CurrentVehicleId = NAME_None;
+	TMap<FName, float> CurrentParams;
+	float SpinSpeed = 0.f;
+	bool bCharacterHidden = false;
 	float SpeedMultiplier = 1.f;
 	float BoostMultiplier = 1.f;
 	bool bBoosting = false;
