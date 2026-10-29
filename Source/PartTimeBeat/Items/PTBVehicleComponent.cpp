@@ -11,6 +11,10 @@
 #include "GameFramework/PlayerController.h"
 #include "Items/PTBItemSubsystem.h"
 #include "TimerManager.h"
+#include "Engine/LocalPlayer.h"
+#include "EnhancedInputSubsystems.h"
+#include "EnhancedPlayerInput.h"
+#include "InputAction.h"
 
 namespace PTBVehicleInternal
 {
@@ -85,6 +89,9 @@ void UPTBVehicleComponent::CacheBaseMovement()
 	BaseJumpMaxHoldTime = Character->JumpMaxHoldTime;
 	BaseJumpMaxCount    = Character->JumpMaxCount;
 	bBaseCached = true;
+
+	// 비행 속도 보정이 이동 계산보다 먼저 적용되도록 CharacterMovement가 이 컴포넌트 Tick 뒤에 돌게 함
+	const_cast<UCharacterMovementComponent*>(Move)->PrimaryComponentTick.AddPrerequisite(this, PrimaryComponentTick);
 }
 
 void UPTBVehicleComponent::RestoreBaseMovement()
@@ -128,6 +135,8 @@ void UPTBVehicleComponent::ReapplyVehicle()
 		SpeedMultiplier = 1.f;
 		BoostMultiplier = 1.f;
 		SpinSpeed = 0.f;
+		FlyLiftSpeed = 0.f;
+		FlyMaxHeight = 0.f;
 		UpdateVehicleMesh(nullptr);
 		SetCharacterHidden(false);
 	}
@@ -136,12 +145,16 @@ void UPTBVehicleComponent::ReapplyVehicle()
 		CurrentParams = Row.NumericParams;
 		ApplyVehicleRow(Row);
 		SpinSpeed = GetParam(Row, TEXT("SpinSpeed"), 0.f);
+		FlyLiftSpeed = FMath::Max(0.f, GetParam(Row, TEXT("FlyLiftSpeed"), 0.f));
+		FlyMaxHeight = FMath::Max(0.f, GetParam(Row, TEXT("FlyMaxHeight"), 0.f));
 		UpdateVehicleMesh(&Row);
 		SetCharacterHidden(GetParam(Row, TEXT("HideCharacter"), 0.f) > 0.f && VehicleMesh && VehicleMesh->IsVisible());
 	}
 
-	// 부스터 키 확인 또는 프로펠러 회전이 필요할 때만 Tick
-	SetComponentTickEnabled(BoostMultiplier > 1.f || !FMath::IsNearlyZero(SpinSpeed));
+	bFlyWasFalling = false;
+
+	// 부스터 키 확인, 프로펠러 회전, 비행이 필요할 때만 Tick
+	SetComponentTickEnabled(BoostMultiplier > 1.f || !FMath::IsNearlyZero(SpinSpeed) || FlyLiftSpeed > 0.f);
 
 	PTB_RECORD(LogPTBCharacters, TEXT("[Vehicle] Apply: item=%s none=%d speed=x%.2f boost=x%.2f"),
 		*VehicleId.ToString(), bIsNone ? 1 : 0, SpeedMultiplier, BoostMultiplier);
@@ -202,14 +215,19 @@ void UPTBVehicleComponent::TickComponent(float DeltaTime, ELevelTick TickType, F
 		VehicleMesh->AddLocalRotation(FRotator(0.f, SpinSpeed * DeltaTime, 0.f));
 	}
 
-	if (BoostMultiplier <= 1.f)
+	ACharacter* Character = GetCharacter();
+	const APlayerController* PC = Character ? Cast<APlayerController>(Character->GetController()) : nullptr;
+	if (!PC)
 	{
 		return;
 	}
 
-	const ACharacter* Character = GetCharacter();
-	const APlayerController* PC = Character ? Cast<APlayerController>(Character->GetController()) : nullptr;
-	if (!PC)
+	if (FlyLiftSpeed > 0.f)
+	{
+		UpdateFly(Character, PC);
+	}
+
+	if (BoostMultiplier <= 1.f)
 	{
 		return;
 	}
@@ -224,6 +242,75 @@ void UPTBVehicleComponent::TickComponent(float DeltaTime, ELevelTick TickType, F
 		}
 	}
 	SetBoosting(bKeyDown);
+}
+
+bool UPTBVehicleComponent::IsJumpHeld(const APlayerController* PC) const
+{
+	// 1순위: Enhanced Input의 점프 액션 값 (키 설정을 바꿔도 따라감)
+	if (JumpInputAction)
+	{
+		if (const ULocalPlayer* LP = PC->GetLocalPlayer())
+		{
+			if (const UEnhancedInputLocalPlayerSubsystem* Input = LP->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>())
+			{
+				if (const UEnhancedPlayerInput* PlayerInput = Input->GetPlayerInput())
+				{
+					return PlayerInput->GetActionValue(JumpInputAction).Get<bool>();
+				}
+			}
+		}
+	}
+
+	// 2순위: 지정한 키 직접 확인
+	for (const FKey& Key : FlyKeys)
+	{
+		if (PC->IsInputKeyDown(Key))
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+void UPTBVehicleComponent::UpdateFly(ACharacter* Character, const APlayerController* PC)
+{
+	UCharacterMovementComponent* Move = Character->GetCharacterMovement();
+	if (!Move)
+	{
+		return;
+	}
+
+	const bool bHeld = IsJumpHeld(PC);
+	const bool bFalling = Move->IsFalling();
+	const float CurrentZ = Character->GetActorLocation().Z;
+
+	// 땅에서 떨어지는 순간의 높이를 기준으로 최대 높이 계산
+	if (bFalling && !bFlyWasFalling)
+	{
+		FlyAnchorZ = CurrentZ;
+	}
+	bFlyWasFalling = bFalling;
+
+	if (!bHeld)
+	{
+		return; // 키를 떼면 GravityScale대로 천천히 낙하
+	}
+
+	if (!bFalling)
+	{
+		// 땅에서 누르고 있으면 이륙 (착지 후 계속 누르고 있는 경우 포함)
+		Character->LaunchCharacter(FVector(0.f, 0.f, FlyLiftSpeed), false, true);
+		FlyAnchorZ = CurrentZ;
+		return;
+	}
+
+	// 공중: 누르고 있는 동안 일정 속도로 상승, 최대 높이에서는 제자리 비행
+	float TargetZVelocity = FlyLiftSpeed;
+	if (FlyMaxHeight > 0.f && CurrentZ - FlyAnchorZ >= FlyMaxHeight)
+	{
+		TargetZVelocity = 0.f;
+	}
+	Move->Velocity.Z = TargetZVelocity;
 }
 
 void UPTBVehicleComponent::SetBoosting(bool bInBoosting)

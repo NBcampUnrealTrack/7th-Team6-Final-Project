@@ -7,6 +7,8 @@
 #include "PTBVehicleComponent.generated.h"
 
 class ACharacter;
+class APlayerController;
+class UInputAction;
 class UStaticMeshComponent;
 
 /**
@@ -23,6 +25,8 @@ class UStaticMeshComponent;
  *  JumpZMultiplier      점프 높이 배율            (기본 1)
  *  JumpHoldTime         점프 키를 누르고 있으면 계속 상승하는 최대 시간(초) (기본 0) 예: 대나무 헬리콥터 1.5
  *  GravityScale         중력 배율                 (기본 = 캐릭터 원래값) 예: 대나무 헬리콥터 0.5 (천천히 낙하)
+ *  FlyLiftSpeed         비행: 점프 키를 누르고 있는 동안 상승 속도(cm/s). 떨어지는 중에 다시 누르면 다시 상승 (기본 0 = 비행 없음) 예: 대나무 헬리콥터 400
+ *  FlyMaxHeight         비행: 이륙 지점 기준 최대 높이(cm). 도달하면 누르고 있는 동안 제자리 비행 (기본 0 = 제한 없음) 예: 800
  *  AirControl           공중 조작감               (기본 = 캐릭터 원래값)
  *  DisableJump          1이면 점프 불가           (예: 자동차)
  *
@@ -86,6 +90,17 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|Vehicle")
 	TArray<FKey> BoostKeys = { EKeys::LeftShift, EKeys::RightShift };
 
+	/**
+	 * 비행(FlyLiftSpeed)용 점프 입력. 캐릭터 점프에 쓰는 Input Action(예: IA_Jump)을 지정하면 키 설정 변경도 따라감.
+	 * 비워 두면 FlyKeys로 확인
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|Vehicle")
+	TObjectPtr<UInputAction> JumpInputAction;
+
+	/** JumpInputAction이 비었을 때 비행 상승에 쓸 키 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|Vehicle")
+	TArray<FKey> FlyKeys = { EKeys::SpaceBar, EKeys::Gamepad_FaceButton_Bottom };
+
 	/** AttachToHead=1인 탈것을 붙일 머리 뼈/소켓 이름 (PTB_Girl/PTB_Boy는 Bip001 계열 뼈 이름) */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|Vehicle")
 	FName HeadSocketName = TEXT("Bip001-Head");
@@ -99,6 +114,8 @@ private:
 	void ApplyVehicleRow(const FPTBItemRow& Row);
 	void UpdateVehicleMesh(const FPTBItemRow* Row);
 	void SetCharacterHidden(bool bHidden);
+	void UpdateFly(ACharacter* Character, const APlayerController* PC);
+	bool IsJumpHeld(const APlayerController* PC) const;
 	void SetBoosting(bool bInBoosting);
 	float GetParam(const FPTBItemRow& Row, const TCHAR* Key, float Default) const;
 
@@ -118,6 +135,12 @@ private:
 	TMap<FName, float> CurrentParams;
 	float SpinSpeed = 0.f;
 	bool bCharacterHidden = false;
+
+	// 비행
+	float FlyLiftSpeed = 0.f;
+	float FlyMaxHeight = 0.f;
+	float FlyAnchorZ = 0.f;
+	bool bFlyWasFalling = false;
 	float SpeedMultiplier = 1.f;
 	float BoostMultiplier = 1.f;
 	bool bBoosting = false;
