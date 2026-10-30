@@ -48,8 +48,8 @@ public:
 	void BindToMiniGame(APTBBBMiniGame* InMiniGame);
 
 	/**
-	 * 공통 판정 표시 위치용: 이 판정의 노트 큐 위젯, 없으면 같은 레인의 히트존 마커.
-	 * 판정 직후 큐가 제거되기 전에 호출해야 함 (APTBBBMiniGame::GetJudgementDisplayAnchor에서 사용)
+	 * 공통 판정 표시 위치용: 판정한 레인(ActionType)의 히트존 마커, 없으면 노트 큐 위젯.
+	 * (APTBBBMiniGame::GetJudgementDisplayAnchor에서 사용)
 	 */
 	UWidget* FindJudgementAnchorWidget(const FPTBJudgementResult& Result) const;
 

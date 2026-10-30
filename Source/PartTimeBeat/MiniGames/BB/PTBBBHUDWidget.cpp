@@ -512,18 +512,19 @@ UPTBBBCueWidgetBase* UPTBBBHUDWidget::SpawnAndPlaceCue(
 
 UWidget* UPTBBBHUDWidget::FindJudgementAnchorWidget(const FPTBJudgementResult& Result) const
 {
-	if (const TObjectPtr<UPTBBBCueWidgetBase>* Cue = TapCueMap.Find(Result.NoteId))
+	// 판정은 노트가 닿는 자리(레인별 히트존)에 표시
+	if (const TObjectPtr<UPTBBBHitZoneWidgetBase>* Marker = HitZoneMarkers.Find(Result.ActionType))
 	{
-		if (*Cue)
+		if (*Marker)
 		{
-			return Cue->Get();
+			return Marker->Get();
 		}
 	}
 
-	// 큐가 없으면 (헛입력 Miss 등) 같은 레인의 히트존 위치
-	if (const TObjectPtr<UPTBBBHitZoneWidgetBase>* Marker = HitZoneMarkers.Find(Result.ActionType))
+	// 히트존 마커가 없으면 (난이도 설정으로 숨김 등) 판정한 노트 큐 위치
+	if (const TObjectPtr<UPTBBBCueWidgetBase>* Cue = TapCueMap.Find(Result.NoteId))
 	{
-		return Marker->Get();
+		return Cue->Get();
 	}
 	return nullptr;
 }
