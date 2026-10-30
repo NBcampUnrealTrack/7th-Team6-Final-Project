@@ -30,6 +30,31 @@ void UPTBJudgementDisplayComponent::BeginPlay()
 	if (APTBBaseMiniGame* MiniGame = GetMiniGame())
 	{
 		MiniGame->OnMiniGameJudgement.AddUniqueDynamic(this, &UPTBJudgementDisplayComponent::HandleMiniGameJudgement);
+		MiniGame->OnMiniGameStarted.AddUniqueDynamic(this, &UPTBJudgementDisplayComponent::HandleMiniGameStarted);
+	}
+	if (UPTBItemSubsystem* Items = GetItemSubsystem())
+	{
+		Items->OnItemStateChanged.AddUniqueDynamic(this, &UPTBJudgementDisplayComponent::HandleItemStateChanged);
+	}
+}
+
+UPTBItemSubsystem* UPTBJudgementDisplayComponent::GetItemSubsystem() const
+{
+	const UWorld* World = GetWorld();
+	const UGameInstance* GI = World ? World->GetGameInstance() : nullptr;
+	return GI ? GI->GetSubsystem<UPTBItemSubsystem>() : nullptr;
+}
+
+void UPTBJudgementDisplayComponent::HandleMiniGameStarted()
+{
+	bSkinResolved = false;
+}
+
+void UPTBJudgementDisplayComponent::HandleItemStateChanged(FName Category)
+{
+	if (Category == PTBItemCategory::JudgeSkin)
+	{
+		bSkinResolved = false;
 	}
 }
 
@@ -38,6 +63,11 @@ void UPTBJudgementDisplayComponent::EndPlay(const EEndPlayReason::Type EndPlayRe
 	if (APTBBaseMiniGame* MiniGame = GetMiniGame())
 	{
 		MiniGame->OnMiniGameJudgement.RemoveDynamic(this, &UPTBJudgementDisplayComponent::HandleMiniGameJudgement);
+		MiniGame->OnMiniGameStarted.RemoveDynamic(this, &UPTBJudgementDisplayComponent::HandleMiniGameStarted);
+	}
+	if (UPTBItemSubsystem* Items = GetItemSubsystem())
+	{
+		Items->OnItemStateChanged.RemoveDynamic(this, &UPTBJudgementDisplayComponent::HandleItemStateChanged);
 	}
 
 	for (const TPair<int32, TObjectPtr<UPTBJudgementDisplayWidget>>& Pair : Widgets)
@@ -58,10 +88,10 @@ void UPTBJudgementDisplayComponent::RefreshSkin()
 	ActiveSkin = nullptr;
 
 	// 1순위: 장착한 판정 스킨 아이템의 Asset
-	const UWorld* World = GetWorld();
-	const UGameInstance* GI = World ? World->GetGameInstance() : nullptr;
-	if (const UPTBItemSubsystem* Items = GI ? GI->GetSubsystem<UPTBItemSubsystem>() : nullptr)
+	FName EquippedId = NAME_None;
+	if (const UPTBItemSubsystem* Items = GetItemSubsystem())
 	{
+		EquippedId = Items->GetEquippedItemId(PTBItemCategory::JudgeSkin);
 		bool bFound = false;
 		const FPTBItemRow Row = Items->GetEquippedItemData(PTBItemCategory::JudgeSkin, bFound);
 		if (bFound && !Row.Asset.IsNull())
@@ -82,6 +112,8 @@ void UPTBJudgementDisplayComponent::RefreshSkin()
 			ActiveSkin = Settings->FallbackJudgeSkin.LoadSynchronous();
 		}
 	}
+
+	PTB_RECORD(LogPTBMiniGames, TEXT("[JudgeDisplay] 판정 스킨: item=%s skin=%s"), *EquippedId.ToString(), *GetNameSafe(ActiveSkin));
 
 	if (!ActiveSkin)
 	{

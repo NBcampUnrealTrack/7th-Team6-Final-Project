@@ -52,6 +52,16 @@ private:
 	UFUNCTION()
 	void HandleMiniGameJudgement(FPTBJudgementResult Result);
 
+	/** 라운드 시작마다 장착 스킨 다시 읽기 (미니게임 액터가 레벨에 계속 남아 있는 경우 대비) */
+	UFUNCTION()
+	void HandleMiniGameStarted();
+
+	/** 인벤토리·상점에서 판정 스킨을 바꾸면 다음 판정부터 반영 */
+	UFUNCTION()
+	void HandleItemStateChanged(FName Category);
+
+	class UPTBItemSubsystem* GetItemSubsystem() const;
+
 	UPTBJudgementDisplayWidget* GetOrCreateWidget(int32 SlotIndex);
 	APTBBaseMiniGame* GetMiniGame() const;
 
