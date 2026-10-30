@@ -324,6 +324,43 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW|Note")
 	FVector NoteTargetHeadOffset = FVector(10.0f, 0.0f, 150.0f);
 
+	// ── 판정 위치 표시(타겟 별): 노트가 도착하는 지점(NoteTargetHeadOffset)에 고정 표시 ──
+	/** 판정 위치 표시 여부. 노트가 이 별에 겹칠 때가 정타. 위치를 옮기려면 NoteTargetHeadOffset 수정(노트 도착점도 같이 이동) */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW|Note|Target")
+	bool bShowNoteTargetMarker = true;
+
+	/** 판정 위치 표시 Mesh. 비우면 NoteSingleMesh(노트와 같은 별) */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW|Note|Target", meta = (EditCondition = "bShowNoteTargetMarker"))
+	TObjectPtr<UStaticMesh> NoteTargetMarkerMesh;
+
+	/** 판정 위치 표시 Material. 비우면 NoteMaterial ("Color" 벡터 / "EmissiveStrength" 스칼라 파라미터 사용) */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW|Note|Target", meta = (EditCondition = "bShowNoteTargetMarker"))
+	TObjectPtr<UMaterialInterface> NoteTargetMarkerMaterial;
+
+	/** 판정 위치 표시 색 (노트와 구분되게 흰색·반투명 권장. 투명도는 Material이 Opacity를 지원할 때만) */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW|Note|Target", meta = (EditCondition = "bShowNoteTargetMarker"))
+	FLinearColor NoteTargetMarkerColor = FLinearColor(1.0f, 1.0f, 1.0f, 0.4f);
+
+	/** 판정 위치 표시 크기 (NoteSingleScale 기준 배율. 노트보다 살짝 크게 하면 겹침이 잘 보임) */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW|Note|Target", meta = (EditCondition = "bShowNoteTargetMarker", ClampMin = "0.05"))
+	float NoteTargetMarkerScale = 1.2f;
+
+	/** 판정 위치 표시 회전 (노트는 회전 0으로 스폰됨. 노트와 같은 모양으로 보이려면 0 유지) */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW|Note|Target", meta = (EditCondition = "bShowNoteTargetMarker"))
+	FRotator NoteTargetMarkerRotation = FRotator::ZeroRotator;
+
+	/** 판정 순간 커지는 배율 (1 = 연출 없음) */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW|Note|Target", meta = (EditCondition = "bShowNoteTargetMarker", ClampMin = "1.0"))
+	float NoteTargetPulseScale = 1.3f;
+
+	/** 판정 순간 커졌다 돌아오는 시간 (초) */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW|Note|Target", meta = (EditCondition = "bShowNoteTargetMarker", ClampMin = "0.01"))
+	float NoteTargetPulseTime = 0.15f;
+
+	/** 판정 순간 발광 강도 (Material의 EmissiveStrength) */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW|Note|Target", meta = (EditCondition = "bShowNoteTargetMarker", ClampMin = "0.0"))
+	float NoteTargetPulseEmissive = 2.0f;
+
 	/** 생성점(시작) 오프셋 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|DW|Note")
 	FVector NoteCueSpawnOffset = FVector(100.0f, 0.0f, 250.0f);

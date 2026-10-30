@@ -201,6 +201,8 @@ void APTBDWMiniGame::Tick(float DeltaTime)
 		}
 	}
 
+	UpdateNoteTargetMarker(DeltaTime);
+
 	if (!RhythmSyncComponent)
 	{
 		return;
@@ -221,13 +223,10 @@ void APTBDWMiniGame::Tick(float DeltaTime)
 	const UPTBDWMiniGameRuleSet* NRule = DWRule;
 	const FVector NRight = ResolveRight;
 	const FVector CueOff  = NRule ? NRule->NoteCueSpawnOffset : FVector(100.f, 0.f, 120.f);
-	const FVector HeadOff = NRule ? NRule->NoteTargetHeadOffset : FVector(0.f, 0.f, 120.f);
 	const AActor* CueA   = GetPreviewActor();
-	const AActor* JudgeA = GetJudgeActor();
 	const FVector CueLoc   = CueA ? CueA->GetActorLocation() : GetActorLocation();
-	const FVector JudgeLoc = JudgeA ? JudgeA->GetActorLocation() : GetActorLocation();
 	CueBaseT   = CueLoc   + ForwardDir * CueOff.X  + NRight * CueOff.Y  + NoteUpT * CueOff.Z;
-	JudgeBaseT = JudgeLoc + ForwardDir * HeadOff.X + NRight * HeadOff.Y + NoteUpT * HeadOff.Z;
+	JudgeBaseT = GetNoteTargetLocation();   // 타겟 별·공통 판정 표시와 같은 위치
 	NoteLeadInBeatsT = NRule ? FMath::Max(1.0f, NRule->NoteLeadInBeats) : 4.0f;
 	NoteArcHeightT   = NRule ? NRule->NoteArcHeight : 120.0f;
 	NoteHoldEmisBaseT  = NRule ? NRule->NoteHoldEmissiveBase : 0.15f;
@@ -631,6 +630,15 @@ void APTBDWMiniGame::ShowJudgeGrade(EPTBJudgementType Grade)
 void APTBDWMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 {
 	Super::HandleJudgementResult(Result);
+
+	// 판정 위치 표시 펄스 (헛입력 제외)
+	if (Result.Reason != EPTBJudgementReason::EmptyInput && Result.JudgementType != EPTBJudgementType::Miss)
+	{
+		if (const UPTBDWMiniGameRuleSet* PulseRule = GetDWRuleSet())
+		{
+			NoteTargetPulseRemaining = PulseRule->NoteTargetPulseTime;
+		}
+	}
 
 	if (ScoreCalculator)
 	{
@@ -1303,6 +1311,76 @@ FVector APTBDWMiniGame::GetNoteScale(bool bLong) const
 AActor* APTBDWMiniGame::GetJudgeActor() const
 {
 	return JudgeActor;
+}
+
+FVector APTBDWMiniGame::GetNoteTargetLocation() const
+{
+	const UPTBDWMiniGameRuleSet* DWRule = GetDWRuleSet();
+	const FVector HeadOff = DWRule ? DWRule->NoteTargetHeadOffset : FVector(0.f, 0.f, 120.f);
+	const AActor* JudgeA = GetJudgeActor();
+	const FVector JudgeLoc = JudgeA ? JudgeA->GetActorLocation() : GetActorLocation();
+	return JudgeLoc + GetActorForwardVector() * HeadOff.X + GetActorRightVector() * HeadOff.Y + GetActorUpVector() * HeadOff.Z;
+}
+
+void APTBDWMiniGame::UpdateNoteTargetMarker(float DeltaTime)
+{
+	const UPTBDWMiniGameRuleSet* DWRule = GetDWRuleSet();
+	const bool bWanted = DWRule && DWRule->bShowNoteTargetMarker && JudgeActor;
+	if (!bWanted)
+	{
+		if (IsValid(NoteTargetMarker))
+		{
+			NoteTargetMarker->SetActorHiddenInGame(true);
+		}
+		return;
+	}
+
+	if (!IsValid(NoteTargetMarker))
+	{
+		UWorld* World = GetWorld();
+		if (!World)
+		{
+			return;
+		}
+		FActorSpawnParameters Params;
+		Params.Owner = this;
+		Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+		NoteTargetMarker = World->SpawnActor<APTBDWNoteToken>(GetNoteTargetLocation(), FRotator::ZeroRotator, Params);
+		if (!NoteTargetMarker)
+		{
+			return;
+		}
+		RegisterSpawnedRoundActor(NoteTargetMarker);
+
+		UStaticMesh* Mesh = DWRule->NoteTargetMarkerMesh ? DWRule->NoteTargetMarkerMesh.Get() : DWRule->NoteSingleMesh.Get();
+		UMaterialInterface* Mat = DWRule->NoteTargetMarkerMaterial ? DWRule->NoteTargetMarkerMaterial.Get()
+			: (DWRule->NoteMaterial ? DWRule->NoteMaterial.Get() : DWRule->ObstacleMaterial.Get());
+		NoteTargetMarker->Configure(Mesh, Mat, DWRule->NoteTargetMarkerColor, GetNoteScale(false) * DWRule->NoteTargetMarkerScale);
+		NoteTargetMarker->SetEmissive(0.f);
+	}
+
+	// 위치·회전 (판정 캐릭터가 움직여도 따라감)
+	NoteTargetMarker->SetActorLocationAndRotation(GetNoteTargetLocation(), DWRule->NoteTargetMarkerRotation);   // 노트와 같은 기준(회전 0) + 보정
+	NoteTargetMarker->SetActorHiddenInGame(false);
+
+	// 판정 순간 펄스: 커졌다가 원래 크기로 + 발광
+	float Pulse = 0.f;
+	if (NoteTargetPulseRemaining > 0.f)
+	{
+		NoteTargetPulseRemaining = FMath::Max(0.f, NoteTargetPulseRemaining - DeltaTime);
+		Pulse = NoteTargetPulseRemaining / FMath::Max(0.01f, DWRule->NoteTargetPulseTime);
+	}
+	NoteTargetMarker->SetActorScale3D(FVector(FMath::Lerp(1.f, DWRule->NoteTargetPulseScale, Pulse)));
+	NoteTargetMarker->SetEmissive(DWRule->NoteTargetPulseEmissive * Pulse);
+}
+
+FPTBJudgementAnchor APTBDWMiniGame::GetJudgementDisplayAnchor_Implementation(const FPTBJudgementResult& Result) const
+{
+	// 공통 판정 표시: 타겟 별 위치 (+ RuleSet의 JudgementWorldOffset만큼 위)
+	FPTBJudgementAnchor Anchor;
+	Anchor.Type = EPTBJudgementAnchorType::WorldLocation;
+	Anchor.WorldLocation = GetNoteTargetLocation();
+	return Anchor;
 }
 
 AActor* APTBDWMiniGame::GetPreviewActor() const
