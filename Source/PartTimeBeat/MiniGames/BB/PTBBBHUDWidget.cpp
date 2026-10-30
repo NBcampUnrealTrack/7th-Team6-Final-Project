@@ -39,6 +39,7 @@ void UPTBBBHUDWidget::BindToMiniGame(APTBBBMiniGame* InMiniGame)
 	}
 
 	BBMiniGame = InMiniGame;
+	InMiniGame->SetJudgementAnchorHUD(this);
 
 	InMiniGame->OnBBNoteCue.AddUniqueDynamic(this, &UPTBBBHUDWidget::HandleBBNoteCue);
 	InMiniGame->OnBBNoteReached.AddUniqueDynamic(this, &UPTBBBHUDWidget::HandleBBNoteReached);
@@ -507,6 +508,24 @@ UPTBBBCueWidgetBase* UPTBBBHUDWidget::SpawnAndPlaceCue(
 	Cue->InitCue(Note.NoteId, Note.ActionType, ApproachDurationSec);
 
 	return Cue;
+}
+
+UWidget* UPTBBBHUDWidget::FindJudgementAnchorWidget(const FPTBJudgementResult& Result) const
+{
+	if (const TObjectPtr<UPTBBBCueWidgetBase>* Cue = TapCueMap.Find(Result.NoteId))
+	{
+		if (*Cue)
+		{
+			return Cue->Get();
+		}
+	}
+
+	// 큐가 없으면 (헛입력 Miss 등) 같은 레인의 히트존 위치
+	if (const TObjectPtr<UPTBBBHitZoneWidgetBase>* Marker = HitZoneMarkers.Find(Result.ActionType))
+	{
+		return Marker->Get();
+	}
+	return nullptr;
 }
 
 UPTBBBCueWidgetBase* UPTBBBHUDWidget::FindAndRemoveCue(int32 NoteId)

@@ -24,15 +24,22 @@ void UPTBJudgementDisplayWidget::NativeOnInitialized()
 
 void UPTBJudgementDisplayWidget::SetScreenAnchor(const FVector2D& ScreenRatio)
 {
-	bUseWorldAnchor = false;
+	AnchorMode = EAnchorMode::ScreenRatio;
 	ScreenAnchor = ScreenRatio;
 	UpdatePosition();
 }
 
 void UPTBJudgementDisplayWidget::SetWorldAnchor(const FVector& WorldLocation)
 {
-	bUseWorldAnchor = true;
+	AnchorMode = EAnchorMode::World;
 	WorldAnchor = WorldLocation;
+	UpdatePosition();
+}
+
+void UPTBJudgementDisplayWidget::SetViewportAnchor(const FVector2D& ViewportPosition)
+{
+	AnchorMode = EAnchorMode::Viewport;
+	ViewportAnchor = ViewportPosition;
 	UpdatePosition();
 }
 
@@ -92,13 +99,17 @@ void UPTBJudgementDisplayWidget::UpdatePosition()
 {
 	FVector2D Position = FVector2D::ZeroVector;
 
-	if (bUseWorldAnchor)
+	if (AnchorMode == EAnchorMode::World)
 	{
 		APlayerController* PC = GetOwningPlayer();
 		if (!PC || !UWidgetLayoutLibrary::ProjectWorldLocationToWidgetPosition(PC, WorldAnchor, Position, false))
 		{
 			return; // 화면 뒤쪽 등 변환 실패 시 위치 유지
 		}
+	}
+	else if (AnchorMode == EAnchorMode::Viewport)
+	{
+		Position = ViewportAnchor;
 	}
 	else
 	{

@@ -8,6 +8,8 @@
 #include "Items/PTBItemTypes.h"
 #include "Judgement/PTBJudgeSkin.h"
 #include "Judgement/PTBJudgementDisplayWidget.h"
+#include "Blueprint/SlateBlueprintLibrary.h"
+#include "Components/Widget.h"
 #include "MiniGames/Common/PTBBaseMiniGame.h"
 #include "MiniGames/Common/PTBMiniGameRuleSet.h"
 
@@ -148,25 +150,54 @@ void UPTBJudgementDisplayComponent::HandleMiniGameJudgement(FPTBJudgementResult 
 		return;
 	}
 
-	// 위치: 미니게임이 월드 위치를 주면 그 위, 아니면 RuleSet 화면 위치
-	FVector WorldLocation = FVector::ZeroVector;
-	int32 SlotIndex = 0;
-	const bool bUseWorld = MiniGame->GetJudgementDisplayAnchor(Result, WorldLocation, SlotIndex);
+	// 위치: 미니게임이 지정 (월드 / 화면 UI), 없으면 RuleSet 화면 위치
+	const FPTBJudgementAnchor Anchor = MiniGame->GetJudgementDisplayAnchor(Result);
 
-	UPTBJudgementDisplayWidget* Widget = GetOrCreateWidget(bUseWorld ? SlotIndex : 0);
+	UPTBJudgementDisplayWidget* Widget = GetOrCreateWidget(Anchor.Type == EPTBJudgementAnchorType::Default ? 0 : Anchor.SlotIndex);
 	if (!Widget)
 	{
 		return;
 	}
 
-	if (bUseWorld)
+	switch (Anchor.Type)
 	{
-		Widget->SetWorldAnchor(WorldLocation + RuleSet->JudgementWorldOffset);
-	}
-	else
-	{
+	case EPTBJudgementAnchorType::WorldLocation:
+		Widget->SetWorldAnchor(Anchor.WorldLocation + RuleSet->JudgementWorldOffset);
+		break;
+	case EPTBJudgementAnchorType::ScreenPosition:
+		Widget->SetViewportAnchor(Anchor.ScreenPosition + RuleSet->JudgementScreenAnchorOffset);
+		break;
+	default:
 		Widget->SetScreenAnchor(RuleSet->JudgementScreenPosition);
+		break;
 	}
 
 	Widget->PlayJudgement(Result.JudgementType, ActiveSkin, RuleSet->JudgementDisplayScale);
+}
+
+FPTBJudgementAnchor UPTBJudgementDisplayComponent::MakeJudgementAnchorFromWidget(UWidget* Widget, int32 SlotIndex)
+{
+	FPTBJudgementAnchor Anchor;
+	Anchor.SlotIndex = SlotIndex;
+
+	if (!Widget)
+	{
+		return Anchor;
+	}
+
+	const FGeometry& Geometry = Widget->GetCachedGeometry();
+	if (Geometry.GetLocalSize().IsNearlyZero())
+	{
+		return Anchor; // 아직 그려지지 않음
+	}
+
+	// 위젯 중심의 절대 좌표 → 뷰포트 위치 (Set Position in Viewport 단위)
+	const FVector2D AbsoluteCenter = Geometry.GetAbsolutePositionAtCoordinates(FVector2D(0.5f, 0.5f));
+	FVector2D PixelPosition;
+	FVector2D ViewportPosition;
+	USlateBlueprintLibrary::AbsoluteToViewport(Widget, AbsoluteCenter, PixelPosition, ViewportPosition);
+
+	Anchor.Type = EPTBJudgementAnchorType::ScreenPosition;
+	Anchor.ScreenPosition = ViewportPosition;
+	return Anchor;
 }

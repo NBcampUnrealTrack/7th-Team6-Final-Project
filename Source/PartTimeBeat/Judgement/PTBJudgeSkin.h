@@ -7,6 +7,40 @@
 
 class UTexture2D;
 
+/** 공통 판정 표시 위치 종류 */
+UENUM(BlueprintType)
+enum class EPTBJudgementAnchorType : uint8
+{
+	Default        UMETA(DisplayName = "기본 (RuleSet 화면 위치)"),
+	WorldLocation  UMETA(DisplayName = "월드 위치 (캐릭터 머리 위 등, 따라다님)"),
+	ScreenPosition UMETA(DisplayName = "화면 위치 (UI 노트 위치 등, 판정 순간 고정)")
+};
+
+/** 공통 판정 표시 위치 (미니게임의 GetJudgementDisplayAnchor가 반환) */
+USTRUCT(BlueprintType)
+struct PARTTIMEBEAT_API FPTBJudgementAnchor
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|Judgement")
+	EPTBJudgementAnchorType Type = EPTBJudgementAnchorType::Default;
+
+	/** Type=WorldLocation일 때. RuleSet의 JudgementWorldOffset이 더해짐 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|Judgement")
+	FVector WorldLocation = FVector::ZeroVector;
+
+	/**
+	 * Type=ScreenPosition일 때. 뷰포트 위치 (Set Position in Viewport의 Remove DPI Scale=false 기준 단위).
+	 * 위젯 위치를 쓰려면 Make Judgement Anchor From Widget 사용. RuleSet의 JudgementScreenAnchorOffset이 더해짐
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|Judgement")
+	FVector2D ScreenPosition = FVector2D::ZeroVector;
+
+	/** 동시에 따로 보여줄 표시 번호 (예: 레인/캐릭터 인덱스). 같은 번호면 이전 표시를 덮어씀 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|Judgement")
+	int32 SlotIndex = 0;
+};
+
 /**
  * 판정 스킨 (Perfect / Good / Miss 등을 어떤 이미지와 연출로 보여줄지).
  *

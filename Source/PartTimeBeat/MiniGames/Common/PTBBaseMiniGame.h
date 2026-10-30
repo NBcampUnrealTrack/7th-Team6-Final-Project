@@ -4,6 +4,7 @@
 #include "GameFramework/Actor.h"
 #include "Core/PTBStructEnums.h"
 #include "MiniGames/Common/PTBMiniGameIntroData.h"
+#include "Judgement/PTBJudgeSkin.h"
 #include "TimerManager.h"
 #include "PTBBaseMiniGame.generated.h"
 
@@ -251,12 +252,13 @@ public:
 
 	/**
 	 * 공통 판정 표시 위치 지정 (RuleSet의 bUseCommonJudgementDisplay가 켜져 있을 때).
-	 * true를 반환하면 OutWorldLocation(+RuleSet의 JudgementWorldOffset) 위에 표시, false면 RuleSet의 화면 위치에 표시.
-	 * OutSlotIndex: 동시에 따로 보여줄 표시 번호 (예: JJ 캐릭터 인덱스). 같은 번호면 이전 표시를 덮어씀
+	 * 판정마다 호출됨. 재정의하지 않으면 Default(RuleSet의 화면 위치)
+	 *  - WorldLocation : 3D 위치 위 (캐릭터 머리 위 등)
+	 *  - ScreenPosition: 화면 UI 위치 (노트 큐 위젯 등. UPTBJudgementDisplayComponent::MakeJudgementAnchorFromWidget 사용)
 	 */
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "PTB|MiniGame|Judgement")
-	bool GetJudgementDisplayAnchor(const FPTBJudgementResult& Result, FVector& OutWorldLocation, int32& OutSlotIndex) const;
-	virtual bool GetJudgementDisplayAnchor_Implementation(const FPTBJudgementResult& Result, FVector& OutWorldLocation, int32& OutSlotIndex) const { return false; }
+	FPTBJudgementAnchor GetJudgementDisplayAnchor(const FPTBJudgementResult& Result) const;
+	virtual FPTBJudgementAnchor GetJudgementDisplayAnchor_Implementation(const FPTBJudgementResult& Result) const { return FPTBJudgementAnchor(); }
 
 	/** BP 미니게임에서 시작 연출 시점을 확장합니다. */
 	UFUNCTION(BlueprintNativeEvent, Category = "PTB|MiniGame|Flow")

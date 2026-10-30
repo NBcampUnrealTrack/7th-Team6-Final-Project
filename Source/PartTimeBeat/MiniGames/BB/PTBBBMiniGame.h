@@ -5,6 +5,7 @@
 #include "PTBBBMiniGame.generated.h"
 
 class UPTBBBMiniGameRuleSet;
+class UPTBBBHUDWidget;
 
 // ── BP 연출용 델리게이트 ──────────────────────────────────────────
 
@@ -156,6 +157,18 @@ protected:
 	virtual void HandleNoteArm(FPTBNoteEvent Note)                    override;
 	virtual void HandleChartEvent(FPTBNoteEvent Note)                 override;
 	virtual void HandleJudgementResult(FPTBJudgementResult Result)    override;
+
+	/** 공통 판정 표시: 판정한 노트 큐(UI) 위치에 표시 */
+	virtual FPTBJudgementAnchor GetJudgementDisplayAnchor_Implementation(const FPTBJudgementResult& Result) const override;
+
+public:
+	/** BB HUD가 바인딩 시 등록 (공통 판정 표시 위치를 큐 위젯에서 가져오기 위함) */
+	void SetJudgementAnchorHUD(UPTBBBHUDWidget* InHUD);
+
+private:
+	TWeakObjectPtr<UPTBBBHUDWidget> JudgementAnchorHUD;
+
+protected:
 	virtual FPTBMiniGameResultPayload BuildResultPayload() const      override;
 	virtual TMap<FKey, EPTBActionType> GetActionMapping() const       override;
 

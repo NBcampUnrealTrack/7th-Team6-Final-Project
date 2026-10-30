@@ -30,6 +30,9 @@ public:
 	/** 월드 위치 따라가기 (표시되는 동안 매 프레임 화면 좌표로 변환) */
 	void SetWorldAnchor(const FVector& WorldLocation);
 
+	/** 뷰포트 위치 고정 (Set Position in Viewport, Remove DPI Scale=false 단위) */
+	void SetViewportAnchor(const FVector2D& ViewportPosition);
+
 	bool IsPlaying() const { return bPlaying; }
 
 protected:
@@ -58,7 +61,9 @@ private:
 	float FadeOutTime = 0.2f;
 	float RiseDistance = 0.f;
 
-	bool bUseWorldAnchor = false;
+	enum class EAnchorMode : uint8 { ScreenRatio, World, Viewport };
+	EAnchorMode AnchorMode = EAnchorMode::ScreenRatio;
 	FVector WorldAnchor = FVector::ZeroVector;
 	FVector2D ScreenAnchor = FVector2D(0.5f, 0.35f);
+	FVector2D ViewportAnchor = FVector2D::ZeroVector;
 };

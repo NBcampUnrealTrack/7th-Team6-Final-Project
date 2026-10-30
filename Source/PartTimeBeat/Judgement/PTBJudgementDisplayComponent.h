@@ -3,9 +3,11 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "Core/PTBStructEnums.h"
+#include "Judgement/PTBJudgeSkin.h"
 #include "PTBJudgementDisplayComponent.generated.h"
 
 class APTBBaseMiniGame;
+class UWidget;
 class UPTBJudgeSkin;
 class UPTBJudgementDisplayWidget;
 
@@ -34,6 +36,13 @@ public:
 	/** 장착 스킨 다시 읽기 */
 	UFUNCTION(BlueprintCallable, Category = "PTB|Judgement")
 	void RefreshSkin();
+
+	/**
+	 * 화면에 떠 있는 위젯(노트 큐 등)의 현재 중심 위치로 판정 위치 생성.
+	 * 위젯이 없거나 아직 화면에 그려지지 않았으면 Type=Default
+	 */
+	UFUNCTION(BlueprintPure, Category = "PTB|Judgement")
+	static FPTBJudgementAnchor MakeJudgementAnchorFromWidget(UWidget* Widget, int32 SlotIndex = 0);
 
 protected:
 	virtual void BeginPlay() override;

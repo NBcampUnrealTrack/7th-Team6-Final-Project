@@ -203,6 +203,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Judgement Display", meta = (EditCondition = "bUseCommonJudgementDisplay"))
 	FVector JudgementWorldOffset = FVector(0.f, 0.f, 120.f);
 
+	/** 미니게임이 화면 위치(UI 노트 등)를 줄 때 더할 오프셋 (px, 1080p 기준. 음수 Y = 위쪽) */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Judgement Display", meta = (EditCondition = "bUseCommonJudgementDisplay"))
+	FVector2D JudgementScreenAnchorOffset = FVector2D(0.f, 0.f);
+
 	/** 이 미니게임에서의 판정 이미지 크기 배율 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Judgement Display", meta = (EditCondition = "bUseCommonJudgementDisplay", ClampMin = "0.1"))
 	float JudgementDisplayScale = 1.0f;

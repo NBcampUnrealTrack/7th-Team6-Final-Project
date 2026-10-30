@@ -8,6 +8,7 @@
 class APTBBBMiniGame;
 class UPTBBBCueWidgetBase;
 class UPTBBBHitZoneWidgetBase;
+class UWidget;
 class UCanvasPanel;
 class UProgressBar;
 class UTextBlock;
@@ -45,6 +46,12 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category = "PTB|BB|HUD")
 	void BindToMiniGame(APTBBBMiniGame* InMiniGame);
+
+	/**
+	 * 공통 판정 표시 위치용: 이 판정의 노트 큐 위젯, 없으면 같은 레인의 히트존 마커.
+	 * 판정 직후 큐가 제거되기 전에 호출해야 함 (APTBBBMiniGame::GetJudgementDisplayAnchor에서 사용)
+	 */
+	UWidget* FindJudgementAnchorWidget(const FPTBJudgementResult& Result) const;
 
 	UFUNCTION(BlueprintCallable, Category = "PTB|BB|HUD|Flow")
 	void ShowCenterMessage(const FText& Message);
