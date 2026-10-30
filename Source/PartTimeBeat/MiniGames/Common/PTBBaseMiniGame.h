@@ -249,6 +249,15 @@ public:
 	void ReceiveJudgement(FPTBJudgementResult Result);
 	virtual void ReceiveJudgement_Implementation(FPTBJudgementResult Result);
 
+	/**
+	 * 공통 판정 표시 위치 지정 (RuleSet의 bUseCommonJudgementDisplay가 켜져 있을 때).
+	 * true를 반환하면 OutWorldLocation(+RuleSet의 JudgementWorldOffset) 위에 표시, false면 RuleSet의 화면 위치에 표시.
+	 * OutSlotIndex: 동시에 따로 보여줄 표시 번호 (예: JJ 캐릭터 인덱스). 같은 번호면 이전 표시를 덮어씀
+	 */
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "PTB|MiniGame|Judgement")
+	bool GetJudgementDisplayAnchor(const FPTBJudgementResult& Result, FVector& OutWorldLocation, int32& OutSlotIndex) const;
+	virtual bool GetJudgementDisplayAnchor_Implementation(const FPTBJudgementResult& Result, FVector& OutWorldLocation, int32& OutSlotIndex) const { return false; }
+
 	/** BP 미니게임에서 시작 연출 시점을 확장합니다. */
 	UFUNCTION(BlueprintNativeEvent, Category = "PTB|MiniGame|Flow")
 	void ReceiveIntroStarted();
