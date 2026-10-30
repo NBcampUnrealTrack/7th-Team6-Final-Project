@@ -86,6 +86,7 @@ void UPTBJudgementDisplayComponent::RefreshSkin()
 {
 	bSkinResolved = true;
 	ActiveSkin = nullptr;
+	ItemScale = 1.f;
 
 	// 1순위: 장착한 판정 스킨 아이템의 Asset
 	FName EquippedId = NAME_None;
@@ -94,6 +95,14 @@ void UPTBJudgementDisplayComponent::RefreshSkin()
 		EquippedId = Items->GetEquippedItemId(PTBItemCategory::JudgeSkin);
 		bool bFound = false;
 		const FPTBItemRow Row = Items->GetEquippedItemData(PTBItemCategory::JudgeSkin, bFound);
+		if (bFound)
+		{
+			// DT_PTBItems 행의 Numeric Params "Scale" = 이 스킨만의 크기 배율 (없으면 1)
+			if (const float* Scale = Row.NumericParams.Find(TEXT("Scale")))
+			{
+				ItemScale = FMath::Max(0.05f, *Scale);
+			}
+		}
 		if (bFound && !Row.Asset.IsNull())
 		{
 			ActiveSkin = Cast<UPTBJudgeSkin>(Row.Asset.LoadSynchronous());
@@ -113,7 +122,7 @@ void UPTBJudgementDisplayComponent::RefreshSkin()
 		}
 	}
 
-	PTB_RECORD(LogPTBMiniGames, TEXT("[JudgeDisplay] 판정 스킨: item=%s skin=%s"), *EquippedId.ToString(), *GetNameSafe(ActiveSkin));
+	PTB_RECORD(LogPTBMiniGames, TEXT("[JudgeDisplay] 판정 스킨: item=%s skin=%s scale=%.2f"), *EquippedId.ToString(), *GetNameSafe(ActiveSkin), ItemScale);
 
 	if (!ActiveSkin)
 	{
@@ -204,7 +213,7 @@ void UPTBJudgementDisplayComponent::HandleMiniGameJudgement(FPTBJudgementResult 
 		break;
 	}
 
-	Widget->PlayJudgement(Result.JudgementType, ActiveSkin, RuleSet->JudgementDisplayScale);
+	Widget->PlayJudgement(Result.JudgementType, ActiveSkin, RuleSet->JudgementDisplayScale * ItemScale);
 }
 
 FPTBJudgementAnchor UPTBJudgementDisplayComponent::MakeJudgementAnchorFromWidget(UWidget* Widget, int32 SlotIndex)

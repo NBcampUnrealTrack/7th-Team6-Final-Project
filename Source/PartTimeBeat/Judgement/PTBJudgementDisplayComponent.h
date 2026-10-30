@@ -72,4 +72,7 @@ private:
 	TMap<int32, TObjectPtr<UPTBJudgementDisplayWidget>> Widgets;
 
 	bool bSkinResolved = false;
+
+	/** 장착 스킨 아이템 행의 NumericParams "Scale" (DT_PTBItems에서 스킨별 크기 조절) */
+	float ItemScale = 1.f;
 };
