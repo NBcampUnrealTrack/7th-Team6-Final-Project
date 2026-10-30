@@ -50,6 +50,16 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Hub UI")
 	TSoftClassPtr<class UPTBKeyPromptWidget> InteractPromptWidgetClass;
 
+	// ── 판정 스킨 ──
+
+	/** 판정 스킨 장착 정보가 없을 때 쓸 기본 스킨 (보통 JudgeSkin 기본 아이템과 같은 에셋) */
+	UPROPERTY(Config, EditAnywhere, Category = "Judge Skin")
+	TSoftObjectPtr<class UPTBJudgeSkin> FallbackJudgeSkin;
+
+	/** 판정 표시 위젯을 꾸미고 싶을 때만 지정 (부모: PTBJudgementDisplayWidget). 비우면 기본 이미지만 표시 */
+	UPROPERTY(Config, EditAnywhere, Category = "Judge Skin")
+	TSoftClassPtr<class UPTBJudgementDisplayWidget> JudgementDisplayWidgetClass;
+
 	/** 허브에서 사물함을 여는 키 */
 	UPROPERTY(Config, EditAnywhere, Category = "Hub UI")
 	FKey LockerKey = EKeys::I;

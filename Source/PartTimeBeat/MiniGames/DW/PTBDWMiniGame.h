@@ -135,6 +135,7 @@ protected:
 	virtual void BuildRuntimeState() override;
 	virtual void HandleNoteCue(FPTBNoteEvent Note) override;
 	virtual void HandleJudgementResult(FPTBJudgementResult Result) override;
+	virtual FPTBJudgementAnchor GetJudgementDisplayAnchor_Implementation(const FPTBJudgementResult& Result) const override;
 	virtual void ReceiveGameplayStarted_Implementation() override;
 	virtual void ReceiveIntroStarted_Implementation() override;
 	virtual void HandleReadyToStart() override;
@@ -192,6 +193,10 @@ private:
 	FLinearColor GetNoteColor(EPTBActionType Action) const;
 	FVector GetNoteScale(bool bLong) const;
 	AActor* GetJudgeActor() const;
+	/** 노트 도착점(판정 위치) 월드 좌표 = 판정 캐릭터 위치 + NoteTargetHeadOffset. 노트 이동·타겟 별·공통 판정 표시가 모두 이 값을 사용 */
+	FVector GetNoteTargetLocation() const;
+	/** 판정 위치 표시(타겟 별) 생성·위치·연출 갱신 (Tick) */
+	void UpdateNoteTargetMarker(float DeltaTime);
 	AActor* GetPreviewActor() const;
 	UStaticMesh* GetObstacleMesh(EPTBActionType Action);
 
@@ -214,6 +219,12 @@ private:
 
 	UPROPERTY()
 	TObjectPtr<APTBDWCharacter> JudgeActor = nullptr;
+
+	/** 판정 위치 표시(타겟 별) */
+	UPROPERTY()
+	TObjectPtr<APTBDWNoteToken> NoteTargetMarker = nullptr;
+	/** 판정 순간 펄스 남은 시간 (초) */
+	float NoteTargetPulseRemaining = 0.f;
 
 	/** DW 전용 배경 스크롤러. StartMiniGame에서 탐색·캐시, 게임플레이 시작 시 SetRunning(true). */
 	UPROPERTY()

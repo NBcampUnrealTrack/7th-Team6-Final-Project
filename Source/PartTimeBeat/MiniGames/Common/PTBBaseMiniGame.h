@@ -4,6 +4,7 @@
 #include "GameFramework/Actor.h"
 #include "Core/PTBStructEnums.h"
 #include "MiniGames/Common/PTBMiniGameIntroData.h"
+#include "Judgement/PTBJudgeSkin.h"
 #include "TimerManager.h"
 #include "PTBBaseMiniGame.generated.h"
 
@@ -248,6 +249,23 @@ public:
 	UFUNCTION(BlueprintNativeEvent, Category = "PTB|MiniGame|Events")
 	void ReceiveJudgement(FPTBJudgementResult Result);
 	virtual void ReceiveJudgement_Implementation(FPTBJudgementResult Result);
+
+	/**
+	 * 공통 판정 표시 위치 지정 (RuleSet의 bUseCommonJudgementDisplay가 켜져 있을 때).
+	 * 판정마다 호출됨. 재정의하지 않으면 Default(RuleSet의 화면 위치)
+	 *  - WorldLocation : 3D 위치 위 (캐릭터 머리 위 등)
+	 *  - ScreenPosition: 화면 UI 위치 (노트 큐 위젯 등. UPTBJudgementDisplayComponent::MakeJudgementAnchorFromWidget 사용)
+	 */
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "PTB|MiniGame|Judgement")
+	FPTBJudgementAnchor GetJudgementDisplayAnchor(const FPTBJudgementResult& Result) const;
+
+	/**
+	 * 공통 판정 표시를 쓰는 중인지 (RuleSet의 bUseCommonJudgementDisplay).
+	 * 미니게임 전용 판정 표시(텍스트/이미지)는 이 값이 true면 건너뛸 것
+	 */
+	UFUNCTION(BlueprintPure, Category = "PTB|MiniGame|Judgement")
+	bool UsesCommonJudgementDisplay() const;
+	virtual FPTBJudgementAnchor GetJudgementDisplayAnchor_Implementation(const FPTBJudgementResult& Result) const { return FPTBJudgementAnchor(); }
 
 	/** BP 미니게임에서 시작 연출 시점을 확장합니다. */
 	UFUNCTION(BlueprintNativeEvent, Category = "PTB|MiniGame|Flow")

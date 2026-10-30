@@ -1,5 +1,8 @@
 #include "MiniGames/BB/PTBBBMiniGame.h"
 #include "MiniGames/BB/PTBBBMiniGameRuleSet.h"
+#include "MiniGames/BB/PTBBBHUDWidget.h"
+#include "Judgement/PTBJudgementDisplayComponent.h"
+#include "Components/Widget.h"
 #include "Audio/PTBWwiseAudioManager.h"
 #include "Camera/CameraShakeBase.h"
 #include "Debug/PTBTeamLog.h"
@@ -227,6 +230,20 @@ void APTBBBMiniGame::HandleChartEvent(FPTBNoteEvent Note)
 }
 
 // ── 판정 결과 처리 ───────────────────────────────────────────────
+
+void APTBBBMiniGame::SetJudgementAnchorHUD(UPTBBBHUDWidget* InHUD)
+{
+	JudgementAnchorHUD = InHUD;
+}
+
+FPTBJudgementAnchor APTBBBMiniGame::GetJudgementDisplayAnchor_Implementation(const FPTBJudgementResult& Result) const
+{
+	const UPTBBBHUDWidget* HUD = JudgementAnchorHUD.Get();
+	UWidget* AnchorWidget = HUD ? HUD->FindJudgementAnchorWidget(Result) : nullptr;
+
+	// 레인(ActionType)마다 별도 표시 → 연속 판정이 다른 레인이면 동시에 보임
+	return UPTBJudgementDisplayComponent::MakeJudgementAnchorFromWidget(AnchorWidget, static_cast<int32>(Result.ActionType));
+}
 
 void APTBBBMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 {

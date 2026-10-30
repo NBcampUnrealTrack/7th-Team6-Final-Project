@@ -23,6 +23,7 @@
 #include "Blueprint/WidgetBlueprintLibrary.h"
 #include "Engine/DataTable.h"
 #include "Profile/PTBProfileSubsystem.h"
+#include "Judgement/PTBJudgementDisplayComponent.h"
 #include "UI/PTBSceneWidgetBase.h"
 #include "Kismet/GameplayStatics.h"
 #include "Sound/SoundBase.h"
@@ -176,6 +177,13 @@ void APTBBaseMiniGame::BeginPlay()
 	if (JudgementSystem)
 	{
 		JudgementSystem->OnJudgementResult.AddUniqueDynamic(this, &APTBBaseMiniGame::HandleJudgementResult);
+	}
+
+	// 공통 판정 표시 (RuleSet의 bUseCommonJudgementDisplay가 꺼져 있으면 아무것도 하지 않음)
+	if (!FindComponentByClass<UPTBJudgementDisplayComponent>())
+	{
+		UPTBJudgementDisplayComponent* JudgementDisplay = NewObject<UPTBJudgementDisplayComponent>(this, TEXT("PTBJudgementDisplay"));
+		JudgementDisplay->RegisterComponent();
 	}
 }
 
@@ -1267,6 +1275,11 @@ void APTBBaseMiniGame::FailActiveHoldEarlyRelease(int32 HoldIndex, float Release
 		HoldState.Note,
 		ReleaseTimeMs,
 		HoldState.RequiredHoldUntilTimeMs));
+}
+
+bool APTBBaseMiniGame::UsesCommonJudgementDisplay() const
+{
+	return RuleSet && RuleSet->bUseCommonJudgementDisplay;
 }
 
 void APTBBaseMiniGame::DispatchDeferredJudgementResult(const FPTBJudgementResult& Result)

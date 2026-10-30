@@ -186,6 +186,31 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Audio")
 	FName FailSFXKey = NAME_None;
 
+	// ── 공통 판정 표시 (장착한 판정 스킨으로 Perfect/Good/Miss 이미지 표시) ──
+
+	/**
+	 * 공통 판정 표시 사용.
+	 * 켜기 전에 이 미니게임의 기존 판정 표시(텍스트/전용 위젯 등)를 꺼야 두 번 겹쳐 보이지 않음
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Judgement Display")
+	bool bUseCommonJudgementDisplay = false;
+
+	/** 화면 위치 (0~1 비율, 0.5/0.5 = 화면 중앙). 미니게임이 월드 위치를 주지 않을 때 사용 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Judgement Display", meta = (EditCondition = "bUseCommonJudgementDisplay"))
+	FVector2D JudgementScreenPosition = FVector2D(0.5f, 0.35f);
+
+	/** 미니게임이 월드 위치를 줄 때 더할 오프셋 (cm, 예: 캐릭터 머리 위 Z 120) */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Judgement Display", meta = (EditCondition = "bUseCommonJudgementDisplay"))
+	FVector JudgementWorldOffset = FVector(0.f, 0.f, 120.f);
+
+	/** 미니게임이 화면 위치(UI 노트 등)를 줄 때 더할 오프셋 (px, 1080p 기준. 음수 Y = 위쪽) */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Judgement Display", meta = (EditCondition = "bUseCommonJudgementDisplay"))
+	FVector2D JudgementScreenAnchorOffset = FVector2D(0.f, 0.f);
+
+	/** 이 미니게임에서의 판정 이미지 크기 배율 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Judgement Display", meta = (EditCondition = "bUseCommonJudgementDisplay", ClampMin = "0.1"))
+	float JudgementDisplayScale = 1.0f;
+
 	/** 입력 액션 지원 여부 */
 	bool SupportsAction(EPTBActionType Action) const;
 
