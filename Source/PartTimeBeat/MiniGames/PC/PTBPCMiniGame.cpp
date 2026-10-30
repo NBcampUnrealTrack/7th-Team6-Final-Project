@@ -130,7 +130,7 @@ void APTBPCMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 {
     Super::HandleJudgementResult(Result);
 
-    if (JudgementPopupWidget)
+    if (JudgementPopupWidget && !UsesCommonJudgementDisplay())   // 공통 판정 표시를 쓰면 전용 팝업은 끔
     {
         JudgementPopupWidget->ShowJudgement(Result.JudgementType);
     }

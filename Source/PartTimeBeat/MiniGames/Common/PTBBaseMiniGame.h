@@ -258,6 +258,13 @@ public:
 	 */
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "PTB|MiniGame|Judgement")
 	FPTBJudgementAnchor GetJudgementDisplayAnchor(const FPTBJudgementResult& Result) const;
+
+	/**
+	 * 공통 판정 표시를 쓰는 중인지 (RuleSet의 bUseCommonJudgementDisplay).
+	 * 미니게임 전용 판정 표시(텍스트/이미지)는 이 값이 true면 건너뛸 것
+	 */
+	UFUNCTION(BlueprintPure, Category = "PTB|MiniGame|Judgement")
+	bool UsesCommonJudgementDisplay() const;
 	virtual FPTBJudgementAnchor GetJudgementDisplayAnchor_Implementation(const FPTBJudgementResult& Result) const { return FPTBJudgementAnchor(); }
 
 	/** BP 미니게임에서 시작 연출 시점을 확장합니다. */

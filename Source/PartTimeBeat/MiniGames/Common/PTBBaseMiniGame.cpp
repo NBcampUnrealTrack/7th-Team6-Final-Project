@@ -1277,6 +1277,11 @@ void APTBBaseMiniGame::FailActiveHoldEarlyRelease(int32 HoldIndex, float Release
 		HoldState.RequiredHoldUntilTimeMs));
 }
 
+bool APTBBaseMiniGame::UsesCommonJudgementDisplay() const
+{
+	return RuleSet && RuleSet->bUseCommonJudgementDisplay;
+}
+
 void APTBBaseMiniGame::DispatchDeferredJudgementResult(const FPTBJudgementResult& Result)
 {
 	if (JudgementSystem)

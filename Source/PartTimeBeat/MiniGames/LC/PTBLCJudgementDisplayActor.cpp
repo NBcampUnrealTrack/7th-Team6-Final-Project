@@ -150,7 +150,14 @@ void APTBLCJudgementDisplayActor::ApplyJudgementResult(const FPTBJudgementResult
 		LampDynamicMaterial->SetVectorParameterValue(LampColorParameterName, AppliedColor);
 	}
 
+	// 공통 판정 표시를 쓰면 판정 이미지 판은 숨김 (조명·램프 색 연출은 유지)
+	const bool bUseCommonDisplay = SourceMiniGame && SourceMiniGame->UsesCommonJudgementDisplay();
 	if (JudgementTextureComponent)
+	{
+		JudgementTextureComponent->SetHiddenInGame(bUseCommonDisplay);
+	}
+
+	if (JudgementTextureComponent && !bUseCommonDisplay)
 	{
 		TObjectPtr<UTexture2D>* JudgementTexture = JudgementTextures.Find(Result.JudgementType);
 		UTexture2D* AppliedTexture = JudgementTexture ? JudgementTexture->Get() : DefaultJudgementTexture.Get();
@@ -196,6 +203,10 @@ void APTBLCJudgementDisplayActor::TryBindSourceMiniGame()
 			*GetNameSafe(this),
 			*GetNameSafe(SourceMiniGame.Get()),
 			*GetNameSafe(SourceMiniGame->GetClass()));
+		if (JudgementTextureComponent && SourceMiniGame->UsesCommonJudgementDisplay())
+		{
+			JudgementTextureComponent->SetHiddenInGame(true);   // 공통 판정 표시 사용 시 판정 이미지 판은 처음부터 숨김
+		}
 		if (UWorld* World = GetWorld())
 		{
 			World->GetTimerManager().ClearTimer(BindRetryTimerHandle);

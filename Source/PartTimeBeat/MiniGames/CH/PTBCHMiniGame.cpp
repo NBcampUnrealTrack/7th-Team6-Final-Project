@@ -533,7 +533,10 @@ void APTBCHMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
     }
 
     Super::HandleJudgementResult(Result);
-    CallHUDShowJudgement(Result.JudgementType);
+    if (!UsesCommonJudgementDisplay())   // 공통 판정 표시를 쓰면 HUD 전용 판정 표시는 끔
+    {
+        CallHUDShowJudgement(Result.JudgementType);
+    }
     if (ScoreCalculator)
     {
         CallHUDUpdateStats(ScoreCalculator->CurrentScore, ScoreCalculator->ComboCount,
