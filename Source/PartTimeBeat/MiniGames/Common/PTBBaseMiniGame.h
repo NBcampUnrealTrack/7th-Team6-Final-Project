@@ -494,12 +494,31 @@ protected:
 
 	FPTBChartData SavedMainChartData;
 
-	/** 연습 중 노트 타이밍 소리 / 메트로놈 소리 */
+	/** (사용 안 함) 연습 중 노트 타이밍 소리. 공통 입력·판정 효과음과 헷갈려서 재생 중단. 메트로놈은 그대로 */
 	UPROPERTY(Transient)
 	TObjectPtr<USoundBase> PracticeNoteSound;
 
 	UPROPERTY(Transient)
 	TObjectPtr<USoundBase> PracticeMetronomeSound;
+
+	// ── 공통 입력·판정 효과음 ──
+	enum class EPTBGameplaySound : uint8 { Press, Hit, Miss };
+
+	/** 사용자 설정(효과음 켬/끔)과 RuleSet을 확인해 공통 효과음 재생 */
+	void PlayGameplaySound(EPTBGameplaySound Kind);
+	bool IsGameplaySFXEnabled() const;
+
+	/** 현재 처리 중인 입력이 판정을 만들었는지 (Press 소리 생략용) */
+	bool bJudgedDuringCurrentInput = false;
+
+	/** Project Settings의 공통 사운드 로드 캐시 */
+	UPROPERTY(Transient)
+	TObjectPtr<USoundBase> CachedPressSound;
+	UPROPERTY(Transient)
+	TObjectPtr<USoundBase> CachedHitSound;
+	UPROPERTY(Transient)
+	TObjectPtr<USoundBase> CachedMissSound;
+	bool bGameplaySoundsLoaded = false;
 
 	int32 PracticeTotalNotes = 0;
 	int32 PracticeRequiredHits = 0;

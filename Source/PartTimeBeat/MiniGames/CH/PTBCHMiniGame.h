@@ -163,11 +163,14 @@ public:
     float HaloEffectDuration = 1.0f;
 
 protected:
-    /** 난이도별 본게임 주문 구성 */
+    /** 본게임 주문 구성 (채보 키 순서 기반) */
     void SetupMainCustomerOrders();
 
-    /** 튜토리얼 연습 채보 키 순서로 주문 구성 */
+    /** 튜토리얼 연습 주문 구성 (채보 키 순서 기반) */
     void SetupPracticeCustomerOrders();
+
+    /** 채보 키 순서로 손님 주문 생성 (A=빵: 아랫빵/윗빵+주문 마감, B 양상추, C 패티, D 치즈, E 토마토) */
+    void BuildCustomerOrdersFromChart();
 
     /** 현재 ChartAsset 노트 순서 + CustomerOrders로 NoteId → 재료 키 매핑 */
     void RebuildNoteIngredientMap();

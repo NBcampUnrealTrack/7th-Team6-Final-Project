@@ -8,6 +8,7 @@
 class UPTBRhythmChartAsset;
 class UPTBWwiseEventMapAsset;
 class UPTBMiniGamePreloadAssetSet;
+class USoundBase;
 
 /**
  * 공통 미니게임 라운드에서 채보 노트를 각 미니게임 규칙으로 해석하기 위한 기본 RuleSet DataAsset입니다
@@ -185,6 +186,25 @@ public:
 	/** 기본 실패 SFX 이벤트 키 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Audio")
 	FName FailSFXKey = NAME_None;
+
+	/**
+	 * 공통 입력·판정 효과음 사용 (Project Settings → PTB 게임플레이 사운드).
+	 * 켜져 있으면 위의 Wwise 판정 SFX(JudgementSFXKeys 등) 대신 공통 효과음을 재생
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Audio|Gameplay SFX")
+	bool bUseCommonGameplaySFX = true;
+
+	/** 이 미니게임만 다른 누름 소리 (비우면 공통) */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Audio|Gameplay SFX", meta = (EditCondition = "bUseCommonGameplaySFX"))
+	TObjectPtr<USoundBase> PressSoundOverride;
+
+	/** 이 미니게임만 다른 성공 소리 (비우면 공통) */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Audio|Gameplay SFX", meta = (EditCondition = "bUseCommonGameplaySFX"))
+	TObjectPtr<USoundBase> HitSoundOverride;
+
+	/** 이 미니게임만 다른 실패 소리 (비우면 공통) */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Audio|Gameplay SFX", meta = (EditCondition = "bUseCommonGameplaySFX"))
+	TObjectPtr<USoundBase> MissSoundOverride;
 
 	// ── 공통 판정 표시 (장착한 판정 스킨으로 Perfect/Good/Miss 이미지 표시) ──
 

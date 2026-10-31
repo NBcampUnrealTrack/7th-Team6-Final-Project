@@ -13,16 +13,16 @@
 						</Reference>
 					</ReferenceList>
 					<ChildrenList>
-						<AudioFileSource Name="PTB_CH" ID="{32CEAB25-F92A-44D1-88B7-52FC3DE2C44E}">
+						<AudioFileSource Name="ch" ID="{FF28DA47-262B-4D8A-9651-07DE99252641}">
 							<Language>SFX</Language>
-							<AudioFile>PTB_CH.wav</AudioFile>
+							<AudioFile>ch.wav</AudioFile>
 							<MediaIDList>
-								<MediaID ID="376987072"/>
+								<MediaID ID="694164062"/>
 							</MediaIDList>
 						</AudioFileSource>
 					</ChildrenList>
 					<ActiveSourceList>
-						<ActiveSource Name="PTB_CH" ID="{32CEAB25-F92A-44D1-88B7-52FC3DE2C44E}" Platform="Linked"/>
+						<ActiveSource Name="ch" ID="{FF28DA47-262B-4D8A-9651-07DE99252641}" Platform="Linked"/>
 					</ActiveSourceList>
 				</Sound>
 			</ChildrenList>

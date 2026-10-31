@@ -1,4 +1,4 @@
-#include "Core/PTBSaveGame.h"
+﻿#include "Core/PTBSaveGame.h"
 #include "Debug/PTBTeamLog.h"
 
 void UPTBSaveGame::InitializeDefaultSave()
@@ -13,6 +13,7 @@ void UPTBSaveGame::InitializeDefaultSave()
 	Settings.MasterVolume = 1.0f;
 	Settings.BGMVolume = 0.8f;
 	Settings.SFXVolume = 0.8f;
+	Settings.bGameplaySFXEnabled = true;
 	Settings.JudgementOffsetMs = 0.0f;
 	Settings.InputLatencyMs = 0.0f;
 	Settings.WindowMode = EPTBWindowMode::Fullscreen;
