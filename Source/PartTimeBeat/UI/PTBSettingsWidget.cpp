@@ -1,8 +1,9 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 #include "PTBSettingsWidget.h"
 
 #include "Components/Button.h"
+#include "Components/CheckBox.h"
 #include "Components/ComboBoxString.h"
 #include "Components/Image.h"
 #include "Components/Slider.h"
@@ -306,6 +307,7 @@ void UPTBSettingsWidget::RefreshAllWidgets()
 	RefreshVolumeText(TextMasterValue, PendingSettings.MasterVolume);
 	RefreshVolumeText(TextBgmValue, PendingSettings.BGMVolume);
 	RefreshVolumeText(TextSfxValue, PendingSettings.SFXVolume);
+	if (CheckBoxGameplaySfx) CheckBoxGameplaySfx->SetIsChecked(PendingSettings.bGameplaySFXEnabled);
 
 	if (SliderSyncOffset) SliderSyncOffset->SetValue(PendingSettings.JudgementOffsetMs);
 	if (TextSyncOffsetValue)
@@ -396,6 +398,7 @@ void UPTBSettingsWidget::BindWidgetCallbacks()
 
 	if (SliderMaster)     SliderMaster->OnValueChanged.AddUniqueDynamic(this, &UPTBSettingsWidget::OnMasterSliderChanged);
 	if (SliderBgm)        SliderBgm->OnValueChanged.AddUniqueDynamic(this, &UPTBSettingsWidget::OnBgmSliderChanged);
+	if (CheckBoxGameplaySfx) CheckBoxGameplaySfx->OnCheckStateChanged.AddUniqueDynamic(this, &UPTBSettingsWidget::OnGameplaySfxCheckChanged);
 	if (SliderSfx)        SliderSfx->OnValueChanged.AddUniqueDynamic(this, &UPTBSettingsWidget::OnSfxSliderChanged);
 	if (SliderSyncOffset) SliderSyncOffset->OnValueChanged.AddUniqueDynamic(this, &UPTBSettingsWidget::OnSyncOffsetSliderChanged);
 
@@ -434,6 +437,11 @@ void UPTBSettingsWidget::OnSfxSliderChanged(float Value)
 {
 	PendingSettings.SFXVolume = Value;
 	RefreshVolumeText(TextSfxValue, Value);
+}
+
+void UPTBSettingsWidget::OnGameplaySfxCheckChanged(bool bIsChecked)
+{
+	PendingSettings.bGameplaySFXEnabled = bIsChecked;
 }
 
 void UPTBSettingsWidget::OnSyncOffsetSliderChanged(float Value)
