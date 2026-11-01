@@ -10,18 +10,18 @@
     "Type": "User",
     "GUID": "{3D864037-408A-4EF1-AA0D-207B660B3204}",
     "Language": "SFX",
-    "Hash": "{99E8B0C8-7104-13AB-9AB8-631D37FEC6EE}",
+    "Hash": "{47167BFC-C18E-FBE3-320D-4D6C4F45DDF4}",
     "ObjectPath": "\\SoundBanks\\Default Work Unit\\CH",
     "ShortName": "CH",
     "Path": "CH.bnk",
     "Media": [
      {
-      "Id": "376987072",
+      "Id": "694164062",
       "Language": "SFX",
       "Streaming": "false",
       "Location": "Memory",
-      "ShortName": "PTB_CH.wav",
-      "CachePath": "SFX/PTB_CH_818F3B66.wem"
+      "ShortName": "ch.wav",
+      "CachePath": "SFX/ch_818F3B66.wem"
      }
     ],
     "Events": [
@@ -31,17 +31,17 @@
       "ObjectPath": "\\Events\\Default Work Unit\\Play_CH_BGM",
       "GUID": "{111CF831-CA0A-4D06-A81E-8E82403B58B2}",
       "DurationType": "OneShot",
-      "DurationMin": "163.75998",
-      "DurationMax": "163.75998",
+      "DurationMin": "71.999275",
+      "DurationMax": "71.999275",
       "MediaRefs": [
        {
-        "Id": "376987072"
+        "Id": "694164062"
        }
       ]
      }
     ]
    }
   ],
-  "FileHash": "{0CF880F7-17F5-E500-4352-22C1E674C998}"
+  "FileHash": "{8C9922CD-8CFA-241A-F864-CF7851B51351}"
  }
 }

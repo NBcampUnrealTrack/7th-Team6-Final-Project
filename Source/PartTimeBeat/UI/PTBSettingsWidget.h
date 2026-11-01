@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
@@ -9,6 +9,7 @@
 #include "PTBSettingsWidget.generated.h"
 
 class UButton;
+class UCheckBox;
 class UImage;
 class USlider;
 class UTextBlock;
@@ -23,7 +24,7 @@ class UWidgetSwitcher;
  *  [탭]    TabSwitcher (WidgetSwitcher, Index: 0=그래픽, 1=사운드, 2=키, 3=게임)
  *          ButtonTabGraphics, ButtonTabSounds, ButtonTabKeys, ButtonTabGame
  *  [닫기]  ButtonClose
- *  [볼륨]  SliderMaster, SliderBgm, SliderSfx
+ *  [볼륨]  SliderMaster, SliderBgm, SliderSfx, CheckBoxGameplaySfx (입력·판정 효과음 켬/끔)
  *          TextMasterValue, TextBgmValue, TextSfxValue
  *  [싱크]  SliderSyncOffset (-200~+200ms), TextSyncOffsetValue
  *  [화면]  ComboBoxWindowMode, ComboBoxResolution, ComboBoxGraphics
@@ -180,6 +181,10 @@ protected:
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "PTB|Settings|Audio")
 	TObjectPtr<UTextBlock> TextSfxValue;
 
+	/** 미니게임 입력·판정 효과음 켬/끔 (사운드 탭). 튜토리얼 메트로놈은 영향 없음 */
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "PTB|Settings|Audio")
+	TObjectPtr<UCheckBox> CheckBoxGameplaySfx;
+
 	// ── 싱크 조절 ────────────────────────────────────────────────────
 
 	/** 판정 오프셋 슬라이더 (-200ms ~ +200ms). InitializeView에서 범위 자동 설정. */
@@ -304,6 +309,7 @@ private:
 	UFUNCTION() void OnMasterSliderChanged(float Value);
 	UFUNCTION() void OnBgmSliderChanged(float Value);
 	UFUNCTION() void OnSfxSliderChanged(float Value);
+	UFUNCTION() void OnGameplaySfxCheckChanged(bool bIsChecked);
 	UFUNCTION() void OnSyncOffsetSliderChanged(float Value);
 	UFUNCTION() void OnWindowModeSelectionChanged(FString SelectedItem, ESelectInfo::Type SelectionType);
 	UFUNCTION() void OnResolutionSelectionChanged(FString SelectedItem, ESelectInfo::Type SelectionType);

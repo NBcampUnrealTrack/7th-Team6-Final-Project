@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "CoreMinimal.h"
 #include "Engine/DataTable.h"
 #include "InputCoreTypes.h"
@@ -369,6 +369,9 @@ public:
     float BGMVolume = 1.0f;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
     float SFXVolume = 1.0f;
+    /** 미니게임 입력·판정 효과음 (누름/성공/실패). 튜토리얼 메트로놈은 이 값과 무관하게 항상 재생 */
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
+    bool bGameplaySFXEnabled = true;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
     float JudgementOffsetMs = 0.0f;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")

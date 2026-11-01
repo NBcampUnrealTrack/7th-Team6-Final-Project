@@ -27,6 +27,7 @@
 #include "UI/PTBSceneWidgetBase.h"
 #include "Kismet/GameplayStatics.h"
 #include "Sound/SoundBase.h"
+#include "Audio/PTBGameplaySoundSettings.h"
 #include "Flow/PTBGameFlowSubsystem.h"
 
 namespace PTBBaseMiniGameInternal
@@ -1025,11 +1026,7 @@ void APTBBaseMiniGame::HandleChartEvent(FPTBNoteEvent Note)
 		Note.TimeMs,
 		Note.BeatTime);
 
-	// 튜토리얼 연습: 맞추든 못 맞추든 노트 타이밍마다 소리
-	if (bTutorialPracticeActive && PracticeNoteSound)
-	{
-		UGameplayStatics::PlaySound2D(this, PracticeNoteSound);
-	}
+	// (튜토리얼 노트 타이밍 소리는 공통 입력·판정 효과음과 헷갈려서 제거. 메트로놈은 HandlePracticeBeatTick에서 계속 재생)
 
 	OnMiniGameChartNote.Broadcast(Note);
 	ReceiveChartNote(Note);
@@ -1106,16 +1103,32 @@ void APTBBaseMiniGame::HandleRhythmInput(EPTBActionType Action, float TimeMs)
 		EmptyInputActionLockUntilTimeMs.Remove(Action);
 	}
 
+	// 공통 누름 소리: 항상 재생 모드면 판정 전에 바로 (지연 최소화)
+	const UPTBGameplaySoundSettings* SoundSettings = GetDefault<UPTBGameplaySoundSettings>();
+	const bool bPressOnlyWhenNotJudged = !SoundSettings || SoundSettings->bPressSoundOnlyWhenNotJudged;
+	if (!bPressOnlyWhenNotJudged)
+	{
+		PlayGameplaySound(EPTBGameplaySound::Press);
+	}
+	bJudgedDuringCurrentInput = false;
+
 	FPTBNoteEvent TargetNote;
 	if (JudgementSystem
 		&& JudgementSystem->FindBestPendingNote(Action, ResolvedTimeMs, TargetNote)
 		&& TargetNote.NoteType == EPTBNoteType::Hold)
 	{
 		EvaluateHoldInput(Action, ResolvedTimeMs);
-		return;
+	}
+	else
+	{
+		EvaluateInput(Action, ResolvedTimeMs);
 	}
 
-	EvaluateInput(Action, ResolvedTimeMs);
+	// 판정 대상이 없던 입력(헛입력 무시, 롱노트 누르기 시작 등)이면 누름 소리
+	if (bPressOnlyWhenNotJudged && !bJudgedDuringCurrentInput)
+	{
+		PlayGameplaySound(EPTBGameplaySound::Press);
+	}
 }
 
 void APTBBaseMiniGame::HandleRhythmInputReleased(EPTBActionType Action, float TimeMs)
@@ -1315,8 +1328,16 @@ void APTBBaseMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 		ScoreCalculator->AddJudgementScore(Result);
 	}
 
-	if (AudioManager)
+	bJudgedDuringCurrentInput = true;
+
+	if (!RuleSet || RuleSet->bUseCommonGameplaySFX)
 	{
+		// 공통 입력·판정 효과음 (사용자 설정에서 끄면 재생 안 함)
+		PlayGameplaySound(Result.JudgementType == EPTBJudgementType::Miss ? EPTBGameplaySound::Miss : EPTBGameplaySound::Hit);
+	}
+	else if (AudioManager && IsGameplaySFXEnabled())
+	{
+		// 기존 Wwise 판정 SFX (RuleSet에서 공통 효과음을 끈 미니게임만)
 		const FName RuleSetSFXKey = RuleSet ? RuleSet->GetJudgementSFXKey(Result.JudgementType) : NAME_None;
 		if (!RuleSetSFXKey.IsNone())
 		{
@@ -1932,6 +1953,69 @@ FPTBMiniGameResultPayload APTBBaseMiniGame::BuildResultPayload() const
 	}
 
 	return Payload;
+}
+
+bool APTBBaseMiniGame::IsGameplaySFXEnabled() const
+{
+	const UPTBGameInstance* GI = Cast<UPTBGameInstance>(GetGameInstance());
+	return !GI || GI->CachedSettings.bGameplaySFXEnabled;
+}
+
+void APTBBaseMiniGame::PlayGameplaySound(EPTBGameplaySound Kind)
+{
+	if (!IsGameplaySFXEnabled() || (RuleSet && !RuleSet->bUseCommonGameplaySFX))
+	{
+		return;
+	}
+
+	const UPTBGameplaySoundSettings* Settings = GetDefault<UPTBGameplaySoundSettings>();
+	if (!Settings)
+	{
+		return;
+	}
+
+	if (!bGameplaySoundsLoaded)
+	{
+		bGameplaySoundsLoaded = true;
+		CachedPressSound = Settings->PressSound.LoadSynchronous();
+		CachedHitSound   = Settings->HitSound.LoadSynchronous();
+		CachedMissSound  = Settings->MissSound.LoadSynchronous();
+	}
+
+	USoundBase* Sound = nullptr;
+	float Volume = 1.0f;
+	switch (Kind)
+	{
+	case EPTBGameplaySound::Press:
+		Sound = (RuleSet && RuleSet->PressSoundOverride) ? RuleSet->PressSoundOverride.Get() : CachedPressSound.Get();
+		Volume = Settings->PressVolume;
+		break;
+	case EPTBGameplaySound::Hit:
+		Sound = (RuleSet && RuleSet->HitSoundOverride) ? RuleSet->HitSoundOverride.Get() : CachedHitSound.Get();
+		Volume = Settings->HitVolume;
+		break;
+	case EPTBGameplaySound::Miss:
+		Sound = (RuleSet && RuleSet->MissSoundOverride) ? RuleSet->MissSoundOverride.Get() : CachedMissSound.Get();
+		Volume = Settings->MissVolume;
+		break;
+	}
+
+	if (!Sound)
+	{
+		return;
+	}
+
+	// 사용자 볼륨 (Master × SFX) 반영
+	if (const UPTBGameInstance* GI = Cast<UPTBGameInstance>(GetGameInstance()))
+	{
+		Volume *= GI->CachedSettings.MasterVolume * GI->CachedSettings.SFXVolume;
+	}
+	if (Volume <= KINDA_SMALL_NUMBER)
+	{
+		return;
+	}
+
+	UGameplayStatics::PlaySound2D(this, Sound, Volume);
 }
 
 void APTBBaseMiniGame::RequestWwiseEvent(FName EventKey, AActor* Target)
