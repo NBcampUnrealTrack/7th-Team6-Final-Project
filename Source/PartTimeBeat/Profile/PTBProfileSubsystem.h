@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "CoreMinimal.h"
 #include "Subsystems/GameInstanceSubsystem.h"
@@ -22,6 +22,12 @@ class PARTTIMEBEAT_API UPTBProfileSubsystem : public UGameInstanceSubsystem
 
     /** 아이템 보유·장착·사용 금액은 ItemSubsystem만 활성 프로필에 직접 기록 (FindActiveProfileMutable 사용) */
     friend class UPTBItemSubsystem;
+    /** 업적 달성 기록 */
+    friend class UPTBAchievementSubsystem;
+    /** QA 치트 (Development 빌드 전용) */
+    friend class UPTBCheatLibrary;
+    /** 진행 기록 조회 (복사 없이 읽기) */
+    friend class UPTBProgressLibrary;
 
 public:
 

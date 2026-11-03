@@ -361,6 +361,13 @@ EPTBPurchaseResult UPTBItemSubsystem::TryPurchase(FName ItemId, bool bEquipAfter
 	return EPTBPurchaseResult::Success;
 }
 
+TArray<FName> UPTBItemSubsystem::GetAllItemIds() const
+{
+	TArray<FName> Ids;
+	ItemsById.GetKeys(Ids);
+	return Ids;
+}
+
 bool UPTBItemSubsystem::TryEquip(FName ItemId)
 {
 	const FPTBItemRow* Row = FindItem(ItemId);
