@@ -9,6 +9,11 @@
 #include "UObject/UObjectGlobals.h"
 #include "Widgets/Layout/SBorder.h"
 #include "Widgets/Text/STextBlock.h"
+#include "Widgets/SOverlay.h"
+#include "Widgets/SBoxPanel.h"
+#include "Widgets/Layout/SBox.h"
+#include "Widgets/Images/SThrobber.h"
+#include "Widgets/Notifications/SProgressBar.h"
 #include "Styling/CoreStyle.h"
 #include "Debug/PTBLogChannels.h"
 #include "Debug/PTBTeamLog.h"
@@ -28,7 +33,7 @@ void UPTBLoadingScreenSubsystem::Deinitialize()
 
 int32 UPTBLoadingScreenSubsystem::GetPendingPSOCompileCount()
 {
-	const int32 RuntimePrecache = static_cast<int32>(PipelineStateCache::NumActivePrecompileRequests());
+	const int32 RuntimePrecache = PipelineStateCache::GetNumActivePipelinePrecompileTasks(); // UE 5.6: 진행 중인 PSO 프리컴파일 작업 수
 	const int32 BundledCache = static_cast<int32>(FShaderPipelineCache::NumPrecompilesRemaining());
 	return RuntimePrecache + BundledCache;
 }
@@ -54,6 +59,7 @@ void UPTBLoadingScreenSubsystem::HandlePostLoadMap(UWorld* LoadedWorld)
 
 	PTB_RECORD(LogPTBUI, TEXT("[Loading] %s: 남은 PSO 컴파일 %d → 로딩 화면 표시"), *LoadedWorld->GetMapName(), Pending);
 	PeakPending = Pending;
+	DisplayProgress = 0.0f;
 	ShowLoadingScreen();
 }
 
@@ -80,18 +86,69 @@ void UPTBLoadingScreenSubsystem::ShowLoadingScreen()
 
 	if (!LoadingWidget && GEngine && GEngine->GameViewport)
 	{
+		TWeakObjectPtr<UPTBLoadingScreenSubsystem> WeakThis(this);
+		auto GetProgress = [WeakThis]() -> float
+		{
+			return WeakThis.IsValid() ? WeakThis->GetLoadingProgress() : 0.0f;
+		};
+
 		DefaultSlateWidget =
 			SNew(SBorder)
 			.BorderImage(FCoreStyle::Get().GetBrush("WhiteBrush"))
 			.BorderBackgroundColor(FLinearColor::Black)
-			.HAlign(HAlign_Right)
-			.VAlign(VAlign_Bottom)
-			.Padding(FMargin(0.0f, 0.0f, 60.0f, 50.0f))
+			.HAlign(HAlign_Fill)
+			.VAlign(VAlign_Fill)
 			[
-				SNew(STextBlock)
-				.Text(FText::FromString(TEXT("Loading...")))
-				.Font(FCoreStyle::GetDefaultFontStyle("Bold", 28))
-				.ColorAndOpacity(FLinearColor::White)
+				SNew(SOverlay)
+				// 가운데: 돌아가는 원
+				+ SOverlay::Slot()
+				.HAlign(HAlign_Center)
+				.VAlign(VAlign_Center)
+				[
+					SNew(SBox)
+					.WidthOverride(96.0f)
+					.HeightOverride(96.0f)
+					[
+						SNew(SCircularThrobber)
+						.Radius(48.0f)
+						.NumPieces(10)
+						.Period(0.9f)
+					]
+				]
+				// 아래: Loading... NN% + 진행 바
+				+ SOverlay::Slot()
+				.HAlign(HAlign_Center)
+				.VAlign(VAlign_Bottom)
+				.Padding(FMargin(0.0f, 0.0f, 0.0f, 80.0f))
+				[
+					SNew(SVerticalBox)
+					+ SVerticalBox::Slot()
+					.AutoHeight()
+					.HAlign(HAlign_Center)
+					.Padding(FMargin(0.0f, 0.0f, 0.0f, 12.0f))
+					[
+						SNew(STextBlock)
+						.Text_Lambda([GetProgress]()
+						{
+							return FText::FromString(FString::Printf(TEXT("Loading... %d%%"), FMath::RoundToInt(GetProgress() * 100.0f)));
+						})
+						.Font(FCoreStyle::GetDefaultFontStyle("Bold", 24))
+						.ColorAndOpacity(FLinearColor::White)
+					]
+					+ SVerticalBox::Slot()
+					.AutoHeight()
+					.HAlign(HAlign_Center)
+					[
+						SNew(SBox)
+						.WidthOverride(600.0f)
+						.HeightOverride(14.0f)
+						[
+							SNew(SProgressBar)
+							.Percent_Lambda([GetProgress]() -> TOptional<float> { return GetProgress(); })
+							.FillColorAndOpacity(FLinearColor(1.0f, 0.75f, 0.2f))
+						]
+					]
+				]
 			];
 		GEngine->GameViewport->AddViewportWidgetContent(DefaultSlateWidget.ToSharedRef(), 10000);
 	}
@@ -132,6 +189,14 @@ void UPTBLoadingScreenSubsystem::HideLoadingScreen()
 	bVisible = false;
 }
 
+void UPTBLoadingScreenSubsystem::UpdateProgress(int32 Pending)
+{
+	// 로딩 중에 새 컴파일 요청이 추가되면 전체 개수(Peak)를 늘려서 계산 → 진행률은 절대 뒤로 가지 않게 Max 유지
+	PeakPending = FMath::Max(PeakPending, Pending);
+	const float Raw = PeakPending > 0 ? 1.0f - static_cast<float>(Pending) / static_cast<float>(PeakPending) : 1.0f;
+	DisplayProgress = FMath::Clamp(FMath::Max(DisplayProgress, Raw), 0.0f, 1.0f);
+}
+
 bool UPTBLoadingScreenSubsystem::Tick(float DeltaTime)
 {
 	if (!bVisible)
@@ -144,7 +209,7 @@ bool UPTBLoadingScreenSubsystem::Tick(float DeltaTime)
 	const double Now = FPlatformTime::Seconds();
 	const double Elapsed = Now - ShownTime;
 	const int32 Pending = GetPendingPSOCompileCount();
-	PeakPending = FMath::Max(PeakPending, Pending);
+	UpdateProgress(Pending);
 
 	if (Pending <= 0)
 	{

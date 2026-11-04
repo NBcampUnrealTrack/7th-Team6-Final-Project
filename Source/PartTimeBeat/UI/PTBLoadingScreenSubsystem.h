@@ -68,6 +68,17 @@ public:
 	UFUNCTION(BlueprintPure, Category = "PTB|Loading")
 	bool IsLoadingScreenVisible() const { return bVisible; }
 
+	/**
+	 * 로딩 진행률 0~1 (줄어들지 않음). 로딩 화면이 뜬 시점의 남은 PSO 수 대비 처리된 비율.
+	 * 커스텀 로딩 WBP에서 Progress Bar의 Percent / 텍스트(%)에 바인딩해서 사용.
+	 */
+	UFUNCTION(BlueprintPure, Category = "PTB|Loading")
+	float GetLoadingProgress() const { return DisplayProgress; }
+
+	/** 진행률을 0~100 정수로 (텍스트 표시용) */
+	UFUNCTION(BlueprintPure, Category = "PTB|Loading")
+	int32 GetLoadingPercent() const { return FMath::RoundToInt(DisplayProgress * 100.0f); }
+
 private:
 	void HandlePostLoadMap(UWorld* LoadedWorld);
 	bool Tick(float DeltaTime);
@@ -87,4 +98,7 @@ private:
 	double ShownTime = 0.0;
 	double ZeroSinceTime = -1.0;
 	int32 PeakPending = 0;
+	float DisplayProgress = 0.0f;
+
+	void UpdateProgress(int32 Pending);
 };
