@@ -1,4 +1,4 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
+﻿// Copyright Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 
@@ -32,6 +32,17 @@ public class PartTimeBeat : ModuleRules
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] { });
+
+		// STOVE PC SDK: Source/ThirdParty/StovePCSDK 폴더에 SDK가 있을 때만 연동 (없으면 STOVE 기능 없이 빌드)
+		string StoveSDKDir = System.IO.Path.Combine(ModuleDirectory, "..", "ThirdParty", "StovePCSDK");
+		bool bHasStoveSDK = Target.Platform == UnrealTargetPlatform.Win64
+			&& System.IO.File.Exists(System.IO.Path.Combine(StoveSDKDir, "Include", "stove_api.h"))
+			&& System.IO.File.Exists(System.IO.Path.Combine(StoveSDKDir, "lib", "x64", "BaseSDK.lib"));
+		if (bHasStoveSDK)
+		{
+			PrivateDependencyModuleNames.Add("StovePCSDK");
+		}
+		PublicDefinitions.Add("WITH_STOVE_SDK=" + (bHasStoveSDK ? "1" : "0"));
 
 		PublicIncludePaths.AddRange(new string[] {
 			"PartTimeBeat",
