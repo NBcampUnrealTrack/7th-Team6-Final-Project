@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "CoreMinimal.h"
 #include "Engine/DeveloperSettings.h"
@@ -17,6 +17,8 @@ enum class EPTBStoveEnvironment : uint8
  * 저장 위치: Config/DefaultGame.ini
  *
  * SDK 파일(Source/ThirdParty/StovePCSDK)이 없으면 이 설정과 무관하게 STOVE 기능은 꺼진 채 빌드됨
+ *
+ * Game ID / App Key는 공개 저장소에 올라가지 않도록 별도 설정(PTB STOVE 키, Config/DefaultStoveKeys.ini)에 저장
  */
 UCLASS(Config = Game, DefaultConfig, meta = (DisplayName = "PTB STOVE 연동"))
 class PARTTIMEBEAT_API UPTBStoveSettings : public UDeveloperSettings
@@ -45,22 +47,6 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "STOVE", meta = (EditCondition = "bEnableStove"))
 	EPTBStoveEnvironment ShippingEnvironment = EPTBStoveEnvironment::Sandbox;
 
-	/** STOVE 스튜디오의 Game ID (Sandbox) */
-	UPROPERTY(Config, EditAnywhere, Category = "STOVE|Sandbox", meta = (EditCondition = "bEnableStove"))
-	FString SandboxGameId;
-
-	/** STOVE 스튜디오의 Application Key (Sandbox) */
-	UPROPERTY(Config, EditAnywhere, Category = "STOVE|Sandbox", meta = (EditCondition = "bEnableStove"))
-	FString SandboxAppKey;
-
-	/** STOVE 스튜디오의 Game ID (Live) */
-	UPROPERTY(Config, EditAnywhere, Category = "STOVE|Live", meta = (EditCondition = "bEnableStove"))
-	FString LiveGameId;
-
-	/** STOVE 스튜디오의 Application Key (Live) */
-	UPROPERTY(Config, EditAnywhere, Category = "STOVE|Live", meta = (EditCondition = "bEnableStove"))
-	FString LiveAppKey;
-
 	/** 런처 실행 여부 확인 대기 시간 (ms) */
 	UPROPERTY(Config, EditAnywhere, Category = "STOVE|Advanced", meta = (EditCondition = "bEnableStove", ClampMin = "1000"))
 	int32 RestartCheckWaitMs = 60000;
@@ -83,6 +69,37 @@ public:
 #endif
 	}
 	FString GetActiveEnvironmentString() const { return GetActiveEnvironment() == EPTBStoveEnvironment::Live ? TEXT("LIVE") : TEXT("SANDBOX"); }
-	const FString& GetActiveGameId() const { return GetActiveEnvironment() == EPTBStoveEnvironment::Live ? LiveGameId : SandboxGameId; }
-	const FString& GetActiveAppKey() const { return GetActiveEnvironment() == EPTBStoveEnvironment::Live ? LiveAppKey : SandboxAppKey; }
+	FString GetActiveGameId() const;
+	FString GetActiveAppKey() const;
+};
+
+/**
+ * STOVE Game ID / App Key (저장소에 올리지 않는 값).
+ * 에디터: Edit → Project Settings → Game → "PTB STOVE 키 (커밋 금지)"
+ * 저장 위치: Config/DefaultStoveKeys.ini → .gitignore로 제외. 패키징하는 PC에만 입력
+ * (패키징 시 Config 폴더의 ini는 빌드에 포함되므로 게임에서는 정상적으로 읽힘)
+ */
+UCLASS(Config = StoveKeys, DefaultConfig, meta = (DisplayName = "PTB STOVE 키 (커밋 금지)"))
+class PARTTIMEBEAT_API UPTBStoveKeySettings : public UDeveloperSettings
+{
+	GENERATED_BODY()
+
+public:
+	virtual FName GetCategoryName() const override { return TEXT("Game"); }
+
+	/** STOVE 스튜디오의 Game ID (Sandbox) */
+	UPROPERTY(Config, EditAnywhere, Category = "Sandbox")
+	FString SandboxGameId;
+
+	/** STOVE 스튜디오의 Application Key (Sandbox) */
+	UPROPERTY(Config, EditAnywhere, Category = "Sandbox")
+	FString SandboxAppKey;
+
+	/** STOVE 스튜디오의 Game ID (Live) */
+	UPROPERTY(Config, EditAnywhere, Category = "Live")
+	FString LiveGameId;
+
+	/** STOVE 스튜디오의 Application Key (Live) */
+	UPROPERTY(Config, EditAnywhere, Category = "Live")
+	FString LiveAppKey;
 };

@@ -594,3 +594,6 @@ Content/PTB/Data/ForbiddenWords.txt
 
 # 유료
 Content/PaidAssets
+
+# STOVE Game ID / App Key (공개 저장소에 올리지 않음. 패키징하는 PC에만 존재)
+Config/DefaultStoveKeys.ini

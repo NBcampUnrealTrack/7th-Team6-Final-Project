@@ -131,7 +131,7 @@ bool UPTBStoveSubsystem::ShouldStartStove() const
 	}
 	if (Settings->GetActiveGameId().IsEmpty() || Settings->GetActiveAppKey().IsEmpty())
 	{
-		PTB_WARNING(LogPTBProfile, TEXT("[Stove] Game ID / App Key 미입력 (Project Settings → PTB STOVE 연동, 환경=%s)"), *Settings->GetActiveEnvironmentString());
+		PTB_WARNING(LogPTBProfile, TEXT("[Stove] Game ID / App Key 미입력 (Project Settings → PTB STOVE 키 (커밋 금지), 환경=%s)"), *Settings->GetActiveEnvironmentString());
 		return false;
 	}
 	return true;
@@ -194,14 +194,16 @@ void UPTBStoveSubsystem::StartStove()
 	}
 
 	const FString Environment = Settings->GetActiveEnvironmentString();
+	const FString GameId = Settings->GetActiveGameId();
+	const FString AppKey = Settings->GetActiveAppKey();
 	Param->SetEnvironment(*Environment);
-	Param->SetGameId(*Settings->GetActiveGameId());
-	Param->SetAppKey(*Settings->GetActiveAppKey());
+	Param->SetGameId(*GameId);
+	Param->SetAppKey(*AppKey);
 	Param->SetWaitTimeMilliSec(static_cast<uint32_t>(FMath::Max(1000, Settings->RestartCheckWaitMs)));
 	Param->SetLaunchStoveLauncher(Settings->bLaunchStoveLauncher);
 
 	State = EPTBStoveState::CheckingLauncher;
-	PTB_RECORD(LogPTBProfile, TEXT("[Stove] 런처 확인 시작 (env=%s, gameId=%s)"), *Environment, *Settings->GetActiveGameId());
+	PTB_RECORD(LogPTBProfile, TEXT("[Stove] 런처 확인 시작 (env=%s, gameId=%s)"), *Environment, *GameId);
 
 	Stove_RestartAppIfNecessary(Param.Get(), &PTBStoveInternal::OnRestartAppIfNecessary, this);
 #else
