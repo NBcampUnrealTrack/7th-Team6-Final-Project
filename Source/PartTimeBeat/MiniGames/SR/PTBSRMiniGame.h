@@ -157,8 +157,19 @@ protected:
 	UFUNCTION(BlueprintCallable, Category = "MiniGame")
 	virtual void InitializeMiniGame(const FPTBMiniGameContext& Context) override;
 
+	/** BP 호출 호환용으로 유지. 점수·등급 반영은 BeginOutroSequence에서 함 */
 	UFUNCTION(BlueprintCallable, Category = "MiniGame")
 	FPTBRoundResult FinishMiniGame(EPTBRoundEndReason Reason) override;
+
+	/** 라운드 종료 시 초밥 개수 기반 점수·등급을 RoundResult에 반영 (아웃트로·결과 전달 직전).
+	 *  튜토리얼 연습 종료 때는 호출되지 않으므로 결과/게임오버 화면이 뜨지 않습니다. */
+	virtual void BeginOutroSequence(EPTBRoundEndReason Reason) override;
+
+	/** 튜토리얼 연습 시작/종료로 채보가 바뀔 때 초밥 카운트·진행 인덱스 초기화 */
+	virtual void HandleRoundChartChanged() override;
+
+	/** 초밥 카운트·진행 인덱스·판정 기록 초기화 + UI 갱신 */
+	void ResetSushiProgress();
 	UPROPERTY(BlueprintReadWrite, Category = "PTB|Sushi")
 	int32 CurrentNoteIndex = 0;
 

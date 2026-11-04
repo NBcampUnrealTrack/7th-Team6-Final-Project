@@ -8,6 +8,8 @@
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraSystem.h"
 #include "TimerManager.h"
+#include "EngineUtils.h"
+#include "PTBSRToppingSpawner.h"
 #include "PTBSRPlate.h"
 #include "DrawDebugHelpers.h"
 
@@ -68,12 +70,30 @@ void APTBSRMiniGame::InitializeMiniGame(const FPTBMiniGameContext& Context)
 {
 	Super::InitializeMiniGame(Context);
 	CurrentNoteIndex = 0;
+	SuccessSushiCount = 0;
+	NoteJudgementResults.Reset();
 }
 
 FPTBRoundResult APTBSRMiniGame::FinishMiniGame(EPTBRoundEndReason Reason)
 {
-	FPTBRoundResult FinalResult = Super::FinishMiniGame(Reason);
+	// 결과 전달은 base가 담당 (튜토리얼 연습이면 결과 없이 연습 결과만 위젯에 전달)
+	return Super::FinishMiniGame(Reason);
+}
 
+void APTBSRMiniGame::BeginOutroSequence(EPTBRoundEndReason Reason)
+{
+	// 중도 종료(재시작 등)는 결과를 만들지 않음
+	if (Reason == EPTBRoundEndReason::Aborted)
+	{
+		Super::BeginOutroSequence(Reason);
+		return;
+	}
+
+	// ★ 예전에는 FinishMiniGame override에서 OnMiniGameFinished를 직접 Broadcast해서
+	//   (1) 튜토리얼 연습이 끝날 때도 결과(=Fail 게임오버) 화면이 떴고
+	//   (2) 본게임에서도 아웃트로 전에 결과가 한 번 더 전달됐음.
+	//   → 아웃트로 시작 직전에 RoundResult만 바꿔두고, 결과 전달은 base(DispatchMiniGameFinished)에 맡김.
+	FPTBRoundResult FinalResult = RoundResult;
 	FinalResult.MiniGameId = FName("SR");
 	FinalResult.Difficulty = GameContext.SessionRequest.Difficulty;
 	FinalResult.PlayMode = GameContext.SessionRequest.PlayMode;
@@ -92,14 +112,47 @@ FPTBRoundResult APTBSRMiniGame::FinishMiniGame(EPTBRoundEndReason Reason)
 	else if (FinalResult.Score >= 5000)   FinalResult.Grade = EPTBGradeType::C;
 	else                                  FinalResult.Grade = EPTBGradeType::Fail;
 
-	RoundResult = FinalResult;
-
-	if (OnMiniGameFinished.IsBound())
+	// 강제 종료(실패)는 점수와 무관하게 Fail 유지
+	if (Reason == EPTBRoundEndReason::Failed)
 	{
-		OnMiniGameFinished.Broadcast(FinalResult);
+		FinalResult.Grade = EPTBGradeType::Fail;
 	}
 
-	return FinalResult;
+	RoundResult = FinalResult;
+
+	Super::BeginOutroSequence(Reason);
+}
+
+void APTBSRMiniGame::HandleRoundChartChanged()
+{
+	Super::HandleRoundChartChanged();
+
+	// 튜토리얼 연습에서 만든 초밥이 본게임 점수·토핑 순서에 섞이지 않도록 초기화
+	ResetSushiProgress();
+}
+
+void APTBSRMiniGame::ResetSushiProgress()
+{
+	CurrentNoteIndex = 0;
+	SuccessSushiCount = 0;
+	NoteJudgementResults.Reset();
+	PendingInputToppingKey = INDEX_NONE;
+
+	if (USRWidget* MySushiUI = Cast<USRWidget>(WBP_SR_Preview))
+	{
+		MySushiUI->UpdateSuccessCount(SuccessSushiCount);
+	}
+	RefreshPreviewUI();
+
+	// ★ 남은 토핑(count)도 본게임 기준으로 되돌림. 예전에는 연습에서 성공한 초밥만큼 count가 줄어든 채로
+	//   본게임이 시작돼서, count가 0이 되는 시점(=곡이 끝나기 전)에 클리어 처리됐음
+	if (UWorld* World = GetWorld())
+	{
+		for (TActorIterator<APTBSRToppingSpawner> It(World); It; ++It)
+		{
+			It->ResetRemainingToppingCount(GetTotalToppingCount());
+		}
+	}
 }
 
 void APTBSRMiniGame::BuildRuntimeState()
