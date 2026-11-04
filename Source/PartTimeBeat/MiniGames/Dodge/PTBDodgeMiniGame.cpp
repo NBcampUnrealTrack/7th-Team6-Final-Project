@@ -33,6 +33,9 @@ void APTBDodgeMiniGame::StartMiniGame()
 {
     if (bIsRoundActive) return;
 
+    // 연습 때 위젯을 내렸는데 본게임 위젯이 아직 없으면 진입 난이도로 만듦 (보통은 OnMiniGameReadyToStart에서 이미 만들어짐)
+    EnsureFODGameWidget(TEXT("본게임 시작"));
+
     float BPM = GameContext.ChartData.BPM;
     ObstacleFallSpeed = CalculateObstacleFallSpeed(BPM);
     UE_LOG(LogTemp, Log, TEXT("[DodgeMiniGame] StartMiniGame. BPM: %.1f, 장애물 속도: %.1f"), BPM, ObstacleFallSpeed);
@@ -49,6 +52,12 @@ void APTBDodgeMiniGame::HandleNoteCue(FPTBNoteEvent Note)
     {
         ObstacleFallSpeed = CalculateObstacleFallSpeed(GameContext.ChartData.BPM);
         UE_LOG(LogTemp, Log, TEXT("[DodgeMiniGame] 낙하 속도 미설정 상태에서 노트 큐 → 속도 보정: %.1f"), ObstacleFallSpeed);
+    }
+
+    // 연습 중 위젯이 없으면(BP가 튜토리얼 이벤트에서 안 만든 경우) 노트를 스폰하기 전에 만듦
+    if (IsTutorialPracticeActive())
+    {
+        EnsureFODGameWidget(TEXT("연습 노트"));
     }
 
     OnObstacleSpawn(ObstacleFallSpeed, Note.BeatTime, Note.Lane);
@@ -133,6 +142,38 @@ void APTBDodgeMiniGame::HandleRoundChartChanged()
 {
     Super::HandleRoundChartChanged();
 
+    // ★ 연습 UI 난이도 교체는 BP가 튜토리얼 이벤트를 직접 구현했는지와 상관없이 항상 호출되는 여기서 처리
+    //   (연습 시작: TutorialPracticeChart가 이미 설정됨 / 연습 종료: 이미 nullptr로 비워진 뒤 호출됨)
+    if (TutorialPracticeChart)
+    {
+        if (!bPracticeDifficultyOverridden)
+        {
+            SavedSessionDifficulty = GameContext.SessionRequest.Difficulty;
+            bPracticeDifficultyOverridden = true;
+        }
+
+        const EPTBDifficulty PracticeDifficulty = ResolvePracticeUIDifficulty();
+        GameContext.SessionRequest.Difficulty = PracticeDifficulty;
+        ObstacleFallSpeed = CalculateObstacleFallSpeed(GameContext.ChartData.BPM);
+
+        // 이전 위젯(진입 난이도 또는 이전 연습)을 내림 → 연습 난이도로 다시 만들어짐
+        RemoveFODGameWidget();
+
+        UE_LOG(LogTemp, Log, TEXT("[DodgeMiniGame] 튜토리얼 연습 UI 난이도=%d (진입 난이도=%d), 낙하 속도=%.1f"),
+            static_cast<int32>(PracticeDifficulty), static_cast<int32>(SavedSessionDifficulty), ObstacleFallSpeed);
+    }
+    else if (bPracticeDifficultyOverridden)
+    {
+        GameContext.SessionRequest.Difficulty = SavedSessionDifficulty;
+        bPracticeDifficultyOverridden = false;
+        ObstacleFallSpeed = 0.0f; // 본게임 StartMiniGame에서 진입 난이도로 다시 계산
+
+        // 연습용 위젯을 내림 → 본게임 시작 때(OnMiniGameReadyToStart 또는 StartMiniGame) 진입 난이도 위젯으로 다시 만들어짐
+        RemoveFODGameWidget();
+
+        UE_LOG(LogTemp, Log, TEXT("[DodgeMiniGame] 튜토리얼 연습 종료 → 진입 난이도 복구=%d"), static_cast<int32>(SavedSessionDifficulty));
+    }
+
     Health = 100;
     DodgeCount = 0;
     HitCount = 0;
@@ -169,7 +210,7 @@ EPTBDifficulty APTBDodgeMiniGame::ResolvePracticeUIDifficulty() const
     return EPTBDifficulty::Easy;
 }
 
-void APTBDodgeMiniGame::RemoveFODGameWidget()
+FObjectProperty* APTBDodgeMiniGame::FindFODGameWidgetProperty() const
 {
     // BP 변수 이름 끝에 공백이 들어가 있어서 둘 다 찾아봄
     FObjectProperty* WidgetProp = FindFProperty<FObjectProperty>(GetClass(), TEXT("FODGameWidget "));
@@ -177,6 +218,12 @@ void APTBDodgeMiniGame::RemoveFODGameWidget()
     {
         WidgetProp = FindFProperty<FObjectProperty>(GetClass(), TEXT("FODGameWidget"));
     }
+    return WidgetProp;
+}
+
+void APTBDodgeMiniGame::RemoveFODGameWidget()
+{
+    FObjectProperty* WidgetProp = FindFODGameWidgetProperty();
     if (!WidgetProp)
     {
         return;
@@ -189,51 +236,39 @@ void APTBDodgeMiniGame::RemoveFODGameWidget()
     WidgetProp->SetObjectPropertyValue_InContainer(this, nullptr);
 }
 
-void APTBDodgeMiniGame::ReceiveTutorialPracticeStarted_Implementation()
+void APTBDodgeMiniGame::EnsureFODGameWidget(const TCHAR* Reason)
 {
-    Super::ReceiveTutorialPracticeStarted_Implementation();
-
-    if (!bPracticeDifficultyOverridden)
+    FObjectProperty* WidgetProp = FindFODGameWidgetProperty();
+    if (WidgetProp && WidgetProp->GetObjectPropertyValue_InContainer(this))
     {
-        SavedSessionDifficulty = GameContext.SessionRequest.Difficulty;
-        bPracticeDifficultyOverridden = true;
+        return; // 이미 있음
     }
 
-    const EPTBDifficulty PracticeDifficulty = ResolvePracticeUIDifficulty();
-    GameContext.SessionRequest.Difficulty = PracticeDifficulty;
-    ObstacleFallSpeed = CalculateObstacleFallSpeed(GameContext.ChartData.BPM);
-
-    // 이전 연습 위젯이 남아 있으면 내리고, BP의 위젯 생성 이벤트(OnMiniGameReady)를 연습 난이도로 호출
-    RemoveFODGameWidget();
     if (UFunction* ReadyFunc = FindFunction(TEXT("OnMiniGameReady")))
     {
         if (ReadyFunc->NumParms == 0)
         {
             ProcessEvent(ReadyFunc, nullptr);
+            UE_LOG(LogTemp, Log, TEXT("[DodgeMiniGame] FOD 위젯 생성 (%s, 난이도=%d)"), Reason, static_cast<int32>(GameContext.SessionRequest.Difficulty));
         }
     }
     else
     {
-        UE_LOG(LogTemp, Warning, TEXT("[DodgeMiniGame] BP 이벤트 OnMiniGameReady를 찾지 못해 연습용 위젯을 만들지 못함"));
+        UE_LOG(LogTemp, Warning, TEXT("[DodgeMiniGame] BP 이벤트 OnMiniGameReady를 찾지 못해 위젯을 만들지 못함 (%s)"), Reason);
     }
+}
 
-    UE_LOG(LogTemp, Log, TEXT("[DodgeMiniGame] 튜토리얼 연습 UI 난이도=%d (원래 난이도=%d), 낙하 속도=%.1f"),
-        static_cast<int32>(PracticeDifficulty), static_cast<int32>(SavedSessionDifficulty), ObstacleFallSpeed);
+void APTBDodgeMiniGame::ReceiveTutorialPracticeStarted_Implementation()
+{
+    Super::ReceiveTutorialPracticeStarted_Implementation();
+
+    // BP가 이 이벤트를 직접 구현했으면 여기는 호출되지 않음 → HandleNoteCue에서도 한 번 더 보장
+    EnsureFODGameWidget(TEXT("연습 시작"));
 }
 
 void APTBDodgeMiniGame::ReceiveTutorialPracticeFinished_Implementation(bool bPassed)
 {
     Super::ReceiveTutorialPracticeFinished_Implementation(bPassed);
-
-    RemoveFODGameWidget();
-
-    if (bPracticeDifficultyOverridden)
-    {
-        GameContext.SessionRequest.Difficulty = SavedSessionDifficulty;
-        bPracticeDifficultyOverridden = false;
-    }
-    // 본게임 StartMiniGame에서 원래 난이도로 다시 계산
-    ObstacleFallSpeed = 0.0f;
 }
 
 void APTBDodgeMiniGame::InitializeMiniGame(const FPTBMiniGameContext& Context)

@@ -64,8 +64,14 @@ private:
     /** 연습 채보에 쓰인 가장 높은 키 기준으로 연습용 UI 난이도 결정 */
     EPTBDifficulty ResolvePracticeUIDifficulty() const;
 
+    /** BP 변수 FODGameWidget(현재 게임 위젯) 프로퍼티 (변수 이름 끝 공백 포함/미포함 둘 다 찾음) */
+    FObjectProperty* FindFODGameWidgetProperty() const;
+
     /** BP 변수 FODGameWidget(현재 게임 위젯)을 화면에서 내리고 비움 */
     void RemoveFODGameWidget();
+
+    /** FODGameWidget이 비어 있으면 BP의 OnMiniGameReady를 호출해 현재 난이도 위젯을 만듦 */
+    void EnsureFODGameWidget(const TCHAR* Reason);
 
     /** 연습 동안 바꿔둔 원래 난이도 */
     EPTBDifficulty SavedSessionDifficulty = EPTBDifficulty::Easy;
