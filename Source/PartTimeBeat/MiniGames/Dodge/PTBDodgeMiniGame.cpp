@@ -1,6 +1,8 @@
 ﻿#include "MiniGames/Dodge/PTBDodgeMiniGame.h"
 #include "Rhythm/PTBScoreCalculator.h"
 #include "Components/InputComponent.h"
+#include "Rhythm/PTBRhythmChartAsset.h"
+#include "Blueprint/UserWidget.h"
 
 APTBDodgeMiniGame::APTBDodgeMiniGame()
 {
@@ -143,6 +145,95 @@ void APTBDodgeMiniGame::HandleRoundChartChanged()
     }
 
     OnScoreUpdated(0);
+}
+
+EPTBDifficulty APTBDodgeMiniGame::ResolvePracticeUIDifficulty() const
+{
+    int32 MaxAction = 0;
+    if (TutorialPracticeChart)
+    {
+        for (const FPTBNoteEvent& Note : TutorialPracticeChart->NoteEvents)
+        {
+            MaxAction = FMath::Max(MaxAction, static_cast<int32>(Note.ActionType));
+        }
+    }
+
+    if (MaxAction >= static_cast<int32>(EPTBActionType::ActionE))
+    {
+        return EPTBDifficulty::Insane;
+    }
+    if (MaxAction >= static_cast<int32>(EPTBActionType::ActionC))
+    {
+        return EPTBDifficulty::Standard;
+    }
+    return EPTBDifficulty::Easy;
+}
+
+void APTBDodgeMiniGame::RemoveFODGameWidget()
+{
+    // BP 변수 이름 끝에 공백이 들어가 있어서 둘 다 찾아봄
+    FObjectProperty* WidgetProp = FindFProperty<FObjectProperty>(GetClass(), TEXT("FODGameWidget "));
+    if (!WidgetProp)
+    {
+        WidgetProp = FindFProperty<FObjectProperty>(GetClass(), TEXT("FODGameWidget"));
+    }
+    if (!WidgetProp)
+    {
+        return;
+    }
+
+    if (UUserWidget* Widget = Cast<UUserWidget>(WidgetProp->GetObjectPropertyValue_InContainer(this)))
+    {
+        Widget->RemoveFromParent();
+    }
+    WidgetProp->SetObjectPropertyValue_InContainer(this, nullptr);
+}
+
+void APTBDodgeMiniGame::ReceiveTutorialPracticeStarted_Implementation()
+{
+    Super::ReceiveTutorialPracticeStarted_Implementation();
+
+    if (!bPracticeDifficultyOverridden)
+    {
+        SavedSessionDifficulty = GameContext.SessionRequest.Difficulty;
+        bPracticeDifficultyOverridden = true;
+    }
+
+    const EPTBDifficulty PracticeDifficulty = ResolvePracticeUIDifficulty();
+    GameContext.SessionRequest.Difficulty = PracticeDifficulty;
+    ObstacleFallSpeed = CalculateObstacleFallSpeed(GameContext.ChartData.BPM);
+
+    // 이전 연습 위젯이 남아 있으면 내리고, BP의 위젯 생성 이벤트(OnMiniGameReady)를 연습 난이도로 호출
+    RemoveFODGameWidget();
+    if (UFunction* ReadyFunc = FindFunction(TEXT("OnMiniGameReady")))
+    {
+        if (ReadyFunc->NumParms == 0)
+        {
+            ProcessEvent(ReadyFunc, nullptr);
+        }
+    }
+    else
+    {
+        UE_LOG(LogTemp, Warning, TEXT("[DodgeMiniGame] BP 이벤트 OnMiniGameReady를 찾지 못해 연습용 위젯을 만들지 못함"));
+    }
+
+    UE_LOG(LogTemp, Log, TEXT("[DodgeMiniGame] 튜토리얼 연습 UI 난이도=%d (원래 난이도=%d), 낙하 속도=%.1f"),
+        static_cast<int32>(PracticeDifficulty), static_cast<int32>(SavedSessionDifficulty), ObstacleFallSpeed);
+}
+
+void APTBDodgeMiniGame::ReceiveTutorialPracticeFinished_Implementation(bool bPassed)
+{
+    Super::ReceiveTutorialPracticeFinished_Implementation(bPassed);
+
+    RemoveFODGameWidget();
+
+    if (bPracticeDifficultyOverridden)
+    {
+        GameContext.SessionRequest.Difficulty = SavedSessionDifficulty;
+        bPracticeDifficultyOverridden = false;
+    }
+    // 본게임 StartMiniGame에서 원래 난이도로 다시 계산
+    ObstacleFallSpeed = 0.0f;
 }
 
 void APTBDodgeMiniGame::InitializeMiniGame(const FPTBMiniGameContext& Context)
