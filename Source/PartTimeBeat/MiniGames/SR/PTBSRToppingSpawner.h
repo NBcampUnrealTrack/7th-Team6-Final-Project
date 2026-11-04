@@ -19,6 +19,11 @@ public:
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
+	/** "남은 토핑"(BP 변수 count)을 다시 설정. 튜토리얼 연습 시작/종료 때 SR 미니게임이 호출해서
+	 *  연습 중 성공한 초밥만큼 본게임 남은 토핑이 줄어든 채로 시작하지 않게 함 */
+	UFUNCTION(BlueprintCallable, Category = "PTB|SR|Spawn")
+	void ResetRemainingToppingCount(int32 NewCount);
+
 protected:
 	/** 스폰할 토핑 액터 클래스 (BP_SR_Topping 등, 디테일 패널에서 지정) */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|SR|Spawn")

@@ -158,6 +158,15 @@ void APTBSRToppingSpawner::SpawnTopping(int32 AssignedTopping, int32 NoteId)
 	}
 }
 
+void APTBSRToppingSpawner::ResetRemainingToppingCount(int32 NewCount)
+{
+	if (FIntProperty* CountProp = FindFProperty<FIntProperty>(GetClass(), TEXT("count")))
+	{
+		CountProp->SetPropertyValue_InContainer(this, FMath::Max(0, NewCount));
+		UE_LOG(LogPTBMiniGames, Log, TEXT("[%s] 남은 토핑 count 재설정: %d"), *GetNameSafe(this), NewCount);
+	}
+}
+
 void APTBSRToppingSpawner::HandleSushiSuccess(int32 NoteId, EPTBJudgementType JudgementType)
 {
 	// ★ "남은 토핑" 카운트는 판정이 성공했을 때만 감소합니다 (틀리면 토핑은 소모됐어도

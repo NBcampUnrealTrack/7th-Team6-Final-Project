@@ -8,6 +8,8 @@
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraSystem.h"
 #include "TimerManager.h"
+#include "EngineUtils.h"
+#include "PTBSRToppingSpawner.h"
 #include "PTBSRPlate.h"
 #include "DrawDebugHelpers.h"
 
@@ -141,6 +143,16 @@ void APTBSRMiniGame::ResetSushiProgress()
 		MySushiUI->UpdateSuccessCount(SuccessSushiCount);
 	}
 	RefreshPreviewUI();
+
+	// ★ 남은 토핑(count)도 본게임 기준으로 되돌림. 예전에는 연습에서 성공한 초밥만큼 count가 줄어든 채로
+	//   본게임이 시작돼서, count가 0이 되는 시점(=곡이 끝나기 전)에 클리어 처리됐음
+	if (UWorld* World = GetWorld())
+	{
+		for (TActorIterator<APTBSRToppingSpawner> It(World); It; ++It)
+		{
+			It->ResetRemainingToppingCount(GetTotalToppingCount());
+		}
+	}
 }
 
 void APTBSRMiniGame::BuildRuntimeState()
