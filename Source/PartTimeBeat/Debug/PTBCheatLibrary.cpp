@@ -216,7 +216,7 @@ void UPTBCheatLibrary::CheatResetForcedUnlocks(const UObject* WorldContextObject
 #endif
 }
 
-void UPTBCheatLibrary::CheatAddRecord(const UObject* WorldContextObject, FName MiniGameId, EPTBDifficulty Difficulty, EPTBGradeType Grade, int32 Times)
+void UPTBCheatLibrary::CheatAddRecord(const UObject* WorldContextObject, FName MiniGameId, EPTBDifficulty Difficulty, EPTBGradeType Grade, int32 Times, int32 Score)
 {
 #if PTB_WITH_CHEATS
 	UPTBProfileSubsystem* Profiles = nullptr;
@@ -239,9 +239,37 @@ void UPTBCheatLibrary::CheatAddRecord(const UObject* WorldContextObject, FName M
 		Best = Grade;
 	}
 
+	// 최고 점수·별 (난이도 선택 화면 BestScore 표시용)
+	if (Score <= 0)
+	{
+		switch (Grade)
+		{
+		case EPTBGradeType::PerfectFullCombo: Score = 1000000; break;
+		case EPTBGradeType::FullCombo:        Score = 950000;  break;
+		case EPTBGradeType::S:                Score = 900000;  break;
+		case EPTBGradeType::A:                Score = 800000;  break;
+		case EPTBGradeType::B:                Score = 650000;  break;
+		case EPTBGradeType::C:                Score = 500000;  break;
+		case EPTBGradeType::Clear:            Score = 300000;  break;
+		default:                              Score = 100000;  break;
+		}
+	}
+	Score = FMath::Clamp(Score, 0, 1000000);
+
+	// 키 형식은 UPTBProfileSubsystem::MakeDifficultyScoreKey와 같음
+	int32& BestScoreDiff = Profile->BestScoresByDifficulty.FindOrAdd(Key, 0);
+	BestScoreDiff = FMath::Max(BestScoreDiff, Score);
+	int32& BestScoreAll = Profile->BestScoresByMiniGame.FindOrAdd(MiniGameId, 0);
+	BestScoreAll = FMath::Max(BestScoreAll, Score);
+
+	// 별: UPTBScoreCalculator::CalculateStarRating 기준과 같음 (80만/50만/25만)
+	const int32 Stars = Score >= 800000 ? 3 : (Score >= 500000 ? 2 : (Score >= 250000 ? 1 : 0));
+	int32& BestStars = Profile->EarnedStarsByMiniGame.FindOrAdd(MiniGameId, 0);
+	BestStars = FMath::Max(BestStars, Stars);
+
 	Profiles->RequestSave();
 	PTBCheatInternal::EvaluateAchievements(WorldContextObject);
-	PTB_RECORD(LogPTBProfile, TEXT("[Cheat] AddRecord: %s Grade=%s ×%d"), *Key.ToString(), *UEnum::GetValueAsString(Grade), Times);
+	PTB_RECORD(LogPTBProfile, TEXT("[Cheat] AddRecord: %s Grade=%s ×%d Score=%d"), *Key.ToString(), *UEnum::GetValueAsString(Grade), Times, Score);
 #endif
 }
 
@@ -254,8 +282,11 @@ void UPTBCheatLibrary::CheatResetRecords(const UObject* WorldContextObject)
 		Profile->PlayCountByDifficulty.Reset();
 		Profile->ClearCountByDifficulty.Reset();
 		Profile->BestGradeByDifficulty.Reset();
+		Profile->BestScoresByDifficulty.Reset();
+		Profile->BestScoresByMiniGame.Reset();
+		Profile->EarnedStarsByMiniGame.Reset();
 		Profiles->RequestSave();
-		PTB_RECORD(LogPTBProfile, TEXT("[Cheat] ResetRecords"));
+		PTB_RECORD(LogPTBProfile, TEXT("[Cheat] ResetRecords (횟수·등급·최고 점수·별)"));
 	}
 #endif
 }
@@ -421,7 +452,7 @@ namespace PTBCheatConsole
 		PTB_RECORD(LogPTBProfile, TEXT("[Cheat] PTB.Cheat.SetMoney <금액> | AddMoney <금액> | SetTotalEarned <금액>"));
 		PTB_RECORD(LogPTBProfile, TEXT("[Cheat] PTB.Cheat.GrantItem <ItemId> | GrantAllItems | ResetItems"));
 		PTB_RECORD(LogPTBProfile, TEXT("[Cheat] PTB.Cheat.UnlockInsane [MiniGameId|All] | ResetForcedUnlocks"));
-		PTB_RECORD(LogPTBProfile, TEXT("[Cheat] PTB.Cheat.AddRecord <MiniGameId> <Easy|Standard|Insane> <PerfectFullCombo|FullCombo|S|A|B|C|Clear|Fail> [횟수] | ResetRecords"));
+		PTB_RECORD(LogPTBProfile, TEXT("[Cheat] PTB.Cheat.AddRecord <MiniGameId> <Easy|Standard|Insane> <PerfectFullCombo|FullCombo|S|A|B|C|Clear|Fail> [횟수] [점수] | ResetRecords"));
 		PTB_RECORD(LogPTBProfile, TEXT("[Cheat] PTB.Cheat.UnlockAchievement <Id> | UnlockAllAchievements | ResetAchievements"));
 		PTB_RECORD(LogPTBProfile, TEXT("[Cheat] PTB.Cheat.Status"));
 	})
@@ -433,13 +464,14 @@ namespace PTBCheatConsole
 	PTB_CHEAT_COMMAND(ResetItems, "보유·장착 아이템 초기화", { UPTBCheatLibrary::CheatResetItems(World); })
 	PTB_CHEAT_COMMAND(UnlockInsane, "Insane 해금: PTB.Cheat.UnlockInsane BB (생략·All = 전체)", { UPTBCheatLibrary::CheatUnlockDifficulty(World, NameArg(Args, 0), EPTBDifficulty::Insane); })
 	PTB_CHEAT_COMMAND(ResetForcedUnlocks, "치트로 해금한 난이도 되돌리기", { UPTBCheatLibrary::CheatResetForcedUnlocks(World); })
-	PTB_CHEAT_COMMAND(AddRecord, "기록 추가: PTB.Cheat.AddRecord BB Standard S 1", {
+	PTB_CHEAT_COMMAND(AddRecord, "기록 추가: PTB.Cheat.AddRecord BB Standard S 1 [점수] (점수 생략 시 등급에 맞게 자동)", {
 		UPTBCheatLibrary::CheatAddRecord(World, NameArg(Args, 0),
 			EnumArg<EPTBDifficulty>(Args, 1, EPTBDifficulty::Standard),
 			EnumArg<EPTBGradeType>(Args, 2, EPTBGradeType::S),
-			IntArg(Args, 3, 1));
+			IntArg(Args, 3, 1),
+			IntArg(Args, 4, 0));
 	})
-	PTB_CHEAT_COMMAND(ResetRecords, "플레이·클리어 횟수, 최고 등급 초기화", { UPTBCheatLibrary::CheatResetRecords(World); })
+	PTB_CHEAT_COMMAND(ResetRecords, "플레이·클리어 횟수, 최고 등급·점수·별 초기화", { UPTBCheatLibrary::CheatResetRecords(World); })
 	PTB_CHEAT_COMMAND(UnlockAchievement, "업적 달성: PTB.Cheat.UnlockAchievement ACH_FirstClear", { UPTBCheatLibrary::CheatUnlockAchievement(World, NameArg(Args, 0)); })
 	PTB_CHEAT_COMMAND(UnlockAllAchievements, "모든 업적 달성", { UPTBCheatLibrary::CheatUnlockAllAchievements(World); })
 	PTB_CHEAT_COMMAND(ResetAchievements, "업적 초기화", { UPTBCheatLibrary::CheatResetAchievements(World); })

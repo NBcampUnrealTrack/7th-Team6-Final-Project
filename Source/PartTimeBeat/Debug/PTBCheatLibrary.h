@@ -66,13 +66,15 @@ public:
 	static void CheatResetForcedUnlocks(const UObject* WorldContextObject);
 
 	/**
-	 * 플레이 기록 추가: 해당 난이도를 Times번 이 등급으로 플레이한 것으로 기록 (플레이·클리어 횟수, 최고 등급)
-	 * 해금·업적 테스트용. 점수·알바비는 바뀌지 않음
+	 * 플레이 기록 추가: 해당 난이도를 Times번 이 등급으로 플레이한 것으로 기록
+	 * (플레이·클리어 횟수, 최고 등급, 최고 점수·별). 알바비는 바뀌지 않음
+	 * Score <= 0이면 등급에 맞는 테스트용 점수를 자동으로 넣음 (올퍼펙트 1,000,000 / 풀콤보 950,000 / S 900,000 ...)
+	 * 최고 점수·별은 기존 기록보다 높을 때만 갱신
 	 */
 	UFUNCTION(BlueprintCallable, Category = "PTB|Cheat", meta = (WorldContext = "WorldContextObject"))
-	static void CheatAddRecord(const UObject* WorldContextObject, FName MiniGameId, EPTBDifficulty Difficulty, EPTBGradeType Grade, int32 Times = 1);
+	static void CheatAddRecord(const UObject* WorldContextObject, FName MiniGameId, EPTBDifficulty Difficulty, EPTBGradeType Grade, int32 Times = 1, int32 Score = 0);
 
-	/** 플레이·클리어 횟수, 최고 등급 기록 초기화 */
+	/** 플레이·클리어 횟수, 최고 등급·점수·별 기록 초기화 */
 	UFUNCTION(BlueprintCallable, Category = "PTB|Cheat", meta = (WorldContext = "WorldContextObject"))
 	static void CheatResetRecords(const UObject* WorldContextObject);
 
