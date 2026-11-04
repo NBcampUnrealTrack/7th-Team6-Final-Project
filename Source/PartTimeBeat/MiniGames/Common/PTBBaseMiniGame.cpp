@@ -1352,7 +1352,8 @@ void APTBBaseMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 	OnMiniGameJudgement.Broadcast(Result);
 	ReceiveJudgement(Result);
 
-	if (RuleSet && ScoreCalculator && RuleSet->ShouldFailForMissCount(GameContext.SessionRequest.Difficulty, ScoreCalculator->MissCount))
+	// 튜토리얼 연습은 Miss가 쌓여도 실패(게임오버) 처리하지 않음 → 연습 결과(통과/재시도)는 튜토리얼 위젯이 판단
+	if (!bTutorialPracticeActive && RuleSet && ScoreCalculator && RuleSet->ShouldFailForMissCount(GameContext.SessionRequest.Difficulty, ScoreCalculator->MissCount))
 	{
 		FinishMiniGame(EPTBRoundEndReason::Failed);
 	}
@@ -1715,8 +1716,9 @@ bool APTBBaseMiniGame::StartTutorialPractice(const FPTBTutorialStep& Step)
 	bStartSequenceActive = true;
 	bInputLocked = true;
 
-	UE_LOG(LogRhythm, Log, TEXT("[%s] Tutorial practice started. Notes=%d Required=%d BPM=%.1f"),
-		*GetNameSafe(this), PracticeTotalNotes, PracticeRequiredHits, GameContext.ChartData.BPM);
+	UE_LOG(LogRhythm, Log, TEXT("[%s] Tutorial practice started. Notes=%d Required=%d BPM=%.1f EndMs=%.0f SongLengthMs=%.0f Override=%s"),
+		*GetNameSafe(this), PracticeTotalNotes, PracticeRequiredHits, GameContext.ChartData.BPM,
+		GetRoundEndChartTimeMs(), GameContext.ChartData.SongLengthMs, Step.PracticeChartOverride.IsNull() ? TEXT("No") : TEXT("Yes"));
 
 	// BP에서 HUD/판정 UI 준비 (미니게임 BP / 레벨 BP 둘 다 지원)
 	ReceiveTutorialPracticeStarted();
@@ -2131,6 +2133,15 @@ float APTBBaseMiniGame::GetRoundEndChartTimeMs() const
 	const float SongLengthMs = FMath::Max(0.0f, GameContext.ChartData.SongLengthMs);
 	const float LatestNoteTimeMs = PTBBaseMiniGameInternal::ResolveLatestNoteTimeMs(ChartAsset.Get());
 	const float MissGraceMs = JudgementSystem ? JudgementSystem->HitWindowMissMs : 0.0f;
+
+	// 튜토리얼 연습 + BGM 없음: 지정 채보(PracticeChartOverride)의 SongLengthMs가 원곡 길이로 길게 잡혀 있으면
+	// 노트가 다 끝난 뒤에도 메트로놈만 한참 울리므로, 마지막 노트 + 2박(또는 Miss 판정 여유)에서 끝냄
+	if (bTutorialPracticeActive && GameContext.ChartData.WwiseEventName.IsNone() && LatestNoteTimeMs > 0.0f)
+	{
+		const float MsPerBeat = 60000.0f / FMath::Max(30.0f, GameContext.ChartData.BPM);
+		return LatestNoteTimeMs + FMath::Max(MissGraceMs, 2.0f * MsPerBeat);
+	}
+
 	return FMath::Max(SongLengthMs, LatestNoteTimeMs + MissGraceMs);
 }
 
