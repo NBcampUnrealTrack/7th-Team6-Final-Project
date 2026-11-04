@@ -7,6 +7,7 @@
 #include "PipelineStateCache.h"
 #include "ShaderPipelineCache.h"
 #include "UObject/UObjectGlobals.h"
+#include "Kismet/GameplayStatics.h"
 #include "Widgets/Layout/SBorder.h"
 #include "Widgets/Text/STextBlock.h"
 #include "Widgets/SOverlay.h"
@@ -21,12 +22,19 @@
 void UPTBLoadingScreenSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
+	PreLoadMapHandle = FCoreUObjectDelegates::PreLoadMap.AddUObject(this, &UPTBLoadingScreenSubsystem::HandlePreLoadMap);
 	PostLoadMapHandle = FCoreUObjectDelegates::PostLoadMapWithWorld.AddUObject(this, &UPTBLoadingScreenSubsystem::HandlePostLoadMap);
 }
 
 void UPTBLoadingScreenSubsystem::Deinitialize()
 {
+	FCoreUObjectDelegates::PreLoadMap.Remove(PreLoadMapHandle);
 	FCoreUObjectDelegates::PostLoadMapWithWorld.Remove(PostLoadMapHandle);
+	if (PendingOpenTickerHandle.IsValid())
+	{
+		FTSTicker::GetCoreTicker().RemoveTicker(PendingOpenTickerHandle);
+		PendingOpenTickerHandle.Reset();
+	}
 	HideLoadingScreen();
 	Super::Deinitialize();
 }
@@ -51,7 +59,9 @@ void UPTBLoadingScreenSubsystem::HandlePostLoadMap(UWorld* LoadedWorld)
 	}
 
 	const int32 Pending = GetPendingPSOCompileCount();
-	if (Pending <= Settings->ShowThresholdPending)
+	const bool bWasTransition = bTransitionRequested;
+	bTransitionRequested = false;
+	if (Pending <= Settings->ShowThresholdPending && !bWasTransition)
 	{
 		PTB_VERBOSE(LogPTBUI, TEXT("[Loading] %s: 남은 PSO 컴파일 %d → 로딩 화면 생략"), *LoadedWorld->GetMapName(), Pending);
 		return;
@@ -61,6 +71,92 @@ void UPTBLoadingScreenSubsystem::HandlePostLoadMap(UWorld* LoadedWorld)
 	PeakPending = Pending;
 	DisplayProgress = 0.0f;
 	ShowLoadingScreen();
+}
+
+void UPTBLoadingScreenSubsystem::OpenLevelWithLoadingScreen(const UObject* WorldContextObject, FName LevelName)
+{
+	UWorld* World = GEngine ? GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull) : nullptr;
+	if (!World || LevelName.IsNone())
+	{
+		return;
+	}
+
+	UGameInstance* GI = World->GetGameInstance();
+	UPTBLoadingScreenSubsystem* Self = GI ? GI->GetSubsystem<UPTBLoadingScreenSubsystem>() : nullptr;
+	const UPTBLoadingScreenSettings* Settings = GetDefault<UPTBLoadingScreenSettings>();
+	const bool bUseLoading = Self && Settings && Settings->bEnable && (!GIsEditor || Settings->bShowInEditor);
+	if (!bUseLoading)
+	{
+		UGameplayStatics::OpenLevel(World, LevelName);
+		return;
+	}
+
+	// 로딩 화면을 띄우고 최소 2프레임 그린 뒤(화면에 확실히 표시된 뒤) 맵을 연다
+	Self->PeakPending = 0;
+	Self->DisplayProgress = 0.0f;
+	Self->ShowLoadingScreen();
+	Self->PendingOpenWorld = World;
+	Self->PendingOpenLevelName = LevelName;
+	Self->PendingOpenFrames = 0;
+	if (!Self->PendingOpenTickerHandle.IsValid())
+	{
+		Self->PendingOpenTickerHandle = FTSTicker::GetCoreTicker().AddTicker(
+			FTickerDelegate::CreateUObject(Self, &UPTBLoadingScreenSubsystem::TickPendingOpenLevel));
+	}
+	PTB_RECORD(LogPTBUI, TEXT("[Loading] 로딩 화면 표시 후 맵 열기 예약: %s"), *LevelName.ToString());
+}
+
+bool UPTBLoadingScreenSubsystem::TickPendingOpenLevel(float DeltaTime)
+{
+	if (++PendingOpenFrames < 3)
+	{
+		return true;
+	}
+
+	PendingOpenTickerHandle.Reset();
+	UWorld* World = PendingOpenWorld.Get();
+	const FName LevelName = PendingOpenLevelName;
+	PendingOpenWorld.Reset();
+	PendingOpenLevelName = NAME_None;
+
+	if (World)
+	{
+		bTransitionRequested = true;
+		UGameplayStatics::OpenLevel(World, LevelName);
+	}
+	return false;
+}
+
+void UPTBLoadingScreenSubsystem::HandlePreLoadMap(const FString& MapName)
+{
+	// 맵을 열면 엔진이 뷰포트 위젯을 전부 지움 → 우리 쪽 참조도 정리 (화면은 마지막 프레임이 남아 보임)
+	if (bVisible)
+	{
+		RemoveWidgetsOnly();
+	}
+}
+
+void UPTBLoadingScreenSubsystem::RemoveWidgetsOnly()
+{
+	if (TickerHandle.IsValid())
+	{
+		FTSTicker::GetCoreTicker().RemoveTicker(TickerHandle);
+		TickerHandle.Reset();
+	}
+	if (LoadingWidget)
+	{
+		LoadingWidget->RemoveFromParent();
+		LoadingWidget = nullptr;
+	}
+	if (DefaultSlateWidget.IsValid())
+	{
+		if (GEngine && GEngine->GameViewport)
+		{
+			GEngine->GameViewport->RemoveViewportWidgetContent(DefaultSlateWidget.ToSharedRef());
+		}
+		DefaultSlateWidget.Reset();
+	}
+	bVisible = false;
 }
 
 void UPTBLoadingScreenSubsystem::ShowLoadingScreen()
@@ -130,7 +226,7 @@ void UPTBLoadingScreenSubsystem::ShowLoadingScreen()
 						SNew(STextBlock)
 						.Text_Lambda([GetProgress]()
 						{
-							return FText::FromString(FString::Printf(TEXT("Loading... %d%%"), FMath::RoundToInt(GetProgress() * 100.0f)));
+							return FText::FromString(FString::Printf(TEXT("Loading... %d%%"), FMath::Min(99, FMath::FloorToInt(GetProgress() * 100.0f))));
 						})
 						.Font(FCoreStyle::GetDefaultFontStyle("Bold", 24))
 						.ColorAndOpacity(FLinearColor::White)
@@ -165,28 +261,7 @@ void UPTBLoadingScreenSubsystem::ShowLoadingScreen()
 
 void UPTBLoadingScreenSubsystem::HideLoadingScreen()
 {
-	if (TickerHandle.IsValid())
-	{
-		FTSTicker::GetCoreTicker().RemoveTicker(TickerHandle);
-		TickerHandle.Reset();
-	}
-
-	if (LoadingWidget)
-	{
-		LoadingWidget->RemoveFromParent();
-		LoadingWidget = nullptr;
-	}
-
-	if (DefaultSlateWidget.IsValid())
-	{
-		if (GEngine && GEngine->GameViewport)
-		{
-			GEngine->GameViewport->RemoveViewportWidgetContent(DefaultSlateWidget.ToSharedRef());
-		}
-		DefaultSlateWidget.Reset();
-	}
-
-	bVisible = false;
+	RemoveWidgetsOnly();
 }
 
 void UPTBLoadingScreenSubsystem::UpdateProgress(int32 Pending)
@@ -203,6 +278,12 @@ bool UPTBLoadingScreenSubsystem::Tick(float DeltaTime)
 	{
 		TickerHandle.Reset();
 		return false;
+	}
+
+	// 맵 열기 대기 중(OpenLevelWithLoadingScreen)에는 닫지 않음
+	if (PendingOpenTickerHandle.IsValid() || bTransitionRequested)
+	{
+		return true;
 	}
 
 	const UPTBLoadingScreenSettings* Settings = GetDefault<UPTBLoadingScreenSettings>();
@@ -233,22 +314,9 @@ bool UPTBLoadingScreenSubsystem::Tick(float DeltaTime)
 	{
 		PTB_RECORD(LogPTBUI, TEXT("[Loading] 로딩 화면 닫음 (%.1f초, 최대 대기 PSO %d개, 남은 %d개%s)"),
 			Elapsed, PeakPending, Pending, bTimedOut ? TEXT(", 시간 초과") : TEXT(""));
-		// Ticker 콜백 안에서 RemoveTicker를 부르지 않도록 핸들만 비우고 false 반환
+		// Ticker 콜백 안에서는 RemoveTicker를 부르지 않도록 핸들을 먼저 비우고 위젯만 정리한 뒤 false 반환
 		TickerHandle.Reset();
-		if (LoadingWidget)
-		{
-			LoadingWidget->RemoveFromParent();
-			LoadingWidget = nullptr;
-		}
-		if (DefaultSlateWidget.IsValid())
-		{
-			if (GEngine && GEngine->GameViewport)
-			{
-				GEngine->GameViewport->RemoveViewportWidgetContent(DefaultSlateWidget.ToSharedRef());
-			}
-			DefaultSlateWidget.Reset();
-		}
-		bVisible = false;
+		RemoveWidgetsOnly();
 		return false;
 	}
 

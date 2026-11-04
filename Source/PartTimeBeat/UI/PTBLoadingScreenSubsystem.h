@@ -40,11 +40,11 @@ public:
 
 	/** 로딩 화면 최소 표시 시간(초) */
 	UPROPERTY(Config, EditAnywhere, Category = "Loading", meta = (EditCondition = "bEnable", ClampMin = "0.0"))
-	float MinDisplaySeconds = 0.5f;
+	float MinDisplaySeconds = 0.2f;
 
 	/** 남은 컴파일이 0인 상태가 이 시간(초) 유지되면 닫음 */
 	UPROPERTY(Config, EditAnywhere, Category = "Loading", meta = (EditCondition = "bEnable", ClampMin = "0.0"))
-	float StableZeroSeconds = 0.3f;
+	float StableZeroSeconds = 0.15f;
 
 	/** 최대 대기 시간(초). 넘으면 컴파일이 남아 있어도 닫음 */
 	UPROPERTY(Config, EditAnywhere, Category = "Loading", meta = (EditCondition = "bEnable", ClampMin = "1.0"))
@@ -75,18 +75,36 @@ public:
 	UFUNCTION(BlueprintPure, Category = "PTB|Loading")
 	float GetLoadingProgress() const { return DisplayProgress; }
 
-	/** 진행률을 0~100 정수로 (텍스트 표시용) */
+	/** 진행률을 0~99 정수로 (텍스트 표시용, 100%는 표시 전에 닫히므로 99에서 멈춤) */
 	UFUNCTION(BlueprintPure, Category = "PTB|Loading")
-	int32 GetLoadingPercent() const { return FMath::RoundToInt(DisplayProgress * 100.0f); }
+	int32 GetLoadingPercent() const { return FMath::Min(99, FMath::FloorToInt(DisplayProgress * 100.0f)); }
+
+	/**
+	 * 로딩 화면을 먼저 한 프레임 그린 뒤 맵을 연다. (Open Level 대신 사용)
+	 * 맵 로딩 중에는 게임이 멈추므로 마지막으로 그려진 로딩 화면이 그대로 보이고,
+	 * 맵이 열린 뒤에는 PSO 컴파일이 끝날 때까지 로딩 화면이 이어짐.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "PTB|Loading", meta = (WorldContext = "WorldContextObject"))
+	static void OpenLevelWithLoadingScreen(const UObject* WorldContextObject, FName LevelName);
 
 private:
+	void HandlePreLoadMap(const FString& MapName);
 	void HandlePostLoadMap(UWorld* LoadedWorld);
+	bool TickPendingOpenLevel(float DeltaTime);
+	void RemoveWidgetsOnly();
 	bool Tick(float DeltaTime);
 
 	void ShowLoadingScreen();
 	void HideLoadingScreen();
 
+	FDelegateHandle PreLoadMapHandle;
 	FDelegateHandle PostLoadMapHandle;
+	FTSTicker::FDelegateHandle PendingOpenTickerHandle;
+	TWeakObjectPtr<UWorld> PendingOpenWorld;
+	FName PendingOpenLevelName;
+	int32 PendingOpenFrames = 0;
+	/** OpenLevelWithLoadingScreen으로 연 맵이면 PSO가 적어도 최소 시간은 로딩 화면 유지 */
+	bool bTransitionRequested = false;
 	FTSTicker::FDelegateHandle TickerHandle;
 
 	UPROPERTY(Transient)

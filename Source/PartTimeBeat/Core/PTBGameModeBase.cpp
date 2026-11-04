@@ -1,4 +1,5 @@
 ﻿#include "Core/PTBGameModeBase.h"
+#include "UI/PTBLoadingScreenSubsystem.h"
 #include "Core/PTBGameInstance.h"
 #include "Debug/PTBTeamLog.h"
 #include "Flow/PTBGameFlowSubsystem.h"
@@ -688,7 +689,7 @@ void APTBGameModeBase::SubmitRoundResult(const FPTBRoundResult& Result)
 
 	if (!ResultLevelName.IsNone())
 	{
-		UGameplayStatics::OpenLevel(this, ResultLevelName);
+		UPTBLoadingScreenSubsystem::OpenLevelWithLoadingScreen(this, ResultLevelName);
 	}
 }
 

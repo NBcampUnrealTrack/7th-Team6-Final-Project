@@ -5,6 +5,7 @@
 #include "Debug/PTBTeamLog.h"
 #include "Flow/PTBMiniGameAvailability.h"
 #include "Kismet/GameplayStatics.h"
+#include "UI/PTBLoadingScreenSubsystem.h"
 #include "Profile/PTBProfileSubsystem.h"
 
 namespace
@@ -384,7 +385,7 @@ void UPTBGameFlowSubsystem::ReturnToMiniGameSelect()
 		return;
 	}
 
-	UGameplayStatics::OpenLevel(this, MiniGameSelectLevelName);
+	UPTBLoadingScreenSubsystem::OpenLevelWithLoadingScreen(this, MiniGameSelectLevelName);
 }
 
 void UPTBGameFlowSubsystem::GoToMainMenu()
@@ -410,7 +411,7 @@ void UPTBGameFlowSubsystem::GoToMainMenu()
 		return;
 	}
 
-	UGameplayStatics::OpenLevel(this, MainMenuLevelName);
+	UPTBLoadingScreenSubsystem::OpenLevelWithLoadingScreen(this, MainMenuLevelName);
 }
 
 bool UPTBGameFlowSubsystem::RetryLastGame()
@@ -445,7 +446,7 @@ bool UPTBGameFlowSubsystem::RetryLastGame()
 		*GetDifficultyName(LastSessionRequest.Difficulty));
 
 	SetFlowState(EGameFlowState::InGame);
-	UGameplayStatics::OpenLevel(this, LastPlayedMiniGameLevelName);
+	UPTBLoadingScreenSubsystem::OpenLevelWithLoadingScreen(this, LastPlayedMiniGameLevelName);
 	return true;
 }
 
