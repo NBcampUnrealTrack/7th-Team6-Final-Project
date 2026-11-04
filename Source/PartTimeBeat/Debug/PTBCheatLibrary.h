@@ -7,8 +7,12 @@
 
 class APlayerController;
 
-/** QA 치트 사용 가능 빌드인지 (Shipping 제외) */
-#define PTB_WITH_CHEATS (!UE_BUILD_SHIPPING)
+#ifndef PTB_EVAL_BUILD
+#define PTB_EVAL_BUILD 0
+#endif
+
+/** QA 치트 사용 가능 빌드인지 (Shipping·외부 평가용 빌드 제외) */
+#define PTB_WITH_CHEATS (!UE_BUILD_SHIPPING && !PTB_EVAL_BUILD)
 
 /**
  * QA 치트 (Development / DebugGame / 에디터 전용).
