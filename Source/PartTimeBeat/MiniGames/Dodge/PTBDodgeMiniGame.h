@@ -47,6 +47,9 @@ public:
     virtual void HandleJudgementResult(FPTBJudgementResult Result) override;
     virtual float ResolveInputOffsetMs(const FPTBMiniGameContext& Context) const override;
 
+    /** 튜토리얼 연습 시작/종료로 채보가 바뀔 때 HP·카운트·피버 초기화 (연습 결과가 본게임에 남지 않게) */
+    virtual void HandleRoundChartChanged() override;
+
     UFUNCTION(BlueprintCallable, Category = "PTB|Dodge")
     virtual void InitializeMiniGame(const FPTBMiniGameContext& Context) override;
 

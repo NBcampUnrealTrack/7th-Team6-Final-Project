@@ -41,6 +41,14 @@ void APTBDodgeMiniGame::StartMiniGame()
 void APTBDodgeMiniGame::HandleNoteCue(FPTBNoteEvent Note)
 {
     Super::HandleNoteCue(Note);
+
+    // 튜토리얼 연습은 StartMiniGame을 거치지 않아서 낙하 속도가 0인 채로 노트가 스폰됨(안 떨어짐) → 여기서 보정
+    if (ObstacleFallSpeed <= 0.0f)
+    {
+        ObstacleFallSpeed = CalculateObstacleFallSpeed(GameContext.ChartData.BPM);
+        UE_LOG(LogTemp, Log, TEXT("[DodgeMiniGame] 낙하 속도 미설정 상태에서 노트 큐 → 속도 보정: %.1f"), ObstacleFallSpeed);
+    }
+
     OnObstacleSpawn(ObstacleFallSpeed, Note.BeatTime, Note.Lane);
 }
 
@@ -92,8 +100,12 @@ void APTBDodgeMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 
     Super::HandleJudgementResult(Result);
 
-    // 3. HP/DodgeCount 처리
-    if (Result.JudgementType == EPTBJudgementType::Miss)
+    // 3. HP/DodgeCount 처리 (튜토리얼 연습에서는 HP를 깎지 않음 → 연습 통과 여부는 튜토리얼 위젯이 판단)
+    if (Result.JudgementType == EPTBJudgementType::Miss && IsTutorialPracticeActive())
+    {
+        HitCount++;
+    }
+    else if (Result.JudgementType == EPTBJudgementType::Miss)
     {
         Health -= 10;
         HitCount++;
@@ -113,6 +125,24 @@ void APTBDodgeMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
     int32 Score = ScoreCalculator ? ScoreCalculator->CurrentScore : 0;
     OnScoreUpdated(Score);
     OnJudgementUpdated(Result.JudgementType);
+}
+
+void APTBDodgeMiniGame::HandleRoundChartChanged()
+{
+    Super::HandleRoundChartChanged();
+
+    Health = 100;
+    DodgeCount = 0;
+    HitCount = 0;
+    HighPerfectStreak = 0;
+    ScoreMultiplier = 1.0f;
+    if (bFeverMode)
+    {
+        bFeverMode = false;
+        OnFeverModeChanged(false);
+    }
+
+    OnScoreUpdated(0);
 }
 
 void APTBDodgeMiniGame::InitializeMiniGame(const FPTBMiniGameContext& Context)
