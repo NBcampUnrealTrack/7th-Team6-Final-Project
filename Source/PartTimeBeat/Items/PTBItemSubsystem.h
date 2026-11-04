@@ -96,6 +96,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "PTB|Item|Locker")
 	bool TryEquip(FName ItemId);
 
+	/** 모든 아이템 ID (DataTable 행 이름) */
+	UFUNCTION(BlueprintPure, Category = "PTB|Item")
+	TArray<FName> GetAllItemIds() const;
+
 	/** 보상 등으로 아이템 지급 (구매 없이 보유 추가). 이미 보유 중이면 false */
 	UFUNCTION(BlueprintCallable, Category = "PTB|Item")
 	bool GrantItem(FName ItemId);

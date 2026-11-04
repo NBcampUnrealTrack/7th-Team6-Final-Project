@@ -1,8 +1,10 @@
-#include "Core/PTBGameModeBase.h"
+﻿#include "Core/PTBGameModeBase.h"
 #include "Core/PTBGameInstance.h"
 #include "Debug/PTBTeamLog.h"
 #include "Flow/PTBGameFlowSubsystem.h"
 #include "Profile/PTBProfileSubsystem.h"
+#include "Progression/PTBProgressLibrary.h"
+#include "Achievements/PTBAchievementSubsystem.h"
 #include "MiniGames/Common/PTBBaseMiniGame.h"
 #include "MiniGames/Common/PTBMiniGameRuleSet.h"
 #include "Kismet/GameplayStatics.h"
@@ -616,6 +618,9 @@ void APTBGameModeBase::SubmitRoundResult(const FPTBRoundResult& Result)
 		{
 			if (UPTBProfileSubsystem* PS = GI->GetSubsystem<UPTBProfileSubsystem>())
 			{
+				// Insane 새로 해금 여부 비교용
+				const bool bInsaneWasUnlocked = UPTBProgressLibrary::IsDifficultyUnlocked(this, Result.MiniGameId, EPTBDifficulty::Insane);
+
 				// 진행도 반영 (내부에서 RequestSave 자동 호출)
 				FPTBProfileProgressUpdate Update;
 				Update.MiniGameId = Result.MiniGameId;
@@ -623,7 +628,17 @@ void APTBGameModeBase::SubmitRoundResult(const FPTBRoundResult& Result)
 				Update.Score = Result.Score;
 				Update.EarnedStars = Result.StarCount;
 				Update.EarnedMoney = Result.EarnedMoney;
+				Update.Grade = Result.Grade;
 				PS->ApplyRoundResultToActive(Update);
+
+				Reward.bInsaneNewlyUnlocked = !bInsaneWasUnlocked
+					&& UPTBProgressLibrary::IsDifficultyUnlocked(this, Result.MiniGameId, EPTBDifficulty::Insane);
+
+				// 업적 판정 (새로 달성한 업적은 결과 화면에서 알림)
+				if (UPTBAchievementSubsystem* Achievements = GI->GetSubsystem<UPTBAchievementSubsystem>())
+				{
+					Reward.NewlyUnlockedAchievements = Achievements->EvaluateAchievements();
+				}
 
 				// 보상 요약 생성 (결과 화면용)
 				bool bHasActive = false;

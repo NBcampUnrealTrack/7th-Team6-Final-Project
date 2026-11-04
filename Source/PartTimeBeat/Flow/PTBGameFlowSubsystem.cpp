@@ -1,4 +1,5 @@
-#include "Flow/PTBGameFlowSubsystem.h"
+﻿#include "Flow/PTBGameFlowSubsystem.h"
+#include "Progression/PTBProgressLibrary.h"
 
 #include "Core/PTBGameInstance.h"
 #include "Debug/PTBTeamLog.h"
@@ -181,6 +182,16 @@ void UPTBGameFlowSubsystem::SelectDifficulty(EPTBDifficulty InDiff)
 	{
 		PTB_WARNING(LogPTBFlow, 
 			TEXT("[PTBFlow] SelectDifficulty 실패: 미니게임이 선택되지 않았습니다."));
+		return;
+	}
+
+	// 잠긴 난이도 차단 (Insane 해금 조건 미달성)
+	if (!UPTBProgressLibrary::IsDifficultyUnlocked(this, SelectedMiniGameId, InDiff))
+	{
+		PTB_WARNING(LogPTBFlow,
+			TEXT("[PTBFlow] SelectDifficulty 차단: %s 의 %s 난이도는 아직 잠겨 있습니다."),
+			*SelectedMiniGameId.ToString(), *GetDifficultyName(InDiff));
+		bPendingTutorialOnly = false;
 		return;
 	}
 

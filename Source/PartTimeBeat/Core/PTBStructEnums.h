@@ -459,6 +459,29 @@ struct PARTTIMEBEAT_API FPTBProfileData
     UPROPERTY(BlueprintReadOnly, SaveGame, Category = "Profile|Progress")
     TMap<FName, int32> EarnedStarsByMiniGame;
 
+    /**
+     * 난이도별 플레이 횟수 (결과 화면까지 간 판, 성공·실패 모두).
+     * 키 형식: "MiniGameId_Difficulty" (BestScoresByDifficulty와 같음)
+     */
+    UPROPERTY(BlueprintReadOnly, SaveGame, Category = "Profile|Progress")
+    TMap<FName, int32> PlayCountByDifficulty;
+
+    /** 난이도별 클리어 횟수 (등급 Fail 제외). 키 형식 동일 */
+    UPROPERTY(BlueprintReadOnly, SaveGame, Category = "Profile|Progress")
+    TMap<FName, int32> ClearCountByDifficulty;
+
+    /** 난이도별 최고 등급. 키 형식 동일. 기록 없으면 플레이 안 함 */
+    UPROPERTY(BlueprintReadOnly, SaveGame, Category = "Profile|Progress")
+    TMap<FName, EPTBGradeType> BestGradeByDifficulty;
+
+    /** QA 치트 등으로 조건과 무관하게 해금한 난이도. 키 형식 동일 */
+    UPROPERTY(BlueprintReadOnly, SaveGame, Category = "Profile|Progress")
+    TSet<FName> ForceUnlockedDifficulties;
+
+    /** 달성한 업적 ID (업적 DataTable Row Name) → 달성 시각 */
+    UPROPERTY(BlueprintReadOnly, SaveGame, Category = "Profile|Achievement")
+    TMap<FName, FDateTime> UnlockedAchievements;
+
     UPROPERTY(BlueprintReadOnly, SaveGame, Category = "Profile|Progress")
     int32 TotalEarnedMoney = 0;
 
@@ -562,6 +585,10 @@ struct PARTTIMEBEAT_API FPTBProfileProgressUpdate
     /** 이번 라운드 알바비. TotalEarnedMoney에 누적. */
     UPROPERTY(BlueprintReadWrite, Category = "Profile|Update")
     int32 EarnedMoney = 0;
+
+    /** 이번 라운드 등급. 플레이·클리어 횟수, 최고 등급 갱신에 사용 */
+    UPROPERTY(BlueprintReadWrite, Category = "Profile|Update")
+    EPTBGradeType Grade = EPTBGradeType::Fail;
 };
 
 USTRUCT(BlueprintType)
@@ -703,6 +730,14 @@ public:
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
     int32 TotalStars = 0;
+
+    /** 이번 판으로 이 미니게임의 Insane이 새로 해금됨 (결과 화면 알림용) */
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
+    bool bInsaneNewlyUnlocked = false;
+
+    /** 이번 판으로 새로 달성한 업적 ID (결과 화면 알림용) */
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
+    TArray<FName> NewlyUnlockedAchievements;
 
     //TArray NewlyUnlockedMiniGames;
     //TArray NewlyUnlockedStories;

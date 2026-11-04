@@ -1,4 +1,4 @@
-#include "PTBProfileSubsystem.h"
+﻿#include "PTBProfileSubsystem.h"
 #include "Core/PTBSaveGame.h"
 #include "Core/PTBGameInstance.h"
 #include "Debug/PTBTeamLog.h"
@@ -398,6 +398,25 @@ void UPTBProfileSubsystem::ApplyRoundResultToActive(const FPTBProfileProgressUpd
     if (Update.EarnedStars > BestStars)
     {
         BestStars = Update.EarnedStars;
+    }
+
+    // 난이도별 플레이·클리어 횟수, 최고 등급 (Insane 해금·업적 판정용)
+    Active->PlayCountByDifficulty.FindOrAdd(DiffKey, 0)++;
+    if (Update.Grade != EPTBGradeType::Fail)
+    {
+        Active->ClearCountByDifficulty.FindOrAdd(DiffKey, 0)++;
+    }
+    // EPTBGradeType은 값이 작을수록 높은 등급 (PerfectFullCombo=0 ... Fail)
+    if (EPTBGradeType* BestGrade = Active->BestGradeByDifficulty.Find(DiffKey))
+    {
+        if (static_cast<uint8>(Update.Grade) < static_cast<uint8>(*BestGrade))
+        {
+            *BestGrade = Update.Grade;
+        }
+    }
+    else
+    {
+        Active->BestGradeByDifficulty.Add(DiffKey, Update.Grade);
     }
 
     Active->TotalEarnedMoney += Update.EarnedMoney;

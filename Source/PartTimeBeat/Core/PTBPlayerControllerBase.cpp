@@ -1,4 +1,5 @@
-#include "Core/PTBPlayerControllerBase.h"
+﻿#include "Core/PTBPlayerControllerBase.h"
+#include "Debug/PTBCheatLibrary.h"
 #include "Core/PTBGameModeBase.h"
 #include "Core/PTBGameInstance.h"
 #include "Debug/PTBTeamLog.h"
@@ -49,6 +50,15 @@ void APTBPlayerControllerBase::BeginPlay()
 
 bool APTBPlayerControllerBase::InputKey(const FInputKeyEventArgs& EventArgs)
 {
+#if PTB_WITH_CHEATS
+	// ── QA 치트 패널 (Shipping 빌드에서는 이 코드 자체가 빠짐) ──────
+	if (EventArgs.Event == IE_Pressed && UPTBCheatLibrary::IsCheatPanelKey(EventArgs.Key))
+	{
+		UPTBCheatLibrary::ToggleCheatPanel(this);
+		return true;
+	}
+#endif
+
 	// ── ESC: 일시정지 토글 ─────────────────────────────────────────
 	// 허브에서 미니게임이 진행 중이 아닐 때는 C++에서 소비하지 않음
 	// → BP(허브 ESC 메뉴)에서 처리할 수 있도록 넘김
