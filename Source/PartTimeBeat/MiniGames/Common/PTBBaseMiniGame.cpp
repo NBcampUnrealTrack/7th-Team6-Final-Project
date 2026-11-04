@@ -192,6 +192,12 @@ void APTBBaseMiniGame::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	// 튜토리얼 연습 안전장치: 종료 시간을 넘겨도 정상 종료 조건이 안 맞으면 강제 종료
+	if (bTutorialPracticeActive && TryFinishStalledTutorialPractice())
+	{
+		return;
+	}
+
 	const bool bIsCuePreRollActive = IsCuePreRollActive();
 	if ((!bIsRoundActive && !bIsCuePreRollActive) || !JudgementSystem)
 	{
@@ -1715,6 +1721,7 @@ bool APTBBaseMiniGame::StartTutorialPractice(const FPTBTutorialStep& Step)
 	bIsReadyToStart = true;
 	bStartSequenceActive = true;
 	bInputLocked = true;
+	PracticeStartWorldTimeSec = GetWorld() ? GetWorld()->GetTimeSeconds() : 0.0f;
 
 	UE_LOG(LogRhythm, Log, TEXT("[%s] Tutorial practice started. Notes=%d Required=%d BPM=%.1f EndMs=%.0f SongLengthMs=%.0f Override=%s"),
 		*GetNameSafe(this), PracticeTotalNotes, PracticeRequiredHits, GameContext.ChartData.BPM,
@@ -1792,6 +1799,38 @@ UPTBRhythmChartAsset* APTBBaseMiniGame::BuildTutorialPracticeChart(const FPTBTut
 	// 마지막 노트 뒤 2박 여유
 	Chart->ChartData.SongLengthMs = (Beat + 2.0f) * MsPerBeat;
 	return Chart;
+}
+
+bool APTBBaseMiniGame::TryFinishStalledTutorialPractice()
+{
+	UWorld* World = GetWorld();
+	if (!World || bFinishSequenceActive)
+	{
+		return false;
+	}
+
+	const float EndMs = GetRoundEndChartTimeMs();
+	const float ChartMs = GetCurrentChartTimeMs();
+	const float ElapsedMs = (World->GetTimeSeconds() - PracticeStartWorldTimeSec) * 1000.0f;
+
+	// 정상이라면 EndMs 시점에 Tick의 종료 조건으로 이미 끝났어야 함 → 여유를 두고 넘겼을 때만 개입
+	const bool bChartTimeOver = (bIsRoundActive && ChartMs >= EndMs + 500.0f);
+	const bool bWallTimeOver = ElapsedMs >= EndMs + ResolveCuePreRollTimeMs() + 3000.0f;
+	if (!bChartTimeOver && !bWallTimeOver)
+	{
+		return false;
+	}
+
+	UE_LOG(LogRhythm, Warning, TEXT("[%s] Tutorial practice 강제 종료 (정상 종료 조건 미충족): ChartMs=%.0f EndMs=%.0f ElapsedMs=%.0f RoundActive=%d BGM=%d AllDispatched=%d Pending=%d Holds=%d"),
+		*GetNameSafe(this), ChartMs, EndMs, ElapsedMs,
+		bIsRoundActive ? 1 : 0,
+		ActiveBGMPlayingId,
+		bAllNotesDispatched ? 1 : 0,
+		JudgementSystem ? JudgementSystem->PendingNotes.Num() : -1,
+		ActiveHoldStates.Num());
+
+	FinishMiniGame(EPTBRoundEndReason::Completed);
+	return true;
 }
 
 void APTBBaseMiniGame::CompleteTutorialPractice(EPTBRoundEndReason Reason)

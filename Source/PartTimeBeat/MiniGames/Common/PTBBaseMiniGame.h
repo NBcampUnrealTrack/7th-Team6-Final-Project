@@ -481,6 +481,9 @@ protected:
 	/** 연습 라운드 진행 중 */
 	bool bTutorialPracticeActive = false;
 
+	/** 연습 시작 시각(월드 시간, 초). 연습이 정상 종료 조건을 못 만족하고 멈췄을 때 강제 종료 판단용 */
+	float PracticeStartWorldTimeSec = 0.0f;
+
 	/** 연습용 임시 채보 */
 	UPROPERTY(Transient)
 	TObjectPtr<UPTBRhythmChartAsset> TutorialPracticeChart;
@@ -529,6 +532,9 @@ protected:
 
 	/** 연습 한 판 종료 처리: 통과 판정, 본게임 채보 복구, 위젯에 결과 전달 */
 	void CompleteTutorialPractice(EPTBRoundEndReason Reason);
+
+	/** 연습이 끝날 시간을 넘겼는데도 안 끝났으면 강제로 종료 (원인 조건을 Warning 로그로 남김). 종료했으면 true */
+	bool TryFinishStalledTutorialPractice();
 
 	/** 판정/점수 상태를 새 라운드 시작 전으로 초기화 */
 	void ResetRoundStateForReplay();
