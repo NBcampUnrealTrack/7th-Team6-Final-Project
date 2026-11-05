@@ -39,7 +39,7 @@ public:
 
     /** 신규 프로필 생성 */
     UFUNCTION(BlueprintCallable, Category = "Profile")
-    FGuid CreateProfile(const FString& Nickname, EPTBGender Gender, int32 SlotIndex, FDateTime Birthday);
+    FGuid CreateProfile(const FString& Nickname, EPTBGender Gender, int32 SlotIndex);
 
     /** ID로 프로필 조회 */
     UFUNCTION(BlueprintCallable, Category = "Profile")

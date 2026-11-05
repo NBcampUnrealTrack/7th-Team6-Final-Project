@@ -437,9 +437,6 @@ struct PARTTIMEBEAT_API FPTBProfileData
     UPROPERTY(BlueprintReadWrite, SaveGame, Category = "Profile|Identity")
     EPTBGender Gender = EPTBGender::Unset;
 
-    UPROPERTY(BlueprintReadWrite, SaveGame, Category = "Profile|Identity")
-    FDateTime Birthday;
-
     //Progress
 
     UPROPERTY(BlueprintReadOnly, SaveGame, Category = "Profile|Progress")
@@ -532,7 +529,6 @@ struct PARTTIMEBEAT_API FPTBProfileData
     FPTBProfileData()
         : Nickname(TEXT(""))
         , Gender(EPTBGender::Unset)
-        , Birthday(FDateTime::Now())
         , TotalEarnedMoney(0)
         , CreatedAt(FDateTime::Now())
         , LastPlayedAt(FDateTime::Now())
