@@ -113,6 +113,17 @@ public:
 	int32 GetLoadingPercent() const { return FMath::Min(99, FMath::FloorToInt(DisplayProgress * 100.0f)); }
 
 	/**
+	 * 지금 로딩 화면이 무엇을 기다리는지 안내 문구.
+	 * 첫 실행의 셰이더 준비(오래 걸림)와 일반 맵 로딩을 구분해서 보여줌. 커스텀 로딩 WBP의 텍스트에 바인딩.
+	 */
+	UFUNCTION(BlueprintPure, Category = "PTB|Loading")
+	FText GetLoadingStatusText() const;
+
+	/** 첫 실행 셰이더 준비 중인지 (안내 문구/연출 분기용) */
+	UFUNCTION(BlueprintPure, Category = "PTB|Loading")
+	bool IsPreparingShaders() const;
+
+	/**
 	 * 로딩 화면을 먼저 한 프레임 그린 뒤 맵을 연다. (Open Level 대신 사용)
 	 * 맵 로딩 중에는 게임이 멈추므로 마지막으로 그려진 로딩 화면이 그대로 보이고,
 	 * 맵이 열린 뒤에는 PSO 컴파일이 끝날 때까지 로딩 화면이 이어짐.
@@ -167,6 +178,9 @@ private:
 
 	/** 실행 후 첫 맵 로딩을 처리했는지 */
 	bool bInitialMapHandled = false;
+
+	/** 지금 떠 있는 로딩 화면이 실행 후 첫 맵의 것인지 */
+	bool bShowingInitialMap = false;
 
 	/** 로딩 중 프레임 제한 적용 전 t.MaxFPS 값 */
 	float SavedMaxFPS = 0.0f;

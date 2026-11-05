@@ -67,6 +67,7 @@ void UPTBLoadingScreenSubsystem::HandlePostLoadMap(UWorld* LoadedWorld)
 	// 실행 후 첫 맵에서는 시작 시 쌓인 PSO 프리캐시가 다 끝날 때까지 기다림
 	const bool bIsInitialMap = !bInitialMapHandled;
 	bInitialMapHandled = true;
+	bShowingInitialMap = bIsInitialMap;
 	CurrentMaxWaitSeconds = bIsInitialMap ? Settings->InitialMaxWaitSeconds : Settings->MaxWaitSeconds;
 	if (!Settings->bAlwaysShowOnMapLoad && Pending <= Settings->ShowThresholdPending && !bWasTransition)
 	{
@@ -107,6 +108,7 @@ void UPTBLoadingScreenSubsystem::OpenLevelWithLoadingScreen(const UObject* World
 	Self->PendingOpenLevelName = LevelName;
 	Self->PendingOpenFrames = 0;
 	Self->CurrentMaxWaitSeconds = Settings->MaxWaitSeconds;
+	Self->bShowingInitialMap = false;
 	if (!Self->PendingOpenTickerHandle.IsValid())
 	{
 		Self->PendingOpenTickerHandle = FTSTicker::GetCoreTicker().AddTicker(
@@ -265,9 +267,11 @@ void UPTBLoadingScreenSubsystem::ShowLoadingScreen()
 					.Padding(FMargin(0.0f, 0.0f, 0.0f, 12.0f))
 					[
 						SNew(STextBlock)
-						.Text_Lambda([GetProgress]()
+						.Text_Lambda([GetProgress, WeakThis]()
 						{
-							return FText::FromString(FString::Printf(TEXT("Loading... %d%%"), FMath::Min(99, FMath::FloorToInt(GetProgress() * 100.0f))));
+							const FText Status = WeakThis.IsValid() ? WeakThis->GetLoadingStatusText() : FText::GetEmpty();
+							return FText::Format(NSLOCTEXT("PTBLoading", "DefaultProgressFormat", "{0} {1}%"),
+								Status, FText::AsNumber(FMath::Min(99, FMath::FloorToInt(GetProgress() * 100.0f))));
 						})
 						.Font(FCoreStyle::GetDefaultFontStyle("Bold", 24))
 						.ColorAndOpacity(FLinearColor::White)
@@ -300,6 +304,23 @@ void UPTBLoadingScreenSubsystem::ShowLoadingScreen()
 	{
 		TickerHandle = FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateUObject(this, &UPTBLoadingScreenSubsystem::Tick));
 	}
+}
+
+bool UPTBLoadingScreenSubsystem::IsPreparingShaders() const
+{
+	const UPTBLoadingScreenSettings* Settings = GetDefault<UPTBLoadingScreenSettings>();
+	const int32 Threshold = Settings ? Settings->ShowThresholdPending : 8;
+	return bVisible && bShowingInitialMap && PeakPending > Threshold;
+}
+
+FText UPTBLoadingScreenSubsystem::GetLoadingStatusText() const
+{
+	if (IsPreparingShaders())
+	{
+		return NSLOCTEXT("PTBLoading", "PreparingShaders", "그래픽 셰이더를 준비하고 있습니다. 처음 실행할 때 한 번만 진행됩니다.");
+	}
+
+	return NSLOCTEXT("PTBLoading", "Loading", "불러오는 중...");
 }
 
 void UPTBLoadingScreenSubsystem::ResetFrameTracking()
