@@ -47,8 +47,7 @@ EPTBGender UPTBProfileSubsystem::GetActiveProfileGender() const
 FGuid UPTBProfileSubsystem::CreateProfile(
     const FString& Nickname,
     EPTBGender Gender,
-    int32 SlotIndex,
-    FDateTime Birthday)
+    int32 SlotIndex)
 {
     if (AllProfiles.Num() >= MaxProfiles)
     {
@@ -80,7 +79,6 @@ FGuid UPTBProfileSubsystem::CreateProfile(
     NewProfile.ProfileId = FGuid::NewGuid();
     NewProfile.Nickname = NormalizeNickname(Nickname);
     NewProfile.Gender = Gender;
-    NewProfile.Birthday = Birthday;
     NewProfile.SlotIndex = SlotIndex;
     NewProfile.CreatedAt = FDateTime::Now();
     NewProfile.LastPlayedAt = FDateTime::Now();

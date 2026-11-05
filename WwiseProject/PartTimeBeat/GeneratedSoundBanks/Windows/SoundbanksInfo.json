@@ -648,7 +648,7 @@
     "Type": "User",
     "GUID": "{DDAE794D-61D4-451C-A316-2444772C90B7}",
     "Language": "SFX",
-    "Hash": "{9AC6107F-53D1-34F7-1D3A-757D15CA6669}",
+    "Hash": "{34E6129E-E9D3-900D-B876-2FD52885D2CD}",
     "ObjectPath": "\\SoundBanks\\Default Work Unit\\TG",
     "ShortName": "TG",
     "Path": "TG.bnk",
@@ -663,6 +663,20 @@
      }
     ],
     "Events": [
+     {
+      "Id": "3921457869",
+      "Name": "Play_JJ_BGM",
+      "ObjectPath": "\\Events\\Default Work Unit\\Play_JJ_BGM",
+      "GUID": "{75F12E9C-2BE3-4A2C-B374-A2A2890A2494}",
+      "DurationType": "OneShot",
+      "DurationMin": "59.99327",
+      "DurationMax": "59.99327",
+      "MediaRefs": [
+       {
+        "Id": "467031385"
+       }
+      ]
+     },
      {
       "Id": "3508531682",
       "Name": "Play_TG_BGM",
@@ -932,6 +946,6 @@
     ]
    }
   ],
-  "FileHash": "{AD2415C5-BC88-8C24-CB7D-D96E2C72FB5E}"
+  "FileHash": "{51A8D83A-CA66-4538-8040-AF9DE862F403}"
  }
 }

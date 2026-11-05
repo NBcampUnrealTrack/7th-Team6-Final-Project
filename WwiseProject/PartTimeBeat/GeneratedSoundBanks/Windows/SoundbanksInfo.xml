@@ -186,7 +186,7 @@
 				</AcousticTexture>
 			</AcousticTextures>
 		</SoundBank>
-		<SoundBank Id="1568083734" Type="User" GUID="{DDAE794D-61D4-451C-A316-2444772C90B7}" Language="SFX" Hash="{9AC6107F-53D1-34F7-1D3A-757D15CA6669}">
+		<SoundBank Id="1568083734" Type="User" GUID="{DDAE794D-61D4-451C-A316-2444772C90B7}" Language="SFX" Hash="{34E6129E-E9D3-900D-B876-2FD52885D2CD}">
 			<ObjectPath>\SoundBanks\Default Work Unit\TG</ObjectPath>
 			<ShortName>TG</ShortName>
 			<Path>TG.bnk</Path>
@@ -197,6 +197,11 @@
 				</File>
 			</Media>
 			<Events>
+				<Event Id="3921457869" Name="Play_JJ_BGM" ObjectPath="\Events\Default Work Unit\Play_JJ_BGM" GUID="{75F12E9C-2BE3-4A2C-B374-A2A2890A2494}" DurationType="OneShot" DurationMin="59.99327" DurationMax="59.99327">
+					<MediaRefs>
+						<MediaRef Id="467031385"/>
+					</MediaRefs>
+				</Event>
 				<Event Id="3508531682" Name="Play_TG_BGM" ObjectPath="\Events\Default Work Unit\Play_TG_BGM" GUID="{459599A4-86D7-476F-8F53-2F5881A6B8BA}" DurationType="OneShot" DurationMin="59.99327" DurationMax="59.99327">
 					<MediaRefs>
 						<MediaRef Id="467031385"/>
@@ -331,5 +336,5 @@
 			</Events>
 		</SoundBank>
 	</SoundBanks>
-	<FileHash>{E8837B37-0C21-890B-C3DE-312FFAB5FD1E}</FileHash>
+	<FileHash>{2354A074-D8C7-16C8-05F6-A135C8A00830}</FileHash>
 </SoundBanksInfo>

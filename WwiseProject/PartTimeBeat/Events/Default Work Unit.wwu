@@ -102,6 +102,17 @@
 						</Action>
 					</ChildrenList>
 				</Event>
+				<Event Name="Play_JJ_BGM" ID="{75F12E9C-2BE3-4A2C-B374-A2A2890A2494}">
+					<ChildrenList>
+						<Action Name="" ID="{0705E6E0-2BA0-472C-9B49-5647AE5464EA}" ShortID="1059569950">
+							<ReferenceList>
+								<Reference Name="Target">
+									<ObjectRef Name="PTB_JJ_Easy_260527" ID="{63CD2746-16C5-42F0-948C-BACF87D4B585}" WorkUnitID="{78E022C3-5C03-4A9F-B583-39A433161F35}"/>
+								</Reference>
+							</ReferenceList>
+						</Action>
+					</ChildrenList>
+				</Event>
 			</ChildrenList>
 		</WorkUnit>
 	</Events>

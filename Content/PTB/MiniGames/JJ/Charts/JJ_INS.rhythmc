@@ -1,7 +1,7 @@
 {
   "chartVersion": 1,
   "chartId": "PTB_JJ_Easy_260527",
-  "miniGameId": "TG",
+  "miniGameId": "JJ",
   "difficulty": "Standard",
   "bpm": 140,
   "offsetMs": 0,
@@ -14,7 +14,7 @@
   ],
   "wwise": {
     "bankName": "TG",
-    "bgmEventName": "Play_TG_BGM"
+    "bgmEventName": "Play_JJ_BGM"
   },
   "noteFormat": ["id", "timeMs", "beat", "action", "lane", "type"],
   "notes": [
