@@ -86,6 +86,14 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm|Sync", meta = (ClampMin = "1", UIMin = "1"))
 	int32 BeatsPerBar = 4;
 
+	/** 이 이상 시간이 튀면 보간 없이 즉시 맞춤(ms). 큰 끊김 뒤 연출이 몇 초씩 밀려 따라가는 것을 방지 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm|Sync", meta = (ClampMin = "0", UIMin = "0"))
+	float VisualSmoothingHardSnapThresholdMs = 50.0f;
+
+	/** Wwise 재생 위치를 처음 받을 때까지 시간을 0에 고정하는 최대 시간(ms). 초과 시 DeltaTime 진행으로 대체 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm|Sync", meta = (ClampMin = "0", UIMin = "0"))
+	float MaxWaitForFirstWwisePositionMs = 2000.0f;
+
 	/** 화면 연출용 재생 시간 */
 	float SmoothedPlaybackMs = 0.0f;
 
@@ -94,6 +102,21 @@ public:
 
 	/** 마지막 Bar Tick 인덱스 */
 	int32 LastBarTickIndex = -1;
+
+	/** Wwise 재생 위치를 한 번이라도 받았는지 */
+	bool bHasWwisePosition = false;
+
+	/** StartSync 시각(실시간, 초) */
+	double SyncStartRealSeconds = 0.0;
+
+	/** [SyncCheck] Wwise 위치 없이 DeltaTime으로 진행한 누적 시간(ms) */
+	float FallbackAdvancedMs = 0.0f;
+
+	/** [SyncCheck] 한 프레임 최대 시간 점프(ms) */
+	float MaxPlaybackJumpMs = 0.0f;
+
+	/** [SyncCheck] 동기화 요약 로그 출력 */
+	void LogSyncSummary(const TCHAR* Reason) const;
 
 	/** Wwise 재생 위치 기준 동기화 갱신 */
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;

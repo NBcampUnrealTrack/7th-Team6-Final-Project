@@ -421,6 +421,16 @@ protected:
 	/** 아웃트로 후 결과 전달 타이머 */
 	FTimerHandle OutroTimerHandle;
 
+	/** BGM 미디어 로드 완료 대기 타이머 */
+	FTimerHandle AudioReadyPollTimerHandle;
+
+	/** BGM 미디어 로드 대기 시작 시각(실시간, 초) */
+	double AudioReadyWaitStartSeconds = 0.0;
+
+	/** BGM 미디어 로드 대기 최대 시간(초). 초과 시 경고 후 그대로 진행 */
+	UPROPERTY(EditDefaultsOnly, Category = "PTB|Audio", meta = (ClampMin = "0", UIMin = "0"))
+	float AudioReadyTimeoutSeconds = 10.0f;
+
 	/** 결과 전달 대기 중인 종료 사유 */
 	EPTBRoundEndReason PendingEndReason = EPTBRoundEndReason::Completed;
 
@@ -569,6 +579,15 @@ protected:
 
 	/** 초기화 마무리 */
 	void CompleteMiniGameInitialization();
+
+	/** BGM 미디어 로드 완료까지 로딩 화면 유지 후 초기화 마무리 */
+	void PollAudioReadyAndFinishInitialization();
+
+	/** 초기화 최종 단계(오디오 준비 이후) */
+	void FinishMiniGameInitialization();
+
+	/** BGM 이벤트 미디어가 완전히 로드되었는지 */
+	bool IsBGMAudioReady() const;
 
 	/** 오브젝트 / 상태 구성(하위 override) */
 	virtual void BuildRuntimeState();

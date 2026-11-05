@@ -28,7 +28,9 @@ public class PartTimeBeat : ModuleRules
 			"Niagara",
 			"LevelSequence",
 			"MovieScene",
-			"DeveloperSettings"
+			"DeveloperSettings",
+			"RHI",
+			"RenderCore"
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] { });

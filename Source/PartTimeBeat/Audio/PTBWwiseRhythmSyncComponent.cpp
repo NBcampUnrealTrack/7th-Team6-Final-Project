@@ -1,6 +1,17 @@
 #include "Audio/PTBWwiseRhythmSyncComponent.h"
 
 #include "Audio/PTBWwiseAudioManager.h"
+#include "Debug/PTBLogChannels.h"
+#include "HAL/IConsoleManager.h"
+#include "HAL/PlatformTime.h"
+
+// 테스트용: StartSync 후 N ms 동안 Wwise 재생 위치 조회를 실패로 취급한다.
+// 캐시 상태와 상관없이 "음원이 늦게 시작되는 첫 실행" 상황을 강제로 재현하는 용도.
+static TAutoConsoleVariable<float> CVarPTBSyncDebugBlockPositionMs(
+	TEXT("ptb.Sync.DebugBlockPositionMs"),
+	0.0f,
+	TEXT("Treat Wwise playback position as unavailable for N ms after StartSync (test only)."),
+	ECVF_Cheat);
 
 namespace PTBWwiseRhythmSyncInternal
 {
@@ -120,33 +131,67 @@ void UPTBWwiseRhythmSyncComponent::TickComponent(float DeltaTime, ELevelTick Tic
 		return;
 	}
 
-	float PlaybackMs = SyncData.CurrentPlaybackMs;
+	const float PrevPlaybackMs = SyncData.CurrentPlaybackMs;
+	float PlaybackMs = PrevPlaybackMs;
+	const float DeltaMs = DeltaTime * PTBWwiseRhythmSyncInternal::MillisecondsPerSecond;
+	bool bUsedWwisePosition = false;
+
 	if (WwiseManager && CurrentPlayingId != 0)
 	{
+		const double SinceStartMs = (FPlatformTime::Seconds() - SyncStartRealSeconds) * 1000.0;
+		const bool bDebugBlocked = SinceStartMs < CVarPTBSyncDebugBlockPositionMs.GetValueOnGameThread();
+
 		float WwisePlaybackMs = 0.0f;
-		if (WwiseManager->TryGetPlaybackPositionMs(CurrentPlayingId, WwisePlaybackMs))
+		if (!bDebugBlocked && WwiseManager->TryGetPlaybackPositionMs(CurrentPlayingId, WwisePlaybackMs))
 		{
+			if (!bHasWwisePosition)
+			{
+				bHasWwisePosition = true;
+				UE_LOG(LogWwise, Log, TEXT("[SyncCheck] First Wwise position after %.0fms (pos=%.0fms, fallbackSoFar=%.0fms)"),
+					SinceStartMs, WwisePlaybackMs, FallbackAdvancedMs);
+			}
 			PlaybackMs = WwisePlaybackMs;
+			bUsedWwisePosition = true;
+		}
+		else if (!bHasWwisePosition && SinceStartMs < MaxWaitForFirstWwisePositionMs)
+		{
+			// 음원이 실제로 시작되기 전: 게임 시계를 앞서 보내지 않고 0에 고정
+			PlaybackMs = 0.0f;
+		}
+		else if (!bHasWwisePosition)
+		{
+			// 대기 시간 초과: Wwise 위치를 못 받는 이벤트로 보고 기존 방식(시작 후 경과 시간)으로 진행
+			PlaybackMs = static_cast<float>(SinceStartMs);
+			FallbackAdvancedMs = PlaybackMs;
 		}
 		else
 		{
-			PlaybackMs += DeltaTime * PTBWwiseRhythmSyncInternal::MillisecondsPerSecond;
+			PlaybackMs += DeltaMs;
+			FallbackAdvancedMs += DeltaMs;
 		}
 	}
 	else
 	{
-		PlaybackMs += DeltaTime * PTBWwiseRhythmSyncInternal::MillisecondsPerSecond;
+		PlaybackMs += DeltaMs;
 	}
 
 	SyncData.CurrentPlaybackMs = FMath::Max(0.0f, PlaybackMs);
+	// 일시정지(위치 변화 없음)는 제외하고, 실제 프레임 시간 대비 재생 위치가 튄 정도를 기록
+	if (bUsedWwisePosition && !FMath::IsNearlyEqual(SyncData.CurrentPlaybackMs, PrevPlaybackMs))
+	{
+		MaxPlaybackJumpMs = FMath::Max(MaxPlaybackJumpMs, FMath::Abs(SyncData.CurrentPlaybackMs - PrevPlaybackMs - DeltaMs));
+	}
+
 	if (!bUseVisualSmoothing)
 	{
 		SmoothedPlaybackMs = SyncData.CurrentPlaybackMs;
 	}
 	else
 	{
-		const float DeltaMs = SyncData.CurrentPlaybackMs - SmoothedPlaybackMs;
-		if (FMath::Abs(DeltaMs) <= VisualSmoothingSnapThresholdMs)
+		const float SmoothDeltaMs = SyncData.CurrentPlaybackMs - SmoothedPlaybackMs;
+		const float AbsSmoothDeltaMs = FMath::Abs(SmoothDeltaMs);
+		if (AbsSmoothDeltaMs <= VisualSmoothingSnapThresholdMs
+			|| (VisualSmoothingHardSnapThresholdMs > 0.0f && AbsSmoothDeltaMs >= VisualSmoothingHardSnapThresholdMs))
 		{
 			SmoothedPlaybackMs = SyncData.CurrentPlaybackMs;
 		}
@@ -154,7 +199,7 @@ void UPTBWwiseRhythmSyncComponent::TickComponent(float DeltaTime, ELevelTick Tic
 		{
 			const float MaxStepMs = FMath::Max(0.0f, MaxVisualSmoothingStepMs);
 			SmoothedPlaybackMs = MaxStepMs > 0.0f
-				? SmoothedPlaybackMs + FMath::Clamp(DeltaMs, -MaxStepMs, MaxStepMs)
+				? SmoothedPlaybackMs + FMath::Clamp(SmoothDeltaMs, -MaxStepMs, MaxStepMs)
 				: SyncData.CurrentPlaybackMs;
 		}
 	}
@@ -208,10 +253,30 @@ void UPTBWwiseRhythmSyncComponent::StartSync(int32 PlayingId, const FPTBChartDat
 
 	LastBeatTickIndex = -1;
 	LastBarTickIndex = -1;
+
+	bHasWwisePosition = false;
+	SyncStartRealSeconds = FPlatformTime::Seconds();
+	FallbackAdvancedMs = 0.0f;
+	MaxPlaybackJumpMs = 0.0f;
+}
+
+void UPTBWwiseRhythmSyncComponent::LogSyncSummary(const TCHAR* Reason) const
+{
+	if (CurrentPlayingId == 0)
+	{
+		return;
+	}
+
+	UE_LOG(LogWwise, Log, TEXT("[SyncCheck] Summary(%s): GotWwisePosition=%d FallbackAdvanced=%.0fms MaxJump=%.0fms"),
+		Reason,
+		bHasWwisePosition ? 1 : 0,
+		FallbackAdvancedMs,
+		MaxPlaybackJumpMs);
 }
 
 void UPTBWwiseRhythmSyncComponent::StopSync()
 {
+	LogSyncSummary(TEXT("Stop"));
 	CurrentPlayingId = 0;
 	ActiveChartData = FPTBChartData();
 	ChartOffsetMs = 0.0f;

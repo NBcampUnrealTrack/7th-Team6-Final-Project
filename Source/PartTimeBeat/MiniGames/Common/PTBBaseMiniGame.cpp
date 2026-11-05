@@ -382,6 +382,61 @@ void APTBBaseMiniGame::CompleteMiniGameInitialization()
 
 	ApplyRuleSet();
 	PreloadAudioAssets();
+
+	// BGM 미디어가 다 로드되기 전에 시작하면 Wwise 재생 위치를 늦게 받아 첫 판 박자가 밀린다.
+	// 로딩 화면을 유지한 채 준비될 때까지 대기한 뒤 초기화를 마무리한다.
+	AudioReadyWaitStartSeconds = FPlatformTime::Seconds();
+	GetWorldTimerManager().ClearTimer(AudioReadyPollTimerHandle);
+	PollAudioReadyAndFinishInitialization();
+}
+
+bool APTBBaseMiniGame::IsBGMAudioReady() const
+{
+	if (!AudioManager || GameContext.ChartData.WwiseEventName.IsNone())
+	{
+		return true;
+	}
+
+	return AudioManager->PrepareEvent(GameContext.ChartData.WwiseEventName);
+}
+
+void APTBBaseMiniGame::PollAudioReadyAndFinishInitialization()
+{
+	const double WaitedSeconds = FPlatformTime::Seconds() - AudioReadyWaitStartSeconds;
+	const bool bReady = IsBGMAudioReady();
+	const bool bTimedOut = WaitedSeconds >= FMath::Max(0.0f, AudioReadyTimeoutSeconds);
+
+	if (!bReady && !bTimedOut)
+	{
+		if (!GetWorldTimerManager().IsTimerActive(AudioReadyPollTimerHandle))
+		{
+			GetWorldTimerManager().SetTimer(AudioReadyPollTimerHandle, this, &APTBBaseMiniGame::PollAudioReadyAndFinishInitialization, 0.05f, true);
+		}
+		return;
+	}
+
+	GetWorldTimerManager().ClearTimer(AudioReadyPollTimerHandle);
+
+	if (bReady)
+	{
+		UE_LOG(LogWwise, Log, TEXT("[%s] [SyncCheck] BGM media ready. Waited=%.0fms Event=%s"),
+			*GetNameSafe(this),
+			WaitedSeconds * 1000.0,
+			*GameContext.ChartData.WwiseEventName.ToString());
+	}
+	else
+	{
+		UE_LOG(LogWwise, Warning, TEXT("[%s] [SyncCheck] BGM media wait timed out. Waited=%.0fms Event=%s. Starting anyway."),
+			*GetNameSafe(this),
+			WaitedSeconds * 1000.0,
+			*GameContext.ChartData.WwiseEventName.ToString());
+	}
+
+	FinishMiniGameInitialization();
+}
+
+void APTBBaseMiniGame::FinishMiniGameInitialization()
+{
 	BuildRuntimeState();
 
 	bIsInitialized = true;
@@ -539,6 +594,8 @@ void APTBBaseMiniGame::EndPlay(const EEndPlayReason::Type EndPlayReason)
 		}
 	}
 	SpawnedRoundActors.Reset();
+
+	GetWorldTimerManager().ClearTimer(AudioReadyPollTimerHandle);
 
 	CloseActiveSceneWidget();
 
