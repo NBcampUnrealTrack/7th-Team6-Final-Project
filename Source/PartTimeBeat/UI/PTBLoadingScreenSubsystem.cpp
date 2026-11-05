@@ -18,6 +18,7 @@
 #include "Styling/CoreStyle.h"
 #include "Debug/PTBLogChannels.h"
 #include "Debug/PTBTeamLog.h"
+#include "HAL/IConsoleManager.h"
 
 void UPTBLoadingScreenSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
@@ -62,13 +63,19 @@ void UPTBLoadingScreenSubsystem::HandlePostLoadMap(UWorld* LoadedWorld)
 	const bool bWasTransition = bTransitionRequested;
 	bTransitionRequested = false;
 	ResetFrameTracking();
+
+	// 실행 후 첫 맵에서는 시작 시 쌓인 PSO 프리캐시가 다 끝날 때까지 기다림
+	const bool bIsInitialMap = !bInitialMapHandled;
+	bInitialMapHandled = true;
+	CurrentMaxWaitSeconds = bIsInitialMap ? Settings->InitialMaxWaitSeconds : Settings->MaxWaitSeconds;
 	if (!Settings->bAlwaysShowOnMapLoad && Pending <= Settings->ShowThresholdPending && !bWasTransition)
 	{
 		PTB_VERBOSE(LogPTBUI, TEXT("[Loading] %s: 남은 PSO 컴파일 %d → 로딩 화면 생략"), *LoadedWorld->GetMapName(), Pending);
 		return;
 	}
 
-	PTB_RECORD(LogPTBUI, TEXT("[Loading] %s: 남은 PSO 컴파일 %d → 로딩 화면 표시"), *LoadedWorld->GetMapName(), Pending);
+	PTB_RECORD(LogPTBUI, TEXT("[Loading] %s: 남은 PSO 컴파일 %d → 로딩 화면 표시 (최대 %.0f초%s)"),
+		*LoadedWorld->GetMapName(), Pending, CurrentMaxWaitSeconds, bIsInitialMap ? TEXT(", 첫 맵") : TEXT(""));
 	PeakPending = Pending;
 	DisplayProgress = 0.0f;
 	ShowLoadingScreen();
@@ -99,6 +106,7 @@ void UPTBLoadingScreenSubsystem::OpenLevelWithLoadingScreen(const UObject* World
 	Self->PendingOpenWorld = World;
 	Self->PendingOpenLevelName = LevelName;
 	Self->PendingOpenFrames = 0;
+	Self->CurrentMaxWaitSeconds = Settings->MaxWaitSeconds;
 	if (!Self->PendingOpenTickerHandle.IsValid())
 	{
 		Self->PendingOpenTickerHandle = FTSTicker::GetCoreTicker().AddTicker(
@@ -137,8 +145,40 @@ void UPTBLoadingScreenSubsystem::HandlePreLoadMap(const FString& MapName)
 	}
 }
 
+void UPTBLoadingScreenSubsystem::ApplyLoadingFrameCap()
+{
+	const UPTBLoadingScreenSettings* Settings = GetDefault<UPTBLoadingScreenSettings>();
+	if (bMaxFPSOverridden || !Settings || Settings->LoadingMaxFPS <= 0)
+	{
+		return;
+	}
+
+	if (IConsoleVariable* MaxFPSVar = IConsoleManager::Get().FindConsoleVariable(TEXT("t.MaxFPS")))
+	{
+		SavedMaxFPS = MaxFPSVar->GetFloat();
+		MaxFPSVar->Set(static_cast<float>(Settings->LoadingMaxFPS), ECVF_SetByCode);
+		bMaxFPSOverridden = true;
+	}
+}
+
+void UPTBLoadingScreenSubsystem::RestoreFrameCap()
+{
+	if (!bMaxFPSOverridden)
+	{
+		return;
+	}
+
+	if (IConsoleVariable* MaxFPSVar = IConsoleManager::Get().FindConsoleVariable(TEXT("t.MaxFPS")))
+	{
+		MaxFPSVar->Set(SavedMaxFPS, ECVF_SetByCode);
+	}
+	bMaxFPSOverridden = false;
+}
+
 void UPTBLoadingScreenSubsystem::RemoveWidgetsOnly()
 {
+	RestoreFrameCap();
+
 	if (TickerHandle.IsValid())
 	{
 		FTSTicker::GetCoreTicker().RemoveTicker(TickerHandle);
@@ -254,6 +294,7 @@ void UPTBLoadingScreenSubsystem::ShowLoadingScreen()
 	ShownTime = FPlatformTime::Seconds();
 	ZeroSinceTime = -1.0;
 	ResetFrameTracking();
+	ApplyLoadingFrameCap();
 
 	if (!TickerHandle.IsValid())
 	{
@@ -324,7 +365,7 @@ bool UPTBLoadingScreenSubsystem::Tick(float DeltaTime)
 
 	const float MinDisplay = Settings ? Settings->MinDisplaySeconds : 0.5f;
 	const float StableZero = Settings ? Settings->StableZeroSeconds : 0.3f;
-	const float MaxWait = Settings ? Settings->MaxWaitSeconds : 20.0f;
+	const float MaxWait = CurrentMaxWaitSeconds;
 
 	const int32 MinFrames = Settings ? Settings->MinRenderedFrames : 5;
 	const int32 NeedSmooth = Settings ? Settings->RequiredSmoothFrames : 10;

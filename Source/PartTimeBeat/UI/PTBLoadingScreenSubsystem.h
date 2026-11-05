@@ -69,6 +69,19 @@ public:
 	/** 최대 대기 시간(초). 넘으면 컴파일이 남아 있어도 닫음 */
 	UPROPERTY(Config, EditAnywhere, Category = "Loading", meta = (EditCondition = "bEnable", ClampMin = "1.0"))
 	float MaxWaitSeconds = 20.0f;
+
+	/**
+	 * 게임 실행 후 첫 맵(타이틀)에서의 최대 대기 시간(초).
+	 * 첫 실행은 시작 시점에 수천 개의 PSO 프리캐시가 쌓이는데, 이걸 다 끝내기 전에 다음 맵으로 넘어가면
+	 * 화면에 필요한 PSO가 그 대기열 뒤에 밀려 수십 초 멈춤(실측: 프로필 생성 진입 시 55초).
+	 * 그래서 첫 맵에서는 대기열이 빌 때까지 기다림. 두 번째 실행부터는 남은 개수가 0이라 바로 닫힘.
+	 */
+	UPROPERTY(Config, EditAnywhere, Category = "Loading", meta = (EditCondition = "bEnable", ClampMin = "1.0"))
+	float InitialMaxWaitSeconds = 300.0f;
+
+	/** 로딩 화면이 떠 있는 동안 프레임 제한(0이면 제한 없음). 렌더링에 쓰는 CPU를 줄여 PSO 컴파일을 빨리 끝내게 함 */
+	UPROPERTY(Config, EditAnywhere, Category = "Loading", meta = (EditCondition = "bEnable", ClampMin = "0"))
+	int32 LoadingMaxFPS = 30;
 };
 
 /** 맵이 열릴 때마다 PSO 컴파일 상태를 보고 필요하면 로딩 화면을 띄웠다가 끝나면 내림 */
@@ -148,6 +161,19 @@ private:
 	float WorstFrameMs = 0.0f;
 
 	void ResetFrameTracking();
+
+	/** 이번 로딩 화면의 최대 대기 시간(초) */
+	float CurrentMaxWaitSeconds = 20.0f;
+
+	/** 실행 후 첫 맵 로딩을 처리했는지 */
+	bool bInitialMapHandled = false;
+
+	/** 로딩 중 프레임 제한 적용 전 t.MaxFPS 값 */
+	float SavedMaxFPS = 0.0f;
+	bool bMaxFPSOverridden = false;
+
+	void ApplyLoadingFrameCap();
+	void RestoreFrameCap();
 
 	void UpdateProgress(int32 Pending);
 };
