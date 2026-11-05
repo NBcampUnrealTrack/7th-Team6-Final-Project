@@ -34,7 +34,27 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Loading", meta = (EditCondition = "bEnable"))
 	TSoftClassPtr<UUserWidget> LoadingWidgetClass;
 
-	/** 남은 PSO 컴파일이 이 개수 이하면 로딩 화면을 띄우지 않음 (두 번째 실행 이후 깜빡임 방지) */
+	/**
+	 * 맵이 열릴 때마다 항상 로딩 화면을 띄우고, 첫 프레임들이 끊김 없이 그려질 때까지 유지.
+	 * 맵이 열린 직후에는 아직 PSO 요청이 안 들어와서 남은 개수로는 판단할 수 없음
+	 * (첫 프레임을 그릴 때 한꺼번에 컴파일되며 끊김). 켜면 ShowThresholdPending은 무시됨.
+	 */
+	UPROPERTY(Config, EditAnywhere, Category = "Loading", meta = (EditCondition = "bEnable"))
+	bool bAlwaysShowOnMapLoad = true;
+
+	/** 로딩 화면 뒤에서 최소 이 프레임 수만큼 맵을 그린 뒤에 닫음 */
+	UPROPERTY(Config, EditAnywhere, Category = "Loading", meta = (EditCondition = "bEnable", ClampMin = "1"))
+	int32 MinRenderedFrames = 5;
+
+	/** 이 시간(초) 이하로 그려진 프레임을 '부드러운 프레임'으로 봄 */
+	UPROPERTY(Config, EditAnywhere, Category = "Loading", meta = (EditCondition = "bEnable", ClampMin = "0.005"))
+	float SmoothFrameSeconds = 0.05f;
+
+	/** 부드러운 프레임이 연속으로 이 개수만큼 나와야 닫음 */
+	UPROPERTY(Config, EditAnywhere, Category = "Loading", meta = (EditCondition = "bEnable", ClampMin = "1"))
+	int32 RequiredSmoothFrames = 10;
+
+	/** 남은 PSO 컴파일이 이 개수 이하면 로딩 화면을 띄우지 않음 (bAlwaysShowOnMapLoad가 꺼져 있을 때만 사용) */
 	UPROPERTY(Config, EditAnywhere, Category = "Loading", meta = (EditCondition = "bEnable", ClampMin = "0"))
 	int32 ShowThresholdPending = 8;
 
@@ -117,6 +137,17 @@ private:
 	double ZeroSinceTime = -1.0;
 	int32 PeakPending = 0;
 	float DisplayProgress = 0.0f;
+
+	/** 로딩 화면 표시 후 Tick 횟수(= 그려진 프레임 수) */
+	int32 FramesSinceShown = 0;
+
+	/** 연속 부드러운 프레임 수 */
+	int32 SmoothFrameStreak = 0;
+
+	/** 로딩 화면 뒤에서 그려진 가장 느린 프레임(ms) — 가려진 끊김 확인용 */
+	float WorstFrameMs = 0.0f;
+
+	void ResetFrameTracking();
 
 	void UpdateProgress(int32 Pending);
 };

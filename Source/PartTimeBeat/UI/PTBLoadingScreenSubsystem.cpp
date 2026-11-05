@@ -61,7 +61,8 @@ void UPTBLoadingScreenSubsystem::HandlePostLoadMap(UWorld* LoadedWorld)
 	const int32 Pending = GetPendingPSOCompileCount();
 	const bool bWasTransition = bTransitionRequested;
 	bTransitionRequested = false;
-	if (Pending <= Settings->ShowThresholdPending && !bWasTransition)
+	ResetFrameTracking();
+	if (!Settings->bAlwaysShowOnMapLoad && Pending <= Settings->ShowThresholdPending && !bWasTransition)
 	{
 		PTB_VERBOSE(LogPTBUI, TEXT("[Loading] %s: 남은 PSO 컴파일 %d → 로딩 화면 생략"), *LoadedWorld->GetMapName(), Pending);
 		return;
@@ -252,11 +253,19 @@ void UPTBLoadingScreenSubsystem::ShowLoadingScreen()
 	bVisible = true;
 	ShownTime = FPlatformTime::Seconds();
 	ZeroSinceTime = -1.0;
+	ResetFrameTracking();
 
 	if (!TickerHandle.IsValid())
 	{
 		TickerHandle = FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateUObject(this, &UPTBLoadingScreenSubsystem::Tick));
 	}
+}
+
+void UPTBLoadingScreenSubsystem::ResetFrameTracking()
+{
+	FramesSinceShown = 0;
+	SmoothFrameStreak = 0;
+	WorstFrameMs = 0.0f;
 }
 
 void UPTBLoadingScreenSubsystem::HideLoadingScreen()
@@ -292,6 +301,15 @@ bool UPTBLoadingScreenSubsystem::Tick(float DeltaTime)
 	const int32 Pending = GetPendingPSOCompileCount();
 	UpdateProgress(Pending);
 
+	// 첫 Tick의 DeltaTime에는 맵 로딩 시간 자체가 들어 있으므로 프레임 품질 판단에서 제외
+	++FramesSinceShown;
+	if (FramesSinceShown > 1)
+	{
+		WorstFrameMs = FMath::Max(WorstFrameMs, DeltaTime * 1000.0f);
+		const float SmoothLimit = Settings ? Settings->SmoothFrameSeconds : 0.05f;
+		SmoothFrameStreak = DeltaTime <= SmoothLimit ? SmoothFrameStreak + 1 : 0;
+	}
+
 	if (Pending <= 0)
 	{
 		if (ZeroSinceTime < 0.0)
@@ -308,12 +326,16 @@ bool UPTBLoadingScreenSubsystem::Tick(float DeltaTime)
 	const float StableZero = Settings ? Settings->StableZeroSeconds : 0.3f;
 	const float MaxWait = Settings ? Settings->MaxWaitSeconds : 20.0f;
 
-	const bool bDone = Elapsed >= MinDisplay && ZeroSinceTime >= 0.0 && (Now - ZeroSinceTime) >= StableZero;
+	const int32 MinFrames = Settings ? Settings->MinRenderedFrames : 5;
+	const int32 NeedSmooth = Settings ? Settings->RequiredSmoothFrames : 10;
+	const bool bFramesStable = FramesSinceShown >= MinFrames && SmoothFrameStreak >= NeedSmooth;
+
+	const bool bDone = Elapsed >= MinDisplay && ZeroSinceTime >= 0.0 && (Now - ZeroSinceTime) >= StableZero && bFramesStable;
 	const bool bTimedOut = Elapsed >= MaxWait;
 	if (bDone || bTimedOut)
 	{
-		PTB_RECORD(LogPTBUI, TEXT("[Loading] 로딩 화면 닫음 (%.1f초, 최대 대기 PSO %d개, 남은 %d개%s)"),
-			Elapsed, PeakPending, Pending, bTimedOut ? TEXT(", 시간 초과") : TEXT(""));
+		PTB_RECORD(LogPTBUI, TEXT("[Loading] 로딩 화면 닫음 (%.1f초, 최대 대기 PSO %d개, 남은 %d개, 프레임 %d, 가려진 최대 프레임 %.0fms%s)"),
+			Elapsed, PeakPending, Pending, FramesSinceShown, WorstFrameMs, bTimedOut ? TEXT(", 시간 초과") : TEXT(""));
 		// Ticker 콜백 안에서는 RemoveTicker를 부르지 않도록 핸들을 먼저 비우고 위젯만 정리한 뒤 false 반환
 		TickerHandle.Reset();
 		RemoveWidgetsOnly();
