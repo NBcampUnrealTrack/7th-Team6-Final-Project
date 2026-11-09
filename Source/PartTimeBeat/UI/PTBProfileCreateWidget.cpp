@@ -5,10 +5,16 @@
 #include "Profile/PTBProfileSubsystem.h"
 #include "Core/PTBStructEnums.h"
 #include "UI/PTBLoadingScreenSubsystem.h"
+#include "Components/Button.h"
+#include "Core/PTBGameInstance.h"
+#include "Flow/PTBGameFlowSubsystem.h"
 
 void UPTBProfileCreateWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
+
+	if (Btn_Confirm) { Btn_Confirm->OnClicked.AddUniqueDynamic(this, &UPTBProfileCreateWidget::HandleConfirmClicked); }
+	if (Btn_Back)    { Btn_Back->OnClicked.AddUniqueDynamic(this, &UPTBProfileCreateWidget::GoBack); }
 
 	SetKeyboardFocus();
 
@@ -65,6 +71,12 @@ FReply UPTBProfileCreateWidget::NativeOnKeyDown(
 		return FReply::Handled();
 	}
 
+	if (Key == EKeys::Escape)
+	{
+		GoBack();
+		return FReply::Handled();
+	}
+
 	return Super::NativeOnKeyDown(InGeometry, InKeyEvent);
 }
 
@@ -84,6 +96,21 @@ FString UPTBProfileCreateWidget::GetNickname() const
 {
 	if (!Input_Nickname) return FString();
 	return Input_Nickname->GetText().ToString().TrimStartAndEnd();
+}
+
+void UPTBProfileCreateWidget::HandleConfirmClicked()
+{
+	TryConfirm();
+}
+
+void UPTBProfileCreateWidget::GoBack()
+{
+	// 생성/수정 모두 저장하지 않고 나감 (수정 모드는 TryConfirm에서만 저장되므로 여기선 아무것도 반영 안 됨)
+	OnBackRequested();
+	if (!ProfileSelectLevelName.IsNone())
+	{
+		UPTBLoadingScreenSubsystem::OpenLevelWithLoadingScreen(this, ProfileSelectLevelName);
+	}
 }
 
 EPTBGender UPTBProfileCreateWidget::GetGenderForModelIndex(int32 ModelIndex) const
@@ -170,9 +197,9 @@ bool UPTBProfileCreateWidget::TryConfirm()
 		}
 
 		OnEditConfirmed(Nickname, SelectedModelIndex);
-		if (!ReturnLevelAfterEdit.IsNone())
+		if (!ProfileSelectLevelName.IsNone())
 		{
-			UPTBLoadingScreenSubsystem::OpenLevelWithLoadingScreen(this, ReturnLevelAfterEdit);
+			UPTBLoadingScreenSubsystem::OpenLevelWithLoadingScreen(this, ProfileSelectLevelName);
 		}
 		return true;
 	}
@@ -193,7 +220,34 @@ bool UPTBProfileCreateWidget::TryConfirm()
 	const EPTBNicknameValidationResult Result = PS->ValidateNickname(Nickname);
 	if (Result == EPTBNicknameValidationResult::Valid)
 	{
-		OnConfirmSuccess(Nickname, SelectedModelIndex);
+		if (!bCreateAndStartGame)
+		{
+			// 예전 방식: 생성·이동은 BP의 OnConfirmSuccess에서
+			OnConfirmSuccess(Nickname, SelectedModelIndex);
+			return true;
+		}
+
+		// 생성 → 활성화 → 바로 게임 시작
+		const UPTBGameInstance* PTBGI = Cast<UPTBGameInstance>(GetGameInstance());
+		const int32 TargetSlot = PTBGI ? PTBGI->PendingSlotIndex : 0;
+		const FGuid NewId = PS->CreateProfile(Nickname, GetGenderForModelIndex(SelectedModelIndex), TargetSlot);
+		if (!NewId.IsValid())
+		{
+			OnConfirmFailed(TEXT("프로필을 만들 수 없습니다. (슬롯이 이미 사용 중이거나 가득 찼습니다)"));
+			return false;
+		}
+
+		PS->SetActiveProfile(NewId);
+		OnProfileCreated(Nickname, SelectedModelIndex);
+
+		if (UPTBGameFlowSubsystem* Flow = GetGameInstance() ? GetGameInstance()->GetSubsystem<UPTBGameFlowSubsystem>() : nullptr)
+		{
+			Flow->ReturnToMiniGameSelect();
+		}
+		else
+		{
+			UPTBLoadingScreenSubsystem::OpenLevelWithLoadingScreen(this, TEXT("L_GameMap"));
+		}
 		return true;
 	}
 
