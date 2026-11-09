@@ -122,6 +122,14 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Profile|Validation")
     EPTBNicknameValidationResult ValidateNicknameForProfile(const FString& Nickname, const FGuid& ExcludeProfileId) const;
 
+    /** 프로필 수정 화면(L_ProfileCreate)으로 넘어가기 전에 수정할 슬롯 예약 */
+    UFUNCTION(BlueprintCallable, Category = "Profile|Edit")
+    void SetPendingEditSlot(int32 SlotIndex) { PendingEditSlotIndex = SlotIndex; }
+
+    /** 예약된 수정 슬롯을 꺼내고 비움 (생성 화면이 열릴 때 호출). 예약이 없으면 false */
+    UFUNCTION(BlueprintCallable, Category = "Profile|Edit")
+    bool ConsumePendingEditSlot(int32& OutSlotIndex);
+
     /** 슬롯 인덱스로 프로필 삭제 */
     UFUNCTION(BlueprintCallable, Category = "Profile")
     bool DeleteProfileBySlot(int32 SlotIndex);
@@ -317,6 +325,9 @@ private:
     /** 현재 활성 프로필로 개발 프로필을 사용 중인지 여부 */
     UPROPERTY(Transient)
     bool bUseDevelopmentProfileAsActive = false;
+
+    /** 수정 화면으로 넘길 슬롯 (레벨 이동 사이 전달용, 저장 안 함) */
+    int32 PendingEditSlotIndex = INDEX_NONE;
 
     /** 최대 슬롯 수 */
     UPROPERTY()

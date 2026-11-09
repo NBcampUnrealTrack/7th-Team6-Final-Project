@@ -276,6 +276,13 @@ FPTBProfileSummary UPTBProfileSubsystem::MakeProfileSummary(const FPTBProfileDat
     return Summary;
 }
 
+bool UPTBProfileSubsystem::ConsumePendingEditSlot(int32& OutSlotIndex)
+{
+    OutSlotIndex = PendingEditSlotIndex;
+    PendingEditSlotIndex = INDEX_NONE;
+    return OutSlotIndex != INDEX_NONE;
+}
+
 FPTBProfileSummary UPTBProfileSubsystem::GetProfileSummaryBySlot(int32 SlotIndex) const
 {
     bool bFound = false;

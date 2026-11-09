@@ -44,7 +44,11 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Profile|InfoDialog")
 	FName StartLevelNameOverride = NAME_None;
 
-	/** 프로필 수정 버튼 → 선택 화면(WBP_ProfileSelectScreen)이 받아서 생성 화면을 수정 모드로 열어야 함 */
+	/** 프로필 수정 화면 맵. 수정 버튼을 누르면 슬롯을 예약하고 이 맵으로 이동 → 생성 화면이 수정 모드로 열림 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Profile|InfoDialog")
+	FName ProfileEditLevelName = TEXT("L_ProfileCreate");
+
+	/** 프로필 수정 버튼 (알림용. ProfileEditLevelName이 비어 있을 때만 직접 처리 필요) */
 	UPROPERTY(BlueprintAssignable, Category = "Profile|InfoDialog")
 	FOnProfileInfoSlotEvent OnEditRequested;
 

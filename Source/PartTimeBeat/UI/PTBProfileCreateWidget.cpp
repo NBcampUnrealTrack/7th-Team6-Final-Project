@@ -4,6 +4,7 @@
 #include "Components/EditableTextBox.h"
 #include "Profile/PTBProfileSubsystem.h"
 #include "Core/PTBStructEnums.h"
+#include "UI/PTBLoadingScreenSubsystem.h"
 
 void UPTBProfileCreateWidget::NativeConstruct()
 {
@@ -18,6 +19,19 @@ void UPTBProfileCreateWidget::NativeConstruct()
 		InputMode.SetWidgetToFocus(TakeWidget());
 		PC->SetInputMode(InputMode);
 		PC->SetShowMouseCursor(true);
+	}
+
+	// 조회 창에서 "프로필 수정"으로 넘어온 경우: 예약된 슬롯으로 수정 모드 자동 전환
+	if (!bEditMode)
+	{
+		if (UPTBProfileSubsystem* PS = GetGameInstance() ? GetGameInstance()->GetSubsystem<UPTBProfileSubsystem>() : nullptr)
+		{
+			int32 PendingSlot = INDEX_NONE;
+			if (PS->ConsumePendingEditSlot(PendingSlot))
+			{
+				BeginEditProfile(PendingSlot);
+			}
+		}
 	}
 
 	// 초기 모델 선택 상태 동기화
@@ -156,6 +170,10 @@ bool UPTBProfileCreateWidget::TryConfirm()
 		}
 
 		OnEditConfirmed(Nickname, SelectedModelIndex);
+		if (!ReturnLevelAfterEdit.IsNone())
+		{
+			UPTBLoadingScreenSubsystem::OpenLevelWithLoadingScreen(this, ReturnLevelAfterEdit);
+		}
 		return true;
 	}
 

@@ -76,6 +76,10 @@ public:
 	UFUNCTION(BlueprintPure, Category = "PTB|UI|ProfileCreate")
 	int32 GetEditingSlotIndex() const { return EditingSlotIndex; }
 
+	/** 수정 저장 후 이동할 맵 (프로필 선택 화면이 있는 맵). 비우면 이동하지 않고 OnEditConfirmed만 호출 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|UI|ProfileCreate")
+	FName ReturnLevelAfterEdit = NAME_None;
+
 	/** 모델 인덱스에 해당하는 성별 */
 	UFUNCTION(BlueprintPure, Category = "PTB|UI|ProfileCreate")
 	EPTBGender GetGenderForModelIndex(int32 ModelIndex) const;

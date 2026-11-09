@@ -87,9 +87,21 @@ void UPTBProfileInfoDialogWidget::StartGame_Implementation()
 
 void UPTBProfileInfoDialogWidget::RequestEdit()
 {
-	if (Summary.bHasProfile)
+	if (!Summary.bHasProfile)
 	{
-		OnEditRequested.Broadcast(SlotIndex);
+		return;
+	}
+
+	OnEditRequested.Broadcast(SlotIndex);
+
+	if (!ProfileEditLevelName.IsNone())
+	{
+		if (UPTBProfileSubsystem* PS = GetProfileSubsystem())
+		{
+			PS->SetPendingEditSlot(SlotIndex);
+		}
+		PTB_RECORD(LogPTBUI, TEXT("[ProfileInfo] 프로필 수정: Slot=%d → %s"), SlotIndex, *ProfileEditLevelName.ToString());
+		UPTBLoadingScreenSubsystem::OpenLevelWithLoadingScreen(this, ProfileEditLevelName);
 	}
 }
 
