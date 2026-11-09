@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
+#include "Core/PTBStructEnums.h"
 #include "PTBProfileCreateWidget.generated.h"
 
 class UEditableTextBox;
@@ -53,6 +54,32 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|UI|ProfileCreate")
 	int32 ModelCount = 2;
 
+	/**
+	 * 모델 인덱스 → 성별 (생성 BP에서 쓰는 매핑과 같아야 함). 기본: 0=남, 1=여.
+	 * 프로필 수정 모드에서 기존 성별로 모델을 미리 선택하고, 저장할 때 성별로 바꾸는 데 사용.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|UI|ProfileCreate")
+	TArray<EPTBGender> ModelGenders = { EPTBGender::Male, EPTBGender::Female };
+
+	// ── 프로필 수정 모드 ──
+
+	/**
+	 * 이 화면을 기존 프로필 수정 모드로 전환. 이름 입력칸·모델 선택을 기존 값으로 채움.
+	 * Create Widget 직후(화면에 붙이기 전/후 상관없음) 호출. 프로필이 없으면 false.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "PTB|UI|ProfileCreate")
+	bool BeginEditProfile(int32 SlotIndex);
+
+	UFUNCTION(BlueprintPure, Category = "PTB|UI|ProfileCreate")
+	bool IsEditMode() const { return bEditMode; }
+
+	UFUNCTION(BlueprintPure, Category = "PTB|UI|ProfileCreate")
+	int32 GetEditingSlotIndex() const { return EditingSlotIndex; }
+
+	/** 모델 인덱스에 해당하는 성별 */
+	UFUNCTION(BlueprintPure, Category = "PTB|UI|ProfileCreate")
+	EPTBGender GetGenderForModelIndex(int32 ModelIndex) const;
+
 protected:
 	virtual void NativeConstruct() override;
 
@@ -74,10 +101,25 @@ protected:
 	/** TryConfirm 실패 시 호출 — BP에서 경고 메시지 표시 */
 	UFUNCTION(BlueprintImplementableEvent, Category = "PTB|UI|ProfileCreate")
 	void OnConfirmFailed(const FString& Reason);
+
+	/** 수정 모드로 전환됐을 때 — BP에서 제목("프로필 수정")·버튼 문구 변경 */
+	UFUNCTION(BlueprintImplementableEvent, Category = "PTB|UI|ProfileCreate")
+	void OnEditModeStarted(const FString& CurrentNickname, int32 CurrentModelIndex);
+
+	/** 수정 모드에서 TryConfirm 성공 — 이미 저장까지 끝난 상태. BP에서 화면 닫고 선택 화면으로 복귀 */
+	UFUNCTION(BlueprintImplementableEvent, Category = "PTB|UI|ProfileCreate")
+	void OnEditConfirmed(const FString& Nickname, int32 ModelIndex);
 	
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UEditableTextBox> Input_Nickname;
 
 private:
 	int32 SelectedModelIndex = 0;
+
+	bool bEditMode = false;
+	int32 EditingSlotIndex = INDEX_NONE;
+	FGuid EditingProfileId;
+
+	/** 닉네임 검사 결과 → 실패 메시지 */
+	FString GetValidationFailMessage(EPTBNicknameValidationResult Result) const;
 };

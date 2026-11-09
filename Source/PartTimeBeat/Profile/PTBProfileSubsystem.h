@@ -9,6 +9,48 @@ class UPTBSaveGame;
 class UPTBItemSubsystem;
 
 
+/** 프로필 선택 화면·프로필 정보 창 표시용 요약 (슬롯 하나 기준) */
+USTRUCT(BlueprintType)
+struct PARTTIMEBEAT_API FPTBProfileSummary
+{
+    GENERATED_BODY()
+
+    /** 이 슬롯에 프로필이 있는지 */
+    UPROPERTY(BlueprintReadOnly, Category = "Profile|Summary")
+    bool bHasProfile = false;
+
+    UPROPERTY(BlueprintReadOnly, Category = "Profile|Summary")
+    int32 SlotIndex = INDEX_NONE;
+
+    UPROPERTY(BlueprintReadOnly, Category = "Profile|Summary")
+    FGuid ProfileId;
+
+    UPROPERTY(BlueprintReadOnly, Category = "Profile|Summary")
+    FString Nickname;
+
+    UPROPERTY(BlueprintReadOnly, Category = "Profile|Summary")
+    EPTBGender Gender = EPTBGender::Unset;
+
+    /** 현재 소지금 (누적 알바비 - 상점 사용 금액) */
+    UPROPERTY(BlueprintReadOnly, Category = "Profile|Summary")
+    int32 CurrentMoney = 0;
+
+    /** 진행도: 어느 난이도든 한 번 이상 클리어한 미니게임 수 */
+    UPROPERTY(BlueprintReadOnly, Category = "Profile|Summary")
+    int32 ClearedMiniGameCount = 0;
+
+    /** 진행도 분모: 현재 플레이 가능한 진행 대상 미니게임 수 */
+    UPROPERTY(BlueprintReadOnly, Category = "Profile|Summary")
+    int32 TotalMiniGameCount = 0;
+
+    /** 획득한 별 합계 */
+    UPROPERTY(BlueprintReadOnly, Category = "Profile|Summary")
+    int32 TotalStars = 0;
+
+    UPROPERTY(BlueprintReadOnly, Category = "Profile|Summary")
+    FDateTime LastPlayedAt;
+};
+
 /** 활성 프로필이 변경되었을 때. */
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnActiveProfileChanged, const FPTBProfileData& /*NewProfile*/);
 
@@ -60,6 +102,25 @@ public:
     /** UI 슬롯 칸 개수 */
     UFUNCTION(BlueprintCallable, Category = "Profile")
     int32 GetMaxProfileSlotCount() const { return MaxProfiles; }
+
+    /** 슬롯 하나의 표시용 요약 (프로필이 없으면 bHasProfile=false). 프로필 정보 창·슬롯 위젯에서 사용 */
+    UFUNCTION(BlueprintPure, Category = "Profile|Query")
+    FPTBProfileSummary GetProfileSummaryBySlot(int32 SlotIndex) const;
+
+    /** 프로필 데이터 하나의 요약 (C++/BP 공용) */
+    UFUNCTION(BlueprintPure, Category = "Profile|Query")
+    static FPTBProfileSummary MakeProfileSummary(const FPTBProfileData& Profile);
+
+    /**
+     * 프로필 이름·성별 수정. 닉네임 검사에서 자기 자신의 기존 이름은 중복으로 보지 않음.
+     * 성공 시 Valid, 실패 시 실패 사유 반환 (프로필이 없으면 Empty).
+     */
+    UFUNCTION(BlueprintCallable, Category = "Profile")
+    EPTBNicknameValidationResult UpdateProfileIdentity(const FGuid& ProfileId, const FString& Nickname, EPTBGender Gender);
+
+    /** 닉네임 검사 (ExcludeProfileId의 기존 이름은 중복 검사에서 제외 — 프로필 수정용) */
+    UFUNCTION(BlueprintCallable, Category = "Profile|Validation")
+    EPTBNicknameValidationResult ValidateNicknameForProfile(const FString& Nickname, const FGuid& ExcludeProfileId) const;
 
     /** 슬롯 인덱스로 프로필 삭제 */
     UFUNCTION(BlueprintCallable, Category = "Profile")
