@@ -5,6 +5,9 @@
 #include "Kismet/GameplayStatics.h"
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
+#include "Progression/PTBProgressLibrary.h"
+#include "Progression/PTBProgressSettings.h"
+#include "Flow/PTBMiniGameAvailability.h"
 
 namespace PTBProfileSubsystemInternal
 {
@@ -219,6 +222,119 @@ bool UPTBProfileSubsystem::DeleteProfile(const FGuid& ProfileId)
     return true;
 }
 
+FPTBProfileSummary UPTBProfileSubsystem::MakeProfileSummary(const FPTBProfileData& Profile)
+{
+    FPTBProfileSummary Summary;
+    Summary.bHasProfile = Profile.ProfileId.IsValid();
+    Summary.SlotIndex = Profile.SlotIndex;
+    Summary.ProfileId = Profile.ProfileId;
+    Summary.Nickname = Profile.Nickname;
+    Summary.Gender = Profile.Gender;
+    Summary.CurrentMoney = Profile.GetCurrentMoney();
+    Summary.LastPlayedAt = Profile.LastPlayedAt;
+
+    for (const TPair<FName, int32>& Pair : Profile.EarnedStarsByMiniGame)
+    {
+        Summary.TotalStars += FMath::Max(0, Pair.Value);
+    }
+
+    // 진행도: 진행 대상 미니게임(PTB 진행·업적 설정 → Progress Mini Game Ids) 중 현재 플레이 가능한 것만 분모로 사용
+    const UPTBProgressSettings* Settings = GetDefault<UPTBProgressSettings>();
+    if (Settings)
+    {
+        static const EPTBDifficulty Difficulties[] = { EPTBDifficulty::Easy, EPTBDifficulty::Standard, EPTBDifficulty::Insane };
+        for (const FName& MiniGameId : Settings->ProgressMiniGameIds)
+        {
+            if (MiniGameId.IsNone() || !UPTBMiniGameAvailabilityLibrary::IsMiniGamePlayable(MiniGameId))
+            {
+                continue;
+            }
+            ++Summary.TotalMiniGameCount;
+
+            bool bCleared = false;
+            for (const EPTBDifficulty Difficulty : Difficulties)
+            {
+                if (UPTBProgressLibrary::GetClearCountInProfile(Profile, MiniGameId, Difficulty) > 0)
+                {
+                    bCleared = true;
+                    break;
+                }
+            }
+            // 클리어 횟수 기록 도입 전 프로필 대비: 별을 받은 적이 있으면 클리어로 간주
+            if (!bCleared)
+            {
+                const int32* Stars = Profile.EarnedStarsByMiniGame.Find(MiniGameId);
+                bCleared = Stars && *Stars > 0;
+            }
+            if (bCleared)
+            {
+                ++Summary.ClearedMiniGameCount;
+            }
+        }
+    }
+
+    return Summary;
+}
+
+bool UPTBProfileSubsystem::ConsumePendingEditSlot(int32& OutSlotIndex)
+{
+    OutSlotIndex = PendingEditSlotIndex;
+    PendingEditSlotIndex = INDEX_NONE;
+    return OutSlotIndex != INDEX_NONE;
+}
+
+FPTBProfileSummary UPTBProfileSubsystem::GetProfileSummaryBySlot(int32 SlotIndex) const
+{
+    bool bFound = false;
+    const FPTBProfileData Profile = GetProfileBySlot(SlotIndex, bFound);
+    if (!bFound)
+    {
+        FPTBProfileSummary Empty;
+        Empty.SlotIndex = SlotIndex;
+        // 분모는 빈 슬롯에서도 표시할 수 있게 채워 둠
+        const FPTBProfileSummary Base = MakeProfileSummary(FPTBProfileData());
+        Empty.TotalMiniGameCount = Base.TotalMiniGameCount;
+        return Empty;
+    }
+    return MakeProfileSummary(Profile);
+}
+
+EPTBNicknameValidationResult UPTBProfileSubsystem::UpdateProfileIdentity(const FGuid& ProfileId, const FString& Nickname, EPTBGender Gender)
+{
+    FPTBProfileData* Profile = FindProfileMutable(ProfileId);
+    if (!Profile || IsDevelopmentProfileId(ProfileId))
+    {
+        PTB_ERROR(LogPTBProfile, TEXT("UpdateProfileIdentity failed: profile not found (%s)"), *ProfileId.ToString());
+        return EPTBNicknameValidationResult::Empty;
+    }
+
+    const EPTBNicknameValidationResult Result = ValidateNicknameForProfile(Nickname, ProfileId);
+    if (Result != EPTBNicknameValidationResult::Valid)
+    {
+        return Result;
+    }
+
+    const FString OldNickname = Profile->Nickname;
+    Profile->Nickname = NormalizeNickname(Nickname);
+    if (Gender != EPTBGender::Unset)
+    {
+        Profile->Gender = Gender;
+    }
+
+    PTB_RECORD(LogPTBProfile, TEXT("UpdateProfileIdentity: Slot=%d %s → %s Gender=%d"),
+        Profile->SlotIndex, *OldNickname, *Profile->Nickname, static_cast<int32>(Profile->Gender));
+
+    const FPTBProfileData Updated = *Profile;
+    OnProfileListChanged.Broadcast();
+    if (ActiveProfileId == ProfileId)
+    {
+        OnActiveProfileChanged.Broadcast(Updated);
+    }
+    RequestSave();
+
+    return EPTBNicknameValidationResult::Valid;
+}
+
 bool UPTBProfileSubsystem::DeleteProfileBySlot(int32 SlotIndex)
 {
     bool bFound = false;
@@ -323,6 +439,11 @@ bool UPTBProfileSubsystem::IsUsingDevelopmentProfile() const
 
 EPTBNicknameValidationResult UPTBProfileSubsystem::ValidateNickname(const FString& Nickname) const
 {
+    return ValidateNicknameForProfile(Nickname, FGuid());
+}
+
+EPTBNicknameValidationResult UPTBProfileSubsystem::ValidateNicknameForProfile(const FString& Nickname, const FGuid& ExcludeProfileId) const
+{
     const FString Normalized = NormalizeNickname(Nickname);
 
     if (Normalized.IsEmpty())
@@ -340,6 +461,10 @@ EPTBNicknameValidationResult UPTBProfileSubsystem::ValidateNickname(const FStrin
 
     for (const FPTBProfileData& Profile : AllProfiles)
     {
+        if (ExcludeProfileId.IsValid() && Profile.ProfileId == ExcludeProfileId)
+        {
+            continue; // 수정 중인 자기 자신은 중복 검사 제외
+        }
         if (Profile.Nickname.Equals(Normalized, ESearchCase::IgnoreCase))
         {
             return EPTBNicknameValidationResult::AlreadyTaken;
