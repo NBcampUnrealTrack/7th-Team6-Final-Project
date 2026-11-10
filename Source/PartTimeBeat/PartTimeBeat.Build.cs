@@ -41,7 +41,11 @@ public class PartTimeBeat : ModuleRules
 
 		// STOVE PC SDK: Source/ThirdParty/StovePCSDK 폴더에 SDK가 있을 때만 연동 (없으면 STOVE 기능 없이 빌드)
 		string StoveSDKDir = System.IO.Path.Combine(ModuleDirectory, "..", "ThirdParty", "StovePCSDK");
-		bool bHasStoveSDK = !bEvalBuild
+		// QA용 빌드 (PartTimeBeatQA 타깃): STOVE 미연동 + 치트 사용 가능 (Development로 패키징)
+		bool bQABuild = Target.Name == "PartTimeBeatQA";
+		PublicDefinitions.Add("PTB_QA_BUILD=" + (bQABuild ? "1" : "0"));
+
+		bool bHasStoveSDK = !bEvalBuild && !bQABuild
 			&& Target.Platform == UnrealTargetPlatform.Win64
 			&& System.IO.File.Exists(System.IO.Path.Combine(StoveSDKDir, "Include", "stove_api.h"))
 			&& System.IO.File.Exists(System.IO.Path.Combine(StoveSDKDir, "lib", "x64", "BaseSDK.lib"));
