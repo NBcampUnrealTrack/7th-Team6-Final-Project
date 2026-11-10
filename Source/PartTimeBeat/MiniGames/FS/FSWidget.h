@@ -136,6 +136,21 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FS|Arrow")
 	bool bLockArrowToTargetAxis = true;
 
+	/**
+	 * 켜면 화살표가 템플릿 위치가 아니라 "도착점에서 ArrowTravelDistance만큼 떨어진 곳"에서 출발한다.
+	 * → 화면 비율이 극단적이어도 가로/세로 화살표 속도가 같다. (템플릿은 이미지·크기·회전만 제공)
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FS|Arrow")
+	bool bUseFixedTravelDistance = true;
+
+	/** 도착점까지 이동 거리 (1920x1080 기준 px). 세 방향 공통 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FS|Arrow", meta = (EditCondition = "bUseFixedTravelDistance", ClampMin = "0.0"))
+	float ArrowTravelDistance = 700.0f;
+
+	/** 출발 직후 페이드인 구간 (이동 거리 비율 0~1). 화면 안에서 갑자기 나타나 보이지 않게. 0 = 끔 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FS|Arrow", meta = (ClampMin = "0.0", ClampMax = "1.0"))
+	float ArrowFadeInRatio = 0.15f;
+
 	/** 노트 화살표 복제본이 화면에 떠 있는 동안 생성된 것 */
 	UFUNCTION(BlueprintImplementableEvent, Category = "FS|Arrow")
 	void OnArrowSpawned(UImage* ArrowWidget, EPTBActionType VisualAction);

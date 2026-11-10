@@ -342,7 +342,8 @@ int32 UFSWidget::AcquireArrowFromPool(int32 Lane)
 	Arrow->SetColorAndOpacity(Template->GetColorAndOpacity());
 	Arrow->SetRenderTransform(Template->GetRenderTransform());
 	Arrow->SetRenderTransformPivot(Template->GetRenderTransformPivot());
-	Arrow->SetRenderOpacity(Template->GetRenderOpacity());
+	// 첫 Tick에서 위치·투명도가 잡히기 전까지 안 보이게 (템플릿 위치에서 한 프레임 번쩍이는 것 방지)
+	Arrow->SetRenderOpacity(0.0f);
 	if (UCanvasPanelSlot* ArrowSlot = Cast<UCanvasPanelSlot>(Arrow->Slot))
 	{
 		FVector2D Center, Size;
@@ -415,7 +416,13 @@ void UFSWidget::UpdateArrows(float CurrentTimeMs, const FVector2D& CanvasSize)
 			}
 		}
 
-		if (bLockArrowToTargetAxis)
+		if (bUseFixedTravelDistance)
+		{
+			// 도착점 기준 고정 거리: 왼쪽 칸 = 왼쪽에서, 가운데 = 위에서, 오른쪽 칸 = 오른쪽에서
+			static const FVector2D Directions[3] = { FVector2D(-1.0f, 0.0f), FVector2D(0.0f, -1.0f), FVector2D(1.0f, 0.0f) };
+			StartCenter = EndCenter + Directions[FMath::Clamp(State.Lane, 0, 2)] * ArrowTravelDistance;
+		}
+		else if (bLockArrowToTargetAxis)
 		{
 			if (State.Lane == 1)
 			{
@@ -431,6 +438,13 @@ void UFSWidget::UpdateArrows(float CurrentTimeMs, const FVector2D& CanvasSize)
 		{
 			ArrowSlot->SetPosition(FMath::Lerp(EndCenter, StartCenter, Alpha));
 		}
+
+		// 출발 직후 페이드인 (Alpha 1 = 출발점, 0 = 도착점)
+		const float BaseOpacity = Template->GetRenderOpacity();
+		const float Fade = ArrowFadeInRatio > KINDA_SMALL_NUMBER
+			? FMath::Clamp((1.0f - Alpha) / ArrowFadeInRatio, 0.0f, 1.0f)
+			: 1.0f;
+		Arrow->SetRenderOpacity(BaseOpacity * Fade);
 
 		// BP에서 템플릿 이미지를 바꾸면(콤보 피버 등) 날아가는 중인 화살표에도 반영
 		if (Arrow->GetBrush().GetResourceObject() != Template->GetBrush().GetResourceObject())
