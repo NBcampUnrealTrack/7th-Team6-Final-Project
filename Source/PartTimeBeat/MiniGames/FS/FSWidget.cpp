@@ -415,6 +415,18 @@ void UFSWidget::UpdateArrows(float CurrentTimeMs, const FVector2D& CanvasSize)
 			}
 		}
 
+		if (bLockArrowToTargetAxis)
+		{
+			if (State.Lane == 1)
+			{
+				StartCenter.X = EndCenter.X; // 위에서 수직으로
+			}
+			else
+			{
+				StartCenter.Y = EndCenter.Y; // 옆에서 수평으로
+			}
+		}
+
 		if (UCanvasPanelSlot* ArrowSlot = Cast<UCanvasPanelSlot>(Arrow->Slot))
 		{
 			ArrowSlot->SetPosition(FMath::Lerp(EndCenter, StartCenter, Alpha));

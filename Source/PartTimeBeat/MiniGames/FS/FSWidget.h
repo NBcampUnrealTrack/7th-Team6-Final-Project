@@ -128,6 +128,14 @@ protected:
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly)
 	UImage* Image_right = nullptr;
 
+	/**
+	 * 화살표를 도착점과 일직선으로 날린다 (화면 크기가 바뀌어도 대각선이 되지 않음).
+	 * 왼쪽/오른쪽 화살표는 시작 Y를 도착점 Y로, 위쪽 화살표는 시작 X를 도착점 X로 맞춘다.
+	 * 템플릿(ArrowLeft/Right/Up)은 "얼마나 바깥에서 출발할지"만 정하면 된다.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FS|Arrow")
+	bool bLockArrowToTargetAxis = true;
+
 	/** 노트 화살표 복제본이 화면에 떠 있는 동안 생성된 것 */
 	UFUNCTION(BlueprintImplementableEvent, Category = "FS|Arrow")
 	void OnArrowSpawned(UImage* ArrowWidget, EPTBActionType VisualAction);
