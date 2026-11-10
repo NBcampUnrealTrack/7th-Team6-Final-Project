@@ -430,33 +430,39 @@ void UFSWidget::UpdateArrows(float CurrentTimeMs, const FVector2D& CanvasSize)
 
 // ───────────────────────── 물고기 거리 마커 ─────────────────────────
 
-void UFSWidget::UpdateFishMarker(const FVector2D& CanvasSize)
+void UFSWidget::UpdateFishMarker()
 {
 	if (!bAutoPlaceFishMarker || !FSMiniGame || !DistanceGauge || !FishdisTance)
 	{
 		return;
 	}
 
-	const UCanvasPanelSlot* GaugeSlot = Cast<UCanvasPanelSlot>(DistanceGauge->Slot);
-	if (!GaugeSlot)
+	// 실제 화면(절대) 좌표로 계산 → 게이지/마커가 어떤 컨테이너·앵커에 있어도 동작
+	const FGeometry& GaugeGeo = DistanceGauge->GetCachedGeometry();
+	const FGeometry& MarkerGeo = FishdisTance->GetCachedGeometry();
+	const FVector2D GaugeSize = GaugeGeo.GetLocalSize();
+	const FVector2D MarkerSize = MarkerGeo.GetLocalSize();
+	if (GaugeSize.IsNearlyZero() || MarkerSize.IsNearlyZero())
 	{
-		return;
-	}
-	FVector2D GaugeTopLeft, GaugeSize;
-	ComputeRectFromLayout(GaugeSlot->GetLayout(), CanvasSize, GaugeTopLeft, GaugeSize);
-
-	FVector2D MarkerCenter;
-	if (!GetWidgetCenter(FishdisTance, CanvasSize, MarkerCenter))
-	{
-		return;
+		return; // 아직 레이아웃 전
 	}
 
-	// Distance 0 = 잡힘(게이지 위쪽), 1 = 멀어짐(게이지 아래쪽). X는 Designer 배치 그대로
+	const float Pad = FMath::Clamp(FishMarkerEdgePadding, 0.0f, GaugeSize.Y * 0.5f);
+	const FVector2D TopAbs = GaugeGeo.LocalToAbsolute(FVector2D(GaugeSize.X * 0.5f, Pad));
+	const FVector2D BottomAbs = GaugeGeo.LocalToAbsolute(FVector2D(GaugeSize.X * 0.5f, GaugeSize.Y - Pad));
+
+	// 마커의 레이아웃 위치(Render Transform 제외) 중심
+	const FSlateLayoutTransform& MarkerLayout = MarkerGeo.GetAccumulatedLayoutTransform();
+	const FVector2D MarkerCenterAbs = MarkerLayout.TransformPoint(MarkerSize * 0.5f);
+	const float LayoutScale = FMath::Max(KINDA_SMALL_NUMBER, MarkerLayout.GetScale());
+
+	// Distance 0 = 잡힘(게이지 위쪽), 1 = 멀어짐(게이지 아래쪽)
 	const float Distance = FMath::Clamp(FSMiniGame->GetFishDistance(), 0.0f, 1.0f);
-	const float TopY = GaugeTopLeft.Y + FishMarkerEdgePadding;
-	const float BottomY = GaugeTopLeft.Y + GaugeSize.Y - FishMarkerEdgePadding;
-	MarkerCenter.Y = FMath::Lerp(TopY, BottomY, Distance);
-	SetWidgetCenter(FishdisTance, CanvasSize, MarkerCenter);
+	const float TargetY = FMath::Lerp(TopAbs.Y, BottomAbs.Y, Distance);
+
+	FWidgetTransform Transform = FishdisTance->GetRenderTransform();
+	Transform.Translation.Y = (TargetY - MarkerCenterAbs.Y) / LayoutScale;
+	FishdisTance->SetRenderTransform(Transform);
 }
 
 // ───────────────────────── Tick ─────────────────────────
@@ -472,7 +478,7 @@ void UFSWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 	}
 	LastCanvasSize = CanvasSize;
 
-	UpdateFishMarker(CanvasSize);
+	UpdateFishMarker();
 
 	if (!FSMiniGame) return;
 	UPTBWwiseRhythmSyncComponent* Sync = FSMiniGame->GetUPTBWwiseRhythmSyncComponent();

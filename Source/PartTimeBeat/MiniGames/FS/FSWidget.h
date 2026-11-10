@@ -31,6 +31,7 @@ struct FFSActiveArrow
  *  - 노트 도착점  : Image_left / Image_up / Image_right (회색 판정 화살표) 의 위치
  *  - 키 안내 칸   : KeyGuideA / B / C 를 배치한 위치 = 왼/가운데/오른쪽 칸 (키 셔플 시 이 3칸 사이를 이동)
  *  - 물고기 거리 마커 : FishdisTance 가 DistanceGauge 의 위(잡힘)~아래(멀어짐) 사이를 이동
+ *                      (실제 화면 위치 기준이라 어떤 컨테이너·계층·앵커에 넣어도 동작. 이동은 Render Translation으로 처리)
  */
 UCLASS()
 class PARTTIMEBEAT_API UFSWidget : public UUserWidget
@@ -133,7 +134,10 @@ protected:
 
 	// ── 물고기 거리 마커 ──
 
-	/** 켜면 FishdisTance 위치를 C++에서 DistanceGauge 기준으로 갱신 (BP의 SetPosition 하드코딩 대체) */
+	/**
+	 * 켜면 FishdisTance 위치를 C++에서 DistanceGauge 기준으로 갱신 (BP의 SetPosition 하드코딩 대체).
+	 * 마커의 Designer 배치 위치(X 포함)는 그대로 두고, 세로 위치만 Render Translation으로 게이지 위~아래에 맞춘다.
+	 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FS|Distance")
 	bool bAutoPlaceFishMarker = true;
 
@@ -145,7 +149,7 @@ protected:
 	UProgressBar* DistanceGauge = nullptr;
 
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly)
-	UImage* FishdisTance = nullptr;
+	UWidget* FishdisTance = nullptr;
 
 	UPROPERTY()
 	APTBFSMiniGame* FSMiniGame;
@@ -181,7 +185,7 @@ private:
 	int32 AcquireArrowFromPool(int32 Lane);
 	void ReleaseArrow(int32 PoolIndex);
 	void UpdateArrows(float CurrentTimeMs, const FVector2D& CanvasSize);
-	void UpdateFishMarker(const FVector2D& CanvasSize);
+	void UpdateFishMarker();
 
 	UPROPERTY()
 	TArray<TObjectPtr<UImage>> ArrowPool;
