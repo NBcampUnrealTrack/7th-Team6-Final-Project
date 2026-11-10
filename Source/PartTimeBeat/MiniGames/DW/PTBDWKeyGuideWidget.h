@@ -29,6 +29,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "PTB|DW|KeyGuide")
 	void RefreshSlots();
 
+	/** 튜토리얼 설명 중에도 표시 (설명 UI보다 아래에 그려짐) */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|DW|KeyGuide")
+	bool bShowDuringTutorial = true;
+
 	/** 입력을 받지 않을 때도 항상 보이게 (디버그·연출용) */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|DW|KeyGuide")
 	bool bAlwaysVisible = false;

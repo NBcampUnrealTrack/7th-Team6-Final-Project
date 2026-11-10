@@ -4,6 +4,7 @@
 #include "MiniGames/DW/PTBDWKeySlotWidget.h"
 #include "Blueprint/WidgetTree.h"
 #include "UI/PTBKeyTextLibrary.h"
+#include "MiniGames/Common/PTBMiniGameIntroData.h"
 
 void UPTBDWKeyGuideWidget::NativeConstruct()
 {
@@ -94,7 +95,9 @@ void UPTBDWKeyGuideWidget::SetGuideShown(bool bShown)
 		return;
 	}
 	bGuideShown = bShown;
-	SetVisibility(bShown ? ESlateVisibility::SelfHitTestInvisible : ESlateVisibility::Collapsed);
+	// Collapsed/Hidden으로 숨기면 위젯 Tick이 멈춰 다시 보이게 할 수 없음 → 투명도로 숨김 (입력은 항상 통과)
+	SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+	SetRenderOpacity(bShown ? 1.0f : 0.0f);
 	OnGuideShownChanged(bShown);
 }
 
@@ -103,7 +106,13 @@ void UPTBDWKeyGuideWidget::NativeTick(const FGeometry& MyGeometry, float InDelta
 	Super::NativeTick(MyGeometry, InDeltaTime);
 
 	APTBDWMiniGame* MiniGame = DWMiniGame.Get();
-	const bool bShouldShow = bAlwaysVisible || (MiniGame && MiniGame->IsRhythmInputActive());
+	bool bShouldShow = bAlwaysVisible;
+	if (MiniGame && !bShouldShow)
+	{
+		const bool bTutorialScene = bShowDuringTutorial
+			&& (MiniGame->GetScenePhase() == EPTBMiniGameScenePhase::Tutorial || MiniGame->IsTutorialPracticeActive());
+		bShouldShow = bTutorialScene || MiniGame->IsRhythmInputActive();
+	}
 
 	// 다시 보일 때마다 키 이름·색 갱신 (설정 메뉴에서 키를 바꾸고 돌아온 경우 대비)
 	if (bShouldShow && (!bGuideShown || bSlotsDirty))

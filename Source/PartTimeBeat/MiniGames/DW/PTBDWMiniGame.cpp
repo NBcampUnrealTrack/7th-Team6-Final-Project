@@ -92,6 +92,9 @@ void APTBDWMiniGame::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	// BP에서 Receive* 이벤트를 부모 호출 없이 덮어써도 생성되도록 Tick에서 보장 (생성 후엔 즉시 반환)
+	EnsureKeyGuideWidget();
+
 	const UPTBDWMiniGameRuleSet* DWRule = GetDWRuleSet();
 	static const FName NAME_bHolding(TEXT("bHolding"));
 	static const FName NAME_RemainingHoldSec(TEXT("RemainingHoldSec"));
@@ -1242,8 +1245,18 @@ void APTBDWMiniGame::SpawnSplitHalves(AActor* Obstacle, EPTBActionType Action)
 
 void APTBDWMiniGame::EnsureKeyGuideWidget()
 {
-	if (KeyGuideWidget || !KeyGuideWidgetClass)
+	if (KeyGuideWidget)
 	{
+		return;
+	}
+	if (!KeyGuideWidgetClass)
+	{
+		static bool bWarned = false;
+		if (!bWarned)
+		{
+			bWarned = true;
+			UE_LOG(LogTemp, Warning, TEXT("[DWKeyGuide] KeyGuideWidgetClass가 비어 있음 → 키 안내 미표시 (%s Class Defaults 확인)"), *GetClass()->GetName());
+		}
 		return;
 	}
 	APlayerController* PC = GetWorld() ? GetWorld()->GetFirstPlayerController() : nullptr;
@@ -1256,6 +1269,7 @@ void APTBDWMiniGame::EnsureKeyGuideWidget()
 	{
 		KeyGuideWidget->InitializeWithMiniGame(this);
 		KeyGuideWidget->AddToViewport(KeyGuideZOrder);
+		UE_LOG(LogTemp, Log, TEXT("[DWKeyGuide] 생성: %s ZOrder=%d"), *KeyGuideWidgetClass->GetName(), KeyGuideZOrder);
 	}
 }
 
