@@ -267,6 +267,10 @@ private:
 	UFUNCTION()
 	void HandleBBOutroFinished(FPTBRoundResult Result, EPTBRoundEndReason EndReason);
 
+	/** 리듬 키 눌림/뗌 → 해당 액션 히트존 마커의 SetPressed 호출 */
+	UFUNCTION()
+	void HandleBBRhythmKeyStateChanged(EPTBActionType Action, bool bPressed);
+
 	// ── 내부 헬퍼 ────────────────────────────────────────────────
 
 	/** 큐 위젯을 스폰·배치하고 InitCue 호출 후 반환. 실패 시 nullptr. */
