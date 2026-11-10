@@ -12,8 +12,19 @@
 
 void UFSWidget::InitializeWidget(APTBFSMiniGame* InGame)
 {
+	if (IsValid(FSMiniGame) && FSMiniGame != InGame)
+	{
+		FSMiniGame->OnRhythmKeyStateChanged.RemoveDynamic(this, &UFSWidget::HandleRhythmKeyStateChanged);
+	}
+
 	FSMiniGame = InGame;
+	if (IsValid(FSMiniGame))
+	{
+		FSMiniGame->OnRhythmKeyStateChanged.AddUniqueDynamic(this, &UFSWidget::HandleRhythmKeyStateChanged);
+	}
+
 	RefreshKeyGuideLabels();
+	ResetKeyGuidePressed();
 	UpdateKeyGuide(0.0f);
 }
 
@@ -21,6 +32,53 @@ void UFSWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
 	RefreshKeyGuideLabels();
+	ResetKeyGuidePressed();
+}
+
+void UFSWidget::NativeDestruct()
+{
+	if (IsValid(FSMiniGame))
+	{
+		FSMiniGame->OnRhythmKeyStateChanged.RemoveDynamic(this, &UFSWidget::HandleRhythmKeyStateChanged);
+	}
+	Super::NativeDestruct();
+}
+
+void UFSWidget::ResetKeyGuidePressed()
+{
+	UWidget* Guides[3] = { KeyGuideA, KeyGuideB, KeyGuideC };
+	UWidget* Presses[3] = { KeyGuidePressA, KeyGuidePressB, KeyGuidePressC };
+	for (int32 i = 0; i < 3; ++i)
+	{
+		if (Guides[i]) { Guides[i]->SetRenderScale(FVector2D(1.0f, 1.0f)); }
+		if (Presses[i]) { Presses[i]->SetVisibility(ESlateVisibility::Hidden); }
+	}
+}
+
+void UFSWidget::HandleRhythmKeyStateChanged(EPTBActionType Action, bool bPressed)
+{
+	// KeyGuideA = A키 (키 셔플로 칸이 바뀌어도 A키 안내는 항상 KeyGuideA)
+	UWidget* Guide = nullptr;
+	UWidget* Press = nullptr;
+	switch (Action)
+	{
+	case EPTBActionType::ActionA: Guide = KeyGuideA; Press = KeyGuidePressA; break;
+	case EPTBActionType::ActionB: Guide = KeyGuideB; Press = KeyGuidePressB; break;
+	case EPTBActionType::ActionC: Guide = KeyGuideC; Press = KeyGuidePressC; break;
+	default: return;
+	}
+
+	if (Guide)
+	{
+		const float Scale = bPressed ? KeyGuidePressedScale : 1.0f;
+		Guide->SetRenderScale(FVector2D(Scale, Scale));
+	}
+	if (Press)
+	{
+		Press->SetVisibility(bPressed ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Hidden);
+	}
+
+	OnKeyGuidePressedChanged(Action, bPressed);
 }
 
 void UFSWidget::RefreshKeyGuideLabels()

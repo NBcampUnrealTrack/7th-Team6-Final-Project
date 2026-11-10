@@ -25,6 +25,7 @@ class PARTTIMEBEAT_API UFSWidget : public UUserWidget
 
 protected:
 	virtual void NativeConstruct() override;
+	virtual void NativeDestruct() override;
 	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
 
 	// ── 키 안내 UI (전부 선택사항, 이름이 같으면 자동 연결) ──
@@ -67,6 +68,31 @@ protected:
 	void UpdateKeyGuide(float VisualTimeMs);
 
 	bool bKeyGuideWasSwapping = false;
+
+	// ── 키 입력 피드백 (누르는 동안 KeyGuide 강조, 떼면 복귀) ──
+	// KeyGuidePressA/B/C : 눌림 표시용 위젯(테두리 이미지 등). KeyGuideA/B/C 안에 넣고 이름을 맞추면 자동 연결. 없어도 됨
+
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly)
+	UWidget* KeyGuidePressA = nullptr;
+
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly)
+	UWidget* KeyGuidePressB = nullptr;
+
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly)
+	UWidget* KeyGuidePressC = nullptr;
+
+	/** 누르는 동안 KeyGuide 크기 (1.0 = 변화 없음) */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FS|KeyGuide", meta = (ClampMin = "0.5", ClampMax = "2.0"))
+	float KeyGuidePressedScale = 1.15f;
+
+	/** 기본 처리(크기·강조 위젯) 후 호출. BP에서 색 변경 등 추가 연출 */
+	UFUNCTION(BlueprintImplementableEvent, Category = "FS|KeyGuide")
+	void OnKeyGuidePressedChanged(EPTBActionType Action, bool bPressed);
+
+	UFUNCTION()
+	void HandleRhythmKeyStateChanged(EPTBActionType Action, bool bPressed);
+
+	void ResetKeyGuidePressed();
 
 	UPROPERTY(meta = (BindWidget), BlueprintReadOnly)
 	UImage* ArrowLeft;
