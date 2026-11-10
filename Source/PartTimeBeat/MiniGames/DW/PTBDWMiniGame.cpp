@@ -20,6 +20,8 @@
 #include "Rhythm/PTBScoreCalculator.h"
 #include "TimerManager.h"
 #include "PTBDWTextPopup.h"
+#include "MiniGames/DW/PTBDWKeyGuideWidget.h"
+#include "Blueprint/UserWidget.h"
 #include "Profile/PTBProfileSubsystem.h"
 #include "Engine/GameInstance.h"
 
@@ -397,12 +399,16 @@ void APTBDWMiniGame::ReceiveTutorialPracticeStarted_Implementation()
 {
 	Super::ReceiveTutorialPracticeStarted_Implementation();
 
+	EnsureKeyGuideWidget();
+
 	if (APTBDWCameraRig* Rig = GetCameraRig()) { Rig->SnapToGameplayPose(); }
 }
 
 void APTBDWMiniGame::ReceiveIntroStarted_Implementation()
 {
 	Super::ReceiveIntroStarted_Implementation();
+
+	EnsureKeyGuideWidget();
 
 	if (APTBDWBackgroundScroller* Scroller = GetBackgroundScroller()) { Scroller->SetRunning(false); }
 
@@ -425,6 +431,8 @@ void APTBDWMiniGame::ReceiveIntroStarted_Implementation()
 void APTBDWMiniGame::ReceiveGameplayStarted_Implementation()
 {
 	Super::ReceiveGameplayStarted_Implementation();
+
+	EnsureKeyGuideWidget();
 
 	const float MotionInfluence = GetDWRuleSet() ? GetDWRuleSet()->AnimSpeedInfluence : 0.3f;
 	const float MotionRate = 1.0f + (ActiveSpeedScale - 1.0f) * MotionInfluence;
@@ -1232,9 +1240,34 @@ void APTBDWMiniGame::SpawnSplitHalves(AActor* Obstacle, EPTBActionType Action)
 	}
 }
 
+void APTBDWMiniGame::EnsureKeyGuideWidget()
+{
+	if (KeyGuideWidget || !KeyGuideWidgetClass)
+	{
+		return;
+	}
+	APlayerController* PC = GetWorld() ? GetWorld()->GetFirstPlayerController() : nullptr;
+	if (!PC)
+	{
+		return;
+	}
+	KeyGuideWidget = CreateWidget<UPTBDWKeyGuideWidget>(PC, KeyGuideWidgetClass);
+	if (KeyGuideWidget)
+	{
+		KeyGuideWidget->InitializeWithMiniGame(this);
+		KeyGuideWidget->AddToViewport(KeyGuideZOrder);
+	}
+}
+
 void APTBDWMiniGame::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	ClearAllNoteViews();
+
+	if (KeyGuideWidget)
+	{
+		KeyGuideWidget->RemoveFromParent();
+		KeyGuideWidget = nullptr;
+	}
 
 	Super::EndPlay(EndPlayReason);
 }

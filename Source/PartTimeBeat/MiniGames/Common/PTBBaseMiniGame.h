@@ -189,6 +189,10 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "PTB|MiniGame|Input")
 	FPTBMiniGameRhythmKeyDelegate OnRhythmKeyStateChanged;
 
+	/** 지금 리듬 입력을 받는 중인지 (본게임/연습, 대사·설명 중 제외). 키 안내 UI 표시 여부 등에 사용 */
+	UFUNCTION(BlueprintPure, Category = "PTB|MiniGame|Input")
+	bool IsRhythmInputActive() const;
+
 	/** 해당 액션 키가 현재 눌려 있는지 (입력 피드백 UI용) */
 	UFUNCTION(BlueprintPure, Category = "PTB|MiniGame|Input")
 	bool IsRhythmKeyHeld(EPTBActionType Action) const { return HeldRhythmKeys.Contains(Action); }

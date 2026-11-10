@@ -2130,6 +2130,15 @@ void APTBBaseMiniGame::RequestWwiseEvent(FName EventKey, AActor* Target)
 	AudioManager->PostSFXEvent(EventKey, Target ? Target : this);
 }
 
+bool APTBBaseMiniGame::IsRhythmInputActive() const
+{
+	const bool bSceneConsumesInput = ActiveSceneWidget
+		&& !bTutorialPracticeActive
+		&& ScenePhase != EPTBMiniGameScenePhase::None
+		&& ScenePhase != EPTBMiniGameScenePhase::Ready;
+	return !bSceneConsumesInput && CanAcceptInput();
+}
+
 void APTBBaseMiniGame::NotifyRhythmKeyState(EPTBActionType Action, bool bPressed)
 {
 	if (Action == EPTBActionType::None)
@@ -2140,11 +2149,7 @@ void APTBBaseMiniGame::NotifyRhythmKeyState(EPTBActionType Action, bool bPressed
 	if (bPressed)
 	{
 		// 씬(대사/튜토리얼 설명) 재생 중이거나 입력 불가 상태면 피드백 없음
-		const bool bSceneConsumesInput = ActiveSceneWidget
-			&& !bTutorialPracticeActive
-			&& ScenePhase != EPTBMiniGameScenePhase::None
-			&& ScenePhase != EPTBMiniGameScenePhase::Ready;
-		if (bSceneConsumesInput || !CanAcceptInput() || HeldRhythmKeys.Contains(Action))
+		if (!IsRhythmInputActive() || HeldRhythmKeys.Contains(Action))
 		{
 			return;
 		}

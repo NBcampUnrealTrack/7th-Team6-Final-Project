@@ -15,6 +15,7 @@ class UNiagaraSystem;
 class APTBDWTextPopup;
 class UNiagaraComponent;
 class APTBDWNoteToken;
+class UPTBDWKeyGuideWidget;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FDWOnComboChanged, int32, NewCombo);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FDWOnNoteResolved, bool, bSuccess, int32, Combo);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FDWOnNoteJudged, EPTBJudgementType, Grade, int32, Combo, int32, Score);
@@ -128,6 +129,22 @@ public:
 	/** 판정 등급 팝업 표시. */
 	void ShowJudgeGrade(EPTBJudgementType Grade);
 
+	/** 키 안내 UI용: 이 액션을 이번 판에서 쓰는지 */
+	UFUNCTION(BlueprintPure, Category = "PTB|DW|KeyGuide")
+	bool IsActionUsed(EPTBActionType Action) const { return IsSupportedAction(Action); }
+
+	/** 키 안내 UI용: 액션별 노트(별) 색 (DataAsset NoteColorByAction) */
+	UFUNCTION(BlueprintPure, Category = "PTB|DW|KeyGuide")
+	FLinearColor GetNoteColorForAction(EPTBActionType Action) const { return GetNoteColor(Action); }
+
+	/** 키 안내 HUD 위젯 클래스 (WBP_DW_KeyGuide 등). 비우면 표시 안 함 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "PTB|DW|KeyGuide")
+	TSubclassOf<UPTBDWKeyGuideWidget> KeyGuideWidgetClass;
+
+	/** 키 안내 HUD의 화면 표시 순서 (결과·일시정지 창보다 낮게) */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "PTB|DW|KeyGuide")
+	int32 KeyGuideZOrder = 0;
+
 protected:
 	virtual void Tick(float DeltaTime) override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
@@ -180,6 +197,12 @@ private:
 
 	void SpawnCharactersIfNeeded();
 	bool IsSupportedAction(EPTBActionType Action) const;
+
+	/** 키 안내 HUD 생성 (한 번만) */
+	void EnsureKeyGuideWidget();
+
+	UPROPERTY()
+	TObjectPtr<UPTBDWKeyGuideWidget> KeyGuideWidget = nullptr;
 
 	/** 위치에 VFX 스폰 + User Param "SpawnColor" 전달. */
 	void RequestDWVfxColored(UNiagaraSystem* System, const FVector& Location, const FLinearColor& Color);
