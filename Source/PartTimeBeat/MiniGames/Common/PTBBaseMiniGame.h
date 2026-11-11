@@ -31,6 +31,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FPTBMiniGameNoteDelegate, FPTBNoteEv
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FPTBMiniGameJudgementDelegate, FPTBJudgementResult, Result);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FPTBMiniGameOutroDelegate, FPTBRoundResult, Result, EPTBRoundEndReason, EndReason);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FPTBMiniGameScenePhaseDelegate, EPTBMiniGameScenePhase, Phase);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FPTBMiniGameRhythmKeyDelegate, EPTBActionType, Action, bool, bPressed);
 
 struct FPTBActiveHoldState
 {
@@ -178,6 +179,30 @@ public:
 	/** 공통 점수/SFX 처리가 반영된 판정 결과 */
 	UPROPERTY(BlueprintAssignable, Category = "PTB|MiniGame|Events")
 	FPTBMiniGameJudgementDelegate OnMiniGameJudgement;
+
+	/**
+	 * 리듬 키 눌림/뗌 (입력 피드백 UI용).
+	 * 판정·리맵과 무관하게 '플레이어가 실제로 누른 키' 기준으로 발생한다.
+	 * Pressed는 입력 가능 상태(본게임/연습)에서만, Released는 Pressed가 나간 키에 대해 항상 발생한다.
+	 * 일시정지/종료 시 눌려 있던 키는 자동으로 Released가 발생한다.
+	 */
+	UPROPERTY(BlueprintAssignable, Category = "PTB|MiniGame|Input")
+	FPTBMiniGameRhythmKeyDelegate OnRhythmKeyStateChanged;
+
+	/** 지금 리듬 입력을 받는 중인지 (본게임/연습, 대사·설명 중 제외). 키 안내 UI 표시 여부 등에 사용 */
+	UFUNCTION(BlueprintPure, Category = "PTB|MiniGame|Input")
+	bool IsRhythmInputActive() const;
+
+	/** 해당 액션 키가 현재 눌려 있는지 (입력 피드백 UI용) */
+	UFUNCTION(BlueprintPure, Category = "PTB|MiniGame|Input")
+	bool IsRhythmKeyHeld(EPTBActionType Action) const { return HeldRhythmKeys.Contains(Action); }
+
+	/** PlayerController가 원본 키 입력을 알릴 때 호출. 판정과는 별개로 피드백 이벤트만 발생시킨다. */
+	void NotifyRhythmKeyState(EPTBActionType Action, bool bPressed);
+
+	/** 눌려 있던 모든 키에 대해 Released를 발생시키고 상태를 비운다. */
+	UFUNCTION(BlueprintCallable, Category = "PTB|MiniGame|Input")
+	void ReleaseAllRhythmKeys();
 
 	/** 컨텍스트 주입 */
 	virtual void InitializeMiniGame(const FPTBMiniGameContext& Context);
@@ -670,6 +695,9 @@ protected:
 
 	/** 입력 가능 여부 */
 	bool CanAcceptInput() const;
+
+	/** 입력 피드백용: 현재 눌린 리듬 키 */
+	TSet<EPTBActionType> HeldRhythmKeys;
 
 	/** Cue 선행 발행 중 여부 */
 	bool IsCuePreRollActive() const;

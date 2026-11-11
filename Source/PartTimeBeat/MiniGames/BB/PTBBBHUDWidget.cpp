@@ -36,6 +36,7 @@ void UPTBBBHUDWidget::BindToMiniGame(APTBBBMiniGame* InMiniGame)
 		BBMiniGame->OnMiniGameGameplayStarted.RemoveDynamic(this, &UPTBBBHUDWidget::HandleBBGameplayStarted);
 		BBMiniGame->OnMiniGameOutroStarted.RemoveDynamic(this, &UPTBBBHUDWidget::HandleBBOutroStarted);
 		BBMiniGame->OnMiniGameOutroFinished.RemoveDynamic(this, &UPTBBBHUDWidget::HandleBBOutroFinished);
+		BBMiniGame->OnRhythmKeyStateChanged.RemoveDynamic(this, &UPTBBBHUDWidget::HandleBBRhythmKeyStateChanged);
 	}
 
 	BBMiniGame = InMiniGame;
@@ -52,6 +53,7 @@ void UPTBBBHUDWidget::BindToMiniGame(APTBBBMiniGame* InMiniGame)
 	InMiniGame->OnMiniGameGameplayStarted.AddUniqueDynamic(this, &UPTBBBHUDWidget::HandleBBGameplayStarted);
 	InMiniGame->OnMiniGameOutroStarted.AddUniqueDynamic(this, &UPTBBBHUDWidget::HandleBBOutroStarted);
 	InMiniGame->OnMiniGameOutroFinished.AddUniqueDynamic(this, &UPTBBBHUDWidget::HandleBBOutroFinished);
+	InMiniGame->OnRhythmKeyStateChanged.AddUniqueDynamic(this, &UPTBBBHUDWidget::HandleBBRhythmKeyStateChanged);
 
 	// 바인딩 시점의 HP로 메인 바 및 고스트 바 초기 동기화
 	SyncBarsToMiniGame();
@@ -132,6 +134,7 @@ void UPTBBBHUDWidget::NativeDestruct()
 		BBMiniGame->OnMiniGameGameplayStarted.RemoveDynamic(this, &UPTBBBHUDWidget::HandleBBGameplayStarted);
 		BBMiniGame->OnMiniGameOutroStarted.RemoveDynamic(this, &UPTBBBHUDWidget::HandleBBOutroStarted);
 		BBMiniGame->OnMiniGameOutroFinished.RemoveDynamic(this, &UPTBBBHUDWidget::HandleBBOutroFinished);
+		BBMiniGame->OnRhythmKeyStateChanged.RemoveDynamic(this, &UPTBBBHUDWidget::HandleBBRhythmKeyStateChanged);
 	}
 
 	ClearCenterMessageTimers();
@@ -600,4 +603,22 @@ void UPTBBBHUDWidget::QueueCenterMessage(float DelaySeconds, const FText& Messag
 	});
 	World->GetTimerManager().SetTimer(TimerHandle, TimerDelegate, FMath::Max(0.0f, DelaySeconds), false);
 	CenterMessageTimerHandles.Add(TimerHandle);
+}
+
+// ── 입력 피드백 ──────────────────────────────────────────────────
+
+void UPTBBBHUDWidget::HandleBBRhythmKeyStateChanged(EPTBActionType Action, bool bPressed)
+{
+	if (bIsDestructed)
+	{
+		return;
+	}
+
+	if (const TObjectPtr<UPTBBBHitZoneWidgetBase>* Marker = HitZoneMarkers.Find(Action))
+	{
+		if (IsValid(*Marker))
+		{
+			(*Marker)->SetPressed(bPressed);
+		}
+	}
 }

@@ -599,6 +599,8 @@ void APTBBaseMiniGame::EndPlay(const EEndPlayReason::Type EndPlayReason)
 
 	CloseActiveSceneWidget();
 
+	ReleaseAllRhythmKeys();
+
 	Super::EndPlay(EndPlayReason);
 }
 
@@ -898,6 +900,7 @@ FPTBRoundResult APTBBaseMiniGame::FinishMiniGame(EPTBRoundEndReason Reason)
 	}
 
 	bFinishSequenceActive = true;
+	ReleaseAllRhythmKeys();
 	PendingEndReason = Reason;
 	bIsRoundActive = false;
 	bStartSequenceActive = false;
@@ -1041,6 +1044,7 @@ void APTBBaseMiniGame::PauseMiniGame()
 	}
 
 	bInputLocked = true;
+	ReleaseAllRhythmKeys();
 	ApplyGameAndUIInputMode();
 	GetWorldTimerManager().PauseTimer(IntroTimerHandle);
 	GetWorldTimerManager().PauseTimer(CuePreRollTimerHandle);
@@ -2124,6 +2128,56 @@ void APTBBaseMiniGame::RequestWwiseEvent(FName EventKey, AActor* Target)
 	}
 
 	AudioManager->PostSFXEvent(EventKey, Target ? Target : this);
+}
+
+bool APTBBaseMiniGame::IsRhythmInputActive() const
+{
+	const bool bSceneConsumesInput = ActiveSceneWidget
+		&& !bTutorialPracticeActive
+		&& ScenePhase != EPTBMiniGameScenePhase::None
+		&& ScenePhase != EPTBMiniGameScenePhase::Ready;
+	return !bSceneConsumesInput && CanAcceptInput();
+}
+
+void APTBBaseMiniGame::NotifyRhythmKeyState(EPTBActionType Action, bool bPressed)
+{
+	if (Action == EPTBActionType::None)
+	{
+		return;
+	}
+
+	if (bPressed)
+	{
+		// 씬(대사/튜토리얼 설명) 재생 중이거나 입력 불가 상태면 피드백 없음
+		if (!IsRhythmInputActive() || HeldRhythmKeys.Contains(Action))
+		{
+			return;
+		}
+		HeldRhythmKeys.Add(Action);
+		OnRhythmKeyStateChanged.Broadcast(Action, true);
+	}
+	else
+	{
+		// 눌림이 나간 키만 해제 (입력 잠금 여부와 무관 → 색이 남지 않도록)
+		if (HeldRhythmKeys.Remove(Action) > 0)
+		{
+			OnRhythmKeyStateChanged.Broadcast(Action, false);
+		}
+	}
+}
+
+void APTBBaseMiniGame::ReleaseAllRhythmKeys()
+{
+	if (HeldRhythmKeys.Num() == 0)
+	{
+		return;
+	}
+	const TArray<EPTBActionType> Released = HeldRhythmKeys.Array();
+	HeldRhythmKeys.Reset();
+	for (const EPTBActionType Action : Released)
+	{
+		OnRhythmKeyStateChanged.Broadcast(Action, false);
+	}
 }
 
 bool APTBBaseMiniGame::CanAcceptInput() const

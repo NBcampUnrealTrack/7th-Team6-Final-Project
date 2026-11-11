@@ -55,6 +55,81 @@ void APTBFSMiniGame::BeginPlay()
 void APTBFSMiniGame::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+
+	// 안 누른 노트: Good 범위가 지나면 더 이상 성공할 수 없으므로 만료 판정(Miss 범위 끝)을 기다리지 않고 바로 흔든다
+	if (bEarlyMissShake && JudgementSystem && ArmedNoteTimesMs.Num() > 0 && CanAcceptInput())
+	{
+		const float NowMs = GetCurrentInputJudgeTimeMs();
+		const float LateLimitMs = JudgementSystem->HitWindowGoodMs;
+		for (auto It = ArmedNoteTimesMs.CreateIterator(); It; ++It)
+		{
+			if (NowMs > It.Value() + LateLimitMs)
+			{
+				TriggerMissShake(It.Key());
+				It.RemoveCurrent();
+			}
+		}
+	}
+}
+
+void APTBFSMiniGame::TriggerMissShake(int32 NoteId)
+{
+	if (NoteId != 0)
+	{
+		if (ShakenNoteIds.Contains(NoteId))
+		{
+			return;
+		}
+		ShakenNoteIds.Add(NoteId);
+	}
+
+	UWorld* World = GetWorld();
+	if (!World || !MissCameraShakeClass)
+	{
+		return;
+	}
+
+	const float Now = World->GetTimeSeconds();
+	if (Now - LastMissShakeWorldTime < MissShakeCooldownSec)
+	{
+		return;
+	}
+	LastMissShakeWorldTime = Now;
+
+	if (APlayerController* PC = World->GetFirstPlayerController())
+	{
+		PC->ClientStartCameraShake(MissCameraShakeClass);
+	}
+}
+
+void APTBFSMiniGame::HandleRhythmInput(EPTBActionType Action, float TimeMs)
+{
+	// 다른 키 오입력 즉시 흔들림: 누른 키의 노트는 범위에 없고, 다른 키 노트가 Good 범위 안에 있을 때
+	const bool bGameplayInput = IsTutorialPracticeActive()
+		|| GetScenePhase() == EPTBMiniGameScenePhase::None
+		|| GetScenePhase() == EPTBMiniGameScenePhase::Ready;
+	if (bShakeOnWrongKey && bGameplayInput && JudgementSystem && CanAcceptInput())
+	{
+		const float ResolvedTimeMs = TimeMs >= 0.0f ? TimeMs : GetCurrentInputJudgeTimeMs();
+		FPTBNoteEvent OwnNote;
+		if (!JudgementSystem->FindBestPendingNote(Action, ResolvedTimeMs, OwnNote))
+		{
+			for (const EPTBActionType Other : { EPTBActionType::ActionA, EPTBActionType::ActionB, EPTBActionType::ActionC })
+			{
+				FPTBNoteEvent OtherNote;
+				if (Other != Action
+					&& JudgementSystem->FindBestPendingNote(Other, ResolvedTimeMs, OtherNote)
+					&& FMath::Abs(ResolvedTimeMs - OtherNote.TimeMs) <= JudgementSystem->HitWindowGoodMs)
+				{
+					// 노트 단위 중복 방지 없이 쿨다운만 적용 (같은 노트에 여러 번 오입력해도 매번 반응)
+					TriggerMissShake(0);
+					break;
+				}
+			}
+		}
+	}
+
+	Super::HandleRhythmInput(Action, TimeMs);
 }
 
 void APTBFSMiniGame::BuildRuntimeState()
@@ -132,6 +207,10 @@ void APTBFSMiniGame::HandleNoteCue(FPTBNoteEvent Note)
 void APTBFSMiniGame::HandleNoteArm(FPTBNoteEvent Note)
 {
 	Super::HandleNoteArm(Note);
+	if (!Note.bIsLongNote) // 롱노트는 누르고 있는 동안 판정이 늦게 나올 수 있어 조기 흔들림 대상에서 제외
+	{
+		ArmedNoteTimesMs.Add(Note.NoteId, Note.TimeMs);
+	}
 	if (!FishActor) return;
 
 	const EPTBActionType VisualAction = GetVisualAction(Note);
@@ -175,6 +254,10 @@ void APTBFSMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 	{
 		PTB_WARNING(LogPTBMiniGames, TEXT("캐릭터 유효하지 않음"));
 		return;
+	}
+	if (Result.NoteId != 0)
+	{
+		ArmedNoteTimesMs.Remove(Result.NoteId);
 	}
 	if (!FishActor)return;
 	if (Result.Reason == EPTBJudgementReason::EmptyInput) return;
@@ -232,13 +315,8 @@ void APTBFSMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 		CurrentComboCount = 0;
 		OnFishingComboChanged.Broadcast(CurrentComboCount);
 		OnFishingJudgement.Broadcast(Result.JudgementType);
-		if (MissCameraShakeClass)
-		{
-			if (APlayerController* PC = GetWorld()->GetFirstPlayerController())
-			{
-				PC->ClientStartCameraShake(MissCameraShakeClass);
-			}
-		}
+		// 조기 흔들림에서 이미 흔든 노트면 중복하지 않음
+		TriggerMissShake(Result.NoteId);
 		break;
 	default:
 		break;
@@ -406,6 +484,8 @@ void APTBFSMiniGame::HandleRoundChartChanged()
 	MovingCount = 0;
 	CurrentComboCount = 0;
 	FishLateralOffset = FVector::ZeroVector;
+	ArmedNoteTimesMs.Reset();
+	ShakenNoteIds.Reset();
 	CurrentLineState = CalculateLineState(FishDistance);
 	OnFishDistanceChanged.Broadcast(FishDistance);
 	OnFishingLineStateChanged.Broadcast(CurrentLineState);

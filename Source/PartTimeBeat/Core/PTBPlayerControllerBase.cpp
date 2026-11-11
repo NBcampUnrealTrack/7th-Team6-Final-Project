@@ -153,10 +153,13 @@ bool APTBPlayerControllerBase::TryRouteRhythmInput(const FInputKeyEventArgs& Eve
 	// 미니게임 내부에서 CanAcceptInput() 및 SupportedActions 검사가 수행됨
 	if (EventArgs.Event == IE_Pressed)
 	{
+		// 입력 피드백 UI용 원본 키 이벤트 (판정 전에 먼저 알림 — 미니게임별 액션 리맵과 무관)
+		MiniGame->NotifyRhythmKeyState(Action, true);
 		MiniGame->HandleRhythmInput(Action);
 	}
 	else
 	{
+		MiniGame->NotifyRhythmKeyState(Action, false);
 		MiniGame->HandleRhythmInputReleased(Action);
 	}
 

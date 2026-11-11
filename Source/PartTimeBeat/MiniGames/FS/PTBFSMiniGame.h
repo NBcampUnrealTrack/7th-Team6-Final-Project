@@ -147,6 +147,9 @@ public:
 	/** NoteId로 화면 칸 찾기 (판정 결과용) */
 	EPTBActionType GetVisualActionForNoteId(int32 NoteId, EPTBActionType Fallback) const;
 
+	/** 오입력(다른 키) 즉시 흔들림 감지 후 공통 입력 처리 */
+	virtual void HandleRhythmInput(EPTBActionType Action, float TimeMs = -1.0f) override;
+
 	TObjectPtr<UPTBWwiseRhythmSyncComponent> GetUPTBWwiseRhythmSyncComponent()
 	{
 		return RhythmSyncComponent;
@@ -253,4 +256,29 @@ private:
 	
 	UPROPERTY(EditAnywhere, Category = "Camera",meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<class ULevelSequence> FailCameraSequence;
+
+	// ── 미스 화면 흔들림 ──
+	// 기존: 노트가 판정 범위(Miss 500ms)를 완전히 지나 만료될 때만 흔들려서 체감상 늦음.
+	// 변경: ① 다른 키를 누르면 즉시 ② 안 누른 노트는 Good 범위가 끝나는 순간(더 이상 성공 불가) 흔들림.
+	//       같은 노트로는 한 번만 흔들림 (이후 만료 Miss에서 중복 안 함).
+
+	/** 노트 근처에서 다른 키를 누르면 즉시 흔들림 (노트 자체는 그대로 남아 맞는 키로 다시 칠 수 있음) */
+	UPROPERTY(EditAnywhere, Category = "Camera", meta = (AllowPrivateAccess = "true"))
+	bool bShakeOnWrongKey = true;
+
+	/** 안 누른 노트를 만료(Miss 범위 끝)까지 기다리지 않고 Good 범위가 끝나는 즉시 흔들림 */
+	UPROPERTY(EditAnywhere, Category = "Camera", meta = (AllowPrivateAccess = "true"))
+	bool bEarlyMissShake = true;
+
+	/** 흔들림 최소 간격(초). 연타 오입력 시 과도하게 흔들리지 않도록 */
+	UPROPERTY(EditAnywhere, Category = "Camera", meta = (AllowPrivateAccess = "true", ClampMin = "0.0"))
+	float MissShakeCooldownSec = 0.2f;
+
+	/** NoteId 기준 한 번만 흔들기. NoteId=0이면 쿨다운만 적용 */
+	void TriggerMissShake(int32 NoteId);
+
+	/** 판정 대기 중인 노트 시간 (조기 흔들림 검사용). 판정되면 제거 */
+	TMap<int32, float> ArmedNoteTimesMs;
+	TSet<int32> ShakenNoteIds;
+	float LastMissShakeWorldTime = -1000.0f;
 };
