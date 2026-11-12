@@ -59,6 +59,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|UI|ProfileCreate")
 	int32 ModelCount = 2;
 
+	/** 새 프로필 생성 시 처음 선택돼 있는 모델 (기본 1 = 여). 수정 모드에서는 기존 프로필 값이 우선 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|UI|ProfileCreate", meta = (ClampMin = "0"))
+	int32 DefaultModelIndex = 1;
+
 	/**
 	 * 모델 인덱스 → 성별 (생성 BP에서 쓰는 매핑과 같아야 함). 기본: 0=남, 1=여.
 	 * 프로필 수정 모드에서 기존 성별로 모델을 미리 선택하고, 저장할 때 성별로 바꾸는 데 사용.

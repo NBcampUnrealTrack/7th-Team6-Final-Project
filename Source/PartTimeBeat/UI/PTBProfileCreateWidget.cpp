@@ -11,6 +11,12 @@
 
 void UPTBProfileCreateWidget::NativeConstruct()
 {
+	// BP Construct(Super 안에서 호출)가 읽기 전에 기본 선택을 먼저 적용
+	if (!bEditMode)
+	{
+		SelectedModelIndex = FMath::Clamp(DefaultModelIndex, 0, FMath::Max(0, ModelCount - 1));
+	}
+
 	Super::NativeConstruct();
 
 	if (Btn_Confirm) { Btn_Confirm->OnClicked.AddUniqueDynamic(this, &UPTBProfileCreateWidget::HandleConfirmClicked); }
