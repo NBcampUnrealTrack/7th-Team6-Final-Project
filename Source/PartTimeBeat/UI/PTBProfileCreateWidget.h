@@ -31,6 +31,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "PTB|UI|ProfileCreate")
 	void SelectNextModel();
 	
+	/** 해당 모델을 바로 선택 (이미지 클릭용). 범위 밖이면 무시 */
+	UFUNCTION(BlueprintCallable, Category = "PTB|UI|ProfileCreate")
+	void SelectModel(int32 ModelIndex);
+
 	UFUNCTION(BlueprintPure, Category = "PTB|UI|ProfileCreate")
 	int32 GetSelectedModelIndex() const { return SelectedModelIndex; }
 	
@@ -146,6 +150,19 @@ protected:
 
 	UFUNCTION()
 	void HandleConfirmClicked();
+
+	/** 캐릭터 이미지 버튼 (Img_Model0/1을 Button으로 감싸고 이 이름으로). 있으면 클릭 시 자동 선택 */
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UButton> Btn_Model0;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UButton> Btn_Model1;
+
+	UFUNCTION()
+	void HandleModel0Clicked();
+
+	UFUNCTION()
+	void HandleModel1Clicked();
 	
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UEditableTextBox> Input_Nickname;
