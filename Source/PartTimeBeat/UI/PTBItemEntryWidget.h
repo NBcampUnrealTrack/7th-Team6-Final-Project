@@ -20,7 +20,7 @@ class UPTBItemPopupWidget;
  *  - Image_Icon      : 아이콘. Icon이 비어 있으면 아이템 Color로 칠함 (헤어 색 견본용)
  *  - Text_Name       : 아이템 이름
  *  - Text_Price      : 가격 (상점에서 미보유일 때만 표시)
- *  - Widget_Equipped : 장착 중 표시 (아무 위젯. 장착 중이면 Visible)
+ *  - Widget_Equipped : 장착 중 표시 (아무 위젯. 사물함에서 장착 중이면 Visible. 상점에서는 표시 안 함)
  *  - Widget_Owned    : 보유 표시 (상점에서 이미 산 아이템이면 Visible)
  *  - Widget_Selected : 선택 테두리 등 (선택된 칸이면 Visible)
  */

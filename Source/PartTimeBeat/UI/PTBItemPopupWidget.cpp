@@ -136,7 +136,9 @@ void UPTBItemPopupWidget::RefreshView()
 	FPTBItemView Dummy;
 	if (!GetSelectedItemView(Dummy))
 	{
-		const FPTBItemView* Equipped = CurrentItems.FindByPredicate([](const FPTBItemView& V) { return V.bEquipped; });
+		// 상점은 장착 개념이 없으므로 처음 선택은 첫 아이템
+		const FPTBItemView* Equipped = IsShopMode() ? nullptr
+			: CurrentItems.FindByPredicate([](const FPTBItemView& V) { return V.bEquipped; });
 		SelectedItemId = Equipped ? Equipped->ItemId
 			: (CurrentItems.Num() > 0 ? CurrentItems[0].ItemId : NAME_None);
 	}
@@ -402,10 +404,9 @@ UPTBShopWidget::UPTBShopWidget(const FObjectInitializer& ObjectInitializer)
 {
 	LabelBuyFormat         = NSLOCTEXT("PTBItem", "ShopBuyFormat", "구매 ({Price} G)");
 	LabelNotEnoughMoney    = NSLOCTEXT("PTBItem", "ShopNotEnoughMoney", "골드 부족");
-	LabelEquip             = NSLOCTEXT("PTBItem", "ShopEquip", "장착");
-	LabelEquipped          = NSLOCTEXT("PTBItem", "ShopEquipped", "장착 중");
+	LabelOwned             = NSLOCTEXT("PTBItem", "ShopOwned", "보유 중");
 	LabelUnavailable       = NSLOCTEXT("PTBItem", "ShopUnavailable", "구매 불가");
-	MessagePurchasedFormat = NSLOCTEXT("PTBItem", "ShopPurchased", "{Item} 구매 완료!");
+	MessagePurchasedFormat = NSLOCTEXT("PTBItem", "ShopPurchasedLocker", "{Item} 구매 완료! 사물함에서 장착할 수 있어요.");
 	MessageNotEnoughMoney  = NSLOCTEXT("PTBItem", "ShopMsgNotEnoughMoney", "골드가 부족해요.");
 	MessagePurchaseFailed  = NSLOCTEXT("PTBItem", "ShopMsgFailed", "구매할 수 없는 아이템이에요.");
 }
@@ -447,8 +448,8 @@ bool UPTBShopWidget::GetActionState(const FPTBItemView& ItemView, FText& OutLabe
 {
 	if (ItemView.bOwned)
 	{
-		OutLabel = ItemView.bEquipped ? LabelEquipped : LabelEquip;
-		return !ItemView.bEquipped;
+		OutLabel = LabelOwned;
+		return false; // 상점에서는 장착하지 않음 (사물함에서)
 	}
 
 	const UPTBItemSubsystem* Items = GetItemSubsystem();
@@ -481,11 +482,11 @@ void UPTBShopWidget::DoAction(const FPTBItemView& ItemView)
 
 	if (ItemView.bOwned)
 	{
-		Items->TryEquip(ItemView.ItemId);
-		return;
+		return; // 이미 보유 → 상점에서는 동작 없음
 	}
 
-	const EPTBPurchaseResult Result = Items->TryPurchase(ItemView.ItemId, bEquipAfterPurchase);
+	// 구매만 하고 장착하지 않음 (장착은 사물함에서)
+	const EPTBPurchaseResult Result = Items->TryPurchase(ItemView.ItemId, false);
 	switch (Result)
 	{
 	case EPTBPurchaseResult::Success:

@@ -85,7 +85,8 @@ void UPTBItemEntryWidget::ApplyView()
 	}
 	SetVisibleIf(Text_Price, bShowPrice);
 
-	SetVisibleIf(Widget_Equipped, View.bEquipped);
+	// 장착 여부는 사물함에서만 의미 있음 (상점은 구매만, 장착은 사물함에서)
+	SetVisibleIf(Widget_Equipped, !bShopMode && View.bEquipped);
 	SetVisibleIf(Widget_Owned, bShopMode && View.bOwned);
 	SetVisibleIf(Widget_Selected, bSelected);
 
