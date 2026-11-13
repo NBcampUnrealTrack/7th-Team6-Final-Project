@@ -19,9 +19,10 @@ class UPTBItemPopupWidget;
  *  - Button_Entry    : 칸 전체 클릭 영역 (Button)
  *  - Image_Icon      : 아이콘. Icon이 비어 있으면 아이템 Color로 칠함 (헤어 색 견본용)
  *  - Text_Name       : 아이템 이름
- *  - Text_Price      : 가격 (상점에서 미보유일 때만 표시)
+ *  - Text_Price      : 상점: 미보유면 가격, 보유면 "구매함"(OwnedText) / 사물함: 숨김
  *  - Widget_Equipped : 장착 중 표시 (아무 위젯. 사물함에서 장착 중이면 Visible. 상점에서는 표시 안 함)
- *  - Widget_Owned    : 보유 표시 (상점에서 이미 산 아이템이면 Visible)
+ *  - Widget_Owned    : (구버전 호환) 보유 표시. 기본은 숨김 — 보유는 Text_Price 자리에 표시. bShowOwnedWidget로 다시 켤 수 있음
+ *  상점에서 이미 산 아이템 칸은 Button_Entry가 비활성화된다 (선택·구매 불가)
  *  - Widget_Selected : 선택 테두리 등 (선택된 칸이면 Visible)
  */
 UCLASS(Abstract)
@@ -52,6 +53,18 @@ protected:
 	/** 가격 표시 형식. {Price} = 가격 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Item")
 	FText PriceFormat;
+
+	/** 상점에서 이미 산 아이템의 가격 자리 문구 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Item")
+	FText OwnedText;
+
+	/** 상점에서 이미 산 아이템 칸을 비활성화 (클릭 불가 + 버튼 Disabled 스타일) */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Item")
+	bool bDisableOwnedInShop = true;
+
+	/** 구버전처럼 Widget_Owned를 따로 표시 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Item")
+	bool bShowOwnedWidget = false;
 
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "PTB|UI")
 	TObjectPtr<UButton> Button_Entry = nullptr;

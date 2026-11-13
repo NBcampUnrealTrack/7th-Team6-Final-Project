@@ -43,6 +43,7 @@ UPTBItemEntryWidget::UPTBItemEntryWidget(const FObjectInitializer& ObjectInitial
 	: Super(ObjectInitializer)
 {
 	PriceFormat = NSLOCTEXT("PTBItem", "EntryPriceFormat", "{Price} G");
+	OwnedText = NSLOCTEXT("PTBItem", "EntryOwned", "구매함");
 }
 
 void UPTBItemEntryWidget::NativeConstruct()
@@ -76,18 +77,32 @@ void UPTBItemEntryWidget::ApplyView()
 		Text_Name->SetText(View.Data.DisplayName);
 	}
 
-	const bool bShowPrice = bShopMode && !View.bOwned;
+	// 상점: 미보유 = 가격, 보유 = "구매함" (같은 자리) / 사물함: 숨김
+	const bool bOwnedInShop = bShopMode && View.bOwned;
 	if (Text_Price)
 	{
-		FFormatNamedArguments Args;
-		Args.Add(TEXT("Price"), FText::AsNumber(View.Data.Price));
-		Text_Price->SetText(FText::Format(PriceFormat, Args));
+		if (bOwnedInShop)
+		{
+			Text_Price->SetText(OwnedText);
+		}
+		else
+		{
+			FFormatNamedArguments Args;
+			Args.Add(TEXT("Price"), FText::AsNumber(View.Data.Price));
+			Text_Price->SetText(FText::Format(PriceFormat, Args));
+		}
 	}
-	SetVisibleIf(Text_Price, bShowPrice);
+	SetVisibleIf(Text_Price, bShopMode);
+
+	// 상점에서 이미 산 아이템은 클릭 불가
+	if (Button_Entry)
+	{
+		Button_Entry->SetIsEnabled(!(bDisableOwnedInShop && bOwnedInShop));
+	}
 
 	// 장착 여부는 사물함에서만 의미 있음 (상점은 구매만, 장착은 사물함에서)
 	SetVisibleIf(Widget_Equipped, !bShopMode && View.bEquipped);
-	SetVisibleIf(Widget_Owned, bShopMode && View.bOwned);
+	SetVisibleIf(Widget_Owned, bShowOwnedWidget && bOwnedInShop);
 	SetVisibleIf(Widget_Selected, bSelected);
 
 	OnEntryUpdated(View, bSelected, bShopMode);

@@ -136,8 +136,9 @@ void UPTBItemPopupWidget::RefreshView()
 	FPTBItemView Dummy;
 	if (!GetSelectedItemView(Dummy))
 	{
-		// 상점은 장착 개념이 없으므로 처음 선택은 첫 아이템
-		const FPTBItemView* Equipped = IsShopMode() ? nullptr
+		// 상점: 아직 안 산 첫 아이템 (전부 샀으면 첫 아이템) / 사물함: 장착 중인 아이템
+		const FPTBItemView* Equipped = IsShopMode()
+			? CurrentItems.FindByPredicate([](const FPTBItemView& V) { return !V.bOwned; })
 			: CurrentItems.FindByPredicate([](const FPTBItemView& V) { return V.bEquipped; });
 		SelectedItemId = Equipped ? Equipped->ItemId
 			: (CurrentItems.Num() > 0 ? CurrentItems[0].ItemId : NAME_None);
