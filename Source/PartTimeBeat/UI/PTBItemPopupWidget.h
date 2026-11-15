@@ -200,7 +200,7 @@ protected:
 /**
  * 상점 (허브의 상점 오브젝트에서 Enter).
  * 상점 오브젝트가 InitShop으로 상점 이름과 판매 카테고리를 넘겨줌 → 헤어샵/판정 스킨샵/탈것 가게를 같은 WBP로 재사용 가능
- * 이미 산 아이템은 "장착" 버튼으로 바로 장착 가능
+ * 상점은 구매만 담당. 이미 산 아이템은 "보유 중"(버튼 비활성)으로 표시하고, 장착은 사물함에서만 한다
  */
 UCLASS(Abstract, Blueprintable)
 class PARTTIMEBEAT_API UPTBShopWidget : public UPTBItemPopupWidget
@@ -229,10 +229,6 @@ protected:
 	virtual void DoAction(const FPTBItemView& ItemView) override;
 	virtual FText GetTitleText() const override { return ShopName; }
 
-	/** 구매 직후 바로 장착 */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Item|Shop")
-	bool bEquipAfterPurchase = true;
-
 	/** {Price} = 가격 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Item|Text")
 	FText LabelBuyFormat;
@@ -240,11 +236,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Item|Text")
 	FText LabelNotEnoughMoney;
 
+	/** 이미 산 아이템 (버튼 비활성) */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Item|Text")
-	FText LabelEquip;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Item|Text")
-	FText LabelEquipped;
+	FText LabelOwned;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Item|Text")
 	FText LabelUnavailable;

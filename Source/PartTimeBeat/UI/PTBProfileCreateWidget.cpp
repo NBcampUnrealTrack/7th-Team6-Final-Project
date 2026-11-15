@@ -11,10 +11,18 @@
 
 void UPTBProfileCreateWidget::NativeConstruct()
 {
+	// BP Construct(Super 안에서 호출)가 읽기 전에 기본 선택을 먼저 적용
+	if (!bEditMode)
+	{
+		SelectedModelIndex = FMath::Clamp(DefaultModelIndex, 0, FMath::Max(0, ModelCount - 1));
+	}
+
 	Super::NativeConstruct();
 
 	if (Btn_Confirm) { Btn_Confirm->OnClicked.AddUniqueDynamic(this, &UPTBProfileCreateWidget::HandleConfirmClicked); }
 	if (Btn_Back)    { Btn_Back->OnClicked.AddUniqueDynamic(this, &UPTBProfileCreateWidget::GoBack); }
+	if (Btn_Model0)  { Btn_Model0->OnClicked.AddUniqueDynamic(this, &UPTBProfileCreateWidget::HandleModel0Clicked); }
+	if (Btn_Model1)  { Btn_Model1->OnClicked.AddUniqueDynamic(this, &UPTBProfileCreateWidget::HandleModel1Clicked); }
 
 	SetKeyboardFocus();
 
@@ -90,6 +98,27 @@ void UPTBProfileCreateWidget::SelectNextModel()
 {
 	SelectedModelIndex = (SelectedModelIndex + 1) % ModelCount;
 	OnModelSelectionChanged(SelectedModelIndex);
+}
+
+void UPTBProfileCreateWidget::SelectModel(int32 ModelIndex)
+{
+	if (ModelIndex < 0 || ModelIndex >= ModelCount)
+	{
+		return;
+	}
+	SelectedModelIndex = ModelIndex;
+	// 같은 모델을 다시 눌러도 BP 갱신(강조 연출 등)이 일관되게 호출되도록 항상 알림
+	OnModelSelectionChanged(SelectedModelIndex);
+}
+
+void UPTBProfileCreateWidget::HandleModel0Clicked()
+{
+	SelectModel(0);
+}
+
+void UPTBProfileCreateWidget::HandleModel1Clicked()
+{
+	SelectModel(1);
 }
 
 FString UPTBProfileCreateWidget::GetNickname() const
