@@ -34,8 +34,6 @@ void UPTBBBHUDWidget::BindToMiniGame(APTBBBMiniGame* InMiniGame)
 		BBMiniGame->OnBBBossDefeated.RemoveDynamic(this, &UPTBBBHUDWidget::HandleBBBossDefeated);
 		BBMiniGame->OnMiniGameStarted.RemoveDynamic(this, &UPTBBBHUDWidget::HandleBBIntroStarted);
 		BBMiniGame->OnMiniGameGameplayStarted.RemoveDynamic(this, &UPTBBBHUDWidget::HandleBBGameplayStarted);
-		BBMiniGame->OnMiniGameOutroStarted.RemoveDynamic(this, &UPTBBBHUDWidget::HandleBBOutroStarted);
-		BBMiniGame->OnMiniGameOutroFinished.RemoveDynamic(this, &UPTBBBHUDWidget::HandleBBOutroFinished);
 		BBMiniGame->OnRhythmKeyStateChanged.RemoveDynamic(this, &UPTBBBHUDWidget::HandleBBRhythmKeyStateChanged);
 	}
 
@@ -51,8 +49,6 @@ void UPTBBBHUDWidget::BindToMiniGame(APTBBBMiniGame* InMiniGame)
 	InMiniGame->OnBBBossDefeated.AddUniqueDynamic(this, &UPTBBBHUDWidget::HandleBBBossDefeated);
 	InMiniGame->OnMiniGameStarted.AddUniqueDynamic(this, &UPTBBBHUDWidget::HandleBBIntroStarted);
 	InMiniGame->OnMiniGameGameplayStarted.AddUniqueDynamic(this, &UPTBBBHUDWidget::HandleBBGameplayStarted);
-	InMiniGame->OnMiniGameOutroStarted.AddUniqueDynamic(this, &UPTBBBHUDWidget::HandleBBOutroStarted);
-	InMiniGame->OnMiniGameOutroFinished.AddUniqueDynamic(this, &UPTBBBHUDWidget::HandleBBOutroFinished);
 	InMiniGame->OnRhythmKeyStateChanged.AddUniqueDynamic(this, &UPTBBBHUDWidget::HandleBBRhythmKeyStateChanged);
 
 	// 바인딩 시점의 HP로 메인 바 및 고스트 바 초기 동기화
@@ -63,13 +59,9 @@ void UPTBBBHUDWidget::BindToMiniGame(APTBBBMiniGame* InMiniGame)
 	{
 		HandleBBIntroStarted();
 	}
-	else if (InMiniGame->IsBBGameplayActive())
+	else
 	{
 		HideCenterMessage();
-	}
-	else if (InMiniGame->IsBBOutroSequenceActive())
-	{
-		ShowCenterMessage(FText::FromString(TEXT("Finish!")));
 	}
 }
 
@@ -132,16 +124,10 @@ void UPTBBBHUDWidget::NativeDestruct()
 		BBMiniGame->OnBBBossDefeated.RemoveDynamic(this, &UPTBBBHUDWidget::HandleBBBossDefeated);
 		BBMiniGame->OnMiniGameStarted.RemoveDynamic(this, &UPTBBBHUDWidget::HandleBBIntroStarted);
 		BBMiniGame->OnMiniGameGameplayStarted.RemoveDynamic(this, &UPTBBBHUDWidget::HandleBBGameplayStarted);
-		BBMiniGame->OnMiniGameOutroStarted.RemoveDynamic(this, &UPTBBBHUDWidget::HandleBBOutroStarted);
-		BBMiniGame->OnMiniGameOutroFinished.RemoveDynamic(this, &UPTBBBHUDWidget::HandleBBOutroFinished);
 		BBMiniGame->OnRhythmKeyStateChanged.RemoveDynamic(this, &UPTBBBHUDWidget::HandleBBRhythmKeyStateChanged);
 	}
 
 	ClearCenterMessageTimers();
-	if (UWorld* World = GetWorld())
-	{
-		World->GetTimerManager().ClearTimer(OutroImageTimerHandle);
-	}
 }
 
 void UPTBBBHUDWidget::ShowCenterMessage(const FText& Message)
@@ -338,66 +324,6 @@ void UPTBBBHUDWidget::HandleBBGameplayStarted()
 	RefreshHitZoneVisibility();
 }
 
-void UPTBBBHUDWidget::HandleBBOutroStarted(FPTBRoundResult Result, EPTBRoundEndReason EndReason)
-{
-	ClearCenterMessageTimers();
-	if (UWorld* World = GetWorld())
-	{
-		World->GetTimerManager().ClearTimer(OutroImageTimerHandle);
-	}
-
-	// 1단계: "Finish!" 메시지를 단독으로 표시
-	ShowCenterMessage(FText::FromString(TEXT("Finish!")));
-
-	const int32 TierIndex = ResolveOutroTierIndex(Result, EndReason);
-	UTexture2D* OutroTexture = OutroTexturesByStar.IsValidIndex(TierIndex) ? OutroTexturesByStar[TierIndex] : nullptr;
-
-	UWorld* World = GetWorld();
-	if (!World)
-	{
-		return;
-	}
-
-	// 2단계: FinishMessageSeconds 후 "Finish!"를 지우고 결과 이미지 표시
-	FTimerDelegate ShowResultDelegate;
-	ShowResultDelegate.BindWeakLambda(this, [this, OutroTexture]()
-	{
-		if (bIsDestructed) return;
-
-		HideCenterMessage();
-		if (ResultTexture)
-		{
-			OnShowOutroImage(ResultTexture);
-		}
-
-		// 3단계: ResultDisplaySeconds 후 별점에 맞는 아웃트로 이미지로 전환
-		if (!OutroTexture)
-		{
-			return;
-		}
-		if (UWorld* InnerWorld = GetWorld())
-		{
-			FTimerDelegate ShowOutroDelegate;
-			ShowOutroDelegate.BindWeakLambda(this, [this, OutroTexture]()
-			{
-				if (bIsDestructed) return;
-				OnShowOutroImage(OutroTexture);
-			});
-			InnerWorld->GetTimerManager().SetTimer(OutroImageTimerHandle, ShowOutroDelegate, ResultDisplaySeconds, false);
-		}
-	});
-	World->GetTimerManager().SetTimer(OutroImageTimerHandle, ShowResultDelegate, FinishMessageSeconds, false);
-}
-
-void UPTBBBHUDWidget::HandleBBOutroFinished(FPTBRoundResult Result, EPTBRoundEndReason EndReason)
-{
-	ClearCenterMessageTimers();
-	if (UWorld* World = GetWorld())
-	{
-		World->GetTimerManager().ClearTimer(OutroImageTimerHandle);
-	}
-}
-
 // ── 내부 헬퍼 ────────────────────────────────────────────────────
 
 void UPTBBBHUDWidget::SyncBarsToMiniGame()
@@ -541,24 +467,6 @@ UPTBBBCueWidgetBase* UPTBBBHUDWidget::FindAndRemoveCue(int32 NoteId)
 		return Cue;
 	}
 	return nullptr;
-}
-
-int32 UPTBBBHUDWidget::ResolveOutroTierIndex(const FPTBRoundResult& Result, EPTBRoundEndReason EndReason) const
-{
-	// Failed(플레이어 체력 0)는 항상 최하위 등급
-	if (EndReason == EPTBRoundEndReason::Failed)
-	{
-		return 0;
-	}
-
-	// 채보를 끝까지 마쳤다면 정확도·미스 수만으로 등급을 나눈다.
-	// 보스 체력은 이제 채보 진행도 그 자체(모든 노트를 성공해야만 완전히 0이 됨)라서
-	// 등급 판정에는 쓰지 않는다.
-	if (Result.MissCount <= PerfectClearMaxMissCount)
-	{
-		return 3; // Perfect Clear
-	}
-	return (Result.AccuracyRate >= GreatAccuracyThreshold) ? 2 : 1; // Great : Good
 }
 
 void UPTBBBHUDWidget::ClearCenterMessageTimers()
