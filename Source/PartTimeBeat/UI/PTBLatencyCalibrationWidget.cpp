@@ -2,12 +2,23 @@
 #include "Components/Widget.h"
 #include "Components/CanvasPanel.h"
 #include "Components/CanvasPanelSlot.h"
-#include "Components/PanelSlot.h"
 #include "Components/Border.h"
+#include "Components/Button.h"
+#include "Components/TextBlock.h"
 #include "Blueprint/WidgetTree.h"
 #include "Kismet/GameplayStatics.h"
 #include "Sound/SoundBase.h"
+#include "HAL/PlatformTime.h"
 #include "Core/PTBGameInstance.h"
+#include "Core/PTBInputPollSubsystem.h"
+
+#define LOCTEXT_NAMESPACE "PTBLatencyCalibration"
+
+namespace PTBCalibrationInternal
+{
+	// 판정선을 지난 뒤 이 비율만큼 더 이동하며 사라짐
+	constexpr float NoteOvershootRatio = 0.3f;
+}
 
 void UPTBLatencyCalibrationWidget::NativeConstruct()
 {
@@ -24,54 +35,98 @@ void UPTBLatencyCalibrationWidget::NativeConstruct()
 			LineSlot->SetAlignment(FVector2D(0.5f, 0.f));
 		}
 	}
+
+	if (ButtonRestart) ButtonRestart->OnClicked.AddUniqueDynamic(this, &UPTBLatencyCalibrationWidget::HandleRestartClicked);
+	if (ButtonApply)   ButtonApply->OnClicked.AddUniqueDynamic(this, &UPTBLatencyCalibrationWidget::HandleApplyClicked);
+	if (ButtonCancel)  ButtonCancel->OnClicked.AddUniqueDynamic(this, &UPTBLatencyCalibrationWidget::HandleCancelClicked);
+
+	RefreshKeyText();
+	SetState(State);
+}
+
+// ── 상태 ─────────────────────────────────────────────────────────
+
+void UPTBLatencyCalibrationWidget::SetState(EPTBCalibrationState NewState)
+{
+	State = NewState;
+
+	if (ButtonApply)
+	{
+		// Hidden: 자리는 유지 → 결과가 나와도 다른 버튼 위치가 흔들리지 않음
+		ButtonApply->SetVisibility(State == EPTBCalibrationState::Result ? ESlateVisibility::Visible : ESlateVisibility::Hidden);
+	}
+
+	if (KeyPulseTarget || TXT_TargetKey)
+	{
+		UWidget* PulseWidget = KeyPulseTarget ? KeyPulseTarget.Get() : static_cast<UWidget*>(TXT_TargetKey.Get());
+		PulseWidget->SetRenderScale(FVector2D(1.f, 1.f));
+	}
+	LastPulseTime = -1.0;
+
+	OnCalibrationStateChanged(State);
 }
 
 void UPTBLatencyCalibrationWidget::StartCalibration()
 {
-	bIsCalibrationActive = true;
+	ClearNotes();
 
-	BeatIntervalSec = 60.0f / BPM;
-	NoteTravelTimeSec = BeatIntervalSec * NoteLeadBeats;
+	ActiveKey = ResolveTargetKey();
+	RefreshKeyText();
+
+	BeatIntervalSec = 60.0 / FMath::Max(BPM, 30.f);
+	NoteTravelTimeSec = BeatIntervalSec * FMath::Max(NoteLeadBeats, 1);
+
+	// 첫 노트가 화면 오른쪽에서 들어와 0번 박자에 판정선에 닿도록 준비 시간 = 노트 이동 시간.
+	// 준비 시간 동안에도 소리는 나게 해서(카운트인) 박자를 미리 잡을 수 있게 함.
+	const double Now = FPlatformTime::Seconds();
+	FirstBeatTime = Now + NoteTravelTimeSec;
+	NextSoundBeat = -FMath::Max(NoteLeadBeats, 1);
+	NextNoteBeat = 0;
 
 	BeatOffsetsMs.Reset();
 	CurrentPressCount = 0;
-	SessionStartTime = GetWorld()->GetTimeSeconds();
+	ResultOffsetMs = 0.f;
 
-	for (FPTBCalibrationNote& Note : ActiveNotes)
+	OnPressCountUpdated(FText::FromString(FString::Printf(TEXT("%d / %d"), 0, RequiredPressCount)));
+
+	SetState(EPTBCalibrationState::Running);
+	SetKeyboardFocus();
+}
+
+void UPTBLatencyCalibrationWidget::ApplyCalibrationResult()
+{
+	if (State != EPTBCalibrationState::Result)
 	{
-		if (Note.Widget)
-		{
-			Note.Widget->RemoveFromParent();
-		}
+		return;
 	}
-	ActiveNotes.Reset();
 
-	GetWorld()->GetTimerManager().SetTimer(
-		MetronomeTimerHandle,
-		this,
-		&UPTBLatencyCalibrationWidget::MetronomeTick,
-		BeatIntervalSec,
-		true
-	);
+	if (UPTBGameInstance* PTBGameInstance = GetGameInstance<UPTBGameInstance>())
+	{
+		PTBGameInstance->SetJudgementOffsetMs(ResultOffsetMs);
+		PTBGameInstance->SaveGame();
+		UE_LOG(LogTemp, Log, TEXT("[Calibration] 적용: JudgementOffsetMs = %.1f"), ResultOffsetMs);
+	}
+
+	OnCalibrationFinished.Broadcast(ResultOffsetMs);
+
+	if (bCloseOnApply)
+	{
+		CloseCalibration();
+	}
+	else
+	{
+		SetState(EPTBCalibrationState::Idle);
+	}
 }
 
 void UPTBLatencyCalibrationWidget::CloseCalibration()
 {
-	bIsCalibrationActive = false;
-	GetWorld()->GetTimerManager().ClearTimer(MetronomeTimerHandle);
-
-	for (FPTBCalibrationNote& Note : ActiveNotes)
-	{
-		if (Note.Widget)
-		{
-			Note.Widget->RemoveFromParent();
-		}
-	}
-	ActiveNotes.Reset();
+	ClearNotes();
 	BeatOffsetsMs.Reset();
 	CurrentPressCount = 0;
+	SetState(EPTBCalibrationState::Idle);
 
-	// GameInstance의 저장된 JudgementOffsetMs는 여기서 건드리지 않음 -> 마지막 완주 값 유지
+	// 저장된 JudgementOffsetMs는 건드리지 않음 (적용 버튼으로만 저장)
 	RemoveFromParent();
 }
 
@@ -84,53 +139,274 @@ float UPTBLatencyCalibrationWidget::GetSavedJudgementOffsetMs() const
 	return 0.f;
 }
 
-void UPTBLatencyCalibrationWidget::MetronomeTick()
+void UPTBLatencyCalibrationWidget::HandleRestartClicked() { StartCalibration(); }
+void UPTBLatencyCalibrationWidget::HandleApplyClicked()   { ApplyCalibrationResult(); }
+void UPTBLatencyCalibrationWidget::HandleCancelClicked()  { CloseCalibration(); }
+
+// ── 키 ───────────────────────────────────────────────────────────
+
+FKey UPTBLatencyCalibrationWidget::ResolveTargetKey() const
 {
-	SpawnNote();
-
-	if (MetronomeSound)
+	if (bUseActionAKey)
 	{
-		UGameplayStatics::PlaySound2D(this, MetronomeSound);
+		if (const UPTBGameInstance* PTBGameInstance = GetGameInstance<UPTBGameInstance>())
+		{
+			const FKey Key = PTBGameInstance->CachedSettings.RhythmKeys.ActionA;
+			if (Key.IsValid())
+			{
+				return Key;
+			}
+		}
 	}
-
-	OnMetronomeTick();
+	return TargetKey;
 }
 
-void UPTBLatencyCalibrationWidget::SpawnNote()
+FText UPTBLatencyCalibrationWidget::GetTargetKeyDisplayName() const
 {
-	if (!NoteTrackCanvas)
+	const FKey Key = ActiveKey.IsValid() ? ActiveKey : ResolveTargetKey();
+	return Key.GetDisplayName();
+}
+
+void UPTBLatencyCalibrationWidget::RefreshKeyText()
+{
+	if (!ActiveKey.IsValid())
+	{
+		ActiveKey = ResolveTargetKey();
+	}
+	if (TXT_TargetKey)
+	{
+		TXT_TargetKey->SetText(ActiveKey.GetDisplayName());
+	}
+}
+
+double UPTBLatencyCalibrationWidget::ConsumePressTime() const
+{
+	// 폴링 스레드가 기록한 정확한 눌림 시각이 있으면 사용 (같은 FPlatformTime 시계)
+	if (bUseActionAKey)
+	{
+		if (UPTBInputPollSubsystem* InputPoll = GetGameInstance() ? GetGameInstance()->GetSubsystem<UPTBInputPollSubsystem>() : nullptr)
+		{
+			double EdgeSeconds = 0.0;
+			if (InputPoll->ConsumeEdge(EPTBActionType::ActionA, true, EdgeSeconds))
+			{
+				return EdgeSeconds;
+			}
+		}
+	}
+	return FPlatformTime::Seconds();
+}
+
+// ── 입력 ─────────────────────────────────────────────────────────
+
+FReply UPTBLatencyCalibrationWidget::NativeOnPreviewKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent)
+{
+	// 버튼에 포커스가 있어도 여기서 먼저 받음 → 스페이스/엔터가 버튼을 눌러버리지 않게 측정 키는 항상 소비
+	const FKey Key = InKeyEvent.GetKey();
+	if (Key == ActiveKey)
+	{
+		if (!InKeyEvent.IsRepeat() && State == EPTBCalibrationState::Running)
+		{
+			RegisterPress(ConsumePressTime());
+		}
+		return FReply::Handled();
+	}
+
+	return Super::NativeOnPreviewKeyDown(InGeometry, InKeyEvent);
+}
+
+FReply UPTBLatencyCalibrationWidget::NativeOnKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent)
+{
+	if (InKeyEvent.GetKey() == EKeys::Escape)
+	{
+		CloseCalibration();
+		return FReply::Handled();
+	}
+	return Super::NativeOnKeyDown(InGeometry, InKeyEvent);
+}
+
+void UPTBLatencyCalibrationWidget::RegisterPress(double PressTime)
+{
+	const double SinceFirst = PressTime - FirstBeatTime;
+	const int32 NearestBeat = FMath::RoundToInt(SinceFirst / BeatIntervalSec);
+	if (NearestBeat < 0)
+	{
+		return; // 카운트인 구간 입력은 무시
+	}
+
+	const double NearestBeatTime = FirstBeatTime + NearestBeat * BeatIntervalSec;
+	const float OffsetMs = static_cast<float>((PressTime - NearestBeatTime) * 1000.0); // + = 늦게 누름
+
+	BeatOffsetsMs.Add(OffsetMs);
+	CurrentPressCount++;
+
+	OnOffsetMsUpdated(FText::FromString(FString::Printf(TEXT("%+d ms"), FMath::RoundToInt(OffsetMs))));
+	OnPressCountUpdated(FText::FromString(FString::Printf(TEXT("%d / %d"), CurrentPressCount, RequiredPressCount)));
+	OnJudgementFlash(FMath::Abs(OffsetMs) < 100.f);
+
+	// 그 박자의 노트 제거
+	int32 ClosestIndex = INDEX_NONE;
+	double ClosestDist = TNumericLimits<double>::Max();
+	for (int32 i = 0; i < ActiveNotes.Num(); ++i)
+	{
+		const double Dist = FMath::Abs(ActiveNotes[i].HitTime - NearestBeatTime);
+		if (Dist < ClosestDist)
+		{
+			ClosestDist = Dist;
+			ClosestIndex = i;
+		}
+	}
+	if (ClosestIndex != INDEX_NONE && ClosestDist < BeatIntervalSec * 0.5)
+	{
+		if (ActiveNotes[ClosestIndex].Widget)
+		{
+			ActiveNotes[ClosestIndex].Widget->RemoveFromParent();
+		}
+		ActiveNotes.RemoveAt(ClosestIndex);
+	}
+
+	if (CurrentPressCount >= RequiredPressCount)
+	{
+		FinishCalibration();
+	}
+}
+
+void UPTBLatencyCalibrationWidget::FinishCalibration()
+{
+	ClearNotes();
+
+	float AverageMs = 0.f;
+	if (BeatOffsetsMs.Num() > 0)
+	{
+		// 가장 많이 벗어난 값 1개씩(앞/뒤) 제외 → 실수로 한 번 크게 틀려도 결과가 덜 흔들림
+		TArray<float> Sorted = BeatOffsetsMs;
+		Sorted.Sort();
+		int32 Begin = 0;
+		int32 End = Sorted.Num();
+		if (Sorted.Num() >= 6)
+		{
+			++Begin;
+			--End;
+		}
+		double Sum = 0.0;
+		for (int32 i = Begin; i < End; ++i)
+		{
+			Sum += Sorted[i];
+		}
+		AverageMs = static_cast<float>(Sum / FMath::Max(End - Begin, 1));
+	}
+
+	// 판정 시각 = 입력 시각 + JudgementOffsetMs 이므로,
+	// 평균적으로 늦게 누르면(+) 그만큼 빼줘야(-) 정확해짐 → 부호 반대로 저장
+	ResultOffsetMs = FMath::Clamp(static_cast<float>(FMath::RoundToInt(-AverageMs)), -MaxOffsetMs, MaxOffsetMs);
+
+	UE_LOG(LogTemp, Log, TEXT("[Calibration] 측정 완료: 평균 %+.1fms → 보정값 %+.0fms (아직 저장 안 함, 현재 %+.0fms)"),
+		AverageMs, ResultOffsetMs, GetSavedJudgementOffsetMs());
+
+	SetState(EPTBCalibrationState::Result);
+
+	OnCalibrationFinishedDisplay(FText::FromString(FString::Printf(TEXT("%+d ms"), FMath::RoundToInt(ResultOffsetMs))));
+}
+
+// ── 노트 / 메트로놈 ──────────────────────────────────────────────
+
+void UPTBLatencyCalibrationWidget::SpawnNote(double HitTime)
+{
+	if (!NoteTrackCanvas || !WidgetTree)
 	{
 		return;
 	}
 
 	UBorder* NoteWidget = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass());
-	NoteWidget->SetBrushColor(FLinearColor(0.1f, 0.8f, 1.0f, 1.0f));
+	if (NoteBrush.GetResourceObject())
+	{
+		NoteWidget->SetBrush(NoteBrush);
+		NoteWidget->SetBrushColor(FLinearColor::White);
+	}
+	else
+	{
+		NoteWidget->SetBrushColor(NoteColor);
+	}
+	NoteWidget->SetVisibility(ESlateVisibility::HitTestInvisible);
+	NoteWidget->SetRenderOpacity(NoteFadeInRatio > 0.f ? 0.f : 1.f);
 
 	if (UCanvasPanelSlot* NoteSlot = NoteTrackCanvas->AddChildToCanvas(NoteWidget))
 	{
-		// 오른쪽 끝(anchorX=1.0)에서 스폰
-		NoteSlot->SetAnchors(FAnchors(1.0f, 0.5f, 1.0f, 0.5f));
+		NoteSlot->SetAnchors(FAnchors(0.f, 0.5f, 0.f, 0.5f));
 		NoteSlot->SetAlignment(FVector2D(0.5f, 0.5f));
-		NoteSlot->SetPosition(FVector2D(0.f, 0.f));
 		NoteSlot->SetSize(FVector2D(NoteSizePx, NoteSizePx));
+		NoteSlot->SetPosition(FVector2D(-10000.f, 0.f)); // 첫 Tick에서 위치 계산
 	}
 
 	FPTBCalibrationNote NewNote;
 	NewNote.Widget = NoteWidget;
-	NewNote.SpawnTime = GetWorld()->GetTimeSeconds();
+	NewNote.HitTime = HitTime;
 	ActiveNotes.Add(NewNote);
+}
+
+void UPTBLatencyCalibrationWidget::ClearNotes()
+{
+	for (FPTBCalibrationNote& Note : ActiveNotes)
+	{
+		if (Note.Widget)
+		{
+			Note.Widget->RemoveFromParent();
+		}
+	}
+	ActiveNotes.Reset();
 }
 
 void UPTBLatencyCalibrationWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 {
 	Super::NativeTick(MyGeometry, InDeltaTime);
 
-	if (!NoteTrackCanvas || NoteTravelTimeSec <= 0.f)
+	const double Now = FPlatformTime::Seconds();
+
+	// 박자 펄스 (키 표시)
+	if (UWidget* PulseWidget = KeyPulseTarget ? KeyPulseTarget.Get() : static_cast<UWidget*>(TXT_TargetKey.Get()))
+	{
+		if (LastPulseTime > 0.0 && KeyPulseDuration > 0.f)
+		{
+			const float T = FMath::Clamp(static_cast<float>((Now - LastPulseTime) / KeyPulseDuration), 0.f, 1.f);
+			const float Scale = FMath::Lerp(KeyPulseScale, 1.f, FMath::InterpEaseOut(0.f, 1.f, T, 2.f));
+			PulseWidget->SetRenderScale(FVector2D(Scale, Scale));
+			if (T >= 1.f)
+			{
+				LastPulseTime = -1.0;
+			}
+		}
+	}
+
+	if (State != EPTBCalibrationState::Running || BeatIntervalSec <= 0.0)
 	{
 		return;
 	}
 
-	const double Now = GetWorld()->GetTimeSeconds();
+	// 메트로놈: 박자 시각이 지나면 소리 (일시정지 중에도 나도록 UI 사운드로 재생)
+	while (Now >= FirstBeatTime + NextSoundBeat * BeatIntervalSec)
+	{
+		if (MetronomeSound)
+		{
+			UGameplayStatics::PlaySound2D(this, MetronomeSound, 1.f, 1.f, 0.f, nullptr, nullptr, /*bIsUISound*/ true);
+		}
+		LastPulseTime = Now;
+		OnMetronomeTick();
+		++NextSoundBeat;
+	}
+
+	// 노트 생성: 판정선 도착(HitTime)보다 이동 시간만큼 먼저
+	while (Now >= FirstBeatTime + NextNoteBeat * BeatIntervalSec - NoteTravelTimeSec)
+	{
+		SpawnNote(FirstBeatTime + NextNoteBeat * BeatIntervalSec);
+		++NextNoteBeat;
+	}
+
+	if (!NoteTrackCanvas || NoteTravelTimeSec <= 0.0)
+	{
+		return;
+	}
+
+	const FVector2D CanvasSize = NoteTrackCanvas->GetCachedGeometry().GetLocalSize();
+	const float LineX = CanvasSize.X * JudgmentLineAnchorX;
 
 	for (int32 i = ActiveNotes.Num() - 1; i >= 0; --i)
 	{
@@ -141,127 +417,33 @@ void UPTBLatencyCalibrationWidget::NativeTick(const FGeometry& MyGeometry, float
 			continue;
 		}
 
-		const float Elapsed = static_cast<float>(Now - Note.SpawnTime);
-		const float Alpha = Elapsed / NoteTravelTimeSec;
+		// 0 = 생성 지점, 1 = 판정선
+		const float Alpha = 1.f - static_cast<float>((Note.HitTime - Now) / NoteTravelTimeSec);
 
-		// 스폰 지점(1.0) → 판정선(JudgmentLineAnchorX)로 선형 보간
-		const float CurrentAnchorX = FMath::Lerp(1.0f, JudgmentLineAnchorX, FMath::Clamp(Alpha, 0.f, 1.5f));
-
-		if (UCanvasPanelSlot* NoteSlot = Cast<UCanvasPanelSlot>(Note.Widget->Slot))
-		{
-			NoteSlot->SetAnchors(FAnchors(CurrentAnchorX, 0.5f, CurrentAnchorX, 0.5f));
-		}
-
-		// 판정선을 한참 지나치면 제거 (놓친 노트)
-		if (Alpha > 1.5f)
+		if (Alpha > 1.f + PTBCalibrationInternal::NoteOvershootRatio)
 		{
 			Note.Widget->RemoveFromParent();
 			ActiveNotes.RemoveAt(i);
+			continue;
 		}
+
+		const float X = LineX + NoteTravelDistance * (1.f - Alpha);
+		if (UCanvasPanelSlot* NoteSlot = Cast<UCanvasPanelSlot>(Note.Widget->Slot))
+		{
+			NoteSlot->SetPosition(FVector2D(X, 0.f));
+		}
+
+		float Opacity = 1.f;
+		if (NoteFadeInRatio > 0.f && Alpha < NoteFadeInRatio)
+		{
+			Opacity = FMath::Clamp(Alpha / NoteFadeInRatio, 0.f, 1.f);
+		}
+		else if (Alpha > 1.f)
+		{
+			Opacity = 1.f - (Alpha - 1.f) / PTBCalibrationInternal::NoteOvershootRatio;
+		}
+		Note.Widget->SetRenderOpacity(Opacity);
 	}
 }
 
-FReply UPTBLatencyCalibrationWidget::NativeOnKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent)
-{
-	if (!bIsCalibrationActive)
-	{
-		return FReply::Unhandled();
-	}
-
-	if (InKeyEvent.GetKey() == TargetKey && !InKeyEvent.IsRepeat())
-	{
-		const double CurrentTime = GetWorld()->GetTimeSeconds();
-		const double ElapsedSec = CurrentTime - SessionStartTime;
-
-		const int32 NearestBeatIndex = FMath::RoundToInt(ElapsedSec / BeatIntervalSec);
-		const double NearestBeatTimeSec = NearestBeatIndex * BeatIntervalSec;
-		const float OffsetMs = static_cast<float>((ElapsedSec - NearestBeatTimeSec) * 1000.0);
-
-		BeatOffsetsMs.Add(OffsetMs);
-		CurrentPressCount++;
-
-		const FString OffsetStr = FString::Printf(TEXT("%+d ms"), FMath::RoundToInt(OffsetMs));
-		OnOffsetMsUpdated(FText::FromString(OffsetStr));
-
-		const FString CountStr = FString::Printf(TEXT("%d / %d"), CurrentPressCount, RequiredPressCount);
-		OnPressCountUpdated(FText::FromString(CountStr));
-
-		OnJudgementFlash(FMath::Abs(OffsetMs) < 100.f);
-
-		// 판정선에 가장 가까운 노트를 소모
-		if (ActiveNotes.Num() > 0)
-		{
-			int32 ClosestIndex = 0;
-			float ClosestDist = TNumericLimits<float>::Max();
-			for (int32 i = 0; i < ActiveNotes.Num(); ++i)
-			{
-				const float Elapsed = static_cast<float>(CurrentTime - ActiveNotes[i].SpawnTime);
-				const float Alpha = Elapsed / NoteTravelTimeSec;
-				const float Dist = FMath::Abs(Alpha - 1.0f);
-				if (Dist < ClosestDist)
-				{
-					ClosestDist = Dist;
-					ClosestIndex = i;
-				}
-			}
-
-			if (ActiveNotes[ClosestIndex].Widget)
-			{
-				ActiveNotes[ClosestIndex].Widget->RemoveFromParent();
-			}
-			ActiveNotes.RemoveAt(ClosestIndex);
-		}
-
-		if (CurrentPressCount >= RequiredPressCount)
-		{
-			FinishCalibration();
-		}
-
-		return FReply::Handled();
-	}
-
-	return FReply::Unhandled();
-}
-
-void UPTBLatencyCalibrationWidget::FinishCalibration()
-{
-	bIsCalibrationActive = false;
-	GetWorld()->GetTimerManager().ClearTimer(MetronomeTimerHandle);
-
-	for (FPTBCalibrationNote& Note : ActiveNotes)
-	{
-		if (Note.Widget)
-		{
-			Note.Widget->RemoveFromParent();
-		}
-	}
-	ActiveNotes.Reset();
-
-	float AverageOffsetMs = 0.f;
-	if (BeatOffsetsMs.Num() > 0)
-	{
-		float Sum = 0.f;
-		for (const float Offset : BeatOffsetsMs)
-		{
-			Sum += Offset;
-		}
-		AverageOffsetMs = Sum / BeatOffsetsMs.Num();
-	}
-
-	// 기존 GameInstance 인프라 재사용: CachedSettings 갱신 + 슬롯 저장까지 한 번에 처리됨
-	if (UPTBGameInstance* PTBGameInstance = GetGameInstance<UPTBGameInstance>())
-	{
-		PTBGameInstance->SetJudgementOffsetMs(AverageOffsetMs);
-		PTBGameInstance->SaveGame();
-		UE_LOG(LogTemp, Warning, TEXT("Saved JudgementOffsetMs: %f"), PTBGameInstance->CachedSettings.JudgementOffsetMs);
-	}
-	else
-	{
-		UE_LOG(LogTemp, Error, TEXT("GetGameInstance<UPTBGameInstance> returned nullptr!"));
-	}
-
-	const FString AverageStr = FString::Printf(TEXT("%+d ms"), FMath::RoundToInt(AverageOffsetMs));
-	OnCalibrationFinishedDisplay(FText::FromString(AverageStr));
-
-	OnCalibrationFinished.Broadcast(AverageOffsetMs);
-}
+#undef LOCTEXT_NAMESPACE

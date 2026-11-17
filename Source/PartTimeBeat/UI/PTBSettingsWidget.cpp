@@ -5,6 +5,7 @@
 #include "Components/Button.h"
 #include "Components/CheckBox.h"
 #include "Components/ComboBoxString.h"
+#include "Components/EditableTextBox.h"
 #include "Components/Image.h"
 #include "Components/Slider.h"
 #include "Components/TextBlock.h"
@@ -55,7 +56,7 @@ void UPTBSettingsWidget::InitializeView()
 	if (SliderMaster) { SliderMaster->SetMinValue(0.f); SliderMaster->SetMaxValue(1.f); }
 	if (SliderBgm) { SliderBgm->SetMinValue(0.f);   SliderBgm->SetMaxValue(1.f); }
 	if (SliderSfx) { SliderSfx->SetMinValue(0.f);   SliderSfx->SetMaxValue(1.f); }
-	if (SliderSyncOffset) { SliderSyncOffset->SetMinValue(-200.f); SliderSyncOffset->SetMaxValue(200.f); }
+	if (SliderSyncOffset) { SliderSyncOffset->SetMinValue(SyncOffsetMinMs); SliderSyncOffset->SetMaxValue(SyncOffsetMaxMs); SliderSyncOffset->SetStepSize(1.f); }
 
 	// 알림 텍스트 / 재바인딩 프롬프트 초기 숨김
 	if (TextNotification) TextNotification->SetVisibility(ESlateVisibility::Hidden);
@@ -344,13 +345,7 @@ void UPTBSettingsWidget::RefreshAllWidgets()
 	RefreshVolumeText(TextSfxValue, PendingSettings.SFXVolume);
 	if (CheckBoxGameplaySfx) CheckBoxGameplaySfx->SetIsChecked(PendingSettings.bGameplaySFXEnabled);
 
-	if (SliderSyncOffset) SliderSyncOffset->SetValue(PendingSettings.JudgementOffsetMs);
-	if (TextSyncOffsetValue)
-	{
-		const FString Sign = PendingSettings.JudgementOffsetMs >= 0.f ? TEXT("+") : TEXT("");
-		TextSyncOffsetValue->SetText(FText::FromString(
-			FString::Printf(TEXT("%s%.0fms"), *Sign, PendingSettings.JudgementOffsetMs)));
-	}
+	RefreshSyncOffsetWidgets();
 
 	if (ComboBoxWindowMode)
 	{
@@ -459,6 +454,11 @@ void UPTBSettingsWidget::BindWidgetCallbacks()
 	if (CheckBoxGameplaySfx) CheckBoxGameplaySfx->OnCheckStateChanged.AddUniqueDynamic(this, &UPTBSettingsWidget::OnGameplaySfxCheckChanged);
 	if (SliderSfx)        SliderSfx->OnValueChanged.AddUniqueDynamic(this, &UPTBSettingsWidget::OnSfxSliderChanged);
 	if (SliderSyncOffset) SliderSyncOffset->OnValueChanged.AddUniqueDynamic(this, &UPTBSettingsWidget::OnSyncOffsetSliderChanged);
+	if (EditSyncOffset)
+	{
+		EditSyncOffset->OnTextCommitted.AddUniqueDynamic(this, &UPTBSettingsWidget::OnSyncOffsetTextCommitted);
+		EditSyncOffset->OnTextChanged.AddUniqueDynamic(this, &UPTBSettingsWidget::OnSyncOffsetTextChanged);
+	}
 
 	if (ComboBoxWindowMode) ComboBoxWindowMode->OnSelectionChanged.AddUniqueDynamic(this, &UPTBSettingsWidget::OnWindowModeSelectionChanged);
 	if (ComboBoxResolution) ComboBoxResolution->OnSelectionChanged.AddUniqueDynamic(this, &UPTBSettingsWidget::OnResolutionSelectionChanged);
@@ -507,12 +507,84 @@ void UPTBSettingsWidget::OnGameplaySfxCheckChanged(bool bIsChecked)
 
 void UPTBSettingsWidget::OnSyncOffsetSliderChanged(float Value)
 {
-	PendingSettings.JudgementOffsetMs = Value;
+	// 1ms 단위로 맞춤 (슬라이더/입력칸/저장값이 항상 같은 숫자)
+	PendingSettings.JudgementOffsetMs = FMath::Clamp(static_cast<float>(FMath::RoundToInt(Value)), SyncOffsetMinMs, SyncOffsetMaxMs);
+	RefreshSyncOffsetWidgets(false); // 드래그 중인 슬라이더는 건드리지 않음
+}
+
+void UPTBSettingsWidget::OnSyncOffsetTextChanged(const FText& Text)
+{
+	if (bUpdatingSyncText || !EditSyncOffset) return;
+
+	// 숫자와 +/- 외의 문자는 입력되지 않게 걸러냄
+	const FString Source = Text.ToString();
+	FString Filtered;
+	for (int32 i = 0; i < Source.Len(); ++i)
+	{
+		const TCHAR Ch = Source[i];
+		if (FChar::IsDigit(Ch) || ((Ch == TEXT('-') || Ch == TEXT('+')) && Filtered.IsEmpty()))
+		{
+			Filtered.AppendChar(Ch);
+		}
+	}
+	if (Filtered != Source)
+	{
+		TGuardValue<bool> Guard(bUpdatingSyncText, true);
+		EditSyncOffset->SetText(FText::FromString(Filtered));
+	}
+}
+
+void UPTBSettingsWidget::OnSyncOffsetTextCommitted(const FText& Text, ETextCommit::Type CommitMethod)
+{
+	if (bUpdatingSyncText) return;
+
+	FString Str = Text.ToString().TrimStartAndEnd();
+	Str.ReplaceInline(TEXT("ms"), TEXT(""), ESearchCase::IgnoreCase);
+	Str.ReplaceInline(TEXT("+"), TEXT(""));
+	Str.TrimStartAndEndInline();
+
+	if (!Str.IsEmpty() && Str != TEXT("-") && Str.IsNumeric())
+	{
+		const float Parsed = FCString::Atof(*Str);
+		PendingSettings.JudgementOffsetMs = FMath::Clamp(static_cast<float>(FMath::RoundToInt(Parsed)), SyncOffsetMinMs, SyncOffsetMaxMs);
+	}
+	// 잘못된 입력이면 이전 값으로 되돌림 / 범위 밖이면 맞춘 값으로 다시 표시
+	RefreshSyncOffsetWidgets(true, true);
+}
+
+void UPTBSettingsWidget::RefreshSyncOffsetWidgets(bool bUpdateSlider, bool bForceEditText)
+{
+	const int32 Ms = FMath::RoundToInt(PendingSettings.JudgementOffsetMs);
+
+	if (bUpdateSlider && SliderSyncOffset)
+	{
+		SliderSyncOffset->SetValue(static_cast<float>(Ms));
+	}
 	if (TextSyncOffsetValue)
 	{
-		const FString Sign = Value >= 0.f ? TEXT("+") : TEXT("");
 		TextSyncOffsetValue->SetText(FText::FromString(
-			FString::Printf(TEXT("%s%.0fms"), *Sign, Value)));
+			Ms > 0 ? FString::Printf(TEXT("+%dms"), Ms) : FString::Printf(TEXT("%dms"), Ms)));
+	}
+	if (EditSyncOffset && (bForceEditText || !EditSyncOffset->HasKeyboardFocus()))
+	{
+		TGuardValue<bool> Guard(bUpdatingSyncText, true);
+		EditSyncOffset->SetText(FText::FromString(
+			Ms > 0 ? FString::Printf(TEXT("+%d"), Ms) : FString::Printf(TEXT("%d"), Ms)));
+	}
+}
+
+void UPTBSettingsWidget::SetSyncOffsetMs(float OffsetMs, bool bSaveNow)
+{
+	PendingSettings.JudgementOffsetMs = FMath::Clamp(static_cast<float>(FMath::RoundToInt(OffsetMs)), SyncOffsetMinMs, SyncOffsetMaxMs);
+	RefreshSyncOffsetWidgets();
+
+	if (bSaveNow)
+	{
+		if (UPTBGameInstance* GI = GetGameInstance<UPTBGameInstance>())
+		{
+			GI->SetJudgementOffsetMs(PendingSettings.JudgementOffsetMs);
+			GI->SaveGame();
+		}
 	}
 }
 

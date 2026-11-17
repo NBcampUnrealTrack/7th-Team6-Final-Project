@@ -10,6 +10,7 @@
 
 class UButton;
 class UCheckBox;
+class UEditableTextBox;
 class UImage;
 class USlider;
 class UTextBlock;
@@ -26,7 +27,7 @@ class UWidgetSwitcher;
  *  [닫기]  ButtonClose
  *  [볼륨]  SliderMaster, SliderBgm, SliderSfx, CheckBoxGameplaySfx (입력·판정 효과음 켬/끔)
  *          TextMasterValue, TextBgmValue, TextSfxValue
- *  [싱크]  SliderSyncOffset (-200~+200ms), TextSyncOffsetValue
+ *  [싱크]  SliderSyncOffset (-200~+200ms), TextSyncOffsetValue, EditSyncOffset (숫자 직접 입력, 선택)
  *  [화면]  ComboBoxWindowMode, ComboBoxResolution, ComboBoxGraphics, CheckBoxAntiAliasing (안티에일리어싱 켬/끔),
  *          ComboBoxFrameRate (초당 프레임 제한 + 수직 동기화를 한 목록에서 선택)
  *  [입력]  ComboBoxPollingRate (리듬 키 입력 폴링 레이트)
@@ -58,6 +59,14 @@ public:
 	/** 키 재바인딩 시작. ButtonRebindX 클릭 또는 BP에서 직접 호출. */
 	UFUNCTION(BlueprintCallable, Category = "PTB|Settings")
 	void RequestRebind(EPTBActionType Action);
+
+	/**
+	 * 판정 오프셋 값을 바꾸고 슬라이더/숫자 표시를 즉시 갱신.
+	 * 싱크 조절 미니게임에서 적용했을 때 OnCalibrationFinished에 연결해서 사용.
+	 * (미니게임이 이미 저장했으므로 bSaveNow는 false로 두면 됨)
+	 */
+	UFUNCTION(BlueprintCallable, Category = "PTB|Settings")
+	void SetSyncOffsetMs(float OffsetMs, bool bSaveNow = false);
 
 	/** 진행 중인 키 재바인딩 취소. Escape 입력 시 자동 호출. */
 	UFUNCTION(BlueprintCallable, Category = "PTB|Settings")
@@ -195,6 +204,10 @@ protected:
 
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "PTB|Settings|Sync")
 	TObjectPtr<UTextBlock> TextSyncOffsetValue;
+
+	/** 판정 오프셋 숫자 직접 입력 (Editable Text Box). Enter 또는 다른 곳 클릭 시 반영, 범위 밖이면 자동으로 맞춤 */
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "PTB|Settings|Sync")
+	TObjectPtr<UEditableTextBox> EditSyncOffset;
 
 	// ── 화면/그래픽 ──────────────────────────────────────────────────
 
@@ -342,6 +355,15 @@ private:
 	/** 값 배열에서 가장 가까운 항목 인덱스 (저장값이 목록에 없을 때 대비) */
 	static int32 FindClosestOptionIndex(const TArray<int32>& Options, int32 Value);
 	UFUNCTION() void OnSyncOffsetSliderChanged(float Value);
+	UFUNCTION() void OnSyncOffsetTextCommitted(const FText& Text, ETextCommit::Type CommitMethod);
+	UFUNCTION() void OnSyncOffsetTextChanged(const FText& Text);
+
+	/** 슬라이더 / 텍스트 / 입력칸을 PendingSettings.JudgementOffsetMs 값으로 갱신 */
+	void RefreshSyncOffsetWidgets(bool bUpdateSlider = true, bool bForceEditText = false);
+
+	static constexpr float SyncOffsetMinMs = -200.f;
+	static constexpr float SyncOffsetMaxMs = 200.f;
+	bool bUpdatingSyncText = false;
 	UFUNCTION() void OnWindowModeSelectionChanged(FString SelectedItem, ESelectInfo::Type SelectionType);
 	UFUNCTION() void OnResolutionSelectionChanged(FString SelectedItem, ESelectInfo::Type SelectionType);
 	UFUNCTION() void OnGraphicsSelectionChanged(FString SelectedItem, ESelectInfo::Type SelectionType);
