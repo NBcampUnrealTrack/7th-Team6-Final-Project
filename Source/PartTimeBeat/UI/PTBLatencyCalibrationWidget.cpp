@@ -209,14 +209,49 @@ FReply UPTBLatencyCalibrationWidget::NativeOnPreviewKeyDown(const FGeometry& InG
 	const FKey Key = InKeyEvent.GetKey();
 	if (Key == ActiveKey)
 	{
-		if (!InKeyEvent.IsRepeat() && State == EPTBCalibrationState::Running)
+		if (!InKeyEvent.IsRepeat())
 		{
-			RegisterPress(ConsumePressTime());
+			SetTargetKeyHeld(true);
+			if (State == EPTBCalibrationState::Running)
+			{
+				RegisterPress(ConsumePressTime());
+			}
 		}
 		return FReply::Handled();
 	}
 
 	return Super::NativeOnPreviewKeyDown(InGeometry, InKeyEvent);
+}
+
+FReply UPTBLatencyCalibrationWidget::NativeOnKeyUp(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent)
+{
+	if (InKeyEvent.GetKey() == ActiveKey)
+	{
+		SetTargetKeyHeld(false);
+		return FReply::Handled();
+	}
+	return Super::NativeOnKeyUp(InGeometry, InKeyEvent);
+}
+
+void UPTBLatencyCalibrationWidget::NativeOnFocusLost(const FFocusEvent& InFocusEvent)
+{
+	Super::NativeOnFocusLost(InFocusEvent);
+	// 다른 곳으로 포커스가 넘어가면 뗌 이벤트를 못 받을 수 있으므로 누름 해제
+	SetTargetKeyHeld(false);
+}
+
+void UPTBLatencyCalibrationWidget::SetTargetKeyHeld(bool bHeld)
+{
+	if (bTargetKeyHeld == bHeld)
+	{
+		return;
+	}
+	bTargetKeyHeld = bHeld;
+	if (bHeld)
+	{
+		PressVisual = 1.f; // 누르는 순간 바로 커짐
+	}
+	OnTargetKeyPressedChanged(bHeld);
 }
 
 FReply UPTBLatencyCalibrationWidget::NativeOnKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent)
@@ -410,7 +445,9 @@ void UPTBLatencyCalibrationWidget::ApplyBeatPulse(float Pulse)
 	if (UWidget* KeyWidget = KeyPulseTarget ? KeyPulseTarget.Get() : static_cast<UWidget*>(TXT_TargetKey.Get()))
 	{
 		KeyWidget->SetRenderTransformPivot(FVector2D(0.5f, 0.5f));
-		const float S = ScaleOf(KeyPulseScale);
+		const float BeatScale = bPulseKeyOnBeat ? ScaleOf(KeyPulseScale) : 1.f;
+		const float PressScale = FMath::Lerp(1.f, KeyPressedScale, PressVisual);
+		const float S = BeatScale * PressScale;
 		KeyWidget->SetRenderScale(FVector2D(S, S));
 	}
 
@@ -479,6 +516,15 @@ void UPTBLatencyCalibrationWidget::NativeTick(const FGeometry& MyGeometry, float
 			LastPulseTime = -1.0;
 		}
 	}
+
+	// 누름 표시: 누르고 있으면 1 유지, 떼면 KeyReleaseDuration 동안 0으로
+	if (!bTargetKeyHeld && PressVisual > 0.f)
+	{
+		PressVisual = KeyReleaseDuration > 0.f
+			? FMath::Max(0.f, PressVisual - InDeltaTime / KeyReleaseDuration)
+			: 0.f;
+	}
+
 	ApplyBeatPulse(Pulse);
 
 	if (State != EPTBCalibrationState::Running || BeatIntervalSec <= 0.0)

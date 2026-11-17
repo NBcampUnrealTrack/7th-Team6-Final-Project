@@ -66,6 +66,8 @@ public:
 	virtual void NativeConstruct() override;
 	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
 	virtual FReply NativeOnPreviewKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent) override;
+	virtual FReply NativeOnKeyUp(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent) override;
+	virtual void NativeOnFocusLost(const FFocusEvent& InFocusEvent) override;
 	virtual FReply NativeOnKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent) override;
 
 	// ── 리듬 ─────────────────────────────────────────────────────────
@@ -156,8 +158,23 @@ public:
 
 	// ── 키 표시 ──────────────────────────────────────────────────────
 
-	/** 박자마다 키 표시가 커지는 크기 */
+	/**
+	 * 측정 키를 누르고 있는 동안 키 표시(KeyPulseTarget 묶음)가 커지는 크기.
+	 * 내가 눌렀는지 바로 보이도록 하는 피드백. 1이면 끔
+	 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Calibration|Key")
+	float KeyPressedScale = 1.15f;
+
+	/** 키에서 손을 뗐을 때 원래 크기로 돌아오는 시간(초). 0이면 즉시 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Calibration|Key", meta = (ClampMin = "0"))
+	float KeyReleaseDuration = 0.08f;
+
+	/** 키 표시(KeyPulseTarget 묶음)도 박자마다 커질지. 누를 때 피드백과 헷갈리지 않게 기본은 끔 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Calibration|Key")
+	bool bPulseKeyOnBeat = false;
+
+	/** 박자마다 키 표시가 커지는 크기 (bPulseKeyOnBeat가 켜져 있을 때) */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Calibration|Key", meta = (EditCondition = "bPulseKeyOnBeat"))
 	float KeyPulseScale = 1.25f;
 
 	/** 커졌다가 원래 크기로 돌아오는 시간(초) */
@@ -260,6 +277,10 @@ protected:
 	UFUNCTION(BlueprintImplementableEvent, Category = "Calibration")
 	void OnCalibrationFinishedDisplay(const FText& FormattedAverage);
 
+	/** 측정 키를 누름/뗌. 크기 변화는 C++이 처리하므로 색 변경 등 추가 연출용 */
+	UFUNCTION(BlueprintImplementableEvent, Category = "Calibration")
+	void OnTargetKeyPressedChanged(bool bPressed);
+
 	/** 상태가 바뀔 때마다 (Idle/Running/Result). 버튼 표시는 C++이 처리하므로 추가 연출용 */
 	UFUNCTION(BlueprintImplementableEvent, Category = "Calibration")
 	void OnCalibrationStateChanged(EPTBCalibrationState NewState);
@@ -297,6 +318,11 @@ private:
 	int32 NextNoteBeat = 0;
 
 	double LastPulseTime = -1.0;
+
+	/** 측정 키를 누르고 있는지 / 누름 표시 정도 (1 = 누름, 0 = 원래 크기) */
+	bool bTargetKeyHeld = false;
+	float PressVisual = 0.f;
+	void SetTargetKeyHeld(bool bHeld);
 
 	int32 CurrentPressCount = 0;
 	TArray<float> BeatOffsetsMs;
