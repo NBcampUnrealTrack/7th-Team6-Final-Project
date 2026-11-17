@@ -27,7 +27,8 @@ class UWidgetSwitcher;
  *  [닫기]  ButtonClose
  *  [볼륨]  SliderMaster, SliderBgm, SliderSfx, CheckBoxGameplaySfx (입력·판정 효과음 켬/끔)
  *          TextMasterValue, TextBgmValue, TextSfxValue
- *  [싱크]  SliderSyncOffset (-200~+200ms), TextSyncOffsetValue, EditSyncOffset (숫자 직접 입력, 선택)
+ *  [싱크]  SliderSyncOffset (-200~+200ms), TextSyncOffsetValue, EditSyncOffset (숫자 직접 입력, 선택),
+ *          ButtonResetSyncOffset (판정 오프셋만 즉시 0으로 + 저장, 선택)
  *  [화면]  ComboBoxWindowMode, ComboBoxResolution, ComboBoxGraphics, CheckBoxAntiAliasing (안티에일리어싱 켬/끔),
  *          ComboBoxFrameRate (초당 프레임 제한 + 수직 동기화를 한 목록에서 선택)
  *  [입력]  ComboBoxPollingRate (리듬 키 입력 폴링 레이트)
@@ -209,6 +210,10 @@ protected:
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "PTB|Settings|Sync")
 	TObjectPtr<UEditableTextBox> EditSyncOffset;
 
+	/** 판정 오프셋만 0으로 초기화. 누르면 바로 저장됨 (Apply 불필요) */
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "PTB|Settings|Sync")
+	TObjectPtr<UButton> ButtonResetSyncOffset;
+
 	// ── 화면/그래픽 ──────────────────────────────────────────────────
 
 	/** 창 모드 선택. 옵션: "전체화면" / "창 전체화면" / "창 모드" */
@@ -357,6 +362,7 @@ private:
 	UFUNCTION() void OnSyncOffsetSliderChanged(float Value);
 	UFUNCTION() void OnSyncOffsetTextCommitted(const FText& Text, ETextCommit::Type CommitMethod);
 	UFUNCTION() void OnSyncOffsetTextChanged(const FText& Text);
+	UFUNCTION() void OnResetSyncOffsetClicked();
 
 	/** 슬라이더 / 텍스트 / 입력칸을 PendingSettings.JudgementOffsetMs 값으로 갱신 */
 	void RefreshSyncOffsetWidgets(bool bUpdateSlider = true, bool bForceEditText = false);

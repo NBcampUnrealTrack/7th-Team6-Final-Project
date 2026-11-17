@@ -97,9 +97,24 @@ public:
 
 	// ── 노트 모양 ────────────────────────────────────────────────────
 
-	/** 판정선 X 위치 (0=왼쪽 끝, 1=오른쪽 끝). JudgmentLineWidget 위치도 여기에 맞춤 */
+	/** 판정선 X 위치 (0=왼쪽 끝, 1=오른쪽 끝). bAutoPlaceJudgmentLine이 켜져 있으면 JudgmentLineWidget을 여기로 옮김 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Calibration|Note")
 	float JudgmentLineAnchorX = 0.25f;
+
+	/**
+	 * true: JudgmentLineWidget을 JudgmentLineAnchorX 위치로 자동 배치.
+	 * false: Designer에 놓은 위치 그대로 사용.
+	 * 어느 쪽이든 노트는 JudgmentLineWidget의 "실제 화면 중앙"을 기준으로 박자에 맞춰 도착함.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Calibration|Note")
+	bool bAutoPlaceJudgmentLine = true;
+
+	/**
+	 * 노트의 어느 부분이 판정선에 닿는 순간을 박자로 볼지 (0 = 노트 왼쪽 끝, 0.5 = 노트 중앙).
+	 * 노트가 크면 "닿는 순간"과 "중앙이 겹치는 순간"의 차이가 커서 박자가 어긋나 보일 수 있음.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Calibration|Note", meta = (ClampMin = "0", ClampMax = "1"))
+	float NoteHitPointX = 0.5f;
 
 	/** 노트가 생성되는 지점 ~ 판정선 거리 (UI 단위). 이동 속도 = 거리 / (NoteLeadBeats 박자 시간) */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Calibration|Note", meta = (ClampMin = "100"))
@@ -212,6 +227,8 @@ private:
 	void FinishCalibration();
 	void RegisterPress(double PressTime);
 	void RefreshKeyText();
+	/** 판정선 중앙의 X (NoteTrackCanvas 기준 로컬 좌표) */
+	float ResolveJudgmentLineX() const;
 	FKey ResolveTargetKey() const;
 	double ConsumePressTime() const;
 

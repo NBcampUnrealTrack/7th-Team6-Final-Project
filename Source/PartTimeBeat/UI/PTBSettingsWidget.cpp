@@ -459,6 +459,7 @@ void UPTBSettingsWidget::BindWidgetCallbacks()
 		EditSyncOffset->OnTextCommitted.AddUniqueDynamic(this, &UPTBSettingsWidget::OnSyncOffsetTextCommitted);
 		EditSyncOffset->OnTextChanged.AddUniqueDynamic(this, &UPTBSettingsWidget::OnSyncOffsetTextChanged);
 	}
+	if (ButtonResetSyncOffset) ButtonResetSyncOffset->OnClicked.AddUniqueDynamic(this, &UPTBSettingsWidget::OnResetSyncOffsetClicked);
 
 	if (ComboBoxWindowMode) ComboBoxWindowMode->OnSelectionChanged.AddUniqueDynamic(this, &UPTBSettingsWidget::OnWindowModeSelectionChanged);
 	if (ComboBoxResolution) ComboBoxResolution->OnSelectionChanged.AddUniqueDynamic(this, &UPTBSettingsWidget::OnResolutionSelectionChanged);
@@ -516,8 +517,15 @@ void UPTBSettingsWidget::OnSyncOffsetTextChanged(const FText& Text)
 {
 	if (bUpdatingSyncText || !EditSyncOffset) return;
 
-	// 숫자와 +/- 외의 문자는 입력되지 않게 걸러냄
-	const FString Source = Text.ToString();
+	// 숫자와 맨 앞 +/- 외의 문자는 입력되지 않게 걸러냄.
+	// 단, 표시용 " ms" 꼬리는 그대로 둠 (입력 확정 시 다시 붙여서 표시)
+	FString Source = Text.ToString();
+	FString Suffix;
+	if (Source.EndsWith(TEXT(" ms")))
+	{
+		Suffix = TEXT(" ms");
+		Source.LeftChopInline(3);
+	}
 	FString Filtered;
 	for (int32 i = 0; i < Source.Len(); ++i)
 	{
@@ -527,6 +535,8 @@ void UPTBSettingsWidget::OnSyncOffsetTextChanged(const FText& Text)
 			Filtered.AppendChar(Ch);
 		}
 	}
+	Filtered += Suffix;
+	Source += Suffix;
 	if (Filtered != Source)
 	{
 		TGuardValue<bool> Guard(bUpdatingSyncText, true);
@@ -569,8 +579,14 @@ void UPTBSettingsWidget::RefreshSyncOffsetWidgets(bool bUpdateSlider, bool bForc
 	{
 		TGuardValue<bool> Guard(bUpdatingSyncText, true);
 		EditSyncOffset->SetText(FText::FromString(
-			Ms > 0 ? FString::Printf(TEXT("+%d"), Ms) : FString::Printf(TEXT("%d"), Ms)));
+			Ms > 0 ? FString::Printf(TEXT("+%d ms"), Ms) : FString::Printf(TEXT("%d ms"), Ms)));
 	}
+}
+
+void UPTBSettingsWidget::OnResetSyncOffsetClicked()
+{
+	// 판정 오프셋만 0으로, 즉시 저장 (다른 설정의 Apply 대기값은 건드리지 않음)
+	SetSyncOffsetMs(0.f, true);
 }
 
 void UPTBSettingsWidget::SetSyncOffsetMs(float OffsetMs, bool bSaveNow)

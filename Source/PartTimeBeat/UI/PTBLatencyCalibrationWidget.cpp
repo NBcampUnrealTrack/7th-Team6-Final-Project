@@ -27,12 +27,15 @@ void UPTBLatencyCalibrationWidget::NativeConstruct()
 	SetIsFocusable(true);
 	SetKeyboardFocus();
 
-	if (JudgmentLineWidget)
+	if (JudgmentLineWidget && bAutoPlaceJudgmentLine)
 	{
 		if (UCanvasPanelSlot* LineSlot = Cast<UCanvasPanelSlot>(JudgmentLineWidget->Slot))
 		{
+			// 세로로 꽉 채우고, 가로 중앙이 정확히 AnchorX에 오도록 (Designer의 X 오프셋 제거)
+			const FVector2D LineSize = LineSlot->GetSize();
 			LineSlot->SetAnchors(FAnchors(JudgmentLineAnchorX, 0.f, JudgmentLineAnchorX, 1.f));
 			LineSlot->SetAlignment(FVector2D(0.5f, 0.f));
+			LineSlot->SetOffsets(FMargin(0.f, 0.f, LineSize.X, 0.f));
 		}
 	}
 
@@ -87,6 +90,9 @@ void UPTBLatencyCalibrationWidget::StartCalibration()
 	CurrentPressCount = 0;
 	ResultOffsetMs = 0.f;
 
+	// 이전 측정 결과가 화면에 남지 않도록 표시 초기화
+	OnOffsetMsUpdated(FText::GetEmpty());
+	OnCalibrationFinishedDisplay(FText::GetEmpty());
 	OnPressCountUpdated(FText::FromString(FString::Printf(TEXT("%d / %d"), 0, RequiredPressCount)));
 
 	SetState(EPTBCalibrationState::Running);
@@ -343,6 +349,25 @@ void UPTBLatencyCalibrationWidget::SpawnNote(double HitTime)
 	ActiveNotes.Add(NewNote);
 }
 
+float UPTBLatencyCalibrationWidget::ResolveJudgmentLineX() const
+{
+	const FGeometry& CanvasGeometry = NoteTrackCanvas->GetCachedGeometry();
+
+	// 판정선 위젯이 있으면 실제로 그려진 위치의 가로 중앙을 사용
+	// (다른 패널 안에 있거나 Designer 오프셋이 있어도 화면에 보이는 선과 정확히 맞음)
+	if (JudgmentLineWidget && JudgmentLineWidget->IsVisible())
+	{
+		const FGeometry& LineGeometry = JudgmentLineWidget->GetCachedGeometry();
+		if (LineGeometry.GetLocalSize().X > 0.f || LineGeometry.GetLocalSize().Y > 0.f)
+		{
+			const FVector2D LineCenterAbs = LineGeometry.LocalToAbsolute(LineGeometry.GetLocalSize() * 0.5f);
+			return static_cast<float>(CanvasGeometry.AbsoluteToLocal(LineCenterAbs).X);
+		}
+	}
+
+	return static_cast<float>(CanvasGeometry.GetLocalSize().X) * JudgmentLineAnchorX;
+}
+
 void UPTBLatencyCalibrationWidget::ClearNotes()
 {
 	for (FPTBCalibrationNote& Note : ActiveNotes)
@@ -405,8 +430,9 @@ void UPTBLatencyCalibrationWidget::NativeTick(const FGeometry& MyGeometry, float
 		return;
 	}
 
-	const FVector2D CanvasSize = NoteTrackCanvas->GetCachedGeometry().GetLocalSize();
-	const float LineX = CanvasSize.X * JudgmentLineAnchorX;
+	const float LineX = ResolveJudgmentLineX();
+	// 노트 중앙 기준 위치 보정: HitPoint가 판정선에 올 때 중앙은 이만큼 오른쪽
+	const float HitPointShift = NoteSizePx * (0.5f - NoteHitPointX);
 
 	for (int32 i = ActiveNotes.Num() - 1; i >= 0; --i)
 	{
@@ -427,7 +453,7 @@ void UPTBLatencyCalibrationWidget::NativeTick(const FGeometry& MyGeometry, float
 			continue;
 		}
 
-		const float X = LineX + NoteTravelDistance * (1.f - Alpha);
+		const float X = LineX + NoteTravelDistance * (1.f - Alpha) + HitPointShift;
 		if (UCanvasPanelSlot* NoteSlot = Cast<UCanvasPanelSlot>(Note.Widget->Slot))
 		{
 			NoteSlot->SetPosition(FVector2D(X, 0.f));
