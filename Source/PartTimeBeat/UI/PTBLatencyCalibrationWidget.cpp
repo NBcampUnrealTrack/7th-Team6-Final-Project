@@ -27,29 +27,7 @@ void UPTBLatencyCalibrationWidget::NativeConstruct()
 	SetIsFocusable(true);
 	SetKeyboardFocus();
 
-	if (JudgmentLineWidget && bAutoPlaceJudgmentLine)
-	{
-		if (UCanvasPanelSlot* LineSlot = Cast<UCanvasPanelSlot>(JudgmentLineWidget->Slot))
-		{
-			if (bJudgmentLineMatchesNoteSize)
-			{
-				// 노트와 같은 네모: 노트와 같은 기준(트랙 세로 중앙)으로 배치
-				LineSlot->SetAnchors(FAnchors(JudgmentLineAnchorX, 0.5f, JudgmentLineAnchorX, 0.5f));
-				LineSlot->SetAlignment(FVector2D(0.5f, 0.5f));
-				LineSlot->SetPosition(FVector2D::ZeroVector);
-				LineSlot->SetSize(FVector2D(NoteSizePx, NoteSizePx));
-			}
-			else
-			{
-				// 세로로 꽉 채우고, 가로 중앙이 정확히 AnchorX에 오도록 (Designer의 X 오프셋 제거)
-				const FVector2D LineSize = LineSlot->GetSize();
-				LineSlot->SetAnchors(FAnchors(JudgmentLineAnchorX, 0.f, JudgmentLineAnchorX, 1.f));
-				LineSlot->SetAlignment(FVector2D(0.5f, 0.f));
-				LineSlot->SetOffsets(FMargin(0.f, 0.f, LineSize.X, 0.f));
-			}
-			JudgmentLineWidget->SetRenderTransformPivot(FVector2D(0.5f, 0.5f));
-		}
-	}
+	PlaceJudgmentLine();
 
 	if (ButtonRestart) ButtonRestart->OnClicked.AddUniqueDynamic(this, &UPTBLatencyCalibrationWidget::HandleRestartClicked);
 	if (ButtonApply)   ButtonApply->OnClicked.AddUniqueDynamic(this, &UPTBLatencyCalibrationWidget::HandleApplyClicked);
@@ -85,13 +63,18 @@ void UPTBLatencyCalibrationWidget::StartCalibration()
 	RefreshKeyText();
 
 	BeatIntervalSec = 60.0 / FMath::Max(BPM, 30.f);
-	NoteTravelTimeSec = BeatIntervalSec * FMath::Max(NoteLeadBeats, 1);
+	NoteTravelTimeSec = NoteSpeed > 0.f
+		? static_cast<double>(NoteTravelDistance) / NoteSpeed
+		: BeatIntervalSec * FMath::Max(NoteLeadBeats, 1);
+
+	// 준비(카운트인) 박자 수: 첫 노트가 판정선까지 오는 시간을 박자 단위로 올림
+	const int32 CountInBeats = FMath::Max(1, FMath::CeilToInt(NoteTravelTimeSec / BeatIntervalSec - KINDA_SMALL_NUMBER));
 
 	// 첫 노트가 화면 오른쪽에서 들어와 0번 박자에 판정선에 닿도록 준비 시간 = 노트 이동 시간.
 	// 준비 시간 동안에도 소리는 나게 해서(카운트인) 박자를 미리 잡을 수 있게 함.
 	const double Now = FPlatformTime::Seconds();
-	FirstBeatTime = Now + NoteTravelTimeSec;
-	NextSoundBeat = -FMath::Max(NoteLeadBeats, 1);
+	FirstBeatTime = Now + CountInBeats * BeatIntervalSec;
+	NextSoundBeat = -CountInBeats;
 	NextNoteBeat = 0;
 
 	BeatOffsetsMs.Reset();
@@ -187,9 +170,17 @@ void UPTBLatencyCalibrationWidget::RefreshKeyText()
 	{
 		ActiveKey = ResolveTargetKey();
 	}
+	const FText KeyName = ActiveKey.GetDisplayName();
 	if (TXT_TargetKey)
 	{
-		TXT_TargetKey->SetText(ActiveKey.GetDisplayName());
+		TXT_TargetKey->SetText(KeyName);
+	}
+	if (TXT_Instruction)
+	{
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("Key"), KeyName);
+		Args.Add(TEXT("ActionA"), KeyName);
+		TXT_Instruction->SetText(FText::Format(InstructionFormat, Args));
 	}
 }
 
@@ -357,17 +348,74 @@ void UPTBLatencyCalibrationWidget::SpawnNote(double HitTime)
 	ActiveNotes.Add(NewNote);
 }
 
+bool UPTBLatencyCalibrationWidget::IsSameOrDescendant(const UWidget* Child, const UWidget* Ancestor)
+{
+	for (const UWidget* It = Child; It; It = It->GetParent())
+	{
+		if (It == Ancestor)
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+void UPTBLatencyCalibrationWidget::PlaceJudgmentLine()
+{
+	if (!JudgmentLineWidget || !NoteTrackCanvas || !bAutoPlaceJudgmentLine)
+	{
+		return;
+	}
+
+	// 판정선이 Overlay 등으로 묶여 있으면, NoteTrackCanvas 바로 아래의 묶음 위젯을 배치
+	UWidget* Root = JudgmentLineWidget;
+	while (Root && Root->GetParent() && Root->GetParent() != NoteTrackCanvas)
+	{
+		Root = Root->GetParent();
+	}
+
+	UCanvasPanelSlot* RootSlot = Root ? Cast<UCanvasPanelSlot>(Root->Slot) : nullptr;
+	if (!RootSlot || Root->GetParent() != NoteTrackCanvas)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Calibration] JudgmentLineWidget이 NoteTrackCanvas 안에 없어서 자동 배치를 건너뜀"));
+		return;
+	}
+
+	if (bJudgmentLineMatchesNoteSize)
+	{
+		// 노트와 같은 네모: 노트와 같은 기준(트랙 세로 중앙)으로 배치
+		RootSlot->SetAutoSize(false);
+		RootSlot->SetAnchors(FAnchors(JudgmentLineAnchorX, 0.5f, JudgmentLineAnchorX, 0.5f));
+		RootSlot->SetAlignment(FVector2D(0.5f, 0.5f));
+		RootSlot->SetPosition(FVector2D::ZeroVector);
+		RootSlot->SetSize(FVector2D(NoteSizePx, NoteSizePx));
+	}
+	else
+	{
+		// 세로로 꽉 채우고, 가로 중앙이 정확히 AnchorX에 오도록 (Designer의 X 오프셋 제거)
+		const FVector2D RootSize = RootSlot->GetSize();
+		RootSlot->SetAnchors(FAnchors(JudgmentLineAnchorX, 0.f, JudgmentLineAnchorX, 1.f));
+		RootSlot->SetAlignment(FVector2D(0.5f, 0.f));
+		RootSlot->SetOffsets(FMargin(0.f, 0.f, RootSize.X, 0.f));
+	}
+
+	JudgmentLineWidget->SetRenderTransformPivot(FVector2D(0.5f, 0.5f));
+	Root->SetRenderTransformPivot(FVector2D(0.5f, 0.5f));
+}
+
 void UPTBLatencyCalibrationWidget::ApplyBeatPulse(float Pulse)
 {
 	auto ScaleOf = [Pulse](float MaxScale) { return FMath::Lerp(1.f, MaxScale, Pulse); };
 
 	if (UWidget* KeyWidget = KeyPulseTarget ? KeyPulseTarget.Get() : static_cast<UWidget*>(TXT_TargetKey.Get()))
 	{
+		KeyWidget->SetRenderTransformPivot(FVector2D(0.5f, 0.5f));
 		const float S = ScaleOf(KeyPulseScale);
 		KeyWidget->SetRenderScale(FVector2D(S, S));
 	}
 
-	if (JudgmentLineWidget)
+	// 판정선이 KeyPulseTarget 묶음 안에 있으면 묶음이 이미 커지므로 따로 키우지 않음 (두 번 커짐 방지)
+	if (JudgmentLineWidget && !IsSameOrDescendant(JudgmentLineWidget, KeyPulseTarget))
 	{
 		const float S = bPulseJudgmentLine ? ScaleOf(JudgmentLinePulseScale) : 1.f;
 		JudgmentLineWidget->SetRenderScale(FVector2D(S, S));

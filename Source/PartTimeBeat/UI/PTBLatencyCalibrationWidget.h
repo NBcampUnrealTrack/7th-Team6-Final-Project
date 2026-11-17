@@ -51,7 +51,11 @@ struct FPTBCalibrationNote
  * Designer 위젯 (이름·타입 일치 시 자동 연결, 모두 선택 사항 except NoteTrackCanvas):
  *  NoteTrackCanvas (Canvas Panel, 필수), JudgmentLineWidget (아무 위젯),
  *  ButtonRestart, ButtonApply, ButtonCancel (Button),
- *  TXT_TargetKey (Text: 측정 키 이름 표시), KeyPulseTarget (아무 위젯: 박자마다 커졌다 작아짐. 없으면 TXT_TargetKey)
+ *  TXT_TargetKey (Text: 측정 키 이름 표시), KeyPulseTarget (아무 위젯: 박자마다 커졌다 작아짐. 없으면 TXT_TargetKey),
+ *  TXT_Instruction (Text: "{Key} 키를 박자에 맞춰 누르세요." 안내 문구, InstructionFormat으로 자동 채움)
+ *
+ *  판정선 묶기: NoteTrackCanvas > KeyPulseTarget(Overlay) > [JudgmentLineWidget(채우기), TXT_TargetKey(가운데)]
+ *  이렇게 두면 KeyPulseTarget 묶음 전체가 판정 위치에 자동 배치되고, 묶음째로 박자에 맞춰 커짐.
  */
 UCLASS()
 class PARTTIMEBEAT_API UPTBLatencyCalibrationWidget : public UUserWidget
@@ -80,7 +84,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Calibration")
 	int32 RequiredPressCount = 8;
 
-	/** 노트가 생성돼서 판정선까지 오는 데 걸리는 박자 수 (클수록 천천히 옴) */
+	/** NoteSpeed가 0 이하일 때만 사용: 노트가 생성돼서 판정선까지 오는 데 걸리는 박자 수 (클수록 천천히 옴) */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Calibration", meta = (ClampMin = "1"))
 	int32 NoteLeadBeats = 3;
 
@@ -124,7 +128,14 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Calibration|Note", meta = (ClampMin = "0", ClampMax = "1"))
 	float NoteHitPointX = 0.5f;
 
-	/** 노트가 생성되는 지점 ~ 판정선 거리 (UI 단위). 이동 속도 = 거리 / (NoteLeadBeats 박자 시간) */
+	/**
+	 * 노트 이동 속도 (UI 단위/초). 작을수록 느림. 0 이하면 NoteLeadBeats 방식으로 계산.
+	 * 박자(BPM)와 상관없이 이 속도 그대로 움직이고, 판정선 도착 시각만 박자에 맞춤.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Calibration|Note")
+	float NoteSpeed = 350.f;
+
+	/** 노트가 생성되는 지점 ~ 판정선 거리 (UI 단위). 화면 오른쪽 끝을 넘으면 화면 밖에서 들어옴 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Calibration|Note", meta = (ClampMin = "100"))
 	float NoteTravelDistance = 700.f;
 
@@ -222,6 +233,17 @@ protected:
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Calibration")
 	TObjectPtr<UWidget> KeyPulseTarget;
 
+	/** 안내 문구 (선택) */
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Calibration")
+	TObjectPtr<UTextBlock> TXT_Instruction;
+
+public:
+	/** TXT_Instruction에 넣을 문구. {Key} (또는 {ActionA}) 자리에 측정 키 이름이 들어감 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Calibration|Key")
+	FText InstructionFormat = NSLOCTEXT("PTBLatencyCalibration", "InstructionFormat", "{Key} 키를 박자에 맞춰 누르세요.");
+
+protected:
+
 	UFUNCTION(BlueprintImplementableEvent, Category = "Calibration")
 	void OnMetronomeTick();
 
@@ -253,6 +275,10 @@ private:
 	float ResolveJudgmentLineX() const;
 	/** 0~1 (1 = 박자 순간) 값으로 키 표시·판정선·노트 크기 갱신 */
 	void ApplyBeatPulse(float Pulse);
+	/** 판정선(또는 판정선을 품은 묶음)을 판정 위치에 배치 */
+	void PlaceJudgmentLine();
+	/** Child가 Ancestor 자신이거나 그 안에 들어 있는지 */
+	static bool IsSameOrDescendant(const UWidget* Child, const UWidget* Ancestor);
 	FKey ResolveTargetKey() const;
 	double ConsumePressTime() const;
 
