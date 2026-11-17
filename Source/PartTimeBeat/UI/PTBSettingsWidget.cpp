@@ -94,6 +94,33 @@ void UPTBSettingsWidget::BuildComboBoxOptions()
 		ComboBoxGraphics->AddOption(LOCTEXT("Graphics_High", "높음").ToString());
 		ComboBoxGraphics->AddOption(LOCTEXT("Graphics_Epic", "최고").ToString());
 	}
+	if (ComboBoxFrameRate)
+	{
+		ComboBoxFrameRate->ClearOptions();
+		for (const int32 Fps : FrameRateOptions)
+		{
+			if (Fps == FrameRateOptionVSync)
+			{
+				ComboBoxFrameRate->AddOption(LOCTEXT("FrameRate_VSync", "수직 동기화 (V-Sync)").ToString());
+			}
+			else
+			{
+				ComboBoxFrameRate->AddOption(Fps > 0
+					? FString::Printf(TEXT("%d FPS"), Fps)
+					: LOCTEXT("FrameRate_Unlimited", "무제한").ToString());
+			}
+		}
+	}
+	if (ComboBoxPollingRate)
+	{
+		ComboBoxPollingRate->ClearOptions();
+		for (const int32 Hz : PollingRateOptions)
+		{
+			ComboBoxPollingRate->AddOption(Hz > 0
+				? FString::Printf(TEXT("%d Hz"), Hz)
+				: LOCTEXT("PollingRate_Off", "끔 (프레임 기준)").ToString());
+		}
+	}
 	if (ComboBoxLanguage)
 	{
 		// 언어 이름은 번역하지 않음 (어떤 언어 상태에서도 자기 언어를 찾을 수 있도록)
@@ -344,6 +371,28 @@ void UPTBSettingsWidget::RefreshAllWidgets()
 		ComboBoxGraphics->SetSelectedIndex(GraphicsIndex);
 	}
 	if (CheckBoxAntiAliasing) CheckBoxAntiAliasing->SetIsChecked(PendingSettings.bAntiAliasingEnabled);
+	if (ComboBoxFrameRate && FrameRateOptions.Num() > 0)
+	{
+		const int32 VSyncIndex = FrameRateOptions.IndexOfByKey(FrameRateOptionVSync);
+		if (PendingSettings.bVSyncEnabled && VSyncIndex != INDEX_NONE)
+		{
+			ComboBoxFrameRate->SetSelectedIndex(VSyncIndex);
+		}
+		else
+		{
+			// 목록에 수직 동기화가 없으면 끈 상태로 맞춤
+			PendingSettings.bVSyncEnabled = false;
+			const int32 Index = FindClosestOptionIndex(FrameRateOptions, PendingSettings.FrameRateLimit);
+			PendingSettings.FrameRateLimit = FMath::Max(0, FrameRateOptions[Index]);
+			ComboBoxFrameRate->SetSelectedIndex(Index);
+		}
+	}
+	if (ComboBoxPollingRate && PollingRateOptions.Num() > 0)
+	{
+		const int32 Index = FindClosestOptionIndex(PollingRateOptions, PendingSettings.InputPollingRateHz);
+		PendingSettings.InputPollingRateHz = PollingRateOptions[Index];
+		ComboBoxPollingRate->SetSelectedIndex(Index);
+	}
 	if (ComboBoxLanguage)
 	{
 		int32 LangIndex = LanguageCultures.IndexOfByKey(PendingCulture);
@@ -415,6 +464,8 @@ void UPTBSettingsWidget::BindWidgetCallbacks()
 	if (ComboBoxResolution) ComboBoxResolution->OnSelectionChanged.AddUniqueDynamic(this, &UPTBSettingsWidget::OnResolutionSelectionChanged);
 	if (ComboBoxGraphics)   ComboBoxGraphics->OnSelectionChanged.AddUniqueDynamic(this, &UPTBSettingsWidget::OnGraphicsSelectionChanged);
 	if (CheckBoxAntiAliasing) CheckBoxAntiAliasing->OnCheckStateChanged.AddUniqueDynamic(this, &UPTBSettingsWidget::OnAntiAliasingCheckChanged);
+	if (ComboBoxFrameRate)    ComboBoxFrameRate->OnSelectionChanged.AddUniqueDynamic(this, &UPTBSettingsWidget::OnFrameRateSelectionChanged);
+	if (ComboBoxPollingRate)  ComboBoxPollingRate->OnSelectionChanged.AddUniqueDynamic(this, &UPTBSettingsWidget::OnPollingRateSelectionChanged);
 	if (ComboBoxLanguage)   ComboBoxLanguage->OnSelectionChanged.AddUniqueDynamic(this, &UPTBSettingsWidget::OnLanguageSelectionChanged);
 }
 
@@ -487,6 +538,63 @@ void UPTBSettingsWidget::OnGraphicsSelectionChanged(FString SelectedItem, ESelec
 void UPTBSettingsWidget::OnAntiAliasingCheckChanged(bool bIsChecked)
 {
 	PendingSettings.bAntiAliasingEnabled = bIsChecked;
+}
+
+void UPTBSettingsWidget::OnFrameRateSelectionChanged(FString SelectedItem, ESelectInfo::Type SelectionType)
+{
+	if (SelectionType == ESelectInfo::Direct || !ComboBoxFrameRate) return;
+	const int32 Index = ComboBoxFrameRate->GetSelectedIndex();
+	if (!FrameRateOptions.IsValidIndex(Index))
+	{
+		return;
+	}
+	if (FrameRateOptions[Index] == FrameRateOptionVSync)
+	{
+		// 수직 동기화: 모니터 주사율에 맞춰지므로 별도 프레임 제한은 끔
+		PendingSettings.bVSyncEnabled = true;
+		PendingSettings.FrameRateLimit = 0;
+	}
+	else
+	{
+		PendingSettings.bVSyncEnabled = false;
+		PendingSettings.FrameRateLimit = FMath::Max(0, FrameRateOptions[Index]);
+	}
+}
+
+void UPTBSettingsWidget::OnPollingRateSelectionChanged(FString SelectedItem, ESelectInfo::Type SelectionType)
+{
+	if (SelectionType == ESelectInfo::Direct || !ComboBoxPollingRate) return;
+	const int32 Index = ComboBoxPollingRate->GetSelectedIndex();
+	if (PollingRateOptions.IsValidIndex(Index))
+	{
+		PendingSettings.InputPollingRateHz = PollingRateOptions[Index];
+	}
+}
+
+int32 UPTBSettingsWidget::FindClosestOptionIndex(const TArray<int32>& Options, int32 Value)
+{
+	int32 Best = 0;
+	int32 BestDiff = MAX_int32;
+	for (int32 i = 0; i < Options.Num(); ++i)
+	{
+		// 음수(수직 동기화 등 특수값)는 거리 계산에서 제외
+		if (Options[i] < 0)
+		{
+			continue;
+		}
+		// 0(무제한/끔)은 정확히 같을 때만 선택
+		if ((Options[i] == 0) != (Value == 0))
+		{
+			continue;
+		}
+		const int32 Diff = FMath::Abs(Options[i] - Value);
+		if (Diff < BestDiff)
+		{
+			BestDiff = Diff;
+			Best = i;
+		}
+	}
+	return Best;
 }
 
 void UPTBSettingsWidget::OnLanguageSelectionChanged(FString SelectedItem, ESelectInfo::Type SelectionType)

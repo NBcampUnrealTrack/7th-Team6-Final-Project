@@ -176,6 +176,7 @@ void UPTBWwiseRhythmSyncComponent::TickComponent(float DeltaTime, ELevelTick Tic
 	}
 
 	SyncData.CurrentPlaybackMs = FMath::Max(0.0f, PlaybackMs);
+	LastPlaybackSampleRealSeconds = FPlatformTime::Seconds();
 	// 일시정지(위치 변화 없음)는 제외하고, 실제 프레임 시간 대비 재생 위치가 튄 정도를 기록
 	if (bUsedWwisePosition && !FMath::IsNearlyEqual(SyncData.CurrentPlaybackMs, PrevPlaybackMs))
 	{
@@ -310,6 +311,25 @@ float UPTBWwiseRhythmSyncComponent::GetVisualChartTimeMs() const
 float UPTBWwiseRhythmSyncComponent::GetInputJudgeTimeMs() const
 {
 	return GetChartTimeMs() + InputOffsetMs;
+}
+
+bool UPTBWwiseRhythmSyncComponent::GetInputJudgeTimeMsAtRealTime(double RealSeconds, float& OutTimeMs) const
+{
+	if (!SyncData.bIsPlaying || LastPlaybackSampleRealSeconds <= 0.0)
+	{
+		return false;
+	}
+
+	// 재생 위치 갱신 시각 기준으로 앞뒤 보정. 비정상적으로 큰 차이(일시정지·히치 등)는 보정하지 않음
+	const double DeltaMs = (RealSeconds - LastPlaybackSampleRealSeconds) * 1000.0;
+	constexpr double MaxCorrectionMs = 100.0;
+	if (DeltaMs < -MaxCorrectionMs || DeltaMs > MaxCorrectionMs)
+	{
+		return false;
+	}
+
+	OutTimeMs = GetInputJudgeTimeMs() + static_cast<float>(DeltaMs);
+	return true;
 }
 
 float UPTBWwiseRhythmSyncComponent::GetChartBeat() const

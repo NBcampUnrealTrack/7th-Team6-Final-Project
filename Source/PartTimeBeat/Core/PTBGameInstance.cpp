@@ -10,6 +10,7 @@
 #include "Internationalization/Culture.h"
 #include "Internationalization/TextLocalizationManager.h"
 #include "HAL/IConsoleManager.h"
+#include "Core/PTBInputPollSubsystem.h"
 
 namespace
 {
@@ -178,7 +179,27 @@ void UPTBGameInstance::ApplyUserSettings(const FPTBUserSettings& InSettings)
 		CachedSettings.GraphicsQuality = ClampedGraphicsQuality;
 		GUS->SetOverallScalabilityLevel(ClampedGraphicsQuality);
 
+		// 프레임 제한 / 수직 동기화 (GameUserSettings.ini에도 저장됨)
+		GUS->SetFrameRateLimit(static_cast<float>(FMath::Max(0, InSettings.FrameRateLimit)));
+		GUS->SetVSyncEnabled(InSettings.bVSyncEnabled);
+
 		GUS->ApplySettings(false);
+	}
+
+	// GameUserSettings는 낮은 우선순위로 값을 넣어서, 로딩 화면(SetByCode)·프로젝트 설정에 밀릴 수 있으므로 직접 한 번 더 설정
+	if (IConsoleVariable* MaxFPSVar = IConsoleManager::Get().FindConsoleVariable(TEXT("t.MaxFPS")))
+	{
+		MaxFPSVar->Set(static_cast<float>(FMath::Max(0, InSettings.FrameRateLimit)), ECVF_SetByCode);
+	}
+	if (IConsoleVariable* VSyncVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.VSync")))
+	{
+		VSyncVar->Set(InSettings.bVSyncEnabled ? 1 : 0, ECVF_SetByGameOverride);
+	}
+
+	// 입력 폴링 레이트·키 바인딩 반영
+	if (UPTBInputPollSubsystem* InputPoll = GetSubsystem<UPTBInputPollSubsystem>())
+	{
+		InputPoll->Configure(InSettings.InputPollingRateHz, InSettings.RhythmKeys);
 	}
 
 	// 안티에일리어싱: 켬 = FXAA(1), 끔 = 없음(0). 다른 값(TAA/TSR/MSAA)은 쓰지 않음
@@ -194,7 +215,9 @@ void UPTBGameInstance::ApplyUserSettings(const FPTBUserSettings& InSettings)
 	PTB_RECORD(LogPTBCore, TEXT("UserSettings applied — Master:%.2f BGM:%.2f SFX:%.2f Offset:%.1fms / WinMode:%d / Resolution:%d / Graphics:%d"),
 		InSettings.MasterVolume, InSettings.BGMVolume, InSettings.SFXVolume, InSettings.JudgementOffsetMs,
 		static_cast<int32>(InSettings.WindowMode), InSettings.ResolutionPresetIndex, CachedSettings.GraphicsQuality);
-	PTB_RECORD(LogPTBCore, TEXT("UserSettings applied — AntiAliasing:%s"), InSettings.bAntiAliasingEnabled ? TEXT("FXAA") : TEXT("Off"));
+	PTB_RECORD(LogPTBCore, TEXT("UserSettings applied — AntiAliasing:%s / MaxFPS:%d / VSync:%d / InputPolling:%dHz"),
+		InSettings.bAntiAliasingEnabled ? TEXT("FXAA") : TEXT("Off"), InSettings.FrameRateLimit,
+		InSettings.bVSyncEnabled ? 1 : 0, InSettings.InputPollingRateHz);
 	OnUserSettingsApplied.Broadcast();
 }
 

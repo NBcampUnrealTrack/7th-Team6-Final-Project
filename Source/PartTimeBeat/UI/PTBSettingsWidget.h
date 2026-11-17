@@ -27,7 +27,9 @@ class UWidgetSwitcher;
  *  [볼륨]  SliderMaster, SliderBgm, SliderSfx, CheckBoxGameplaySfx (입력·판정 효과음 켬/끔)
  *          TextMasterValue, TextBgmValue, TextSfxValue
  *  [싱크]  SliderSyncOffset (-200~+200ms), TextSyncOffsetValue
- *  [화면]  ComboBoxWindowMode, ComboBoxResolution, ComboBoxGraphics, CheckBoxAntiAliasing (안티에일리어싱 켬/끔)
+ *  [화면]  ComboBoxWindowMode, ComboBoxResolution, ComboBoxGraphics, CheckBoxAntiAliasing (안티에일리어싱 켬/끔),
+ *          ComboBoxFrameRate (초당 프레임 제한 + 수직 동기화를 한 목록에서 선택)
+ *  [입력]  ComboBoxPollingRate (리듬 키 입력 폴링 레이트)
  *  [키]    KeyText_A~KeyText_E, ButtonRebindA~ButtonRebindE, TextRebindPrompt
  *  [언어]  ComboBoxLanguage, TextLanguageLocked (일시정지 중 안내, 선택)
  *  [제어]  ButtonApply, ButtonReset, ButtonCalibrate
@@ -212,6 +214,25 @@ protected:
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "PTB|Settings|Display")
 	TObjectPtr<UCheckBox> CheckBoxAntiAliasing;
 
+	/** 초당 프레임 제한 + 수직 동기화. 옵션: FrameRateOptions (0 = 무제한, -1 = 수직 동기화) */
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "PTB|Settings|Display")
+	TObjectPtr<UComboBoxString> ComboBoxFrameRate;
+
+	/** 리듬 키 입력 폴링 레이트. 옵션: PollingRateOptions (0 = 끔) */
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "PTB|Settings|Input")
+	TObjectPtr<UComboBoxString> ComboBoxPollingRate;
+
+	/** 프레임 제한 선택지 (fps, 0 = 무제한, -1 = 수직 동기화). 순서대로 콤보박스에 표시 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Settings|Display")
+	TArray<int32> FrameRateOptions = { 30, 60, 120, 144, 165, 240, 0, -1 };
+
+	/** 선택지에서 수직 동기화를 뜻하는 값 */
+	static constexpr int32 FrameRateOptionVSync = -1;
+
+	/** 폴링 레이트 선택지 (Hz, 0 = 끔) */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Settings|Input")
+	TArray<int32> PollingRateOptions = { 0, 125, 250, 500, 1000, 2000, 4000, 8000 };
+
 	// ── 언어 ─────────────────────────────────────────────────────────
 
 	/** 언어 선택. 옵션: "한국어" / "English" (LanguageCultures와 같은 순서). 게임 설정 탭에 배치. */
@@ -315,6 +336,11 @@ private:
 	UFUNCTION() void OnSfxSliderChanged(float Value);
 	UFUNCTION() void OnGameplaySfxCheckChanged(bool bIsChecked);
 	UFUNCTION() void OnAntiAliasingCheckChanged(bool bIsChecked);
+	UFUNCTION() void OnFrameRateSelectionChanged(FString SelectedItem, ESelectInfo::Type SelectionType);
+	UFUNCTION() void OnPollingRateSelectionChanged(FString SelectedItem, ESelectInfo::Type SelectionType);
+
+	/** 값 배열에서 가장 가까운 항목 인덱스 (저장값이 목록에 없을 때 대비) */
+	static int32 FindClosestOptionIndex(const TArray<int32>& Options, int32 Value);
 	UFUNCTION() void OnSyncOffsetSliderChanged(float Value);
 	UFUNCTION() void OnWindowModeSelectionChanged(FString SelectedItem, ESelectInfo::Type SelectionType);
 	UFUNCTION() void OnResolutionSelectionChanged(FString SelectedItem, ESelectInfo::Type SelectionType);

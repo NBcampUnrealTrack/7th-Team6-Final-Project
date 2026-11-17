@@ -255,6 +255,12 @@ public:
 	UFUNCTION(BlueprintPure, Category = "PTB|MiniGame|Time")
 	float GetCurrentInputJudgeTimeMs() const;
 
+	/**
+	 * 실제 시각(FPlatformTime::Seconds)에 해당하는 입력 판정 시간(ms). 입력 폴링 보정용.
+	 * 보정할 수 없으면 -1 (호출 측은 기존처럼 프레임 기준 시간을 사용).
+	 */
+	float GetInputJudgeTimeMsAtRealTime(double RealSeconds) const;
+
 	/** BP 미니게임에서 채보 노트 타이밍 연출을 확장합니다. */
 	UFUNCTION(BlueprintNativeEvent, Category = "PTB|MiniGame|Events")
 	void ReceiveChartNote(FPTBNoteEvent Note);
