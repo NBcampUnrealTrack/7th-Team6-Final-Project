@@ -27,7 +27,7 @@ class UWidgetSwitcher;
  *  [볼륨]  SliderMaster, SliderBgm, SliderSfx, CheckBoxGameplaySfx (입력·판정 효과음 켬/끔)
  *          TextMasterValue, TextBgmValue, TextSfxValue
  *  [싱크]  SliderSyncOffset (-200~+200ms), TextSyncOffsetValue
- *  [화면]  ComboBoxWindowMode, ComboBoxResolution, ComboBoxGraphics
+ *  [화면]  ComboBoxWindowMode, ComboBoxResolution, ComboBoxGraphics, CheckBoxAntiAliasing (안티에일리어싱 켬/끔)
  *  [키]    KeyText_A~KeyText_E, ButtonRebindA~ButtonRebindE, TextRebindPrompt
  *  [언어]  ComboBoxLanguage, TextLanguageLocked (일시정지 중 안내, 선택)
  *  [제어]  ButtonApply, ButtonReset, ButtonCalibrate
@@ -208,6 +208,10 @@ protected:
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "PTB|Settings|Display")
 	TObjectPtr<UComboBoxString> ComboBoxGraphics;
 
+	/** 안티에일리어싱 켬/끔 (그래픽 탭). 켬 = FXAA */
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "PTB|Settings|Display")
+	TObjectPtr<UCheckBox> CheckBoxAntiAliasing;
+
 	// ── 언어 ─────────────────────────────────────────────────────────
 
 	/** 언어 선택. 옵션: "한국어" / "English" (LanguageCultures와 같은 순서). 게임 설정 탭에 배치. */
@@ -310,6 +314,7 @@ private:
 	UFUNCTION() void OnBgmSliderChanged(float Value);
 	UFUNCTION() void OnSfxSliderChanged(float Value);
 	UFUNCTION() void OnGameplaySfxCheckChanged(bool bIsChecked);
+	UFUNCTION() void OnAntiAliasingCheckChanged(bool bIsChecked);
 	UFUNCTION() void OnSyncOffsetSliderChanged(float Value);
 	UFUNCTION() void OnWindowModeSelectionChanged(FString SelectedItem, ESelectInfo::Type SelectionType);
 	UFUNCTION() void OnResolutionSelectionChanged(FString SelectedItem, ESelectInfo::Type SelectionType);

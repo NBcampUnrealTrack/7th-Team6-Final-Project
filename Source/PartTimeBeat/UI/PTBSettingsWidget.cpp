@@ -172,7 +172,15 @@ void UPTBSettingsWidget::ApplySettings()
 
 void UPTBSettingsWidget::ResetToDefaults()
 {
+	// 자동 설정 정보(측정 결과)는 유지하고, 그래픽 품질은 이 PC의 권장값으로 되돌림
+	const FPTBUserSettings Previous = PendingSettings;
 	PendingSettings = FPTBUserSettings{};
+	PendingSettings.DetectedGraphicsQuality = Previous.DetectedGraphicsQuality;
+	PendingSettings.GraphicsAutoDetectVersion = Previous.GraphicsAutoDetectVersion;
+	if (Previous.DetectedGraphicsQuality >= 0)
+	{
+		PendingSettings.GraphicsQuality = Previous.DetectedGraphicsQuality;
+	}
 	// 언어는 초기화 대상에서 제외 (초기화로 읽을 수 없는 언어가 되는 것을 방지). 선택만 현재 언어로 되돌림.
 	PendingCulture = GetCurrentLanguageCode();
 	RefreshAllWidgets();
@@ -331,10 +339,11 @@ void UPTBSettingsWidget::RefreshAllWidgets()
 	}
 	if (ComboBoxGraphics)
 	{
-		const int32 GraphicsIndex = FMath::Clamp(PendingSettings.GraphicsQuality, 0, 3);
+		const int32 GraphicsIndex = FMath::Clamp(PendingSettings.GraphicsQuality, 0, UPTBGameInstance::MaxGraphicsQuality);
 		PendingSettings.GraphicsQuality = GraphicsIndex;
 		ComboBoxGraphics->SetSelectedIndex(GraphicsIndex);
 	}
+	if (CheckBoxAntiAliasing) CheckBoxAntiAliasing->SetIsChecked(PendingSettings.bAntiAliasingEnabled);
 	if (ComboBoxLanguage)
 	{
 		int32 LangIndex = LanguageCultures.IndexOfByKey(PendingCulture);
@@ -405,6 +414,7 @@ void UPTBSettingsWidget::BindWidgetCallbacks()
 	if (ComboBoxWindowMode) ComboBoxWindowMode->OnSelectionChanged.AddUniqueDynamic(this, &UPTBSettingsWidget::OnWindowModeSelectionChanged);
 	if (ComboBoxResolution) ComboBoxResolution->OnSelectionChanged.AddUniqueDynamic(this, &UPTBSettingsWidget::OnResolutionSelectionChanged);
 	if (ComboBoxGraphics)   ComboBoxGraphics->OnSelectionChanged.AddUniqueDynamic(this, &UPTBSettingsWidget::OnGraphicsSelectionChanged);
+	if (CheckBoxAntiAliasing) CheckBoxAntiAliasing->OnCheckStateChanged.AddUniqueDynamic(this, &UPTBSettingsWidget::OnAntiAliasingCheckChanged);
 	if (ComboBoxLanguage)   ComboBoxLanguage->OnSelectionChanged.AddUniqueDynamic(this, &UPTBSettingsWidget::OnLanguageSelectionChanged);
 }
 
@@ -471,7 +481,12 @@ void UPTBSettingsWidget::OnResolutionSelectionChanged(FString SelectedItem, ESel
 void UPTBSettingsWidget::OnGraphicsSelectionChanged(FString SelectedItem, ESelectInfo::Type SelectionType)
 {
 	if (SelectionType == ESelectInfo::Direct || !ComboBoxGraphics) return;
-	PendingSettings.GraphicsQuality = FMath::Clamp(ComboBoxGraphics->GetSelectedIndex(), 0, 3);
+	PendingSettings.GraphicsQuality = FMath::Clamp(ComboBoxGraphics->GetSelectedIndex(), 0, UPTBGameInstance::MaxGraphicsQuality);
+}
+
+void UPTBSettingsWidget::OnAntiAliasingCheckChanged(bool bIsChecked)
+{
+	PendingSettings.bAntiAliasingEnabled = bIsChecked;
 }
 
 void UPTBSettingsWidget::OnLanguageSelectionChanged(FString SelectedItem, ESelectInfo::Type SelectionType)

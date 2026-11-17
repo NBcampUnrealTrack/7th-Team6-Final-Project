@@ -122,8 +122,23 @@ public:
 	UPROPERTY()
 	UPTBSaveGame* CurrentSaveGame = nullptr;
 
+	/** 그래픽 품질 최대값 (0=낮음, 1=중간, 2=높음, 3=최고) */
+	static constexpr int32 MaxGraphicsQuality = 3;
+
+	/** 첫 실행 자동 설정이 고를 수 있는 최대 품질 (기본 2=높음. '최고'는 플레이어가 직접 선택) */
+	static constexpr int32 MaxAutoGraphicsQuality = 2;
+
 private:
 	void ApplyDefaultLanguage();
+
+	/**
+	 * 첫 실행이면 하드웨어 벤치마크로 기본 그래픽 품질을 정한다.
+	 * 새 세이브에서만 측정하고, 기존 세이브는 플레이어가 고른 값을 유지한다.
+	 */
+	void AutoDetectGraphicsIfNeeded(bool bIsNewSave);
+
+	/** 측정 결과로 권장 품질(0~MaxAutoGraphicsQuality) 계산 */
+	static int32 RunGraphicsBenchmark();
 
 	/** 에디터(PIE)에서 게임 언어 미리보기로 적용 중인 언어. 에디터 자체 언어는 바꾸지 않기 위함 */
 	FString EditorPreviewCulture;

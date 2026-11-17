@@ -384,9 +384,21 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|Display", meta = (ClampMin = "0", ClampMax = "4"))
     int32 ResolutionPresetIndex = 2;
 
-    /** 그래픽 품질 (0=낮음, 1=중간, 2=높음, 3=최고) */
+    /** 그래픽 품질 (0=낮음, 1=중간, 2=높음, 3=최고). 엔진 Scalability Low/Medium/High/Epic에 대응 */
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|Display", meta = (ClampMin = "0", ClampMax = "3"))
     int32 GraphicsQuality = 2;
+
+    /** 안티에일리어싱 켬/끔 (켬 = FXAA: 가볍고 빠른 노트에 잔상이 없음) */
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|Display")
+    bool bAntiAliasingEnabled = true;
+
+    /** 첫 실행 하드웨어 측정으로 정한 권장 품질 (-1 = 측정 안 함). 설정 초기화 시 이 값으로 되돌림 */
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|Display")
+    int32 DetectedGraphicsQuality = -1;
+
+    /** 그래픽 자동 설정 버전 (0 = 아직 안 함). 자동 설정 로직이 바뀌면 상수를 올려 다시 실행 가능 */
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|Display")
+    int32 GraphicsAutoDetectVersion = 0;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
     bool bVibrationEnabled = true;
