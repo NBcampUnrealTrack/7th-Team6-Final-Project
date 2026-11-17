@@ -5,6 +5,7 @@
 #include "Components/Button.h"
 #include "Components/CheckBox.h"
 #include "Components/ComboBoxString.h"
+#include "Components/EditableTextBox.h"
 #include "Components/Image.h"
 #include "Components/Slider.h"
 #include "Components/TextBlock.h"
@@ -55,7 +56,7 @@ void UPTBSettingsWidget::InitializeView()
 	if (SliderMaster) { SliderMaster->SetMinValue(0.f); SliderMaster->SetMaxValue(1.f); }
 	if (SliderBgm) { SliderBgm->SetMinValue(0.f);   SliderBgm->SetMaxValue(1.f); }
 	if (SliderSfx) { SliderSfx->SetMinValue(0.f);   SliderSfx->SetMaxValue(1.f); }
-	if (SliderSyncOffset) { SliderSyncOffset->SetMinValue(-200.f); SliderSyncOffset->SetMaxValue(200.f); }
+	if (SliderSyncOffset) { SliderSyncOffset->SetMinValue(SyncOffsetMinMs); SliderSyncOffset->SetMaxValue(SyncOffsetMaxMs); SliderSyncOffset->SetStepSize(1.f); }
 
 	// 알림 텍스트 / 재바인딩 프롬프트 초기 숨김
 	if (TextNotification) TextNotification->SetVisibility(ESlateVisibility::Hidden);
@@ -93,6 +94,33 @@ void UPTBSettingsWidget::BuildComboBoxOptions()
 		ComboBoxGraphics->AddOption(LOCTEXT("Graphics_Medium", "중간").ToString());
 		ComboBoxGraphics->AddOption(LOCTEXT("Graphics_High", "높음").ToString());
 		ComboBoxGraphics->AddOption(LOCTEXT("Graphics_Epic", "최고").ToString());
+	}
+	if (ComboBoxFrameRate)
+	{
+		ComboBoxFrameRate->ClearOptions();
+		for (const int32 Fps : FrameRateOptions)
+		{
+			if (Fps == FrameRateOptionVSync)
+			{
+				ComboBoxFrameRate->AddOption(LOCTEXT("FrameRate_VSync", "수직 동기화 (V-Sync)").ToString());
+			}
+			else
+			{
+				ComboBoxFrameRate->AddOption(Fps > 0
+					? FString::Printf(TEXT("%d FPS"), Fps)
+					: LOCTEXT("FrameRate_Unlimited", "무제한").ToString());
+			}
+		}
+	}
+	if (ComboBoxPollingRate)
+	{
+		ComboBoxPollingRate->ClearOptions();
+		for (const int32 Hz : PollingRateOptions)
+		{
+			ComboBoxPollingRate->AddOption(Hz > 0
+				? FString::Printf(TEXT("%d Hz"), Hz)
+				: LOCTEXT("PollingRate_Off", "끔 (프레임 기준)").ToString());
+		}
 	}
 	if (ComboBoxLanguage)
 	{
@@ -172,7 +200,15 @@ void UPTBSettingsWidget::ApplySettings()
 
 void UPTBSettingsWidget::ResetToDefaults()
 {
+	// 자동 설정 정보(측정 결과)는 유지하고, 그래픽 품질은 이 PC의 권장값으로 되돌림
+	const FPTBUserSettings Previous = PendingSettings;
 	PendingSettings = FPTBUserSettings{};
+	PendingSettings.DetectedGraphicsQuality = Previous.DetectedGraphicsQuality;
+	PendingSettings.GraphicsAutoDetectVersion = Previous.GraphicsAutoDetectVersion;
+	if (Previous.DetectedGraphicsQuality >= 0)
+	{
+		PendingSettings.GraphicsQuality = Previous.DetectedGraphicsQuality;
+	}
 	// 언어는 초기화 대상에서 제외 (초기화로 읽을 수 없는 언어가 되는 것을 방지). 선택만 현재 언어로 되돌림.
 	PendingCulture = GetCurrentLanguageCode();
 	RefreshAllWidgets();
@@ -309,13 +345,7 @@ void UPTBSettingsWidget::RefreshAllWidgets()
 	RefreshVolumeText(TextSfxValue, PendingSettings.SFXVolume);
 	if (CheckBoxGameplaySfx) CheckBoxGameplaySfx->SetIsChecked(PendingSettings.bGameplaySFXEnabled);
 
-	if (SliderSyncOffset) SliderSyncOffset->SetValue(PendingSettings.JudgementOffsetMs);
-	if (TextSyncOffsetValue)
-	{
-		const FString Sign = PendingSettings.JudgementOffsetMs >= 0.f ? TEXT("+") : TEXT("");
-		TextSyncOffsetValue->SetText(FText::FromString(
-			FString::Printf(TEXT("%s%.0fms"), *Sign, PendingSettings.JudgementOffsetMs)));
-	}
+	RefreshSyncOffsetWidgets();
 
 	if (ComboBoxWindowMode)
 	{
@@ -331,9 +361,32 @@ void UPTBSettingsWidget::RefreshAllWidgets()
 	}
 	if (ComboBoxGraphics)
 	{
-		const int32 GraphicsIndex = FMath::Clamp(PendingSettings.GraphicsQuality, 0, 3);
+		const int32 GraphicsIndex = FMath::Clamp(PendingSettings.GraphicsQuality, 0, UPTBGameInstance::MaxGraphicsQuality);
 		PendingSettings.GraphicsQuality = GraphicsIndex;
 		ComboBoxGraphics->SetSelectedIndex(GraphicsIndex);
+	}
+	if (CheckBoxAntiAliasing) CheckBoxAntiAliasing->SetIsChecked(PendingSettings.bAntiAliasingEnabled);
+	if (ComboBoxFrameRate && FrameRateOptions.Num() > 0)
+	{
+		const int32 VSyncIndex = FrameRateOptions.IndexOfByKey(FrameRateOptionVSync);
+		if (PendingSettings.bVSyncEnabled && VSyncIndex != INDEX_NONE)
+		{
+			ComboBoxFrameRate->SetSelectedIndex(VSyncIndex);
+		}
+		else
+		{
+			// 목록에 수직 동기화가 없으면 끈 상태로 맞춤
+			PendingSettings.bVSyncEnabled = false;
+			const int32 Index = FindClosestOptionIndex(FrameRateOptions, PendingSettings.FrameRateLimit);
+			PendingSettings.FrameRateLimit = FMath::Max(0, FrameRateOptions[Index]);
+			ComboBoxFrameRate->SetSelectedIndex(Index);
+		}
+	}
+	if (ComboBoxPollingRate && PollingRateOptions.Num() > 0)
+	{
+		const int32 Index = FindClosestOptionIndex(PollingRateOptions, PendingSettings.InputPollingRateHz);
+		PendingSettings.InputPollingRateHz = PollingRateOptions[Index];
+		ComboBoxPollingRate->SetSelectedIndex(Index);
 	}
 	if (ComboBoxLanguage)
 	{
@@ -401,10 +454,19 @@ void UPTBSettingsWidget::BindWidgetCallbacks()
 	if (CheckBoxGameplaySfx) CheckBoxGameplaySfx->OnCheckStateChanged.AddUniqueDynamic(this, &UPTBSettingsWidget::OnGameplaySfxCheckChanged);
 	if (SliderSfx)        SliderSfx->OnValueChanged.AddUniqueDynamic(this, &UPTBSettingsWidget::OnSfxSliderChanged);
 	if (SliderSyncOffset) SliderSyncOffset->OnValueChanged.AddUniqueDynamic(this, &UPTBSettingsWidget::OnSyncOffsetSliderChanged);
+	if (EditSyncOffset)
+	{
+		EditSyncOffset->OnTextCommitted.AddUniqueDynamic(this, &UPTBSettingsWidget::OnSyncOffsetTextCommitted);
+		EditSyncOffset->OnTextChanged.AddUniqueDynamic(this, &UPTBSettingsWidget::OnSyncOffsetTextChanged);
+	}
+	if (ButtonResetSyncOffset) ButtonResetSyncOffset->OnClicked.AddUniqueDynamic(this, &UPTBSettingsWidget::OnResetSyncOffsetClicked);
 
 	if (ComboBoxWindowMode) ComboBoxWindowMode->OnSelectionChanged.AddUniqueDynamic(this, &UPTBSettingsWidget::OnWindowModeSelectionChanged);
 	if (ComboBoxResolution) ComboBoxResolution->OnSelectionChanged.AddUniqueDynamic(this, &UPTBSettingsWidget::OnResolutionSelectionChanged);
 	if (ComboBoxGraphics)   ComboBoxGraphics->OnSelectionChanged.AddUniqueDynamic(this, &UPTBSettingsWidget::OnGraphicsSelectionChanged);
+	if (CheckBoxAntiAliasing) CheckBoxAntiAliasing->OnCheckStateChanged.AddUniqueDynamic(this, &UPTBSettingsWidget::OnAntiAliasingCheckChanged);
+	if (ComboBoxFrameRate)    ComboBoxFrameRate->OnSelectionChanged.AddUniqueDynamic(this, &UPTBSettingsWidget::OnFrameRateSelectionChanged);
+	if (ComboBoxPollingRate)  ComboBoxPollingRate->OnSelectionChanged.AddUniqueDynamic(this, &UPTBSettingsWidget::OnPollingRateSelectionChanged);
 	if (ComboBoxLanguage)   ComboBoxLanguage->OnSelectionChanged.AddUniqueDynamic(this, &UPTBSettingsWidget::OnLanguageSelectionChanged);
 }
 
@@ -446,12 +508,122 @@ void UPTBSettingsWidget::OnGameplaySfxCheckChanged(bool bIsChecked)
 
 void UPTBSettingsWidget::OnSyncOffsetSliderChanged(float Value)
 {
-	PendingSettings.JudgementOffsetMs = Value;
-	if (TextSyncOffsetValue)
+	// 1ms 단위로 맞춤 (슬라이더/입력칸/저장값이 항상 같은 숫자)
+	PendingSettings.JudgementOffsetMs = FMath::Clamp(static_cast<float>(FMath::RoundToInt(Value)), SyncOffsetMinMs, SyncOffsetMaxMs);
+	RefreshSyncOffsetWidgets(false); // 드래그 중인 슬라이더는 건드리지 않음
+}
+
+void UPTBSettingsWidget::OnSyncOffsetTextChanged(const FText& Text)
+{
+	if (bUpdatingSyncText || !EditSyncOffset) return;
+
+	// 정수만 입력: 맨 앞의 +/- 하나와 숫자만 남김 (소수점·문자 등은 입력 즉시 지워짐)
+	const FString Source = Text.ToString();
+	FString Sign;
+	FString Digits;
+	for (int32 i = 0; i < Source.Len(); ++i)
 	{
-		const FString Sign = Value >= 0.f ? TEXT("+") : TEXT("");
+		const TCHAR Ch = Source[i];
+		if (FChar::IsDigit(Ch))
+		{
+			Digits.AppendChar(Ch);
+		}
+		else if ((Ch == TEXT('-') || Ch == TEXT('+')) && Sign.IsEmpty() && Digits.IsEmpty())
+		{
+			Sign.AppendChar(Ch);
+		}
+	}
+
+	// 앞자리 0 정리 (007 → 7)
+	while (Digits.Len() > 1 && Digits[0] == TEXT('0'))
+	{
+		Digits.RightChopInline(1);
+	}
+
+	// 범위 밖(±200 초과)이면 입력 즉시 최대값으로 맞춤
+	const int32 MaxAbs = FMath::RoundToInt(SyncOffsetMaxMs);
+	if (!Digits.IsEmpty() && (Digits.Len() > 3 || FCString::Atoi(*Digits) > MaxAbs))
+	{
+		Digits = FString::FromInt(MaxAbs);
+	}
+
+	const FString Filtered = Sign + Digits;
+	if (Filtered != Source)
+	{
+		TGuardValue<bool> Guard(bUpdatingSyncText, true);
+		EditSyncOffset->SetText(FText::FromString(Filtered));
+	}
+
+	// 숫자가 있으면 입력하는 동안 슬라이더도 같이 움직임 (입력칸 내용은 그대로 둠)
+	if (!Digits.IsEmpty())
+	{
+		const int32 Value = FCString::Atoi(*Digits) * (Sign == TEXT("-") ? -1 : 1);
+		PendingSettings.JudgementOffsetMs = static_cast<float>(FMath::Clamp(Value, -MaxAbs, MaxAbs));
+		if (SliderSyncOffset)
+		{
+			SliderSyncOffset->SetValue(PendingSettings.JudgementOffsetMs);
+		}
+	}
+}
+
+void UPTBSettingsWidget::OnSyncOffsetTextCommitted(const FText& Text, ETextCommit::Type CommitMethod)
+{
+	if (bUpdatingSyncText) return;
+
+	FString Str = Text.ToString().TrimStartAndEnd();
+	Str.ReplaceInline(TEXT("ms"), TEXT(""), ESearchCase::IgnoreCase);
+	Str.ReplaceInline(TEXT("+"), TEXT(""));
+	Str.TrimStartAndEndInline();
+
+	if (!Str.IsEmpty() && Str != TEXT("-") && Str.IsNumeric())
+	{
+		const float Parsed = FCString::Atof(*Str);
+		PendingSettings.JudgementOffsetMs = FMath::Clamp(static_cast<float>(FMath::RoundToInt(Parsed)), SyncOffsetMinMs, SyncOffsetMaxMs);
+	}
+	// 잘못된 입력이면 이전 값으로 되돌림 / 범위 밖이면 맞춘 값으로 다시 표시
+	RefreshSyncOffsetWidgets(true, true);
+}
+
+void UPTBSettingsWidget::RefreshSyncOffsetWidgets(bool bUpdateSlider, bool bForceEditText)
+{
+	const int32 Ms = FMath::RoundToInt(PendingSettings.JudgementOffsetMs);
+
+	if (bUpdateSlider && SliderSyncOffset)
+	{
+		SliderSyncOffset->SetValue(static_cast<float>(Ms));
+	}
+	// 입력칸이 있으면 숫자는 입력칸에만 표시하고, TextSyncOffsetValue는 Designer 문구("ms") 그대로 둠
+	if (TextSyncOffsetValue && !EditSyncOffset)
+	{
 		TextSyncOffsetValue->SetText(FText::FromString(
-			FString::Printf(TEXT("%s%.0fms"), *Sign, Value)));
+			Ms > 0 ? FString::Printf(TEXT("+%dms"), Ms) : FString::Printf(TEXT("%dms"), Ms)));
+	}
+	if (EditSyncOffset && (bForceEditText || !EditSyncOffset->HasKeyboardFocus()))
+	{
+		TGuardValue<bool> Guard(bUpdatingSyncText, true);
+		EditSyncOffset->SetText(FText::FromString(
+			Ms > 0 ? FString::Printf(TEXT("+%d"), Ms) : FString::Printf(TEXT("%d"), Ms)));
+	}
+}
+
+void UPTBSettingsWidget::OnResetSyncOffsetClicked()
+{
+	// 판정 오프셋만 0으로, 즉시 저장 (다른 설정의 Apply 대기값은 건드리지 않음)
+	SetSyncOffsetMs(0.f, true);
+}
+
+void UPTBSettingsWidget::SetSyncOffsetMs(float OffsetMs, bool bSaveNow)
+{
+	PendingSettings.JudgementOffsetMs = FMath::Clamp(static_cast<float>(FMath::RoundToInt(OffsetMs)), SyncOffsetMinMs, SyncOffsetMaxMs);
+	RefreshSyncOffsetWidgets();
+
+	if (bSaveNow)
+	{
+		if (UPTBGameInstance* GI = GetGameInstance<UPTBGameInstance>())
+		{
+			GI->SetJudgementOffsetMs(PendingSettings.JudgementOffsetMs);
+			GI->SaveGame();
+		}
 	}
 }
 
@@ -471,7 +643,69 @@ void UPTBSettingsWidget::OnResolutionSelectionChanged(FString SelectedItem, ESel
 void UPTBSettingsWidget::OnGraphicsSelectionChanged(FString SelectedItem, ESelectInfo::Type SelectionType)
 {
 	if (SelectionType == ESelectInfo::Direct || !ComboBoxGraphics) return;
-	PendingSettings.GraphicsQuality = FMath::Clamp(ComboBoxGraphics->GetSelectedIndex(), 0, 3);
+	PendingSettings.GraphicsQuality = FMath::Clamp(ComboBoxGraphics->GetSelectedIndex(), 0, UPTBGameInstance::MaxGraphicsQuality);
+}
+
+void UPTBSettingsWidget::OnAntiAliasingCheckChanged(bool bIsChecked)
+{
+	PendingSettings.bAntiAliasingEnabled = bIsChecked;
+}
+
+void UPTBSettingsWidget::OnFrameRateSelectionChanged(FString SelectedItem, ESelectInfo::Type SelectionType)
+{
+	if (SelectionType == ESelectInfo::Direct || !ComboBoxFrameRate) return;
+	const int32 Index = ComboBoxFrameRate->GetSelectedIndex();
+	if (!FrameRateOptions.IsValidIndex(Index))
+	{
+		return;
+	}
+	if (FrameRateOptions[Index] == FrameRateOptionVSync)
+	{
+		// 수직 동기화: 모니터 주사율에 맞춰지므로 별도 프레임 제한은 끔
+		PendingSettings.bVSyncEnabled = true;
+		PendingSettings.FrameRateLimit = 0;
+	}
+	else
+	{
+		PendingSettings.bVSyncEnabled = false;
+		PendingSettings.FrameRateLimit = FMath::Max(0, FrameRateOptions[Index]);
+	}
+}
+
+void UPTBSettingsWidget::OnPollingRateSelectionChanged(FString SelectedItem, ESelectInfo::Type SelectionType)
+{
+	if (SelectionType == ESelectInfo::Direct || !ComboBoxPollingRate) return;
+	const int32 Index = ComboBoxPollingRate->GetSelectedIndex();
+	if (PollingRateOptions.IsValidIndex(Index))
+	{
+		PendingSettings.InputPollingRateHz = PollingRateOptions[Index];
+	}
+}
+
+int32 UPTBSettingsWidget::FindClosestOptionIndex(const TArray<int32>& Options, int32 Value)
+{
+	int32 Best = 0;
+	int32 BestDiff = MAX_int32;
+	for (int32 i = 0; i < Options.Num(); ++i)
+	{
+		// 음수(수직 동기화 등 특수값)는 거리 계산에서 제외
+		if (Options[i] < 0)
+		{
+			continue;
+		}
+		// 0(무제한/끔)은 정확히 같을 때만 선택
+		if ((Options[i] == 0) != (Value == 0))
+		{
+			continue;
+		}
+		const int32 Diff = FMath::Abs(Options[i] - Value);
+		if (Diff < BestDiff)
+		{
+			BestDiff = Diff;
+			Best = i;
+		}
+	}
+	return Best;
 }
 
 void UPTBSettingsWidget::OnLanguageSelectionChanged(FString SelectedItem, ESelectInfo::Type SelectionType)

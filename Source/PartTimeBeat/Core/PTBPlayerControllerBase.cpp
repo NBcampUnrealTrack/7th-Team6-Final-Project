@@ -2,6 +2,7 @@
 #include "Debug/PTBCheatLibrary.h"
 #include "Core/PTBGameModeBase.h"
 #include "Core/PTBGameInstance.h"
+#include "Core/PTBInputPollSubsystem.h"
 #include "Debug/PTBTeamLog.h"
 #include "MiniGames/Common/PTBBaseMiniGame.h"
 #include "Items/PTBHubUISubsystem.h"
@@ -150,17 +151,32 @@ bool APTBPlayerControllerBase::TryRouteRhythmInput(const FInputKeyEventArgs& Eve
 		return false;
 	}
 
+	// 입력 폴링: 별도 스레드가 기록한 정확한 키 눌림/뗌 시각으로 판정 시간 보정 (없으면 -1 → 기존 프레임 기준)
+	float JudgeTimeMs = -1.0f;
+	if (UPTBInputPollSubsystem* InputPoll = GetGameInstance() ? GetGameInstance()->GetSubsystem<UPTBInputPollSubsystem>() : nullptr)
+	{
+		double EdgeRealSeconds = 0.0;
+		if (InputPoll->ConsumeEdge(Action, EventArgs.Event == IE_Pressed, EdgeRealSeconds))
+		{
+			JudgeTimeMs = MiniGame->GetInputJudgeTimeMsAtRealTime(EdgeRealSeconds);
+			if (JudgeTimeMs >= 0.0f)
+			{
+				InputPoll->ReportCorrection(JudgeTimeMs - MiniGame->GetCurrentInputJudgeTimeMs());
+			}
+		}
+	}
+
 	// 미니게임 내부에서 CanAcceptInput() 및 SupportedActions 검사가 수행됨
 	if (EventArgs.Event == IE_Pressed)
 	{
 		// 입력 피드백 UI용 원본 키 이벤트 (판정 전에 먼저 알림 — 미니게임별 액션 리맵과 무관)
 		MiniGame->NotifyRhythmKeyState(Action, true);
-		MiniGame->HandleRhythmInput(Action);
+		MiniGame->HandleRhythmInput(Action, JudgeTimeMs);
 	}
 	else
 	{
 		MiniGame->NotifyRhythmKeyState(Action, false);
-		MiniGame->HandleRhythmInputReleased(Action);
+		MiniGame->HandleRhythmInputReleased(Action, JudgeTimeMs);
 	}
 
 	return true;

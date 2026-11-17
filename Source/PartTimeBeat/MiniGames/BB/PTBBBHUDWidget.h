@@ -12,7 +12,6 @@ class UWidget;
 class UCanvasPanel;
 class UProgressBar;
 class UTextBlock;
-class UTexture2D;
 struct FPTBNoteEvent;
 struct FPTBJudgementResult;
 
@@ -107,7 +106,7 @@ public:
 	UPROPERTY(BlueprintReadOnly, meta = (BindWidgetOptional))
 	TObjectPtr<UProgressBar> PlayerHPGhostBar;
 
-	/** 3, 2, 1, Start!, Finish! 표시용 중앙 텍스트. Designer 탭에 없어도 된다. */
+	/** 3, 2, 1, Start! 표시용 중앙 텍스트. Designer 탭에 없어도 된다. */
 	UPROPERTY(BlueprintReadOnly, meta = (BindWidgetOptional))
 	TObjectPtr<UTextBlock> CenterMessageText;
 
@@ -120,39 +119,6 @@ public:
 	/** 현재 바인딩된 미니게임 */
 	UPROPERTY(BlueprintReadOnly, Category = "PTB|BB|HUD")
 	TObjectPtr<APTBBBMiniGame> BBMiniGame;
-
-	// ── 아웃트로 이미지 ──────────────────────────────────────────
-
-	/** 게임 종료 시 가장 먼저 표시할 결과 이미지 (PTB_BB_Result) */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|BB|HUD|Outro")
-	TObjectPtr<UTexture2D> ResultTexture;
-
-	/**
-	 * 결과 등급(0~3)에 따라 이어서 표시할 이미지. 인덱스 0=Outro1 ... 3=Outro4.
-	 * 등급 판정(보스 잔여 체력과 무관 — 정확도·미스 수만으로 결정):
-	 *           0=Failed(플레이어 체력 0),
-	 *           1=Good(채보 완주 + 노트 정확도 GreatAccuracyThreshold 미만),
-	 *           2=Great(채보 완주 + 정확도 GreatAccuracyThreshold 이상, 단 미스가 PerfectClearMaxMissCount 초과),
-	 *           3=Perfect Clear(채보 완주 + 미스가 PerfectClearMaxMissCount 이하)
-	 */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|BB|HUD|Outro")
-	TArray<TObjectPtr<UTexture2D>> OutroTexturesByStar;
-
-	/** Great/Good을 가르는 노트 정확도(AccuracyRate, 0~1) 임계값 */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|BB|HUD|Outro", meta = (ClampMin = "0.0", ClampMax = "1.0"))
-	float GreatAccuracyThreshold = 0.85f;
-
-	/** 퍼펙트 클리어(3등급)로 인정할 최대 미스 허용 횟수 */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|BB|HUD|Outro", meta = (ClampMin = "0"))
-	int32 PerfectClearMaxMissCount = 0;
-
-	/** "Finish!" 중앙 메시지를 단독으로 보여주는 시간(초). 이후 결과 이미지로 전환 */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|BB|HUD|Outro", meta = (ClampMin = "0.0"))
-	float FinishMessageSeconds = 0.8f;
-
-	/** 결과 이미지를 보여준 뒤 등급 이미지로 전환하기까지의 지연(초) */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|BB|HUD|Outro", meta = (ClampMin = "0.0"))
-	float ResultDisplaySeconds = 1.0f;
 
 protected:
 	virtual void NativeConstruct() override;
@@ -190,10 +156,6 @@ protected:
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "PTB|BB|HUD|Flow")
 	void OnCenterMessageHidden();
-
-	/** 아웃트로 이미지를 화면에 표시/교체할 때 호출. WBP에서 Image 위젯 갱신 담당. */
-	UFUNCTION(BlueprintImplementableEvent, Category = "PTB|BB|HUD|Outro")
-	void OnShowOutroImage(UTexture2D* Texture);
 
 private:
 	/** 현재 미니게임 HP 기준으로 메인 바·고스트 바 상태를 동기화. NativeConstruct/BindToMiniGame 양쪽에서 호출 */
@@ -261,12 +223,6 @@ private:
 	UFUNCTION()
 	void HandleBBGameplayStarted();
 
-	UFUNCTION()
-	void HandleBBOutroStarted(FPTBRoundResult Result, EPTBRoundEndReason EndReason);
-
-	UFUNCTION()
-	void HandleBBOutroFinished(FPTBRoundResult Result, EPTBRoundEndReason EndReason);
-
 	/** 리듬 키 눌림/뗌 → 해당 액션 히트존 마커의 SetPressed 호출 */
 	UFUNCTION()
 	void HandleBBRhythmKeyStateChanged(EPTBActionType Action, bool bPressed);
@@ -281,20 +237,12 @@ private:
 	/** NoteId로 TapCueMap에서 해당 큐를 찾아 맵에서 제거하고 반환. 없으면 nullptr. */
 	UPTBBBCueWidgetBase* FindAndRemoveCue(int32 NoteId);
 
-	/**
-	 * EndReason(Failed=플레이어 체력 0)과 노트 정확도·미스 수로 OutroTexturesByStar의 인덱스(0~3)를 결정.
-	 * 보스 잔여 체력은 쓰지 않는다 — 보스 체력은 이제 채보 진행도(정확도 100%가 아니면 완전히
-	 * 처치되지 않을 뿐인 진행 지표)라서, 등급은 정확도/미스 수만으로 판단한다.
-	 */
-	int32 ResolveOutroTierIndex(const FPTBRoundResult& Result, EPTBRoundEndReason EndReason) const;
-
 	void ClearCenterMessageTimers();
 	void QueueCenterMessage(float DelaySeconds, const FText& Message);
 	void ShowCenterMessageForDuration(const FText& Message, float DurationSeconds);
 
 	TArray<FTimerHandle> CenterMessageTimerHandles;
 	FTimerHandle CenterMessageHoldTimerHandle;
-	FTimerHandle OutroImageTimerHandle;
 
 	// NativeDestruct 이후 GC 전 구간에서 타이머가 발화되지 않도록 막는 플래그
 	bool bIsDestructed = false;

@@ -109,6 +109,9 @@ public:
 	/** StartSync 시각(실시간, 초) */
 	double SyncStartRealSeconds = 0.0;
 
+	/** SyncData.CurrentPlaybackMs를 마지막으로 갱신한 실제 시각(초) */
+	double LastPlaybackSampleRealSeconds = 0.0;
+
 	/** [SyncCheck] Wwise 위치 없이 DeltaTime으로 진행한 누적 시간(ms) */
 	float FallbackAdvancedMs = 0.0f;
 
@@ -150,6 +153,13 @@ public:
 
 	/** 입력 판정 기준 채보 시간 */
 	float GetInputJudgeTimeMs() const;
+
+	/**
+	 * 지정한 실제 시각(FPlatformTime::Seconds)에 해당하는 입력 판정 시간.
+	 * 재생 위치를 마지막으로 갱신한 시각과의 차이만큼 보정한다 (입력 폴링으로 얻은 정확한 키 눌림 시각용).
+	 * 재생 중이 아니거나 보정 범위를 벗어나면 false.
+	 */
+	bool GetInputJudgeTimeMsAtRealTime(double RealSeconds, float& OutTimeMs) const;
 
 	/** 채보 기준 Beat */
 	float GetChartBeat() const;

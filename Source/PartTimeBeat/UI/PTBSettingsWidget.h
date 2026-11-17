@@ -10,6 +10,7 @@
 
 class UButton;
 class UCheckBox;
+class UEditableTextBox;
 class UImage;
 class USlider;
 class UTextBlock;
@@ -26,8 +27,11 @@ class UWidgetSwitcher;
  *  [닫기]  ButtonClose
  *  [볼륨]  SliderMaster, SliderBgm, SliderSfx, CheckBoxGameplaySfx (입력·판정 효과음 켬/끔)
  *          TextMasterValue, TextBgmValue, TextSfxValue
- *  [싱크]  SliderSyncOffset (-200~+200ms), TextSyncOffsetValue
- *  [화면]  ComboBoxWindowMode, ComboBoxResolution, ComboBoxGraphics
+ *  [싱크]  SliderSyncOffset (-200~+200ms), TextSyncOffsetValue, EditSyncOffset (숫자 직접 입력, 선택),
+ *          ButtonResetSyncOffset (판정 오프셋만 즉시 0으로 + 저장, 선택)
+ *  [화면]  ComboBoxWindowMode, ComboBoxResolution, ComboBoxGraphics, CheckBoxAntiAliasing (안티에일리어싱 켬/끔),
+ *          ComboBoxFrameRate (초당 프레임 제한 + 수직 동기화를 한 목록에서 선택)
+ *  [입력]  ComboBoxPollingRate (리듬 키 입력 폴링 레이트)
  *  [키]    KeyText_A~KeyText_E, ButtonRebindA~ButtonRebindE, TextRebindPrompt
  *  [언어]  ComboBoxLanguage, TextLanguageLocked (일시정지 중 안내, 선택)
  *  [제어]  ButtonApply, ButtonReset, ButtonCalibrate
@@ -56,6 +60,14 @@ public:
 	/** 키 재바인딩 시작. ButtonRebindX 클릭 또는 BP에서 직접 호출. */
 	UFUNCTION(BlueprintCallable, Category = "PTB|Settings")
 	void RequestRebind(EPTBActionType Action);
+
+	/**
+	 * 판정 오프셋 값을 바꾸고 슬라이더/숫자 표시를 즉시 갱신.
+	 * 싱크 조절 미니게임에서 적용했을 때 OnCalibrationFinished에 연결해서 사용.
+	 * (미니게임이 이미 저장했으므로 bSaveNow는 false로 두면 됨)
+	 */
+	UFUNCTION(BlueprintCallable, Category = "PTB|Settings")
+	void SetSyncOffsetMs(float OffsetMs, bool bSaveNow = false);
 
 	/** 진행 중인 키 재바인딩 취소. Escape 입력 시 자동 호출. */
 	UFUNCTION(BlueprintCallable, Category = "PTB|Settings")
@@ -194,6 +206,14 @@ protected:
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "PTB|Settings|Sync")
 	TObjectPtr<UTextBlock> TextSyncOffsetValue;
 
+	/** 판정 오프셋 숫자 직접 입력 (Editable Text Box). Enter 또는 다른 곳 클릭 시 반영, 범위 밖이면 자동으로 맞춤 */
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "PTB|Settings|Sync")
+	TObjectPtr<UEditableTextBox> EditSyncOffset;
+
+	/** 판정 오프셋만 0으로 초기화. 누르면 바로 저장됨 (Apply 불필요) */
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "PTB|Settings|Sync")
+	TObjectPtr<UButton> ButtonResetSyncOffset;
+
 	// ── 화면/그래픽 ──────────────────────────────────────────────────
 
 	/** 창 모드 선택. 옵션: "전체화면" / "창 전체화면" / "창 모드" */
@@ -207,6 +227,29 @@ protected:
 	/** 그래픽 품질 선택. 옵션: "낮음" / "중간" / "높음" / "최고" */
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "PTB|Settings|Display")
 	TObjectPtr<UComboBoxString> ComboBoxGraphics;
+
+	/** 안티에일리어싱 켬/끔 (그래픽 탭). 켬 = FXAA */
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "PTB|Settings|Display")
+	TObjectPtr<UCheckBox> CheckBoxAntiAliasing;
+
+	/** 초당 프레임 제한 + 수직 동기화. 옵션: FrameRateOptions (0 = 무제한, -1 = 수직 동기화) */
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "PTB|Settings|Display")
+	TObjectPtr<UComboBoxString> ComboBoxFrameRate;
+
+	/** 리듬 키 입력 폴링 레이트. 옵션: PollingRateOptions (0 = 끔) */
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "PTB|Settings|Input")
+	TObjectPtr<UComboBoxString> ComboBoxPollingRate;
+
+	/** 프레임 제한 선택지 (fps, 0 = 무제한, -1 = 수직 동기화). 순서대로 콤보박스에 표시 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Settings|Display")
+	TArray<int32> FrameRateOptions = { 30, 60, 120, 144, 165, 240, 0, -1 };
+
+	/** 선택지에서 수직 동기화를 뜻하는 값 */
+	static constexpr int32 FrameRateOptionVSync = -1;
+
+	/** 폴링 레이트 선택지 (Hz, 0 = 끔) */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|Settings|Input")
+	TArray<int32> PollingRateOptions = { 0, 125, 250, 500, 1000, 2000, 4000, 8000 };
 
 	// ── 언어 ─────────────────────────────────────────────────────────
 
@@ -310,7 +353,23 @@ private:
 	UFUNCTION() void OnBgmSliderChanged(float Value);
 	UFUNCTION() void OnSfxSliderChanged(float Value);
 	UFUNCTION() void OnGameplaySfxCheckChanged(bool bIsChecked);
+	UFUNCTION() void OnAntiAliasingCheckChanged(bool bIsChecked);
+	UFUNCTION() void OnFrameRateSelectionChanged(FString SelectedItem, ESelectInfo::Type SelectionType);
+	UFUNCTION() void OnPollingRateSelectionChanged(FString SelectedItem, ESelectInfo::Type SelectionType);
+
+	/** 값 배열에서 가장 가까운 항목 인덱스 (저장값이 목록에 없을 때 대비) */
+	static int32 FindClosestOptionIndex(const TArray<int32>& Options, int32 Value);
 	UFUNCTION() void OnSyncOffsetSliderChanged(float Value);
+	UFUNCTION() void OnSyncOffsetTextCommitted(const FText& Text, ETextCommit::Type CommitMethod);
+	UFUNCTION() void OnSyncOffsetTextChanged(const FText& Text);
+	UFUNCTION() void OnResetSyncOffsetClicked();
+
+	/** 슬라이더 / 텍스트 / 입력칸을 PendingSettings.JudgementOffsetMs 값으로 갱신 */
+	void RefreshSyncOffsetWidgets(bool bUpdateSlider = true, bool bForceEditText = false);
+
+	static constexpr float SyncOffsetMinMs = -200.f;
+	static constexpr float SyncOffsetMaxMs = 200.f;
+	bool bUpdatingSyncText = false;
 	UFUNCTION() void OnWindowModeSelectionChanged(FString SelectedItem, ESelectInfo::Type SelectionType);
 	UFUNCTION() void OnResolutionSelectionChanged(FString SelectedItem, ESelectInfo::Type SelectionType);
 	UFUNCTION() void OnGraphicsSelectionChanged(FString SelectedItem, ESelectInfo::Type SelectionType);

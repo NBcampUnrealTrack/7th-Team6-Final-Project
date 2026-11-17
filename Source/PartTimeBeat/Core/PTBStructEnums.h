@@ -384,9 +384,33 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|Display", meta = (ClampMin = "0", ClampMax = "4"))
     int32 ResolutionPresetIndex = 2;
 
-    /** 그래픽 품질 (0=낮음, 1=중간, 2=높음, 3=최고) */
+    /** 그래픽 품질 (0=낮음, 1=중간, 2=높음, 3=최고). 엔진 Scalability Low/Medium/High/Epic에 대응 */
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|Display", meta = (ClampMin = "0", ClampMax = "3"))
     int32 GraphicsQuality = 2;
+
+    /** 초당 프레임 제한 (0 = 무제한) */
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|Display", meta = (ClampMin = "0"))
+    int32 FrameRateLimit = 144;
+
+    /** 수직 동기화 (켜면 화면 찢김은 없지만 입력이 보이기까지 지연이 늘어남. 리듬게임은 보통 끔 → 기본값 끔) */
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|Display")
+    bool bVSyncEnabled = false;
+
+    /** 리듬 키 입력 폴링 레이트(Hz). 0 = 끔(프레임 기준 판정). 높을수록 정밀하지만 CPU 사용 증가 */
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|Input", meta = (ClampMin = "0", ClampMax = "8000"))
+    int32 InputPollingRateHz = 1000;
+
+    /** 안티에일리어싱 켬/끔 (켬 = FXAA: 가볍고 빠른 노트에 잔상이 없음) */
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|Display")
+    bool bAntiAliasingEnabled = true;
+
+    /** 첫 실행 하드웨어 측정으로 정한 권장 품질 (-1 = 측정 안 함). 설정 초기화 시 이 값으로 되돌림 */
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|Display")
+    int32 DetectedGraphicsQuality = -1;
+
+    /** 그래픽 자동 설정 버전 (0 = 아직 안 함). 자동 설정 로직이 바뀌면 상수를 올려 다시 실행 가능 */
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|Display")
+    int32 GraphicsAutoDetectVersion = 0;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
     bool bVibrationEnabled = true;

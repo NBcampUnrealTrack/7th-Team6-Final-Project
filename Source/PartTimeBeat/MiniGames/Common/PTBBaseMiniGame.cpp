@@ -2278,6 +2278,22 @@ float APTBBaseMiniGame::GetCurrentInputJudgeTimeMs() const
 	return GetCurrentChartTimeMs() + ResolveInputOffsetMs(GameContext);
 }
 
+float APTBBaseMiniGame::GetInputJudgeTimeMsAtRealTime(double RealSeconds) const
+{
+	// 시작 전 예비 박자(프리롤) 구간은 다른 시계를 쓰므로 보정하지 않음
+	if (IsCuePreRollActive() || !RhythmSyncComponent)
+	{
+		return -1.0f;
+	}
+
+	float TimeMs = 0.0f;
+	if (!RhythmSyncComponent->GetInputJudgeTimeMsAtRealTime(RealSeconds, TimeMs) || TimeMs < 0.0f)
+	{
+		return -1.0f;
+	}
+	return TimeMs;
+}
+
 float APTBBaseMiniGame::GetRoundEndChartTimeMs() const
 {
 	const float SongLengthMs = FMath::Max(0.0f, GameContext.ChartData.SongLengthMs);
