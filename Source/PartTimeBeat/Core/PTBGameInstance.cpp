@@ -182,9 +182,11 @@ void UPTBGameInstance::ApplyUserSettings(const FPTBUserSettings& InSettings)
 	}
 
 	// 안티에일리어싱: 켬 = FXAA(1), 끔 = 없음(0). 다른 값(TAA/TSR/MSAA)은 쓰지 않음
+	// 우선순위: GameSetting은 프로젝트 설정(DefaultEngine.ini의 r.AntiAliasingMethod=0)보다 낮아 무시되므로
+	// GameOverride로 설정한다 (프로젝트 설정·디바이스 프로필보다 높고, 콘솔 직접 입력보다는 낮음)
 	if (IConsoleVariable* AAVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.AntiAliasingMethod")))
 	{
-		AAVar->Set(InSettings.bAntiAliasingEnabled ? 1 : 0, ECVF_SetByGameSetting);
+		AAVar->Set(InSettings.bAntiAliasingEnabled ? 1 : 0, ECVF_SetByGameOverride);
 	}
 
 	SaveGame();
