@@ -31,11 +31,23 @@ void UPTBLatencyCalibrationWidget::NativeConstruct()
 	{
 		if (UCanvasPanelSlot* LineSlot = Cast<UCanvasPanelSlot>(JudgmentLineWidget->Slot))
 		{
-			// 세로로 꽉 채우고, 가로 중앙이 정확히 AnchorX에 오도록 (Designer의 X 오프셋 제거)
-			const FVector2D LineSize = LineSlot->GetSize();
-			LineSlot->SetAnchors(FAnchors(JudgmentLineAnchorX, 0.f, JudgmentLineAnchorX, 1.f));
-			LineSlot->SetAlignment(FVector2D(0.5f, 0.f));
-			LineSlot->SetOffsets(FMargin(0.f, 0.f, LineSize.X, 0.f));
+			if (bJudgmentLineMatchesNoteSize)
+			{
+				// 노트와 같은 네모: 노트와 같은 기준(트랙 세로 중앙)으로 배치
+				LineSlot->SetAnchors(FAnchors(JudgmentLineAnchorX, 0.5f, JudgmentLineAnchorX, 0.5f));
+				LineSlot->SetAlignment(FVector2D(0.5f, 0.5f));
+				LineSlot->SetPosition(FVector2D::ZeroVector);
+				LineSlot->SetSize(FVector2D(NoteSizePx, NoteSizePx));
+			}
+			else
+			{
+				// 세로로 꽉 채우고, 가로 중앙이 정확히 AnchorX에 오도록 (Designer의 X 오프셋 제거)
+				const FVector2D LineSize = LineSlot->GetSize();
+				LineSlot->SetAnchors(FAnchors(JudgmentLineAnchorX, 0.f, JudgmentLineAnchorX, 1.f));
+				LineSlot->SetAlignment(FVector2D(0.5f, 0.f));
+				LineSlot->SetOffsets(FMargin(0.f, 0.f, LineSize.X, 0.f));
+			}
+			JudgmentLineWidget->SetRenderTransformPivot(FVector2D(0.5f, 0.5f));
 		}
 	}
 
@@ -59,12 +71,8 @@ void UPTBLatencyCalibrationWidget::SetState(EPTBCalibrationState NewState)
 		ButtonApply->SetVisibility(State == EPTBCalibrationState::Result ? ESlateVisibility::Visible : ESlateVisibility::Hidden);
 	}
 
-	if (KeyPulseTarget || TXT_TargetKey)
-	{
-		UWidget* PulseWidget = KeyPulseTarget ? KeyPulseTarget.Get() : static_cast<UWidget*>(TXT_TargetKey.Get());
-		PulseWidget->SetRenderScale(FVector2D(1.f, 1.f));
-	}
 	LastPulseTime = -1.0;
+	ApplyBeatPulse(0.f);
 
 	OnCalibrationStateChanged(State);
 }
@@ -349,6 +357,32 @@ void UPTBLatencyCalibrationWidget::SpawnNote(double HitTime)
 	ActiveNotes.Add(NewNote);
 }
 
+void UPTBLatencyCalibrationWidget::ApplyBeatPulse(float Pulse)
+{
+	auto ScaleOf = [Pulse](float MaxScale) { return FMath::Lerp(1.f, MaxScale, Pulse); };
+
+	if (UWidget* KeyWidget = KeyPulseTarget ? KeyPulseTarget.Get() : static_cast<UWidget*>(TXT_TargetKey.Get()))
+	{
+		const float S = ScaleOf(KeyPulseScale);
+		KeyWidget->SetRenderScale(FVector2D(S, S));
+	}
+
+	if (JudgmentLineWidget)
+	{
+		const float S = bPulseJudgmentLine ? ScaleOf(JudgmentLinePulseScale) : 1.f;
+		JudgmentLineWidget->SetRenderScale(FVector2D(S, S));
+	}
+
+	const float NoteScale = bPulseNotes ? ScaleOf(NotePulseScale) : 1.f;
+	for (const FPTBCalibrationNote& Note : ActiveNotes)
+	{
+		if (Note.Widget)
+		{
+			Note.Widget->SetRenderScale(FVector2D(NoteScale, NoteScale));
+		}
+	}
+}
+
 float UPTBLatencyCalibrationWidget::ResolveJudgmentLineX() const
 {
 	const FGeometry& CanvasGeometry = NoteTrackCanvas->GetCachedGeometry();
@@ -386,20 +420,18 @@ void UPTBLatencyCalibrationWidget::NativeTick(const FGeometry& MyGeometry, float
 
 	const double Now = FPlatformTime::Seconds();
 
-	// 박자 펄스 (키 표시)
-	if (UWidget* PulseWidget = KeyPulseTarget ? KeyPulseTarget.Get() : static_cast<UWidget*>(TXT_TargetKey.Get()))
+	// 박자 펄스 (키 표시 / 판정선 / 노트): 박자 순간 1 → KeyPulseDuration 동안 0으로
+	float Pulse = 0.f;
+	if (LastPulseTime > 0.0 && KeyPulseDuration > 0.f)
 	{
-		if (LastPulseTime > 0.0 && KeyPulseDuration > 0.f)
+		const float T = FMath::Clamp(static_cast<float>((Now - LastPulseTime) / KeyPulseDuration), 0.f, 1.f);
+		Pulse = 1.f - FMath::InterpEaseOut(0.f, 1.f, T, 2.f);
+		if (T >= 1.f)
 		{
-			const float T = FMath::Clamp(static_cast<float>((Now - LastPulseTime) / KeyPulseDuration), 0.f, 1.f);
-			const float Scale = FMath::Lerp(KeyPulseScale, 1.f, FMath::InterpEaseOut(0.f, 1.f, T, 2.f));
-			PulseWidget->SetRenderScale(FVector2D(Scale, Scale));
-			if (T >= 1.f)
-			{
-				LastPulseTime = -1.0;
-			}
+			LastPulseTime = -1.0;
 		}
 	}
+	ApplyBeatPulse(Pulse);
 
 	if (State != EPTBCalibrationState::Running || BeatIntervalSec <= 0.0)
 	{

@@ -110,6 +110,14 @@ public:
 	bool bAutoPlaceJudgmentLine = true;
 
 	/**
+	 * true: 판정선을 노트와 같은 크기의 네모(NoteSizePx)로 만들어 트랙 세로 중앙에 둠 → 노트가 그대로 겹치면 정박.
+	 * false: 세로로 긴 선 (Designer의 가로 두께 유지).
+	 * bAutoPlaceJudgmentLine이 켜져 있을 때만 적용. 판정선은 NoteTrackCanvas 안에 있어야 세로 위치가 맞음.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Calibration|Note")
+	bool bJudgmentLineMatchesNoteSize = true;
+
+	/**
 	 * 노트의 어느 부분이 판정선에 닿는 순간을 박자로 볼지 (0 = 노트 왼쪽 끝, 0.5 = 노트 중앙).
 	 * 노트가 크면 "닿는 순간"과 "중앙이 겹치는 순간"의 차이가 커서 박자가 어긋나 보일 수 있음.
 	 */
@@ -144,6 +152,20 @@ public:
 	/** 커졌다가 원래 크기로 돌아오는 시간(초) */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Calibration|Key")
 	float KeyPulseDuration = 0.18f;
+
+	/** 박자마다 움직이는 노트들도 같이 커졌다 작아짐 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Calibration|Key")
+	bool bPulseNotes = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Calibration|Key", meta = (EditCondition = "bPulseNotes"))
+	float NotePulseScale = 1.15f;
+
+	/** 박자마다 판정선도 같이 커졌다 작아짐 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Calibration|Key")
+	bool bPulseJudgmentLine = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Calibration|Key", meta = (EditCondition = "bPulseJudgmentLine"))
+	float JudgmentLinePulseScale = 1.15f;
 
 	// ── 이벤트 / 함수 ────────────────────────────────────────────────
 
@@ -229,6 +251,8 @@ private:
 	void RefreshKeyText();
 	/** 판정선 중앙의 X (NoteTrackCanvas 기준 로컬 좌표) */
 	float ResolveJudgmentLineX() const;
+	/** 0~1 (1 = 박자 순간) 값으로 키 표시·판정선·노트 크기 갱신 */
+	void ApplyBeatPulse(float Pulse);
 	FKey ResolveTargetKey() const;
 	double ConsumePressTime() const;
 
