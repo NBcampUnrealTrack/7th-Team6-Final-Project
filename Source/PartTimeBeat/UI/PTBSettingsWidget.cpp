@@ -517,30 +517,52 @@ void UPTBSettingsWidget::OnSyncOffsetTextChanged(const FText& Text)
 {
 	if (bUpdatingSyncText || !EditSyncOffset) return;
 
-	// 숫자와 맨 앞 +/- 외의 문자는 입력되지 않게 걸러냄.
-	// 단, 표시용 " ms" 꼬리는 그대로 둠 (입력 확정 시 다시 붙여서 표시)
-	FString Source = Text.ToString();
-	FString Suffix;
-	if (Source.EndsWith(TEXT(" ms")))
-	{
-		Suffix = TEXT(" ms");
-		Source.LeftChopInline(3);
-	}
-	FString Filtered;
+	// 정수만 입력: 맨 앞의 +/- 하나와 숫자만 남김 (소수점·문자 등은 입력 즉시 지워짐)
+	const FString Source = Text.ToString();
+	FString Sign;
+	FString Digits;
 	for (int32 i = 0; i < Source.Len(); ++i)
 	{
 		const TCHAR Ch = Source[i];
-		if (FChar::IsDigit(Ch) || ((Ch == TEXT('-') || Ch == TEXT('+')) && Filtered.IsEmpty()))
+		if (FChar::IsDigit(Ch))
 		{
-			Filtered.AppendChar(Ch);
+			Digits.AppendChar(Ch);
+		}
+		else if ((Ch == TEXT('-') || Ch == TEXT('+')) && Sign.IsEmpty() && Digits.IsEmpty())
+		{
+			Sign.AppendChar(Ch);
 		}
 	}
-	Filtered += Suffix;
-	Source += Suffix;
+
+	// 앞자리 0 정리 (007 → 7)
+	while (Digits.Len() > 1 && Digits[0] == TEXT('0'))
+	{
+		Digits.RightChopInline(1);
+	}
+
+	// 범위 밖(±200 초과)이면 입력 즉시 최대값으로 맞춤
+	const int32 MaxAbs = FMath::RoundToInt(SyncOffsetMaxMs);
+	if (!Digits.IsEmpty() && (Digits.Len() > 3 || FCString::Atoi(*Digits) > MaxAbs))
+	{
+		Digits = FString::FromInt(MaxAbs);
+	}
+
+	const FString Filtered = Sign + Digits;
 	if (Filtered != Source)
 	{
 		TGuardValue<bool> Guard(bUpdatingSyncText, true);
 		EditSyncOffset->SetText(FText::FromString(Filtered));
+	}
+
+	// 숫자가 있으면 입력하는 동안 슬라이더도 같이 움직임 (입력칸 내용은 그대로 둠)
+	if (!Digits.IsEmpty())
+	{
+		const int32 Value = FCString::Atoi(*Digits) * (Sign == TEXT("-") ? -1 : 1);
+		PendingSettings.JudgementOffsetMs = static_cast<float>(FMath::Clamp(Value, -MaxAbs, MaxAbs));
+		if (SliderSyncOffset)
+		{
+			SliderSyncOffset->SetValue(PendingSettings.JudgementOffsetMs);
+		}
 	}
 }
 
@@ -570,7 +592,8 @@ void UPTBSettingsWidget::RefreshSyncOffsetWidgets(bool bUpdateSlider, bool bForc
 	{
 		SliderSyncOffset->SetValue(static_cast<float>(Ms));
 	}
-	if (TextSyncOffsetValue)
+	// 입력칸이 있으면 숫자는 입력칸에만 표시하고, TextSyncOffsetValue는 Designer 문구("ms") 그대로 둠
+	if (TextSyncOffsetValue && !EditSyncOffset)
 	{
 		TextSyncOffsetValue->SetText(FText::FromString(
 			Ms > 0 ? FString::Printf(TEXT("+%dms"), Ms) : FString::Printf(TEXT("%dms"), Ms)));
@@ -579,7 +602,7 @@ void UPTBSettingsWidget::RefreshSyncOffsetWidgets(bool bUpdateSlider, bool bForc
 	{
 		TGuardValue<bool> Guard(bUpdatingSyncText, true);
 		EditSyncOffset->SetText(FText::FromString(
-			Ms > 0 ? FString::Printf(TEXT("+%d ms"), Ms) : FString::Printf(TEXT("%d ms"), Ms)));
+			Ms > 0 ? FString::Printf(TEXT("+%d"), Ms) : FString::Printf(TEXT("%d"), Ms)));
 	}
 }
 
