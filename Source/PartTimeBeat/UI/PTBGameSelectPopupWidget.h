@@ -32,7 +32,7 @@ public:
 
 	/** 난이도별 최고 점수 텍스트 다시 채우기 */
 	UFUNCTION(BlueprintCallable, Category = "PTB|UI|GameSelect")
-	void RefreshBestScores();
+	void RefreshBestScoreTexts();
 
 	/** {Score} = 965,239 / {Percent} = 96.52% */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|UI|GameSelect")
@@ -46,9 +46,9 @@ protected:
 	virtual void NativeConstruct() override;
 	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
 
-	UPROPERTY(meta = (BindWidgetOptional)) TObjectPtr<UTextBlock> BestScore_Easy;
-	UPROPERTY(meta = (BindWidgetOptional)) TObjectPtr<UTextBlock> BestScore_Standard;
-	UPROPERTY(meta = (BindWidgetOptional)) TObjectPtr<UTextBlock> BestScore_Insane;
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "PTB|UI|GameSelect") TObjectPtr<UTextBlock> BestScore_Easy;
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "PTB|UI|GameSelect") TObjectPtr<UTextBlock> BestScore_Standard;
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "PTB|UI|GameSelect") TObjectPtr<UTextBlock> BestScore_Insane;
 
 private:
 	/** BP 변수에서 미니게임 ID 찾기 */

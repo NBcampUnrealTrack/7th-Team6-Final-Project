@@ -11,7 +11,7 @@ void UPTBGameSelectPopupWidget::NativeConstruct()
 {
 	Super::NativeConstruct(); // BP Construct가 먼저 실행된 뒤 C++이 점수를 채움
 	LastShownMiniGameId = NAME_None;
-	RefreshBestScores();
+	RefreshBestScoreTexts();
 }
 
 void UPTBGameSelectPopupWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
@@ -22,17 +22,17 @@ void UPTBGameSelectPopupWidget::NativeTick(const FGeometry& MyGeometry, float In
 	const FName CurrentId = ResolveMiniGameId();
 	if (CurrentId != LastShownMiniGameId)
 	{
-		RefreshBestScores();
+		RefreshBestScoreTexts();
 	}
 }
 
 void UPTBGameSelectPopupWidget::SetBestScoreMiniGameId(FName InMiniGameId)
 {
 	ExplicitMiniGameId = InMiniGameId;
-	RefreshBestScores();
+	RefreshBestScoreTexts();
 }
 
-void UPTBGameSelectPopupWidget::RefreshBestScores()
+void UPTBGameSelectPopupWidget::RefreshBestScoreTexts()
 {
 	const FName Id = ResolveMiniGameId();
 	LastShownMiniGameId = Id;
