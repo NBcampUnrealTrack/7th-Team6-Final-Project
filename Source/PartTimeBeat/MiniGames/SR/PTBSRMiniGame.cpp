@@ -98,25 +98,9 @@ void APTBSRMiniGame::BeginOutroSequence(EPTBRoundEndReason Reason)
 	FinalResult.Difficulty = GameContext.SessionRequest.Difficulty;
 	FinalResult.PlayMode = GameContext.SessionRequest.PlayMode;
 
-	int32 TotalSuccessSushi = SuccessSushiCount;
-
-	// 초밥 1개당 1,000점 / 초밥 1개당 1,900원 계산 / 26개
-	FinalResult.Score = TotalSuccessSushi * 1000;
-
-	FPTBRewardSummary RewardSummary;
-	RewardSummary.EarnedMoney = TotalSuccessSushi * 1900;
-
-	if (FinalResult.Score >= 26000)       FinalResult.Grade = EPTBGradeType::S;
-	else if (FinalResult.Score >= 20000)  FinalResult.Grade = EPTBGradeType::A;
-	else if (FinalResult.Score >= 13000)  FinalResult.Grade = EPTBGradeType::B;
-	else if (FinalResult.Score >= 5000)   FinalResult.Grade = EPTBGradeType::C;
-	else                                  FinalResult.Grade = EPTBGradeType::Fail;
-
-	// 강제 종료(실패)는 점수와 무관하게 Fail 유지
-	if (Reason == EPTBRoundEndReason::Failed)
-	{
-		FinalResult.Grade = EPTBGradeType::Fail;
-	}
+	// 점수·등급은 공용 점수 체계(판정 기반 100만점 정규화)를 그대로 사용.
+	// (예전: 초밥 1개당 1,000점, 26,000점 기준 자체 등급 → 다른 미니게임과 % 기준이 달라서 제거)
+	UE_LOG(LogTemp, Log, TEXT("[SR] 결과: 성공 초밥 %d개, 점수 %d"), SuccessSushiCount, FinalResult.Score);
 
 	RoundResult = FinalResult;
 
