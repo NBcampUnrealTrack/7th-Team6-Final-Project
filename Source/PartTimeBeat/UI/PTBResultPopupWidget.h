@@ -57,6 +57,18 @@ public:
 	UFUNCTION(BlueprintPure, Category = "PTB|UI|Popup")
 	int32 GetScore() const { return RoundResult.Score; }
 
+	/** 점수 % 숫자 (예: 96.52) */
+	UFUNCTION(BlueprintPure, Category = "PTB|UI|Popup")
+	float GetScorePercent() const { return RoundResult.ScorePercent; }
+
+	/** "96.52%" */
+	UFUNCTION(BlueprintPure, Category = "PTB|UI|Popup")
+	FText GetScorePercentText() const;
+
+	/** "965,239 (96.52%)" */
+	UFUNCTION(BlueprintPure, Category = "PTB|UI|Popup")
+	FText GetScoreWithPercentText() const;
+
 	UFUNCTION(BlueprintPure, Category = "PTB|UI|Popup")
 	int32 GetEarnedMoney() const { return RewardSummary.EarnedMoney; }
 

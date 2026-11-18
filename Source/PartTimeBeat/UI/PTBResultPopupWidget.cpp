@@ -1,6 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "PTBResultPopupWidget.h"
+#include "Progression/PTBProgressLibrary.h"
 
 void UPTBResultPopupWidget::InitPopup(
 	const FPTBRoundResult& InResult,
@@ -24,6 +25,16 @@ FText UPTBResultPopupWidget::GetResultMessage() const
 FText UPTBResultPopupWidget::GetRankText() const
 {
 	return GradeToText(RoundResult.Grade);
+}
+
+FText UPTBResultPopupWidget::GetScorePercentText() const
+{
+	return UPTBProgressLibrary::ScoreToPercentText(RoundResult.Score);
+}
+
+FText UPTBResultPopupWidget::GetScoreWithPercentText() const
+{
+	return UPTBProgressLibrary::ScoreWithPercentText(RoundResult.Score);
 }
 
 FText UPTBResultPopupWidget::GetMiniGameName() const

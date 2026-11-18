@@ -226,6 +226,12 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "PTB|MiniGame")
 	virtual void RequestStartMiniGame();
 
+	/**
+	 * 점수 계산에 쓰는 이번 판의 총 판정 노트 수 (100만점 정규화 분모).
+	 * 기본 = 채보 노트 수. 채보 노트 일부를 판정하지 않거나 한 노트에서 판정이 여러 번 나오는 미니게임은 override.
+	 */
+	virtual int32 GetExpectedJudgementCount() const;
+
 	/** Press Any Key 입력 처리 */
 	UFUNCTION(BlueprintCallable, Category = "PTB|MiniGame")
 	virtual void HandleStartInput();

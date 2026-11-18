@@ -5,6 +5,7 @@
 #include "Engine/World.h"
 #include "Profile/PTBProfileSubsystem.h"
 #include "Progression/PTBProgressSettings.h"
+#include "Rhythm/PTBScoreCalculator.h"
 
 #define LOCTEXT_NAMESPACE "PTBProgress"
 
@@ -214,6 +215,48 @@ EPTBGradeType UPTBProgressLibrary::GetBestGrade(const UObject* WorldContextObjec
 	const FPTBProfileData* Profile = GetActiveProfile(WorldContextObject);
 	bOutHasRecord = Profile && GetBestGradeInProfile(*Profile, MiniGameId, Difficulty, Grade);
 	return Grade;
+}
+
+// ── 점수 표시 ─────────────────────────────────────────────────
+
+float UPTBProgressLibrary::ScoreToPercent(int32 Score)
+{
+	return UPTBScoreCalculator::ScoreToPercent(Score);
+}
+
+FText UPTBProgressLibrary::ScoreToPercentText(int32 Score)
+{
+	return UPTBScoreCalculator::ScoreToPercentText(Score);
+}
+
+FText UPTBProgressLibrary::ScoreWithPercentText(int32 Score, bool bDashIfZero)
+{
+	if (bDashIfZero && Score <= 0)
+	{
+		return LOCTEXT("Score_None", "-");
+	}
+
+	FNumberFormattingOptions NumberOptions;
+	NumberOptions.SetUseGrouping(true);
+	return FText::Format(LOCTEXT("Score_WithPercent", "{0} ({1})"),
+		FText::AsNumber(Score, &NumberOptions),
+		UPTBScoreCalculator::ScoreToPercentText(Score));
+}
+
+int32 UPTBProgressLibrary::GetBestScore(const UObject* WorldContextObject, FName MiniGameId, EPTBDifficulty Difficulty)
+{
+	const FPTBProfileData* Profile = GetActiveProfile(WorldContextObject);
+	if (!Profile)
+	{
+		return 0;
+	}
+	const int32* Found = Profile->BestScoresByDifficulty.Find(MakeDifficultyKey(MiniGameId, Difficulty));
+	return Found ? *Found : 0;
+}
+
+FText UPTBProgressLibrary::GetBestScoreWithPercentText(const UObject* WorldContextObject, FName MiniGameId, EPTBDifficulty Difficulty)
+{
+	return ScoreWithPercentText(GetBestScore(WorldContextObject, MiniGameId, Difficulty), true);
 }
 
 #undef LOCTEXT_NAMESPACE
