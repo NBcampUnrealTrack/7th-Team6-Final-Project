@@ -9,6 +9,8 @@
 #include "Profile/PTBProfileSubsystem.h"
 #include "UI/PTBFirstPlayGuideWidget.h"
 #include "UObject/ConstructorHelpers.h"
+#include "Camera/PlayerCameraManager.h"
+#include "GameFramework/PlayerController.h"
 
 namespace PTBFirstPlayGuideInternal
 {
@@ -153,6 +155,17 @@ void APTBFirstPlayGuideActor::ApplyHighlight(bool bEnable)
 		{
 			return;
 		}
+		// 색을 바꿀 수 있게 동적 인스턴스로 (HighlightColor 파라미터가 없으면 머티리얼 색 그대로)
+		if (!HighlightMaterial || HighlightMaterial->Parent != HighlightOverlayMaterial)
+		{
+			HighlightMaterial = UMaterialInstanceDynamic::Create(HighlightOverlayMaterial, this);
+		}
+		if (HighlightMaterial)
+		{
+			HighlightMaterial->SetVectorParameterValue(TEXT("HighlightColor"), HighlightColor);
+		}
+		UMaterialInterface* OverlayToUse = HighlightMaterial ? static_cast<UMaterialInterface*>(HighlightMaterial) : HighlightOverlayMaterial.Get();
+
 		TArray<UMeshComponent*> Meshes;
 		TargetActor->GetComponents<UMeshComponent>(Meshes);
 		for (UMeshComponent* Mesh : Meshes)
@@ -160,7 +173,7 @@ void APTBFirstPlayGuideActor::ApplyHighlight(bool bEnable)
 			if (Mesh && Mesh->IsVisible())
 			{
 				SavedOverlayMaterials.Add(Mesh, Mesh->GetOverlayMaterial());
-				Mesh->SetOverlayMaterial(HighlightOverlayMaterial);
+				Mesh->SetOverlayMaterial(OverlayToUse);
 			}
 		}
 		return;
@@ -195,12 +208,101 @@ void APTBFirstPlayGuideActor::UpdateArrow(float DeltaSeconds)
 		return;
 	}
 
-	const float Bob = ArrowBobAmplitude * FMath::Sin(AnimTime * 2.f * PI / ArrowBobPeriodSec);
-	const FVector Location = GetTargetTopLocation() + FVector(0.f, 0.f, ArrowHeightAboveTarget + Bob);
+	const float Wave = FMath::Sin(AnimTime * 2.f * PI / ArrowBobPeriodSec);
 
-	// 원뿔이 아래(대상)를 가리키도록 뒤집고, 제자리에서 천천히 회전
-	const FRotator Rotation(180.f, FMath::Fmod(AnimTime * ArrowSpinDegPerSec, 360.f), 0.f);
-	ArrowMesh->SetWorldLocationAndRotation(Location, Rotation);
+	if (ArrowPlacement == EPTBGuideArrowPlacement::AboveTarget)
+	{
+		const FVector Location = GetTargetTopLocation() + FVector(0.f, 0.f, ArrowHeightAboveTarget + ArrowBobAmplitude * Wave);
+		// 원뿔이 아래(대상)를 가리키도록 뒤집고, 제자리에서 천천히 회전
+		const FRotator Rotation(180.f, FMath::Fmod(AnimTime * ArrowSpinDegPerSec, 360.f), 0.f);
+		ArrowMesh->SetWorldLocationAndRotation(Location, Rotation);
+		return;
+	}
+
+	// 대상 앞(플레이어 쪽) 눈높이에서 대상을 가리킴
+	FVector Origin;
+	FVector Extent;
+	TargetActor->GetActorBounds(false, Origin, Extent);
+	const float TargetRadius = FVector2D(Extent.X, Extent.Y).Size() * 0.7f; // 대략적인 겉면 반지름
+	const float BottomZ = Origin.Z - Extent.Z;
+
+	FVector ToPlayer = FVector::ForwardVector;
+	if (const APawn* Pawn = UGameplayStatics::GetPlayerPawn(this, 0))
+	{
+		ToPlayer = Pawn->GetActorLocation() - Origin;
+		ToPlayer.Z = 0.f;
+		ToPlayer = ToPlayer.GetSafeNormal(UE_SMALL_NUMBER, FVector::ForwardVector);
+	}
+
+	// 대상 쪽으로 콕콕 찌르듯 움직임 (0~1)
+	const float Poke = ArrowBobAmplitude * (0.5f + 0.5f * Wave);
+	const float Distance = TargetRadius + ArrowDistanceFromTarget + Poke;
+	const FVector Location(Origin.X + ToPlayer.X * Distance, Origin.Y + ToPlayer.Y * Distance, BottomZ + ArrowHeightFromTargetBottom);
+
+	// 원뿔 끝(+Z)이 대상(= -ToPlayer)을 향하도록, 그 축을 중심으로 천천히 회전
+	const FQuat PointAtTarget = FRotationMatrix::MakeFromZ(-ToPlayer).ToQuat();
+	const FQuat Spin(FVector::UpVector, FMath::DegreesToRadians(FMath::Fmod(AnimTime * ArrowSpinDegPerSec, 360.f)));
+	ArrowMesh->SetWorldLocationAndRotation(Location, PointAtTarget * Spin);
+}
+
+void APTBFirstPlayGuideActor::UpdateOffscreenIndicator()
+{
+	if (!HintWidget)
+	{
+		return;
+	}
+	if (!bShowOffscreenIndicator || !TargetActor)
+	{
+		HintWidget->SetOffscreenIndicator(false, FVector2D::ZeroVector);
+		return;
+	}
+
+	APlayerController* PC = UGameplayStatics::GetPlayerController(this, 0);
+	if (!PC || !PC->PlayerCameraManager)
+	{
+		return;
+	}
+
+	FVector Origin;
+	FVector Extent;
+	TargetActor->GetActorBounds(false, Origin, Extent);
+
+	const FVector CamLoc = PC->PlayerCameraManager->GetCameraLocation();
+	const FRotator CamRot = PC->PlayerCameraManager->GetCameraRotation();
+	const FVector Local = CamRot.UnrotateVector(Origin - CamLoc); // X=앞, Y=오른쪽, Z=위
+
+	// 앞에 있고 화면 안쪽으로 투영되면 화면 안 → 표시 안 함
+	if (Local.X > 0.f)
+	{
+		FVector2D ScreenPos;
+		int32 SizeX = 0;
+		int32 SizeY = 0;
+		PC->GetViewportSize(SizeX, SizeY);
+		if (SizeX > 0 && SizeY > 0 && PC->ProjectWorldLocationToScreen(Origin, ScreenPos, true))
+		{
+			const float U = ScreenPos.X / SizeX;
+			const float V = ScreenPos.Y / SizeY;
+			if (U >= OnScreenInnerMargin && U <= 1.f - OnScreenInnerMargin
+				&& V >= OnScreenInnerMargin && V <= 1.f - OnScreenInnerMargin)
+			{
+				HintWidget->SetOffscreenIndicator(false, FVector2D::ZeroVector);
+				return;
+			}
+		}
+	}
+
+	// 화면 기준 방향 (오른쪽 +X, 아래 +Y). 바로 뒤에 있으면 아래쪽(뒤돌아보기)으로
+	FVector2D Dir(Local.Y, -Local.Z);
+	if (Local.X <= 0.f)
+	{
+		// 뒤쪽: 좌우 방향은 살리고, 거의 정면 뒤면 아래를 가리킴
+		Dir.Y = FMath::Max(Dir.Y, 0.f) + FMath::Abs(Local.X) * 0.25f;
+	}
+	if (Dir.IsNearlyZero())
+	{
+		Dir = FVector2D(0.f, 1.f);
+	}
+	HintWidget->SetOffscreenIndicator(true, Dir);
 }
 
 void APTBFirstPlayGuideActor::UpdateHintVisibility()
@@ -219,15 +321,8 @@ void APTBFirstPlayGuideActor::UpdateHintVisibility()
 		}
 	}
 
-	const ESlateVisibility Wanted = bNear ? ESlateVisibility::Collapsed : ESlateVisibility::HitTestInvisible;
-	if (HintWidget->GetVisibility() != Wanted)
-	{
-		HintWidget->SetVisibility(Wanted);
-		if (!bNear)
-		{
-			HintWidget->RefreshHintText(); // 숨겨진 사이 키 설정이 바뀌었을 수 있음
-		}
-	}
+	// 가까이 가면 상단 문구만 숨김 (화면 밖 방향 표시는 따로 판단)
+	HintWidget->SetHintTextVisible(!bNear);
 }
 
 void APTBFirstPlayGuideActor::Tick(float DeltaSeconds)
@@ -250,4 +345,5 @@ void APTBFirstPlayGuideActor::Tick(float DeltaSeconds)
 	AnimTime += DeltaSeconds;
 	UpdateArrow(DeltaSeconds);
 	UpdateHintVisibility();
+	UpdateOffscreenIndicator();
 }

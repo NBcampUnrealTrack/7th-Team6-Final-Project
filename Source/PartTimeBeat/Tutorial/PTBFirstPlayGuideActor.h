@@ -10,6 +10,15 @@ class UMaterialInterface;
 class UMaterialInstanceDynamic;
 class UPTBFirstPlayGuideWidget;
 
+UENUM(BlueprintType)
+enum class EPTBGuideArrowPlacement : uint8
+{
+	/** 대상 앞(플레이어 쪽) 눈높이에 떠서 대상을 가리킴 — 높은 기둥에 추천 */
+	InFrontOfTarget UMETA(DisplayName = "대상 앞 (눈높이)"),
+	/** 대상 꼭대기 위에서 아래를 가리킴 */
+	AboveTarget     UMETA(DisplayName = "대상 위"),
+};
+
 /**
  * 첫 플레이 안내 (허브 맵에 1개 배치).
  *
@@ -54,11 +63,23 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PTB|FirstPlayGuide|Arrow")
 	TObjectPtr<UStaticMeshComponent> ArrowMesh;
 
-	/** 대상 꼭대기에서 화살표까지 높이(cm) */
+	/** 화살표 위치 방식 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|FirstPlayGuide|Arrow")
+	EPTBGuideArrowPlacement ArrowPlacement = EPTBGuideArrowPlacement::InFrontOfTarget;
+
+	/** [대상 앞] 대상 바닥에서 화살표까지 높이(cm). 캐릭터 눈높이 근처 추천 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|FirstPlayGuide|Arrow")
+	float ArrowHeightFromTargetBottom = 160.f;
+
+	/** [대상 앞] 대상 겉면에서 플레이어 쪽으로 띄울 거리(cm) */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|FirstPlayGuide|Arrow")
+	float ArrowDistanceFromTarget = 90.f;
+
+	/** [대상 위] 대상 꼭대기에서 화살표까지 높이(cm) */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|FirstPlayGuide|Arrow")
 	float ArrowHeightAboveTarget = 80.f;
 
-	/** 위아래로 움직이는 폭(cm) / 주기(초) */
+	/** 움직이는 폭(cm) / 주기(초). [대상 위]는 위아래, [대상 앞]은 대상 쪽으로 콕콕 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|FirstPlayGuide|Arrow")
 	float ArrowBobAmplitude = 20.f;
 
@@ -82,6 +103,23 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|FirstPlayGuide|Highlight")
 	TObjectPtr<UMaterialInterface> HighlightOverlayMaterial;
 
+	/**
+	 * 강조 색. 머티리얼에 이름이 HighlightColor인 Vector Parameter가 있으면 이 색이 들어감.
+	 * 보라색 기둥과 대비: 노랑/금색 추천
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|FirstPlayGuide|Highlight")
+	FLinearColor HighlightColor = FLinearColor(1.f, 0.8f, 0.05f, 1.f);
+
+	// ── ④ 화면 밖 방향 표시 ───────────────────────────────────────
+
+	/** 대상이 화면 밖(뒤쪽 포함)이면 화면 가장자리에 방향 화살표 표시 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|FirstPlayGuide|Offscreen")
+	bool bShowOffscreenIndicator = true;
+
+	/** 화면 가장자리에서 이만큼 안쪽(0~0.5, 화면 비율)까지 들어와야 "화면 안"으로 봄 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|FirstPlayGuide|Offscreen", meta = (ClampMin = "0", ClampMax = "0.4"))
+	float OnScreenInnerMargin = 0.05f;
+
 	/** 안내 표시 여부를 지금 다시 판단 */
 	UFUNCTION(BlueprintCallable, Category = "PTB|FirstPlayGuide")
 	void RefreshGuide();
@@ -102,6 +140,7 @@ private:
 	void ApplyHighlight(bool bEnable);
 	void UpdateArrow(float DeltaSeconds);
 	void UpdateHintVisibility();
+	void UpdateOffscreenIndicator();
 	FVector GetTargetTopLocation() const;
 
 	UPROPERTY(Transient)
@@ -109,6 +148,9 @@ private:
 
 	UPROPERTY(Transient)
 	TObjectPtr<UMaterialInstanceDynamic> ArrowMaterial;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UMaterialInstanceDynamic> HighlightMaterial;
 
 	/** 강조 전 원래 Overlay Material (끌 때 복원) */
 	TMap<TWeakObjectPtr<UMeshComponent>, TObjectPtr<UMaterialInterface>> SavedOverlayMaterials;

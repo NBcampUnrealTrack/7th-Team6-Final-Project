@@ -11,6 +11,8 @@ class UTextBlock;
  *
  * - WBP 없이 이 클래스를 그대로 써도 기본 레이아웃(상단 가운데 텍스트)을 코드로 만들어서 표시함.
  * - 모양을 꾸미고 싶으면 이 클래스를 부모로 WBP를 만들고 Text Block 이름을 TXT_Hint로 두면 됨.
+ * - 대상이 화면 밖이면 화면 가장자리에 방향 화살표(OffscreenIndicator)를 띄움.
+ *   WBP로 만들 때는 아무 위젯(그림 등)을 Canvas Panel 바로 아래에 두고 이름을 OffscreenIndicator로. 위쪽(▲)을 가리키는 모양으로 만들면 됨.
  * - 클릭을 막지 않음 (Not Hit-Testable).
  */
 UCLASS()
@@ -39,6 +41,27 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|FirstPlayGuide", meta = (ClampMin = "0.1"))
 	float PulsePeriodSec = 1.6f;
 
+	/** 화면 밖 방향 표시 색 (기본 레이아웃) */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|FirstPlayGuide")
+	FLinearColor IndicatorColor = FLinearColor(1.f, 0.85f, 0.1f, 1.f);
+
+	/** 화면 밖 방향 표시 크기 (기본 레이아웃 글자 크기) */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|FirstPlayGuide")
+	int32 IndicatorFontSize = 56;
+
+	/** 화면 가장자리에서 띄울 여백 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|FirstPlayGuide")
+	float IndicatorEdgeMargin = 70.f;
+
+	/**
+	 * 화면 밖 방향 표시 갱신 (액터가 매 프레임 호출).
+	 * @param ScreenDirection 화면 중앙 기준 대상 방향 (오른쪽 +X, 아래 +Y)
+	 */
+	void SetOffscreenIndicator(bool bShow, FVector2D ScreenDirection);
+
+	/** 상단 문구만 보이기/숨기기 (화면 밖 방향 표시는 별도) */
+	void SetHintTextVisible(bool bVisible);
+
 	/** 문구 다시 채우기 (키 설정이 바뀌었을 때 등) */
 	UFUNCTION(BlueprintCallable, Category = "PTB|FirstPlayGuide")
 	void RefreshHintText();
@@ -50,6 +73,9 @@ protected:
 
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "PTB|FirstPlayGuide")
 	TObjectPtr<UTextBlock> TXT_Hint;
+
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "PTB|FirstPlayGuide")
+	TObjectPtr<UWidget> OffscreenIndicator;
 
 private:
 	/** WBP 레이아웃이 없으면 코드로 기본 레이아웃 생성 */
