@@ -105,6 +105,31 @@ int32 UPTBScoreCalculator::AddJudgementScore(const FPTBJudgementResult& Result)
 	return FMath::Max(0, CurrentScore - PrevScore);
 }
 
+void UPTBScoreCalculator::AddHoldTick(bool bHit)
+{
+	++TotalNoteCount;
+
+	if (bHit)
+	{
+		++HoldTickHitCount;
+		WeightSum += WeightPerfect;
+		++ComboCount;
+		MaxCombo = FMath::Max(MaxCombo, ComboCount);
+	}
+	else
+	{
+		++MissCount;
+		const int32 FinalCombo = ComboCount;
+		ComboCount = 0;
+		if (FinalCombo > 0)
+		{
+			OnComboBreak.Broadcast(FinalCombo);
+		}
+	}
+
+	CurrentScore = ComputeNormalizedScore();
+}
+
 FPTBRoundResult UPTBScoreCalculator::BuildRoundResult(const FString& ProfileId, FName MiniGameId,
 	EPTBDifficulty Difficulty, const FPTBMiniGameResultPayload& Payload) const
 {
@@ -116,7 +141,7 @@ FPTBRoundResult UPTBScoreCalculator::BuildRoundResult(const FString& ProfileId, 
 		Result.ProfileId = ParsedProfileId;
 	}
 
-	const int32 JudgedCount = HighPerfectCount + PerfectCount + GoodCount + MissCount;
+	const int32 JudgedCount = HighPerfectCount + PerfectCount + GoodCount + MissCount + HoldTickHitCount;
 	if (ExpectedNoteCount > 0 && JudgedCount != ExpectedNoteCount)
 	{
 		// 끝까지 플레이했는데 수가 다르면 미니게임 쪽 판정 횟수(홀드/동시입력/빈입력) 확인 필요
@@ -146,9 +171,9 @@ FPTBRoundResult UPTBScoreCalculator::BuildRoundResult(const FString& ProfileId, 
 	Result.IsNewHighScore = false;
 	Result.MiniGamePayload = Payload;
 
-	UE_LOG(LogTemp, Log, TEXT("[Score] %s 결과: %d점 (%s) HP=%d P=%d G=%d M=%d / 노트 %d / 골드 %d"),
+	UE_LOG(LogTemp, Log, TEXT("[Score] %s 결과: %d점 (%s) HP=%d P=%d G=%d M=%d 롱노트틱성공=%d / 판정 총 %d개 / 골드 %d"),
 		*MiniGameId.ToString(), CurrentScore, *ScoreToPercentText(CurrentScore).ToString(),
-		HighPerfectCount, PerfectCount, GoodCount, MissCount, ExpectedNoteCount, LegacyScore);
+		HighPerfectCount, PerfectCount, GoodCount, MissCount, HoldTickHitCount, ExpectedNoteCount, LegacyScore);
 
 	return Result;
 }
@@ -175,7 +200,7 @@ int32 UPTBScoreCalculator::CalculateStarRating(int32 Score) const
 
 EPTBGradeType UPTBScoreCalculator::CalculateGrade() const
 {
-	const int32 JudgedNoteCount = HighPerfectCount + PerfectCount + GoodCount + MissCount;
+	const int32 JudgedNoteCount = HighPerfectCount + PerfectCount + GoodCount + MissCount + HoldTickHitCount;
 	if (JudgedNoteCount <= 0)
 	{
 		return EPTBGradeType::Fail;
@@ -246,6 +271,7 @@ void UPTBScoreCalculator::Reset()
 	GoodCount = 0;
 	MissCount = 0;
 	TotalNoteCount = 0;
+	HoldTickHitCount = 0;
 	WeightSum = 0;
 	LegacyScore = 0;
 }

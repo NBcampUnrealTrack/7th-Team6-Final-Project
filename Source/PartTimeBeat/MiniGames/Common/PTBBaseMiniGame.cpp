@@ -206,6 +206,7 @@ void APTBBaseMiniGame::Tick(float DeltaTime)
 
 	const float CurrentInputTimeMs = GetCurrentInputJudgeTimeMs();
 	JudgementSystem->ForceMissExpiredNotes(CurrentInputTimeMs);
+	ProcessActiveHoldTicks(CurrentInputTimeMs);
 	ResolveSatisfiedHoldInputs(CurrentInputTimeMs);
 
 	if (bPendingRoundFailed)
@@ -884,8 +885,80 @@ void APTBBaseMiniGame::BeginGameplaySequence()
 
 int32 APTBBaseMiniGame::GetExpectedJudgementCount() const
 {
-	// 롱노트는 시작 노트 1개로 판정(Release는 파싱 시 합쳐짐) → 채보 노트 수 = 판정 수
-	return ChartAsset ? ChartAsset->NoteEvents.Num() : 0;
+	// 노트 1개 = 판정 1개 (롱노트 Release는 파싱 시 합쳐짐) + 롱노트 틱 수
+	if (!ChartAsset)
+	{
+		return 0;
+	}
+
+	int32 Count = 0;
+	int32 TickCount = 0;
+	for (const FPTBNoteEvent& Note : ChartAsset->NoteEvents)
+	{
+		++Count;
+		TickCount += ComputeHoldTickCount(Note);
+	}
+
+	UE_LOG(LogRhythm, Log, TEXT("[%s] 점수 분모: 노트 %d + 롱노트 틱 %d = %d (틱/박=%d)"),
+		*GetNameSafe(this), Count, TickCount, Count + TickCount, HoldTicksPerBeat);
+	return Count + TickCount;
+}
+
+int32 APTBBaseMiniGame::ComputeHoldTickCount(const FPTBNoteEvent& Note) const
+{
+	if (HoldTicksPerBeat <= 0 || Note.NoteType != EPTBNoteType::Hold)
+	{
+		return 0;
+	}
+
+	const float DurationMs = Note.ReleaseTimeMs - Note.TimeMs;
+	if (DurationMs <= 0.0f)
+	{
+		return 0;
+	}
+
+	// 박자 기준: 같은 초 길이라도 BPM이 높으면 틱이 많음
+	float DurationBeats = Note.DurationBeat;
+	if (DurationBeats <= 0.0f && ChartAsset && ChartAsset->ChartData.BPM > 0.0f)
+	{
+		DurationBeats = DurationMs * ChartAsset->ChartData.BPM / 60000.0f;
+	}
+
+	return FMath::Max(0, FMath::FloorToInt(DurationBeats * HoldTicksPerBeat + KINDA_SMALL_NUMBER));
+}
+
+void APTBBaseMiniGame::ApplyHoldTick(bool bHit)
+{
+	if (!ScoreCalculator)
+	{
+		return;
+	}
+
+	ScoreCalculator->AddHoldTick(bHit);
+	OnMiniGameHoldTick.Broadcast(bHit, ScoreCalculator->ComboCount, ScoreCalculator->CurrentScore);
+	OnHoldTickApplied(bHit);
+}
+
+void APTBBaseMiniGame::ResolveRemainingHoldTicks(FPTBActiveHoldState& HoldState, bool bHit)
+{
+	while (HoldState.TickTimesMs.IsValidIndex(HoldState.NextTickIndex))
+	{
+		++HoldState.NextTickIndex;
+		ApplyHoldTick(bHit);
+	}
+}
+
+void APTBBaseMiniGame::ProcessActiveHoldTicks(float CurrentTimeMs)
+{
+	for (FPTBActiveHoldState& HoldState : ActiveHoldStates)
+	{
+		while (HoldState.TickTimesMs.IsValidIndex(HoldState.NextTickIndex)
+			&& CurrentTimeMs >= HoldState.TickTimesMs[HoldState.NextTickIndex])
+		{
+			++HoldState.NextTickIndex;
+			ApplyHoldTick(true);
+		}
+	}
 }
 
 void APTBBaseMiniGame::RequestStartMiniGame()
@@ -1315,6 +1388,15 @@ FPTBJudgementResult APTBBaseMiniGame::EvaluateHoldInput(EPTBActionType Action, f
 	HoldState.PendingResult = Result;
 	HoldState.PressedTimeMs = TimeMs;
 	HoldState.RequiredHoldUntilTimeMs = MatchedNote.TimeMs + HoldDurationMs * PTBBaseMiniGameInternal::RequiredHoldRatio;
+
+	// 롱노트 틱: 성공 판정 구간(누른 순간 ~ 성공 확정 시각)에 고르게 배치 → 확정되기 전에 모든 틱이 지나감
+	const int32 TickCount = ComputeHoldTickCount(MatchedNote);
+	for (int32 TickIndex = 1; TickIndex <= TickCount; ++TickIndex)
+	{
+		const float Alpha = static_cast<float>(TickIndex) / static_cast<float>(TickCount);
+		HoldState.TickTimesMs.Add(FMath::Lerp(MatchedNote.TimeMs, HoldState.RequiredHoldUntilTimeMs, Alpha));
+	}
+
 	ActiveHoldStates.Add(HoldState);
 
 	if (TimeMs >= HoldState.RequiredHoldUntilTimeMs)
@@ -1349,9 +1431,11 @@ void APTBBaseMiniGame::ConfirmActiveHold(int32 HoldIndex)
 		return;
 	}
 
-	const FPTBJudgementResult Result = ActiveHoldStates[HoldIndex].PendingResult;
+	// 끝까지 눌렀으면 남은 틱 성공 처리 후 머리 판정 전달
+	FPTBActiveHoldState HoldState = ActiveHoldStates[HoldIndex];
 	ActiveHoldStates.RemoveAt(HoldIndex);
-	DispatchDeferredJudgementResult(Result);
+	ResolveRemainingHoldTicks(HoldState, true);
+	DispatchDeferredJudgementResult(HoldState.PendingResult);
 }
 
 void APTBBaseMiniGame::FailActiveHoldEarlyRelease(int32 HoldIndex, float ReleaseTimeMs)
@@ -1361,8 +1445,11 @@ void APTBBaseMiniGame::FailActiveHoldEarlyRelease(int32 HoldIndex, float Release
 		return;
 	}
 
-	const FPTBActiveHoldState HoldState = ActiveHoldStates[HoldIndex];
+	FPTBActiveHoldState HoldState = ActiveHoldStates[HoldIndex];
 	ActiveHoldStates.RemoveAt(HoldIndex);
+
+	// 일찍 뗌: 이미 지난 틱은 성공 유지, 남은 틱은 전부 Miss
+	ResolveRemainingHoldTicks(HoldState, false);
 	DispatchDeferredJudgementResult(PTBBaseMiniGameInternal::MakeEarlyReleaseResult(
 		HoldState.Note,
 		ReleaseTimeMs,
