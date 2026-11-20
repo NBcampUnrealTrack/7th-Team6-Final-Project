@@ -867,6 +867,12 @@ void APTBBaseMiniGame::BeginGameplaySequence()
 		RhythmConductor->StartConductor(ChartAsset.Get(), PlayingId, AudioManager.Get());
 	}
 
+	// 점수 분모(총 노트 수) 설정: 100만점 정규화
+	if (ScoreCalculator)
+	{
+		ScoreCalculator->SetExpectedNoteCount(GetExpectedJudgementCount());
+	}
+
 	bIsRoundActive = true;
 	bStartSequenceActive = false;
 	bInputLocked = false;
@@ -874,6 +880,12 @@ void APTBBaseMiniGame::BeginGameplaySequence()
 	ReceiveGameplayStarted();
 
 	UE_LOG(LogRhythm, Log, TEXT("[%s] MiniGame started. Notes=%d BPM=%.2f OffsetMs=%.2f"), *GetNameSafe(this), ChartAsset->NoteEvents.Num(), GameContext.ChartData.BPM, GameContext.ChartData.OffsetMs);
+}
+
+int32 APTBBaseMiniGame::GetExpectedJudgementCount() const
+{
+	// 롱노트는 시작 노트 1개로 판정(Release는 파싱 시 합쳐짐) → 채보 노트 수 = 판정 수
+	return ChartAsset ? ChartAsset->NoteEvents.Num() : 0;
 }
 
 void APTBBaseMiniGame::RequestStartMiniGame()

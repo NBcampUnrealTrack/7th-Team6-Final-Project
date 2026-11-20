@@ -44,6 +44,28 @@ public:
 	UFUNCTION(BlueprintPure, Category = "PTB|Progress")
 	static bool IsGradeAtLeast(EPTBGradeType Grade, EPTBGradeType Threshold);
 
+	// ── 점수 표시 ──
+
+	/** 점수 → % 숫자 (소수점 2자리 버림. 965239 → 96.52) */
+	UFUNCTION(BlueprintPure, Category = "PTB|Progress|Score")
+	static float ScoreToPercent(int32 Score);
+
+	/** 점수 → "96.52%" */
+	UFUNCTION(BlueprintPure, Category = "PTB|Progress|Score")
+	static FText ScoreToPercentText(int32 Score);
+
+	/** 점수 → "965,239 (96.52%)" (점수 0이면 "-" 를 원하면 bDashIfZero) */
+	UFUNCTION(BlueprintPure, Category = "PTB|Progress|Score")
+	static FText ScoreWithPercentText(int32 Score, bool bDashIfZero = false);
+
+	/** 이 미니게임·난이도의 최고 점수 (기록 없으면 0) */
+	UFUNCTION(BlueprintPure, Category = "PTB|Progress|Score", meta = (WorldContext = "WorldContextObject"))
+	static int32 GetBestScore(const UObject* WorldContextObject, FName MiniGameId, EPTBDifficulty Difficulty);
+
+	/** 이 미니게임·난이도의 최고 점수를 "965,239 (96.52%)" 로. 기록 없으면 "-" */
+	UFUNCTION(BlueprintPure, Category = "PTB|Progress|Score", meta = (WorldContext = "WorldContextObject"))
+	static FText GetBestScoreWithPercentText(const UObject* WorldContextObject, FName MiniGameId, EPTBDifficulty Difficulty);
+
 	// ── C++ 공용 ──
 
 	/** "MiniGameId_Difficulty" 키 (프로필의 난이도별 기록 키) */

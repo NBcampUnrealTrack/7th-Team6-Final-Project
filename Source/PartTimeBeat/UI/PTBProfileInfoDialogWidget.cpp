@@ -126,6 +126,55 @@ void UPTBProfileInfoDialogWidget::RequestDelete()
 	}
 	Confirm->OnConfirmed.AddUniqueDynamic(this, &UPTBProfileInfoDialogWidget::ConfirmDelete);
 	Host->PushDialog(Confirm);
+
+	if (bHideWhileDeleteConfirmOpen)
+	{
+		ActiveDeleteConfirm = Confirm;
+		HideForDeleteConfirm();
+	}
+}
+
+void UPTBProfileInfoDialogWidget::HideForDeleteConfirm()
+{
+	if (bHiddenForDeleteConfirm)
+	{
+		return;
+	}
+	bHiddenForDeleteConfirm = true;
+	SavedRenderOpacity = GetRenderOpacity();
+	SavedVisibility = GetVisibility();
+
+	// Collapsed/Hidden은 Tick이 멈춰서 확인 창이 닫혔는지 감지할 수 없음 → 투명 + 클릭 불가로 숨김
+	SetRenderOpacity(0.f);
+	SetVisibility(ESlateVisibility::HitTestInvisible);
+}
+
+void UPTBProfileInfoDialogWidget::RestoreAfterDeleteConfirm()
+{
+	if (!bHiddenForDeleteConfirm)
+	{
+		return;
+	}
+	bHiddenForDeleteConfirm = false;
+	ActiveDeleteConfirm.Reset();
+	SetRenderOpacity(SavedRenderOpacity);
+	SetVisibility(SavedVisibility);
+}
+
+void UPTBProfileInfoDialogWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
+{
+	Super::NativeTick(MyGeometry, InDeltaTime);
+
+	// 확인 창이 닫혔으면(아니오 / ESC / 닫기 버튼 등 어떤 방법이든) 다시 보이게.
+	// "예"로 삭제한 경우엔 이 창도 같은 프레임에 닫히므로 다시 보이지 않음.
+	if (bHiddenForDeleteConfirm)
+	{
+		const UPTBConfirmDialogWidget* Confirm = ActiveDeleteConfirm.Get();
+		if (!Confirm || (!Confirm->GetParent() && !Confirm->IsInViewport()))
+		{
+			RestoreAfterDeleteConfirm();
+		}
+	}
 }
 
 void UPTBProfileInfoDialogWidget::ConfirmDelete()

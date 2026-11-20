@@ -40,6 +40,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Profile|InfoDialog")
 	TSubclassOf<UPTBConfirmDialogWidget> DeleteConfirmDialogClass;
 
+	/** 삭제 확인 창이 떠 있는 동안 이 창을 숨김 (반투명 창 두 개가 겹쳐 보이지 않게). 확인 창을 취소/ESC로 닫으면 다시 보임 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Profile|InfoDialog")
+	bool bHideWhileDeleteConfirmOpen = true;
+
 	/** 게임 시작 후 이동할 맵을 직접 지정할 때만 사용 (비우면 Flow의 미니게임 선택 맵) */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Profile|InfoDialog")
 	FName StartLevelNameOverride = NAME_None;
@@ -80,6 +84,7 @@ public:
 
 protected:
 	virtual void NativeConstruct() override;
+	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
 
 	/** 요약이 갱신됐을 때 — BP에서 캐릭터 이미지(Summary.Gender)·이름·소지금·진행도 갱신 */
 	UFUNCTION(BlueprintImplementableEvent, Category = "Profile|InfoDialog")
@@ -102,4 +107,13 @@ private:
 
 	int32 SlotIndex = INDEX_NONE;
 	bool bSetupDone = false;
+
+	/** 삭제 확인 창 동안 숨기기 / 다시 보이기 (렌더 투명도로 숨겨서 Tick은 계속 돌게 함) */
+	void HideForDeleteConfirm();
+	void RestoreAfterDeleteConfirm();
+
+	TWeakObjectPtr<UPTBConfirmDialogWidget> ActiveDeleteConfirm;
+	bool bHiddenForDeleteConfirm = false;
+	float SavedRenderOpacity = 1.f;
+	ESlateVisibility SavedVisibility = ESlateVisibility::SelfHitTestInvisible;
 };

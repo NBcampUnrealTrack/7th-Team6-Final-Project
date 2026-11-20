@@ -698,8 +698,13 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
     EPTBPlayMode PlayMode;
 
+    /** 0 ~ 1,000,000 (전부 Perfect면 1,000,000) */
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
     int32 Score = 0;
+
+    /** 점수 % (점수 ÷ 10,000, 소수점 2자리 버림. 예: 96.52) */
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
+    float ScorePercent = 0.0f;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
     int32 HighPerfectCount = 0;
@@ -715,6 +720,19 @@ public:
     float AccuracyRate = 0.0f;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
     EPTBGradeType Grade = EPTBGradeType::Fail;
+
+    /** 풀콤보 (끝까지 Miss 0) */
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
+    bool bIsFullCombo = false;
+
+    /** 퍼펙트 풀콤보 (Miss·Good 0) */
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
+    bool bIsPerfectFullCombo = false;
+
+    /** MAX (전부 High Perfect) */
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
+    bool bIsMax = false;
+
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
     int32 StarCount = 0;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rhythm")
