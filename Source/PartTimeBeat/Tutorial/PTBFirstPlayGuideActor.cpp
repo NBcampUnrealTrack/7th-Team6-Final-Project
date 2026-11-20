@@ -117,7 +117,7 @@ void APTBFirstPlayGuideActor::SetGuideActive(bool bActive)
 	// ② 화살표
 	if (ArrowMesh)
 	{
-		ArrowMesh->SetHiddenInGame(!bActive || !TargetActor);
+		ArrowMesh->SetHiddenInGame(!bActive || !TargetActor || MarkerMode != EPTBGuideMarkerMode::WorldArrow);
 	}
 
 	// ③ 강조
@@ -134,6 +134,7 @@ void APTBFirstPlayGuideActor::SetGuideActive(bool bActive)
 		}
 		if (HintWidget && !HintWidget->IsInViewport())
 		{
+			HintWidget->SetIndicatorSizes(OffscreenIndicatorSize, ScreenMarkerSize);
 			HintWidget->AddToViewport(HintZOrder);
 		}
 		UpdateHintVisibility();
@@ -163,6 +164,7 @@ void APTBFirstPlayGuideActor::ApplyHighlight(bool bEnable)
 		if (HighlightMaterial)
 		{
 			HighlightMaterial->SetVectorParameterValue(TEXT("HighlightColor"), HighlightColor);
+			HighlightMaterial->SetScalarParameterValue(TEXT("PulseSpeed"), HighlightPulseSpeed);
 		}
 		UMaterialInterface* OverlayToUse = HighlightMaterial ? static_cast<UMaterialInterface*>(HighlightMaterial) : HighlightOverlayMaterial.Get();
 
@@ -203,7 +205,7 @@ FVector APTBFirstPlayGuideActor::GetTargetTopLocation() const
 
 void APTBFirstPlayGuideActor::UpdateArrow(float DeltaSeconds)
 {
-	if (!ArrowMesh || !TargetActor)
+	if (!ArrowMesh || !TargetActor || MarkerMode != EPTBGuideMarkerMode::WorldArrow)
 	{
 		return;
 	}
@@ -245,15 +247,33 @@ void APTBFirstPlayGuideActor::UpdateArrow(float DeltaSeconds)
 	ArrowMesh->SetWorldLocationAndRotation(Location, PointAtTarget * Spin);
 }
 
+FVector APTBFirstPlayGuideActor::GetScreenMarkerWorldLocation() const
+{
+	FVector Origin;
+	FVector Extent;
+	TargetActor->GetActorBounds(false, Origin, Extent);
+	const float BottomZ = Origin.Z - Extent.Z;
+	// 대상보다 높게는 올리지 않음
+	return FVector(Origin.X, Origin.Y, FMath::Min(BottomZ + ScreenMarkerHeightFromBottom, Origin.Z + Extent.Z));
+}
+
 void APTBFirstPlayGuideActor::UpdateOffscreenIndicator()
 {
 	if (!HintWidget)
 	{
 		return;
 	}
-	if (!bShowOffscreenIndicator || !TargetActor)
+	const bool bUseScreenMarker = MarkerMode == EPTBGuideMarkerMode::ScreenMarker && TargetActor;
+	if (!bShowOffscreenIndicator && !bUseScreenMarker)
 	{
 		HintWidget->SetOffscreenIndicator(false, FVector2D::ZeroVector);
+		HintWidget->SetOnscreenMarker(false, FVector2D::ZeroVector);
+		return;
+	}
+	if (!TargetActor)
+	{
+		HintWidget->SetOffscreenIndicator(false, FVector2D::ZeroVector);
+		HintWidget->SetOnscreenMarker(false, FVector2D::ZeroVector);
 		return;
 	}
 
@@ -263,9 +283,7 @@ void APTBFirstPlayGuideActor::UpdateOffscreenIndicator()
 		return;
 	}
 
-	FVector Origin;
-	FVector Extent;
-	TargetActor->GetActorBounds(false, Origin, Extent);
+	const FVector Origin = GetScreenMarkerWorldLocation();
 
 	const FVector CamLoc = PC->PlayerCameraManager->GetCameraLocation();
 	const FRotator CamRot = PC->PlayerCameraManager->GetCameraRotation();
@@ -285,7 +303,9 @@ void APTBFirstPlayGuideActor::UpdateOffscreenIndicator()
 			if (U >= OnScreenInnerMargin && U <= 1.f - OnScreenInnerMargin
 				&& V >= OnScreenInnerMargin && V <= 1.f - OnScreenInnerMargin)
 			{
+				// 화면 안: 가장자리 화살표 숨기고, 대상 위에 ▼ 표시 (벽에 가려져도 보임)
 				HintWidget->SetOffscreenIndicator(false, FVector2D::ZeroVector);
+				HintWidget->SetOnscreenMarker(bUseScreenMarker, ScreenPos);
 				return;
 			}
 		}
@@ -302,7 +322,8 @@ void APTBFirstPlayGuideActor::UpdateOffscreenIndicator()
 	{
 		Dir = FVector2D(0.f, 1.f);
 	}
-	HintWidget->SetOffscreenIndicator(true, Dir);
+	HintWidget->SetOnscreenMarker(false, FVector2D::ZeroVector);
+	HintWidget->SetOffscreenIndicator(bShowOffscreenIndicator, Dir);
 }
 
 void APTBFirstPlayGuideActor::UpdateHintVisibility()

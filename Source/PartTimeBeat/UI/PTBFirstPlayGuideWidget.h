@@ -47,7 +47,18 @@ public:
 
 	/** 화면 밖 방향 표시 크기 (기본 레이아웃 글자 크기) */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|FirstPlayGuide")
-	int32 IndicatorFontSize = 56;
+	int32 IndicatorFontSize = 100;
+
+	/** 화면 안 대상 위 표시(▼) 크기 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|FirstPlayGuide")
+	int32 MarkerFontSize = 80;
+
+	/** 화면 안 대상 위 표시가 위아래로 움직이는 폭(UI 단위) / 주기(초) */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|FirstPlayGuide")
+	float MarkerBobAmplitude = 14.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|FirstPlayGuide", meta = (ClampMin = "0.1"))
+	float MarkerBobPeriodSec = 1.0f;
 
 	/** 화면 가장자리에서 띄울 여백 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|FirstPlayGuide")
@@ -58,6 +69,15 @@ public:
 	 * @param ScreenDirection 화면 중앙 기준 대상 방향 (오른쪽 +X, 아래 +Y)
 	 */
 	void SetOffscreenIndicator(bool bShow, FVector2D ScreenDirection);
+
+	/**
+	 * 화면 안 대상 위 표시(▼) 갱신 (액터가 매 프레임 호출). 벽에 가려져도 항상 보임.
+	 * @param ViewportPixelPos 화면 픽셀 좌표 (ProjectWorldLocationToScreen 결과)
+	 */
+	void SetOnscreenMarker(bool bShow, FVector2D ViewportPixelPos);
+
+	/** 표시 크기 변경 (WBP 없이 기본 레이아웃 쓸 때 액터 설정값 적용용) */
+	void SetIndicatorSizes(int32 InIndicatorFontSize, int32 InMarkerFontSize);
 
 	/** 상단 문구만 보이기/숨기기 (화면 밖 방향 표시는 별도) */
 	void SetHintTextVisible(bool bVisible);
@@ -77,9 +97,16 @@ protected:
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "PTB|FirstPlayGuide")
 	TObjectPtr<UWidget> OffscreenIndicator;
 
+	/** 화면 안에서 대상 위에 떠 있는 표시 (아래를 가리키는 모양). WBP에서는 Canvas Panel 바로 아래에 둘 것 */
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "PTB|FirstPlayGuide")
+	TObjectPtr<UWidget> OnscreenMarker;
+
 private:
 	/** WBP 레이아웃이 없으면 코드로 기본 레이아웃 생성 */
 	void BuildDefaultLayoutIfNeeded();
 
 	float PulseTime = 0.f;
+
+	/** 삼각형 글자 위젯 만들기 (기본 레이아웃용) */
+	UTextBlock* MakeTriangleText(class UCanvasPanel* Root, FName Name, const TCHAR* Glyph, int32 FontSize);
 };

@@ -40,24 +40,74 @@ void UPTBFirstPlayGuideWidget::BuildDefaultLayoutIfNeeded()
 		TextSlot->SetAutoSize(true);
 	}
 
-	// 화면 밖 방향 표시: 위쪽을 가리키는 삼각형 글자 (회전시켜서 방향 표시)
-	UTextBlock* Arrow = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("OffscreenIndicator"));
-	FSlateFontInfo ArrowFont = Arrow->GetFont();
-	ArrowFont.Size = IndicatorFontSize;
-	ArrowFont.OutlineSettings.OutlineSize = 3;
-	ArrowFont.OutlineSettings.OutlineColor = FLinearColor(0.f, 0.f, 0.f, 0.9f);
-	Arrow->SetFont(ArrowFont);
-	Arrow->SetColorAndOpacity(FSlateColor(IndicatorColor));
-	Arrow->SetText(FText::FromString(TEXT("\u25B2"))); // ▲
-	Arrow->SetJustification(ETextJustify::Center);
-	if (UCanvasPanelSlot* ArrowSlot = Root->AddChildToCanvas(Arrow))
+	// 화면 밖 방향 표시: 위쪽을 가리키는 삼각형 (회전시켜서 방향 표시)
+	OffscreenIndicator = MakeTriangleText(Root, TEXT("OffscreenIndicator"), TEXT("\u25B2"), IndicatorFontSize); // ▲
+	// 화면 안 대상 위 표시: 아래를 가리키는 삼각형
+	OnscreenMarker = MakeTriangleText(Root, TEXT("OnscreenMarker"), TEXT("\u25BC"), MarkerFontSize); // ▼
+}
+
+UTextBlock* UPTBFirstPlayGuideWidget::MakeTriangleText(UCanvasPanel* Root, FName Name, const TCHAR* Glyph, int32 FontSize)
+{
+	UTextBlock* Text = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), Name);
+	FSlateFontInfo Font = Text->GetFont();
+	Font.Size = FontSize;
+	Font.OutlineSettings.OutlineSize = 4;
+	Font.OutlineSettings.OutlineColor = FLinearColor(0.f, 0.f, 0.f, 0.9f);
+	Text->SetFont(Font);
+	Text->SetColorAndOpacity(FSlateColor(IndicatorColor));
+	Text->SetText(FText::FromString(Glyph));
+	Text->SetJustification(ETextJustify::Center);
+	if (UCanvasPanelSlot* TextSlot = Root->AddChildToCanvas(Text))
 	{
-		ArrowSlot->SetAnchors(FAnchors(0.f, 0.f, 0.f, 0.f));
-		ArrowSlot->SetAlignment(FVector2D(0.5f, 0.5f));
-		ArrowSlot->SetAutoSize(true);
+		TextSlot->SetAnchors(FAnchors(0.f, 0.f, 0.f, 0.f));
+		TextSlot->SetAlignment(FVector2D(0.5f, 0.5f));
+		TextSlot->SetAutoSize(true);
 	}
-	Arrow->SetVisibility(ESlateVisibility::Collapsed); // 첫 갱신 전까지 숨김
-	OffscreenIndicator = Arrow;
+	Text->SetVisibility(ESlateVisibility::Collapsed); // 첫 갱신 전까지 숨김
+	return Text;
+}
+
+void UPTBFirstPlayGuideWidget::SetIndicatorSizes(int32 InIndicatorFontSize, int32 InMarkerFontSize)
+{
+	IndicatorFontSize = InIndicatorFontSize;
+	MarkerFontSize = InMarkerFontSize;
+
+	auto ApplySize = [](UWidget* Widget, int32 Size)
+	{
+		if (UTextBlock* Text = Cast<UTextBlock>(Widget))
+		{
+			FSlateFontInfo Font = Text->GetFont();
+			Font.Size = Size;
+			Text->SetFont(Font);
+		}
+	};
+	ApplySize(OffscreenIndicator, IndicatorFontSize);
+	ApplySize(OnscreenMarker, MarkerFontSize);
+}
+
+void UPTBFirstPlayGuideWidget::SetOnscreenMarker(bool bShow, FVector2D ViewportPixelPos)
+{
+	if (!OnscreenMarker)
+	{
+		return;
+	}
+	if (!bShow)
+	{
+		OnscreenMarker->SetVisibility(ESlateVisibility::Collapsed);
+		return;
+	}
+
+	OnscreenMarker->SetVisibility(ESlateVisibility::HitTestInvisible);
+
+	const float ViewportScale = FMath::Max(UWidgetLayoutLibrary::GetViewportScale(this), KINDA_SMALL_NUMBER);
+	const float Bob = MarkerBobAmplitude * FMath::Sin(PulseTime * 2.f * PI / MarkerBobPeriodSec);
+	if (UCanvasPanelSlot* MarkerSlot = Cast<UCanvasPanelSlot>(OnscreenMarker->Slot))
+	{
+		MarkerSlot->SetAnchors(FAnchors(0.f, 0.f, 0.f, 0.f));
+		// 아래 끝(뾰족한 부분)이 대상 지점에 오도록
+		MarkerSlot->SetAlignment(FVector2D(0.5f, 1.f));
+		MarkerSlot->SetPosition(ViewportPixelPos / ViewportScale + FVector2D(0.f, Bob));
+	}
 }
 
 void UPTBFirstPlayGuideWidget::SetOffscreenIndicator(bool bShow, FVector2D ScreenDirection)
@@ -137,17 +187,21 @@ void UPTBFirstPlayGuideWidget::NativeTick(const FGeometry& MyGeometry, float InD
 {
 	Super::NativeTick(MyGeometry, InDeltaTime);
 
-	if (!TXT_Hint || PulseMinOpacity >= 1.f)
+	PulseTime += InDeltaTime;
+	if (PulseMinOpacity >= 1.f)
 	{
 		return;
 	}
 
-	PulseTime += InDeltaTime;
 	// 0~1을 부드럽게 오가는 값 (cos 기반: 처음엔 가장 밝게 시작)
 	const float Wave = 0.5f + 0.5f * FMath::Cos(PulseTime * 2.f * PI / PulsePeriodSec);
-	TXT_Hint->SetRenderOpacity(FMath::Lerp(PulseMinOpacity, 1.f, Wave));
+	const float Opacity = FMath::Lerp(PulseMinOpacity, 1.f, Wave);
+	if (TXT_Hint)
+	{
+		TXT_Hint->SetRenderOpacity(Opacity);
+	}
 	if (OffscreenIndicator)
 	{
-		OffscreenIndicator->SetRenderOpacity(FMath::Lerp(PulseMinOpacity, 1.f, Wave));
+		OffscreenIndicator->SetRenderOpacity(FMath::Max(Opacity, 0.7f)); // 방향 표시는 너무 흐려지지 않게
 	}
 }

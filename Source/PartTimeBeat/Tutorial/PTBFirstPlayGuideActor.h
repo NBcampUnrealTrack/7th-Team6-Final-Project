@@ -11,6 +11,15 @@ class UMaterialInstanceDynamic;
 class UPTBFirstPlayGuideWidget;
 
 UENUM(BlueprintType)
+enum class EPTBGuideMarkerMode : uint8
+{
+	/** 화면 UI로 대상 위에 ▼ 표시 — 벽에 가려져도 보이고, 거리와 상관없이 크기 일정 (추천) */
+	ScreenMarker UMETA(DisplayName = "화면 UI 표시"),
+	/** 맵에 3D 화살표 메시 표시 */
+	WorldArrow   UMETA(DisplayName = "3D 화살표"),
+};
+
+UENUM(BlueprintType)
 enum class EPTBGuideArrowPlacement : uint8
 {
 	/** 대상 앞(플레이어 쪽) 눈높이에 떠서 대상을 가리킴 — 높은 기둥에 추천 */
@@ -63,7 +72,19 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PTB|FirstPlayGuide|Arrow")
 	TObjectPtr<UStaticMeshComponent> ArrowMesh;
 
-	/** 화살표 위치 방식 */
+	/** 대상 위치 표시 방식 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|FirstPlayGuide|Arrow")
+	EPTBGuideMarkerMode MarkerMode = EPTBGuideMarkerMode::ScreenMarker;
+
+	/** [화면 UI 표시] 대상 바닥에서 ▼가 가리킬 지점 높이(cm). 캐릭터 눈높이 근처 추천 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|FirstPlayGuide|Arrow")
+	float ScreenMarkerHeightFromBottom = 200.f;
+
+	/** [화면 UI 표시] ▼ 크기 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|FirstPlayGuide|Arrow")
+	int32 ScreenMarkerSize = 80;
+
+	/** [3D 화살표] 화살표 위치 방식 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|FirstPlayGuide|Arrow")
 	EPTBGuideArrowPlacement ArrowPlacement = EPTBGuideArrowPlacement::InFrontOfTarget;
 
@@ -110,11 +131,22 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|FirstPlayGuide|Highlight")
 	FLinearColor HighlightColor = FLinearColor(1.f, 0.8f, 0.05f, 1.f);
 
+	/**
+	 * 강조가 밝아졌다 어두워지는 속도 (클수록 빠름. 1 ≈ 6초에 한 번, 2 ≈ 3초에 한 번).
+	 * 머티리얼에 이름이 PulseSpeed인 Scalar Parameter가 있어야 적용됨
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|FirstPlayGuide|Highlight", meta = (ClampMin = "0"))
+	float HighlightPulseSpeed = 2.f;
+
 	// ── ④ 화면 밖 방향 표시 ───────────────────────────────────────
 
 	/** 대상이 화면 밖(뒤쪽 포함)이면 화면 가장자리에 방향 화살표 표시 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|FirstPlayGuide|Offscreen")
 	bool bShowOffscreenIndicator = true;
+
+	/** 화면 밖 방향 화살표(▲) 크기 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|FirstPlayGuide|Offscreen")
+	int32 OffscreenIndicatorSize = 100;
 
 	/** 화면 가장자리에서 이만큼 안쪽(0~0.5, 화면 비율)까지 들어와야 "화면 안"으로 봄 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PTB|FirstPlayGuide|Offscreen", meta = (ClampMin = "0", ClampMax = "0.4"))
@@ -141,6 +173,9 @@ private:
 	void UpdateArrow(float DeltaSeconds);
 	void UpdateHintVisibility();
 	void UpdateOffscreenIndicator();
+
+	/** 화면 UI 표시가 가리킬 월드 지점 */
+	FVector GetScreenMarkerWorldLocation() const;
 	FVector GetTargetTopLocation() const;
 
 	UPROPERTY(Transient)
