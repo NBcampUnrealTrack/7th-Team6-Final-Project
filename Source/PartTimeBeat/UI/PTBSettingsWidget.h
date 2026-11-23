@@ -15,6 +15,7 @@ class UImage;
 class USlider;
 class UTextBlock;
 class UWidgetSwitcher;
+class UWidget;
 
 /**
  * 옵션 화면 위젯.
@@ -33,7 +34,7 @@ class UWidgetSwitcher;
  *          ComboBoxFrameRate (초당 프레임 제한 + 수직 동기화를 한 목록에서 선택)
  *  [입력]  ComboBoxPollingRate (리듬 키 입력 폴링 레이트)
  *  [키]    KeyText_A~KeyText_E, ButtonRebindA~ButtonRebindE, TextRebindPrompt
- *  [언어]  ComboBoxLanguage, TextLanguageLocked (일시정지 중 안내, 선택)
+ *  [언어]  LanguageRow (언어 항목 전체를 감싼 위젯), ComboBoxLanguage, TextLanguageLocked (일시정지 중 안내, 선택)
  *  [제어]  ButtonApply, ButtonReset, ButtonCalibrate
  *  [알림]  TextNotification (2초 후 자동 숨김, Hidden 상태로 시작)
  */
@@ -253,7 +254,12 @@ protected:
 
 	// ── 언어 ─────────────────────────────────────────────────────────
 
-	/** 언어 선택. 옵션: "한국어" / "English" (LanguageCultures와 같은 순서). 게임 설정 탭에 배치. */
+	/** 언어 항목 전체(라벨 + ComboBoxLanguage)를 감싼 위젯 (HorizontalBox 등).
+	 *  지원 언어가 1개뿐이면 자동으로 숨김. */
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "PTB|Settings|Language")
+	TObjectPtr<UWidget> LanguageRow;
+
+	/** 언어 선택. 옵션은 지원 언어(UPTBGameInstance::GetSupportedLanguages)에서 자동 구성. 게임 설정 탭에 배치. */
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "PTB|Settings|Language")
 	TObjectPtr<UComboBoxString> ComboBoxLanguage;
 
@@ -319,8 +325,8 @@ private:
 	/** TextNotification 자동 숨김 타이머 */
 	FTimerHandle NotificationTimerHandle;
 
-	/** 지원 언어 코드. ComboBoxLanguage 옵션 순서와 동일해야 함. 언어 추가 시 여기와 BuildComboBoxOptions에 한 줄씩 추가. */
-	TArray<FString> LanguageCultures = { TEXT("ko"), TEXT("en") };
+	/** 지원 언어 컬처 이름. ComboBoxLanguage 옵션과 같은 순서. BuildComboBoxOptions에서 자동으로 채움. */
+	TArray<FString> LanguageCultures;
 
 	/** Apply 전까지만 유효한 언어 코드 */
 	FString PendingCulture;

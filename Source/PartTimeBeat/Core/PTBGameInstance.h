@@ -38,9 +38,15 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Localization")
 	FString GetGameLanguage() const;
 
-	// 지원 언어 목록 (언어 추가 시 여기만 수정)
+	// 지원 언어 목록 (컬처 이름, 예: "ko", "en", "ja", "zh-Hans")
+	// 하드코딩하지 않고 실제로 존재하는 게임 번역 데이터에서 자동으로 구성됨.
+	// → Localization Dashboard에서 언어 추가 + Project Settings > Packaging > Localizations to Package 체크만 하면 자동 반영.
+	// 첫 항목은 항상 원문 언어(Native, ko).
 	UFUNCTION(BlueprintPure, Category = "Localization")
-	static TArray<FString> GetSupportedLanguages() { return { TEXT("ko"), TEXT("en") }; }
+	static TArray<FString> GetSupportedLanguages();
+
+	// 언어 코드("zh") 또는 컬처 이름("zh-Hans", "ko-KR")에 해당하는 지원 컬처 이름. 없으면 빈 문자열.
+	static FString FindSupportedCulture(const FString& LanguageOrCulture);
 
 	//슬롯에 저장 (프로필은 Subsystem에서 CurrentSaveGame에 먼저 반영 후 호출)
 	UFUNCTION(BlueprintCallable, Category = "PTB|Save")

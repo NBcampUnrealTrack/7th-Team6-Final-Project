@@ -54,11 +54,62 @@ void UPTBGameInstance::ApplyDefaultLanguage()
 		return;
 	}
 
-	// 처음 실행: 엔진이 OS 언어로 시작함. 지원하지 않는 언어면 영어로 대체 (저장하지 않음)
-	if (!GIsEditor && !GetSupportedLanguages().Contains(GetGameLanguage()))
+	// 처음 실행: 엔진이 OS 언어로 시작함.
+	// 지원하지 않는 언어면 영어로, 영어도 없으면(한국어만 패키징한 경우) 원문 언어로 대체 (저장하지 않음)
+	if (!GIsEditor && FindSupportedCulture(GetGameLanguage()).IsEmpty())
 	{
-		FInternationalization::Get().SetCurrentCulture(TEXT("en"));
+		const TArray<FString> Supported = GetSupportedLanguages();
+		const FString Fallback = Supported.Contains(TEXT("en")) ? FString(TEXT("en"))
+			: (Supported.Num() > 0 ? Supported[0] : FString());
+		if (!Fallback.IsEmpty())
+		{
+			FInternationalization::Get().SetCurrentCulture(Fallback);
+		}
 	}
+}
+
+TArray<FString> UPTBGameInstance::GetSupportedLanguages()
+{
+	FTextLocalizationManager& LocManager = FTextLocalizationManager::Get();
+
+	// 게임 번역 데이터(.locres)가 실제로 있는 언어만 수집
+	// 패키징 빌드: Localizations to Package에 체크한 언어 / 에디터: Content/Localization/Game에 컴파일된 언어
+	TArray<FString> Cultures = LocManager.GetLocalizedCultureNames(ELocalizationLoadFlags::Game);
+
+	// 원문 언어(ko)는 번역 데이터가 없어도 항상 지원, 목록 맨 앞에 배치
+	const FString Native = LocManager.GetNativeCultureName(ELocalizedTextSourceCategory::Game);
+	Cultures.Remove(Native);
+	Cultures.Sort();
+	Cultures.Insert(Native.IsEmpty() ? FString(TEXT("ko")) : Native, 0);
+	return Cultures;
+}
+
+FString UPTBGameInstance::FindSupportedCulture(const FString& LanguageOrCulture)
+{
+	if (LanguageOrCulture.IsEmpty())
+	{
+		return FString();
+	}
+
+	const TArray<FString> Supported = GetSupportedLanguages();
+	if (Supported.Contains(LanguageOrCulture))
+	{
+		return LanguageOrCulture;
+	}
+
+	// "ko-KR" → "ko", "zh" → "zh-Hans" 처럼 언어 부분만 같아도 일치로 처리
+	FString Language = LanguageOrCulture;
+	LanguageOrCulture.Split(TEXT("-"), &Language, nullptr);
+	for (const FString& Culture : Supported)
+	{
+		FString SupportedLanguage = Culture;
+		Culture.Split(TEXT("-"), &SupportedLanguage, nullptr);
+		if (SupportedLanguage.Equals(Language, ESearchCase::IgnoreCase))
+		{
+			return Culture;
+		}
+	}
+	return FString();
 }
 
 
