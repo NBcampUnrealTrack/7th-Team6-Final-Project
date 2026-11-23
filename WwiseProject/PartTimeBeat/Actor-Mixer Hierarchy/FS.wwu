@@ -3,7 +3,7 @@
 	<AudioObjects>
 		<WorkUnit Name="FS" ID="{80922B44-8199-48E9-AD42-42425C050CEB}" PersistMode="Standalone">
 			<ChildrenList>
-				<Sound Name="PTB_FS_Easy_260616" ID="{9BD39A85-D3D8-4939-A651-5581A9F0FDC9}" ShortID="975459494">
+				<Sound Name="PTB_FS_BGM" ID="{9BD39A85-D3D8-4939-A651-5581A9F0FDC9}" ShortID="975459494">
 					<PropertyList>
 						<Property Name="ListenerRelativeRouting" Type="bool" Value="False"/>
 					</PropertyList>
@@ -23,9 +23,16 @@
 								<MediaID ID="756648171"/>
 							</MediaIDList>
 						</AudioFileSource>
+						<AudioFileSource Name="PTB_FS_BGM" ID="{F98C7E80-AE33-4850-BD78-5CC9B60C1DE2}">
+							<Language>SFX</Language>
+							<AudioFile>PTB_FS_BGM.wav</AudioFile>
+							<MediaIDList>
+								<MediaID ID="320046889"/>
+							</MediaIDList>
+						</AudioFileSource>
 					</ChildrenList>
 					<ActiveSourceList>
-						<ActiveSource Name="PTB_FS_Easy_260616" ID="{4EF466D2-666E-4647-A9D4-2CD0F0ABE4B0}" Platform="Linked"/>
+						<ActiveSource Name="PTB_FS_BGM" ID="{F98C7E80-AE33-4850-BD78-5CC9B60C1DE2}" Platform="Linked"/>
 					</ActiveSourceList>
 				</Sound>
 			</ChildrenList>

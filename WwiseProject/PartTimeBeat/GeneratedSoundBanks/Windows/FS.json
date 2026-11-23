@@ -10,18 +10,18 @@
     "Type": "User",
     "GUID": "{89F37B5D-ABCE-4EC8-89D4-4BF0B225ED9B}",
     "Language": "SFX",
-    "Hash": "{A329CE8B-234D-5EDE-C11E-E87392FD9024}",
+    "Hash": "{3D40F391-0276-BB3A-EED5-9CCCBBCB4495}",
     "ObjectPath": "\\SoundBanks\\Default Work Unit\\FS",
     "ShortName": "FS",
     "Path": "FS.bnk",
     "Media": [
      {
-      "Id": "756648171",
+      "Id": "320046889",
       "Language": "SFX",
       "Streaming": "false",
       "Location": "Memory",
-      "ShortName": "PTB_FS_Easy_260616.wav",
-      "CachePath": "SFX/PTB_FS_Easy_260616_818F3B66.wem"
+      "ShortName": "PTB_FS_BGM.wav",
+      "CachePath": "SFX/PTB_FS_BGM_818F3B66.wem"
      }
     ],
     "Events": [
@@ -31,17 +31,17 @@
       "ObjectPath": "\\Events\\Default Work Unit\\Play_FS_BGM",
       "GUID": "{AB532AAF-AF25-4491-B8C9-BF51C894F09A}",
       "DurationType": "OneShot",
-      "DurationMin": "127.39998",
-      "DurationMax": "127.39998",
+      "DurationMin": "69.99655",
+      "DurationMax": "69.99655",
       "MediaRefs": [
        {
-        "Id": "756648171"
+        "Id": "320046889"
        }
       ]
      }
     ]
    }
   ],
-  "FileHash": "{BBE95284-2B27-43BB-D434-8D0ECC253AC5}"
+  "FileHash": "{D429A066-9040-87CE-4F3C-F3B16D17A995}"
  }
 }

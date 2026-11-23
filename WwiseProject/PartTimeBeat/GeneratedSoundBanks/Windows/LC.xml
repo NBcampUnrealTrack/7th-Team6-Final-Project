@@ -1,24 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <SoundBanksInfo Platform="Windows" BasePlatform="Windows" SchemaVersion="16" SoundBankVersion="150">
 	<SoundBanks>
-		<SoundBank Id="1702304874" Type="User" GUID="{D05055ED-04AC-4E2F-BBCA-98E5CA21DED5}" Language="SFX" Hash="{C501F980-582F-20D0-F44C-C6F0FC05B6A6}">
+		<SoundBank Id="1702304874" Type="User" GUID="{D05055ED-04AC-4E2F-BBCA-98E5CA21DED5}" Language="SFX" Hash="{8F36AC87-F0F4-DDDC-9DA8-E811FE5C6ECE}">
 			<ObjectPath>\SoundBanks\Default Work Unit\LC</ObjectPath>
 			<ShortName>LC</ShortName>
 			<Path>LC.bnk</Path>
 			<Media>
-				<File Id="902210420" Language="SFX" Streaming="false" Location="Memory">
-					<ShortName>Music\LC\Logistic Center.wav</ShortName>
-					<CachePath>SFX/Music/LC/Logistic Center_818F3B66.wem</CachePath>
+				<File Id="451391678" Language="SFX" Streaming="false" Location="Memory">
+					<ShortName>PTB_LC_BGM.wav</ShortName>
+					<CachePath>SFX/PTB_LC_BGM_818F3B66.wem</CachePath>
 				</File>
 			</Media>
 			<Events>
-				<Event Id="2620029126" Name="Play_LC_BGM" ObjectPath="\Events\Default Work Unit\Play_LC_BGM" GUID="{17044A03-13EB-419B-A7B4-33819DC2E145}" DurationType="OneShot" DurationMin="127.536" DurationMax="127.536">
+				<Event Id="2620029126" Name="Play_LC_BGM" ObjectPath="\Events\Default Work Unit\Play_LC_BGM" GUID="{17044A03-13EB-419B-A7B4-33819DC2E145}" DurationType="OneShot" DurationMin="69.99655" DurationMax="69.99655">
 					<MediaRefs>
-						<MediaRef Id="902210420"/>
+						<MediaRef Id="451391678"/>
 					</MediaRefs>
 				</Event>
 			</Events>
 		</SoundBank>
 	</SoundBanks>
-	<FileHash>{8649D244-61E4-E388-556E-659B7F7B575C}</FileHash>
+	<FileHash>{13284E95-D9E0-287D-2E44-4605BFE15D07}</FileHash>
 </SoundBanksInfo>

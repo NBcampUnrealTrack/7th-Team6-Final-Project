@@ -63,7 +63,7 @@
 						<Action Name="" ID="{4320A980-67CE-40ED-A2FE-A72D60F8A6D4}" ShortID="70273368">
 							<ReferenceList>
 								<Reference Name="Target">
-									<ObjectRef Name="Logistic Center" ID="{CCEB14D1-8ADB-4E47-BD70-87DA257FD62D}" WorkUnitID="{0A2A8B12-D1DA-4CCB-8ABA-9AFD53D3E6E8}"/>
+									<ObjectRef Name="PTB_LC_BGM" ID="{CCEB14D1-8ADB-4E47-BD70-87DA257FD62D}" WorkUnitID="{0A2A8B12-D1DA-4CCB-8ABA-9AFD53D3E6E8}"/>
 								</Reference>
 							</ReferenceList>
 						</Action>
@@ -85,7 +85,7 @@
 						<Action Name="" ID="{145B46EF-312F-4353-896B-CC5279E72BE4}" ShortID="20092295">
 							<ReferenceList>
 								<Reference Name="Target">
-									<ObjectRef Name="PTB_FS_Easy_260616" ID="{9BD39A85-D3D8-4939-A651-5581A9F0FDC9}" WorkUnitID="{80922B44-8199-48E9-AD42-42425C050CEB}"/>
+									<ObjectRef Name="PTB_FS_BGM" ID="{9BD39A85-D3D8-4939-A651-5581A9F0FDC9}" WorkUnitID="{80922B44-8199-48E9-AD42-42425C050CEB}"/>
 								</Reference>
 							</ReferenceList>
 						</Action>
