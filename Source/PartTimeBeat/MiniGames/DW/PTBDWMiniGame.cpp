@@ -638,6 +638,14 @@ void APTBDWMiniGame::ShowJudgeGrade(EPTBJudgementType Grade)
 	JudgePopup->ShowGrade(Grade);
 }
 
+void APTBDWMiniGame::OnHoldTickApplied(bool bHit)
+{
+	if (ScoreCalculator)
+	{
+		OnDWComboChanged.Broadcast(ScoreCalculator->ComboCount);
+	}
+}
+
 void APTBDWMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 {
 	Super::HandleJudgementResult(Result);

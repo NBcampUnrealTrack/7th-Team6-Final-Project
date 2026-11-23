@@ -147,6 +147,8 @@ public:
 
 protected:
 	virtual void Tick(float DeltaTime) override;
+	/** 롱노트 틱마다 콤보 표시 갱신 */
+	virtual void OnHoldTickApplied(bool bHit) override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual void StartMiniGame() override;
 	virtual void BuildRuntimeState() override;

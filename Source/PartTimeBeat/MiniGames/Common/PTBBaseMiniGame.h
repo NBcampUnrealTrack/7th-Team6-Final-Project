@@ -32,6 +32,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FPTBMiniGameJudgementDelegate, FPTBJ
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FPTBMiniGameOutroDelegate, FPTBRoundResult, Result, EPTBRoundEndReason, EndReason);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FPTBMiniGameScenePhaseDelegate, EPTBMiniGameScenePhase, Phase);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FPTBMiniGameRhythmKeyDelegate, EPTBActionType, Action, bool, bPressed);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FPTBMiniGameHoldTickDelegate, bool, bHit, int32, Combo, int32, Score);
 
 struct FPTBActiveHoldState
 {
@@ -39,6 +40,10 @@ struct FPTBActiveHoldState
 	FPTBJudgementResult PendingResult;
 	float PressedTimeMs = 0.0f;
 	float RequiredHoldUntilTimeMs = 0.0f;
+
+	/** 롱노트 틱 시각들 (누르고 있으면 하나씩 성공 처리) */
+	TArray<float> TickTimesMs;
+	int32 NextTickIndex = 0;
 };
 
 /**
@@ -179,6 +184,17 @@ public:
 	/** 공통 점수/SFX 처리가 반영된 판정 결과 */
 	UPROPERTY(BlueprintAssignable, Category = "PTB|MiniGame|Events")
 	FPTBMiniGameJudgementDelegate OnMiniGameJudgement;
+
+	/**
+	 * 롱노트 틱 (누르고 있는 동안 박자마다 점수·콤보 +1, 떼면 남은 틱 Miss).
+	 * 판정 글자/효과음은 없음. 콤보·점수 표시를 직접 갱신하는 HUD는 여기에 연결.
+	 */
+	UPROPERTY(BlueprintAssignable, Category = "PTB|MiniGame|Events")
+	FPTBMiniGameHoldTickDelegate OnMiniGameHoldTick;
+
+	/** 롱노트 1박당 틱 수 (2 = 8분음표마다). 0이면 틱 없음(롱노트 = 노트 1개) */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PTB|MiniGame|Hold", meta = (ClampMin = "0", ClampMax = "8"))
+	int32 HoldTicksPerBeat = 2;
 
 	/**
 	 * 리듬 키 눌림/뗌 (입력 피드백 UI용).
@@ -688,6 +704,21 @@ protected:
 
 	/** Hold 성공 확정 */
 	void ConfirmActiveHold(int32 HoldIndex);
+
+	/** 이 롱노트에 생기는 틱 수 (총 노트 수 계산과 실제 틱 생성에 같이 사용) */
+	int32 ComputeHoldTickCount(const FPTBNoteEvent& Note) const;
+
+	/** 누르고 있는 롱노트들의 틱 중 시간이 된 것 성공 처리 */
+	void ProcessActiveHoldTicks(float CurrentTimeMs);
+
+	/** 남은 틱을 한 번에 성공(bHit) 또는 실패 처리 */
+	void ResolveRemainingHoldTicks(FPTBActiveHoldState& HoldState, bool bHit);
+
+	/** 틱 1개 점수 반영 + 알림 */
+	void ApplyHoldTick(bool bHit);
+
+	/** 틱 반영 직후 (미니게임별 HUD 콤보·점수 갱신용) */
+	virtual void OnHoldTickApplied(bool bHit) {}
 
 	/** Hold 조기 해제 실패 처리 */
 	void FailActiveHoldEarlyRelease(int32 HoldIndex, float ReleaseTimeMs);

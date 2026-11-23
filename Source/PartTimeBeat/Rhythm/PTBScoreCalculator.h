@@ -61,8 +61,11 @@ public:
 	/** Miss 누적 수 */
 	int32 MissCount = 0;
 
-	/** 누적 판정 노트 수 */
+	/** 누적 판정 노트 수 (롱노트 틱 포함) */
 	int32 TotalNoteCount = 0;
+
+	/** 롱노트 틱: 누르고 있어서 성공한 수 (판정 개수 표시와 별도로 집계, 실패한 틱은 MissCount에 포함) */
+	int32 HoldTickHitCount = 0;
 
 	/** 채보의 총 노트 수 (플레이 시작 시 설정, 점수 분모) */
 	int32 ExpectedNoteCount = 0;
@@ -78,6 +81,12 @@ public:
 
 	/** 점수와 콤보 반영 후 증가 점수 반환 */
 	int32 AddJudgementScore(const FPTBJudgementResult& Result);
+
+	/**
+	 * 롱노트 틱 1개 반영. 성공 = Perfect 가중치 + 콤보 +1, 실패 = Miss(콤보 끊김).
+	 * 판정 글자/효과음 없이 점수·콤보만 바뀜.
+	 */
+	void AddHoldTick(bool bHit);
 
 	/** 최종 라운드 결과 생성 */
 	FPTBRoundResult BuildRoundResult(const FString& ProfileId, FName MiniGameId,

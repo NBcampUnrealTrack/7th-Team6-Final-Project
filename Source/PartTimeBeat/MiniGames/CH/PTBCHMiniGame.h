@@ -187,6 +187,9 @@ protected:
     /** Hold 시작 입력 판정 */
     virtual FPTBJudgementResult EvaluateHoldInput(EPTBActionType Action, float TimeMs) override;
 
+    /** 롱노트 틱마다 HUD 콤보·점수 갱신 */
+    virtual void OnHoldTickApplied(bool bHit) override;
+
     /** CH RuleSet 조회 */
     const UPTBCHMiniGameRuleSet* GetCHRuleSet() const;
 

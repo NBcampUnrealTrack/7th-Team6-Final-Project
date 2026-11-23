@@ -389,6 +389,16 @@ void APTBCHMiniGame::HandleNoteCue(FPTBNoteEvent Note)
     }
 }
 
+void APTBCHMiniGame::OnHoldTickApplied(bool bHit)
+{
+    if (ScoreCalculator)
+    {
+        CallHUDUpdateStats(ScoreCalculator->CurrentScore, ScoreCalculator->ComboCount,
+            ScoreCalculator->HighPerfectCount, ScoreCalculator->PerfectCount,
+            ScoreCalculator->GoodCount, ScoreCalculator->MissCount);
+    }
+}
+
 void APTBCHMiniGame::HandleJudgementResult(FPTBJudgementResult Result)
 {
     FPTBNoteEvent JudgedNote;
