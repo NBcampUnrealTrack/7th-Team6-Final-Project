@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <SoundBanksInfo Platform="Windows" BasePlatform="Windows" SchemaVersion="16" SoundBankVersion="150">
 	<SoundBanks>
-		<SoundBank Id="1702304874" Type="User" GUID="{D05055ED-04AC-4E2F-BBCA-98E5CA21DED5}" Language="SFX" Hash="{8F36AC87-F0F4-DDDC-9DA8-E811FE5C6ECE}">
+		<SoundBank Id="1702304874" Type="User" GUID="{D05055ED-04AC-4E2F-BBCA-98E5CA21DED5}" Language="SFX" Hash="{6B7A665C-8957-8802-A844-9ED7BEA03C15}">
 			<ObjectPath>\SoundBanks\Default Work Unit\LC</ObjectPath>
 			<ShortName>LC</ShortName>
 			<Path>LC.bnk</Path>
@@ -12,7 +12,7 @@
 				</File>
 			</Media>
 			<Events>
-				<Event Id="2620029126" Name="Play_LC_BGM" ObjectPath="\Events\Default Work Unit\Play_LC_BGM" GUID="{17044A03-13EB-419B-A7B4-33819DC2E145}" DurationType="OneShot" DurationMin="69.99655" DurationMax="69.99655">
+				<Event Id="2620029126" Name="Play_LC_BGM" ObjectPath="\Events\Default Work Unit\Play_LC_BGM" GUID="{17044A03-13EB-419B-A7B4-33819DC2E145}" DurationType="OneShot" DurationMin="73.99619" DurationMax="73.99619">
 					<MediaRefs>
 						<MediaRef Id="451391678"/>
 					</MediaRefs>
@@ -20,5 +20,5 @@
 			</Events>
 		</SoundBank>
 	</SoundBanks>
-	<FileHash>{13284E95-D9E0-287D-2E44-4605BFE15D07}</FileHash>
+	<FileHash>{FC483ABF-B681-6ED0-7B7A-2F3B334A0878}</FileHash>
 </SoundBanksInfo>

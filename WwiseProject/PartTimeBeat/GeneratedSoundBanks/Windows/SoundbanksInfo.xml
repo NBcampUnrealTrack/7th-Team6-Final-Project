@@ -245,7 +245,7 @@
 				</Event>
 			</Events>
 		</SoundBank>
-		<SoundBank Id="1702304874" Type="User" GUID="{D05055ED-04AC-4E2F-BBCA-98E5CA21DED5}" Language="SFX" Hash="{8F36AC87-F0F4-DDDC-9DA8-E811FE5C6ECE}">
+		<SoundBank Id="1702304874" Type="User" GUID="{D05055ED-04AC-4E2F-BBCA-98E5CA21DED5}" Language="SFX" Hash="{6B7A665C-8957-8802-A844-9ED7BEA03C15}">
 			<ObjectPath>\SoundBanks\Default Work Unit\LC</ObjectPath>
 			<ShortName>LC</ShortName>
 			<Path>LC.bnk</Path>
@@ -256,7 +256,7 @@
 				</File>
 			</Media>
 			<Events>
-				<Event Id="2620029126" Name="Play_LC_BGM" ObjectPath="\Events\Default Work Unit\Play_LC_BGM" GUID="{17044A03-13EB-419B-A7B4-33819DC2E145}" DurationType="OneShot" DurationMin="69.99655" DurationMax="69.99655">
+				<Event Id="2620029126" Name="Play_LC_BGM" ObjectPath="\Events\Default Work Unit\Play_LC_BGM" GUID="{17044A03-13EB-419B-A7B4-33819DC2E145}" DurationType="OneShot" DurationMin="73.99619" DurationMax="73.99619">
 					<MediaRefs>
 						<MediaRef Id="451391678"/>
 					</MediaRefs>
@@ -336,5 +336,5 @@
 			</Events>
 		</SoundBank>
 	</SoundBanks>
-	<FileHash>{407ABD91-A196-6454-AF0B-7392D0BDA9F8}</FileHash>
+	<FileHash>{00BEF726-B5C4-0EDE-9E2A-81D09D94435A}</FileHash>
 </SoundBanksInfo>
