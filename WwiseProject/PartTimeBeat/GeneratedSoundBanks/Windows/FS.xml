@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <SoundBanksInfo Platform="Windows" BasePlatform="Windows" SchemaVersion="16" SoundBankVersion="150">
 	<SoundBanks>
-		<SoundBank Id="1802970376" Type="User" GUID="{89F37B5D-ABCE-4EC8-89D4-4BF0B225ED9B}" Language="SFX" Hash="{3D40F391-0276-BB3A-EED5-9CCCBBCB4495}">
+		<SoundBank Id="1802970376" Type="User" GUID="{89F37B5D-ABCE-4EC8-89D4-4BF0B225ED9B}" Language="SFX" Hash="{6AB752CE-E005-64B6-8404-1420B2B8856F}">
 			<ObjectPath>\SoundBanks\Default Work Unit\FS</ObjectPath>
 			<ShortName>FS</ShortName>
 			<Path>FS.bnk</Path>
@@ -12,7 +12,7 @@
 				</File>
 			</Media>
 			<Events>
-				<Event Id="3869860664" Name="Play_FS_BGM" ObjectPath="\Events\Default Work Unit\Play_FS_BGM" GUID="{AB532AAF-AF25-4491-B8C9-BF51C894F09A}" DurationType="OneShot" DurationMin="69.99655" DurationMax="69.99655">
+				<Event Id="3869860664" Name="Play_FS_BGM" ObjectPath="\Events\Default Work Unit\Play_FS_BGM" GUID="{AB532AAF-AF25-4491-B8C9-BF51C894F09A}" DurationType="OneShot" DurationMin="73.99619" DurationMax="73.99619">
 					<MediaRefs>
 						<MediaRef Id="320046889"/>
 					</MediaRefs>
@@ -20,5 +20,5 @@
 			</Events>
 		</SoundBank>
 	</SoundBanks>
-	<FileHash>{EFA104AF-A62F-4BC3-9A19-FD72933C78B0}</FileHash>
+	<FileHash>{78C93799-D1E5-F8D2-5AD2-105B988287FE}</FileHash>
 </SoundBanksInfo>

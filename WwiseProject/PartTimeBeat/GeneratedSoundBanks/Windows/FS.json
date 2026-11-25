@@ -10,7 +10,7 @@
     "Type": "User",
     "GUID": "{89F37B5D-ABCE-4EC8-89D4-4BF0B225ED9B}",
     "Language": "SFX",
-    "Hash": "{3D40F391-0276-BB3A-EED5-9CCCBBCB4495}",
+    "Hash": "{6AB752CE-E005-64B6-8404-1420B2B8856F}",
     "ObjectPath": "\\SoundBanks\\Default Work Unit\\FS",
     "ShortName": "FS",
     "Path": "FS.bnk",
@@ -31,8 +31,8 @@
       "ObjectPath": "\\Events\\Default Work Unit\\Play_FS_BGM",
       "GUID": "{AB532AAF-AF25-4491-B8C9-BF51C894F09A}",
       "DurationType": "OneShot",
-      "DurationMin": "69.99655",
-      "DurationMax": "69.99655",
+      "DurationMin": "73.99619",
+      "DurationMax": "73.99619",
       "MediaRefs": [
        {
         "Id": "320046889"
@@ -42,6 +42,6 @@
     ]
    }
   ],
-  "FileHash": "{D429A066-9040-87CE-4F3C-F3B16D17A995}"
+  "FileHash": "{DF63177F-5C69-C82D-D07B-94660FBC4E8D}"
  }
 }
