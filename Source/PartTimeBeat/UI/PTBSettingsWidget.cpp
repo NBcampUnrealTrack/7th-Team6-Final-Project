@@ -10,6 +10,7 @@
 #include "Components/Slider.h"
 #include "Components/TextBlock.h"
 #include "Components/WidgetSwitcher.h"
+#include "Components/Widget.h"
 #include "Core/PTBGameInstance.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetInternationalizationLibrary.h"
@@ -39,7 +40,7 @@ void UPTBSettingsWidget::InitializeView()
 {
 	const UPTBGameInstance* GI = GetGameInstance<UPTBGameInstance>();
 	PendingSettings = GI ? GI->CachedSettings : FPTBUserSettings{};
-	PendingCulture = GetCurrentLanguageCode();
+	PendingCulture = UPTBGameInstance::FindSupportedCulture(GetCurrentLanguageCode());
 
 	// ComboBox 옵션 구성 (값 설정은 RefreshAllWidgets에서 일괄 처리)
 	BuildComboBoxOptions();
@@ -48,9 +49,16 @@ void UPTBSettingsWidget::InitializeView()
 	// (Format Text로 만든 HUD 텍스트가 이전 언어로 남아 화면에 두 언어가 섞이는 것을 방지)
 	const bool bLanguageLocked = UGameplayStatics::IsGamePaused(this);
 	if (ComboBoxLanguage) ComboBoxLanguage->SetIsEnabled(!bLanguageLocked);
+
+	// 지원 언어가 1개뿐이면(예: 한국어만 패키징) 언어 항목 전체를 숨김
+	const bool bShowLanguage = LanguageCultures.Num() >= 2;
+	if (LanguageRow)
+	{
+		LanguageRow->SetVisibility(bShowLanguage ? ESlateVisibility::SelfHitTestInvisible : ESlateVisibility::Collapsed);
+	}
 	if (TextLanguageLocked)
 	{
-		TextLanguageLocked->SetVisibility(bLanguageLocked ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
+		TextLanguageLocked->SetVisibility(bShowLanguage && bLanguageLocked ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
 	}
 
 	if (SliderMaster) { SliderMaster->SetMinValue(0.f); SliderMaster->SetMaxValue(1.f); }
@@ -125,9 +133,14 @@ void UPTBSettingsWidget::BuildComboBoxOptions()
 	if (ComboBoxLanguage)
 	{
 		// 언어 이름은 번역하지 않음 (어떤 언어 상태에서도 자기 언어를 찾을 수 있도록)
+		// 지원 언어를 자동으로 수집해서 각 언어의 자기 언어 이름으로 표시 (한국어, English, 日本語, 中文(简体) ...)
+		LanguageCultures = UPTBGameInstance::GetSupportedLanguages();
 		ComboBoxLanguage->ClearOptions();
-		ComboBoxLanguage->AddOption(TEXT("한국어"));
-		ComboBoxLanguage->AddOption(TEXT("English"));
+		for (const FString& CultureName : LanguageCultures)
+		{
+			const FCulturePtr Culture = FInternationalization::Get().GetCulture(CultureName);
+			ComboBoxLanguage->AddOption(Culture.IsValid() ? Culture->GetNativeName() : CultureName);
+		}
 	}
 }
 
@@ -184,7 +197,7 @@ void UPTBSettingsWidget::ApplySettings()
 		GI->ApplyUserSettings(PendingSettings);
 
 		// 언어 변경: 즉시 적용 + GameUserSettings.ini에 저장 (다음 실행부터 이 언어로 시작)
-		if (!PendingCulture.IsEmpty() && PendingCulture != GetCurrentLanguageCode())
+		if (!PendingCulture.IsEmpty() && PendingCulture != UPTBGameInstance::FindSupportedCulture(GetCurrentLanguageCode()))
 		{
 			GI->SetGameLanguage(PendingCulture);
 
@@ -210,7 +223,7 @@ void UPTBSettingsWidget::ResetToDefaults()
 		PendingSettings.GraphicsQuality = Previous.DetectedGraphicsQuality;
 	}
 	// 언어는 초기화 대상에서 제외 (초기화로 읽을 수 없는 언어가 되는 것을 방지). 선택만 현재 언어로 되돌림.
-	PendingCulture = GetCurrentLanguageCode();
+	PendingCulture = UPTBGameInstance::FindSupportedCulture(GetCurrentLanguageCode());
 	RefreshAllWidgets();
 	OnSettingsReset();
 }
@@ -390,8 +403,9 @@ void UPTBSettingsWidget::RefreshAllWidgets()
 	}
 	if (ComboBoxLanguage)
 	{
-		int32 LangIndex = LanguageCultures.IndexOfByKey(PendingCulture);
+		int32 LangIndex = LanguageCultures.IndexOfByKey(UPTBGameInstance::FindSupportedCulture(PendingCulture));
 		if (LangIndex == INDEX_NONE) LangIndex = LanguageCultures.IndexOfByKey(TEXT("en"));
+		if (LangIndex == INDEX_NONE) LangIndex = 0;
 		ComboBoxLanguage->SetSelectedIndex(LangIndex);
 	}
 

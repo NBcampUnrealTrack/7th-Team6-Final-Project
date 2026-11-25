@@ -8,6 +8,10 @@ void UPTBCreditWidget::NativeConstruct()
 
 	SetIsFocusable(true);
 
+	// UserWidget의 기본 Visibility는 Self Hit Test Invisible이라 자기 자신은 마우스 입력(클릭/휠/드래그)을 받지 못함.
+	// Visible로 바꿔야 NativeOnMouseButtonDown / NativeOnMouseWheel / NativeOnMouseMove가 호출됨.
+	SetVisibility(ESlateVisibility::Visible);
+
 	if (ButtonClose)
 		ButtonClose->OnClicked.AddUniqueDynamic(this, &UPTBCreditWidget::OnCloseClicked);
 
@@ -15,6 +19,9 @@ void UPTBCreditWidget::NativeConstruct()
 	{
 		ScrollCredit->SetScrollBarVisibility(ESlateVisibility::Collapsed);
 		ScrollCredit->SetAllowOverscroll(false);
+		// 휠 입력을 ScrollBox가 먹지 않고 이 위젯(NativeOnMouseWheel)으로 넘기도록 설정
+		// → 휠로 스크롤할 때 자동 스크롤 일시정지 처리를 한 곳에서 할 수 있음
+		ScrollCredit->SetConsumeMouseWheel(EConsumeMouseWheel::Never);
 	}
 
 	RestartCredit();
@@ -25,10 +32,40 @@ void UPTBCreditWidget::RestartCredit()
 	ElapsedDelay = 0.f;
 	EndElapsed = 0.f;
 	bFastForward = false;
-	bReachedEnd = false;
+	bDragging = false;
 
 	if (ScrollCredit)
 		ScrollCredit->SetScrollOffset(0.f);
+
+	ResumeAutoScroll();
+}
+
+void UPTBCreditWidget::ResumeAutoScroll()
+{
+	EndElapsed = 0.f;
+	if (!bAutoScroll)
+	{
+		bAutoScroll = true;
+		OnAutoScrollChanged(true);
+	}
+}
+
+void UPTBCreditWidget::PauseAutoScroll()
+{
+	EndElapsed = 0.f;
+	if (bAutoScroll)
+	{
+		bAutoScroll = false;
+		OnAutoScrollChanged(false);
+	}
+}
+
+void UPTBCreditWidget::SetClampedScrollOffset(float NewOffset)
+{
+	if (!ScrollCredit) return;
+
+	const float EndOffset = FMath::Max(0.f, ScrollCredit->GetScrollOffsetOfEnd());
+	ScrollCredit->SetScrollOffset(FMath::Clamp(NewOffset, 0.f, EndOffset));
 }
 
 void UPTBCreditWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
@@ -49,19 +86,19 @@ void UPTBCreditWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime
 	// 레이아웃 계산 전에는 End가 0일 수 있음
 	if (EndOffset <= 0.f) return;
 
-	if (!bReachedEnd)
+	// 직접 조작 중(휠/드래그 후 일시정지 상태)에는 자동 스크롤·자동 닫기 모두 하지 않음
+	if (!bAutoScroll) return;
+
+	const float CurrentOffset = ScrollCredit->GetScrollOffset();
+	if (CurrentOffset < EndOffset)
 	{
+		EndElapsed = 0.f;
 		const float Speed = ScrollSpeed * (bFastForward ? FastForwardMultiplier : 1.f);
-
-		// 현재 오프셋 기준으로 더해야 휠 수동 스크롤과 충돌하지 않음
-		const float NewOffset = FMath::Min(ScrollCredit->GetScrollOffset() + Speed * InDeltaTime, EndOffset);
-		ScrollCredit->SetScrollOffset(NewOffset);
-
-		if (NewOffset >= EndOffset)
-			bReachedEnd = true;
+		SetClampedScrollOffset(CurrentOffset + Speed * InDeltaTime);
 	}
 	else if (AutoCloseDelay > 0.f)
 	{
+		// 자동 스크롤로 끝에 도달 → 잠시 뒤 자동으로 닫기
 		EndElapsed += InDeltaTime;
 		if (EndElapsed >= AutoCloseDelay)
 			CloseCredit();
@@ -99,14 +136,69 @@ FReply UPTBCreditWidget::NativeOnKeyUp(const FGeometry& InGeometry, const FKeyEv
 
 FReply UPTBCreditWidget::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
 {
-	bFastForward = true;
+	const FKey Button = InMouseEvent.GetEffectingButton();
+
+	// 휠 클릭: 자동 스크롤 재개
+	if (Button == EKeys::MiddleMouseButton)
+	{
+		ResumeAutoScroll();
+		return FReply::Handled();
+	}
+
+	// 좌클릭: 드래그 시작 (자동 스크롤 일시정지)
+	if (Button == EKeys::LeftMouseButton)
+	{
+		bDragging = true;
+		LastDragLocalY = InGeometry.AbsoluteToLocal(InMouseEvent.GetScreenSpacePosition()).Y;
+		PauseAutoScroll();
+		// 위젯 밖으로 마우스가 나가도 드래그가 이어지도록 마우스 캡처
+		return FReply::Handled().CaptureMouse(TakeWidget());
+	}
+
 	return FReply::Handled();
 }
 
 FReply UPTBCreditWidget::NativeOnMouseButtonUp(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
 {
-	bFastForward = false;
+	if (InMouseEvent.GetEffectingButton() == EKeys::LeftMouseButton && bDragging)
+	{
+		bDragging = false;
+		return FReply::Handled().ReleaseMouseCapture();
+	}
 	return FReply::Handled();
+}
+
+FReply UPTBCreditWidget::NativeOnMouseMove(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
+{
+	if (bDragging && ScrollCredit)
+	{
+		const float CurrentY = InGeometry.AbsoluteToLocal(InMouseEvent.GetScreenSpacePosition()).Y;
+		const float DeltaY = CurrentY - LastDragLocalY;
+		LastDragLocalY = CurrentY;
+
+		// 위로 끌어올리면 아래 내용이 보이도록 (스마트폰 스크롤과 같은 방향)
+		SetClampedScrollOffset(ScrollCredit->GetScrollOffset() - DeltaY);
+		return FReply::Handled();
+	}
+	return Super::NativeOnMouseMove(InGeometry, InMouseEvent);
+}
+
+FReply UPTBCreditWidget::NativeOnMouseWheel(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
+{
+	if (ScrollCredit)
+	{
+		PauseAutoScroll();
+		// 휠을 아래로 굴리면(WheelDelta < 0) 아래 내용이 보이도록
+		SetClampedScrollOffset(ScrollCredit->GetScrollOffset() - InMouseEvent.GetWheelDelta() * WheelScrollAmount);
+		return FReply::Handled();
+	}
+	return Super::NativeOnMouseWheel(InGeometry, InMouseEvent);
+}
+
+void UPTBCreditWidget::NativeOnMouseCaptureLost(const FCaptureLostEvent& CaptureLostEvent)
+{
+	Super::NativeOnMouseCaptureLost(CaptureLostEvent);
+	bDragging = false;
 }
 
 void UPTBCreditWidget::OnCloseClicked()
@@ -117,5 +209,6 @@ void UPTBCreditWidget::OnCloseClicked()
 void UPTBCreditWidget::CloseCredit()
 {
 	bFastForward = false;
+	bDragging = false;
 	RemoveFromParent();
 }
