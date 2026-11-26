@@ -10,7 +10,7 @@
     "Type": "User",
     "GUID": "{46BDD5DB-EE49-43BF-97DD-BCCF5D8B954C}",
     "Language": "SFX",
-    "Hash": "{C97C4693-B527-9448-A57F-0FA11B47BE79}",
+    "Hash": "{F427E2F5-4193-1D07-532C-60E3CAE16143}",
     "ObjectPath": "\\SoundBanks\\Default Work Unit\\DW",
     "ShortName": "DW",
     "Path": "DW.bnk",
@@ -42,6 +42,6 @@
     ]
    }
   ],
-  "FileHash": "{ACFF531F-0081-5F1D-8C23-460395EE3397}"
+  "FileHash": "{2D20312B-1BBD-033C-0ADB-161A6952B7D5}"
  }
 }

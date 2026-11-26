@@ -10,7 +10,7 @@
     "Type": "User",
     "GUID": "{007CA0E5-F67C-4DFA-B327-B8787A690CF7}",
     "Language": "SFX",
-    "Hash": "{08CF4901-4C52-2094-70F9-7C943B1035EA}",
+    "Hash": "{239E160C-4468-DAFB-8A10-3828CE6830E5}",
     "ObjectPath": "\\SoundBanks\\Default Work Unit\\PC",
     "ShortName": "PC",
     "Path": "PC.bnk",
@@ -42,6 +42,6 @@
     ]
    }
   ],
-  "FileHash": "{F4CE3DE4-F6C0-45BE-1A6E-1288DE6F8164}"
+  "FileHash": "{3763BA85-5B5C-1D91-45C0-D33ABE5852B9}"
  }
 }

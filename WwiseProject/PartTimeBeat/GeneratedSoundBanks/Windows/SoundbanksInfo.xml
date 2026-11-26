@@ -9,7 +9,7 @@
 	</RootPaths>
 	<DialogueEvents/>
 	<SoundBanks>
-		<SoundBank Id="1083137560" Type="User" GUID="{C9EAC364-B816-484D-AF09-AFF3C8C71B0E}" Language="SFX" Hash="{039823B1-6E8E-45E2-E981-B0C43D64C06A}">
+		<SoundBank Id="1083137560" Type="User" GUID="{C9EAC364-B816-484D-AF09-AFF3C8C71B0E}" Language="SFX" Hash="{4BFD4376-E7FF-66FF-56F6-F4687E419564}">
 			<ObjectPath>\SoundBanks\Default Work Unit\FOD</ObjectPath>
 			<ShortName>FOD</ShortName>
 			<Path>FOD.bnk</Path>
@@ -186,7 +186,7 @@
 				</AcousticTexture>
 			</AcousticTextures>
 		</SoundBank>
-		<SoundBank Id="1568083734" Type="User" GUID="{DDAE794D-61D4-451C-A316-2444772C90B7}" Language="SFX" Hash="{34E6129E-E9D3-900D-B876-2FD52885D2CD}">
+		<SoundBank Id="1568083734" Type="User" GUID="{DDAE794D-61D4-451C-A316-2444772C90B7}" Language="SFX" Hash="{BB923869-3FAD-C682-A7E3-51EFCD3EDF63}">
 			<ObjectPath>\SoundBanks\Default Work Unit\TG</ObjectPath>
 			<ShortName>TG</ShortName>
 			<Path>TG.bnk</Path>
@@ -209,7 +209,7 @@
 				</Event>
 			</Events>
 		</SoundBank>
-		<SoundBank Id="1584861558" Type="User" GUID="{B2938181-788B-4184-B2D3-331BB75588D1}" Language="SFX" Hash="{BE3B5109-D067-B92E-87F1-75FCD17B06B0}">
+		<SoundBank Id="1584861558" Type="User" GUID="{B2938181-788B-4184-B2D3-331BB75588D1}" Language="SFX" Hash="{15C10AA0-F4B6-466D-FF52-033E21AA2F9D}">
 			<ObjectPath>\SoundBanks\Default Work Unit\SR</ObjectPath>
 			<ShortName>SR</ShortName>
 			<Path>SR.bnk</Path>
@@ -227,7 +227,7 @@
 				</Event>
 			</Events>
 		</SoundBank>
-		<SoundBank Id="1635194334" Type="User" GUID="{007CA0E5-F67C-4DFA-B327-B8787A690CF7}" Language="SFX" Hash="{08CF4901-4C52-2094-70F9-7C943B1035EA}">
+		<SoundBank Id="1635194334" Type="User" GUID="{007CA0E5-F67C-4DFA-B327-B8787A690CF7}" Language="SFX" Hash="{239E160C-4468-DAFB-8A10-3828CE6830E5}">
 			<ObjectPath>\SoundBanks\Default Work Unit\PC</ObjectPath>
 			<ShortName>PC</ShortName>
 			<Path>PC.bnk</Path>
@@ -245,7 +245,7 @@
 				</Event>
 			</Events>
 		</SoundBank>
-		<SoundBank Id="1702304874" Type="User" GUID="{D05055ED-04AC-4E2F-BBCA-98E5CA21DED5}" Language="SFX" Hash="{6B7A665C-8957-8802-A844-9ED7BEA03C15}">
+		<SoundBank Id="1702304874" Type="User" GUID="{D05055ED-04AC-4E2F-BBCA-98E5CA21DED5}" Language="SFX" Hash="{A1BC0C8D-2B14-4FB3-1B47-CEB64142B514}">
 			<ObjectPath>\SoundBanks\Default Work Unit\LC</ObjectPath>
 			<ShortName>LC</ShortName>
 			<Path>LC.bnk</Path>
@@ -263,7 +263,7 @@
 				</Event>
 			</Events>
 		</SoundBank>
-		<SoundBank Id="1802970376" Type="User" GUID="{89F37B5D-ABCE-4EC8-89D4-4BF0B225ED9B}" Language="SFX" Hash="{6AB752CE-E005-64B6-8404-1420B2B8856F}">
+		<SoundBank Id="1802970376" Type="User" GUID="{89F37B5D-ABCE-4EC8-89D4-4BF0B225ED9B}" Language="SFX" Hash="{5B2A67A3-6840-27C7-CE69-D843E2CC5E08}">
 			<ObjectPath>\SoundBanks\Default Work Unit\FS</ObjectPath>
 			<ShortName>FS</ShortName>
 			<Path>FS.bnk</Path>
@@ -281,7 +281,7 @@
 				</Event>
 			</Events>
 		</SoundBank>
-		<SoundBank Id="1836525782" Type="User" GUID="{46BDD5DB-EE49-43BF-97DD-BCCF5D8B954C}" Language="SFX" Hash="{C97C4693-B527-9448-A57F-0FA11B47BE79}">
+		<SoundBank Id="1836525782" Type="User" GUID="{46BDD5DB-EE49-43BF-97DD-BCCF5D8B954C}" Language="SFX" Hash="{F427E2F5-4193-1D07-532C-60E3CAE16143}">
 			<ObjectPath>\SoundBanks\Default Work Unit\DW</ObjectPath>
 			<ShortName>DW</ShortName>
 			<Path>DW.bnk</Path>
@@ -299,7 +299,7 @@
 				</Event>
 			</Events>
 		</SoundBank>
-		<SoundBank Id="1853303388" Type="User" GUID="{3D864037-408A-4EF1-AA0D-207B660B3204}" Language="SFX" Hash="{47167BFC-C18E-FBE3-320D-4D6C4F45DDF4}">
+		<SoundBank Id="1853303388" Type="User" GUID="{3D864037-408A-4EF1-AA0D-207B660B3204}" Language="SFX" Hash="{46F688C6-E6FC-6B19-08C2-C138E5E8F3C0}">
 			<ObjectPath>\SoundBanks\Default Work Unit\CH</ObjectPath>
 			<ShortName>CH</ShortName>
 			<Path>CH.bnk</Path>
@@ -336,5 +336,5 @@
 			</Events>
 		</SoundBank>
 	</SoundBanks>
-	<FileHash>{7967C42C-555F-24F5-1BDF-AA2984AB3903}</FileHash>
+	<FileHash>{FBB4608A-F91E-8AAC-A54C-C6CC25092D62}</FileHash>
 </SoundBanksInfo>
