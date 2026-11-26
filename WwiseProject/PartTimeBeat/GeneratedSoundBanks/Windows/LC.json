@@ -10,7 +10,7 @@
     "Type": "User",
     "GUID": "{D05055ED-04AC-4E2F-BBCA-98E5CA21DED5}",
     "Language": "SFX",
-    "Hash": "{6B7A665C-8957-8802-A844-9ED7BEA03C15}",
+    "Hash": "{A1BC0C8D-2B14-4FB3-1B47-CEB64142B514}",
     "ObjectPath": "\\SoundBanks\\Default Work Unit\\LC",
     "ShortName": "LC",
     "Path": "LC.bnk",
@@ -42,6 +42,6 @@
     ]
    }
   ],
-  "FileHash": "{594BA646-24A7-13F1-1638-97914CEFFA54}"
+  "FileHash": "{022B56AD-7F48-F2C9-F0C5-024BA8EB875F}"
  }
 }

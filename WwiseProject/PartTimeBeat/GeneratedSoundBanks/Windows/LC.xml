@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <SoundBanksInfo Platform="Windows" BasePlatform="Windows" SchemaVersion="16" SoundBankVersion="150">
 	<SoundBanks>
-		<SoundBank Id="1702304874" Type="User" GUID="{D05055ED-04AC-4E2F-BBCA-98E5CA21DED5}" Language="SFX" Hash="{6B7A665C-8957-8802-A844-9ED7BEA03C15}">
+		<SoundBank Id="1702304874" Type="User" GUID="{D05055ED-04AC-4E2F-BBCA-98E5CA21DED5}" Language="SFX" Hash="{A1BC0C8D-2B14-4FB3-1B47-CEB64142B514}">
 			<ObjectPath>\SoundBanks\Default Work Unit\LC</ObjectPath>
 			<ShortName>LC</ShortName>
 			<Path>LC.bnk</Path>
@@ -20,5 +20,5 @@
 			</Events>
 		</SoundBank>
 	</SoundBanks>
-	<FileHash>{FC483ABF-B681-6ED0-7B7A-2F3B334A0878}</FileHash>
+	<FileHash>{6A3870A0-BAD9-B903-E746-5170F645A4D5}</FileHash>
 </SoundBanksInfo>

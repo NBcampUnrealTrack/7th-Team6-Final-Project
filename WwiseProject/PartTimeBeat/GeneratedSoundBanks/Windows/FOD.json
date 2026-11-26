@@ -10,7 +10,7 @@
     "Type": "User",
     "GUID": "{C9EAC364-B816-484D-AF09-AFF3C8C71B0E}",
     "Language": "SFX",
-    "Hash": "{039823B1-6E8E-45E2-E981-B0C43D64C06A}",
+    "Hash": "{4BFD4376-E7FF-66FF-56F6-F4687E419564}",
     "ObjectPath": "\\SoundBanks\\Default Work Unit\\FOD",
     "ShortName": "FOD",
     "Path": "FOD.bnk",
@@ -42,6 +42,6 @@
     ]
    }
   ],
-  "FileHash": "{C570B87B-EB81-5255-A04F-BB95F5EB3B8F}"
+  "FileHash": "{399A8F97-968F-2F6F-B24A-3EF09904E63E}"
  }
 }

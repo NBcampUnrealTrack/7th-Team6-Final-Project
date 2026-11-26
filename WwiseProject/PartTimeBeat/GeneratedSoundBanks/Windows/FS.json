@@ -10,7 +10,7 @@
     "Type": "User",
     "GUID": "{89F37B5D-ABCE-4EC8-89D4-4BF0B225ED9B}",
     "Language": "SFX",
-    "Hash": "{6AB752CE-E005-64B6-8404-1420B2B8856F}",
+    "Hash": "{5B2A67A3-6840-27C7-CE69-D843E2CC5E08}",
     "ObjectPath": "\\SoundBanks\\Default Work Unit\\FS",
     "ShortName": "FS",
     "Path": "FS.bnk",
@@ -42,6 +42,6 @@
     ]
    }
   ],
-  "FileHash": "{DF63177F-5C69-C82D-D07B-94660FBC4E8D}"
+  "FileHash": "{6568AD54-6F97-BB30-FD06-D0D7B09E7C77}"
  }
 }

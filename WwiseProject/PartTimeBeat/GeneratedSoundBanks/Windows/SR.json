@@ -10,7 +10,7 @@
     "Type": "User",
     "GUID": "{B2938181-788B-4184-B2D3-331BB75588D1}",
     "Language": "SFX",
-    "Hash": "{BE3B5109-D067-B92E-87F1-75FCD17B06B0}",
+    "Hash": "{15C10AA0-F4B6-466D-FF52-033E21AA2F9D}",
     "ObjectPath": "\\SoundBanks\\Default Work Unit\\SR",
     "ShortName": "SR",
     "Path": "SR.bnk",
@@ -42,6 +42,6 @@
     ]
    }
   ],
-  "FileHash": "{493251F6-0DED-400F-E7E7-3F51CD059BC7}"
+  "FileHash": "{FA6906D5-CD08-EB03-29C7-AF6AC5B67307}"
  }
 }
